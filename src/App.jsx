@@ -52,6 +52,9 @@ export default function App() {
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
+  // Grafana-style: below 768px viewport, render a single-column stack instead
+  // of the 12-col grid (75px-wide columns are unusable on phones).
+  const isMobile = gridWidth + 40 < 768;
 
   useEffect(() => {
     let rafId;
@@ -197,6 +200,21 @@ export default function App() {
     );
   }
 
+  const widgetItems = widgets.map(w => (
+    <div key={w.id} className="grid-item">
+      <ErrorBoundary
+        resetKey={w.config}
+        label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
+      >
+        <WidgetFrame
+          widget={w}
+          onRemove={handleRemoveWidget}
+          onUpdateConfig={handleUpdateConfig}
+        />
+      </ErrorBoundary>
+    </div>
+  ));
+
   return (
     <div className="app">
       <header className="app-header">
@@ -237,33 +255,24 @@ export default function App() {
       )}
 
       <div className="dashboard-container">
-        <GridLayout
-          className="layout"
-          layout={layout}
-          cols={12}
-          rowHeight={80}
-          width={gridWidth}
-          onLayoutChange={handleLayoutChange}
-          draggableHandle=".widget-header"
-          compactType="vertical"
-          margin={[12, 12]}
-          containerPadding={[0, 0]}
-        >
-          {widgets.map(w => (
-            <div key={w.id} className="grid-item">
-              <ErrorBoundary
-                resetKey={w.config}
-                label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
-              >
-                <WidgetFrame
-                  widget={w}
-                  onRemove={handleRemoveWidget}
-                  onUpdateConfig={handleUpdateConfig}
-                />
-              </ErrorBoundary>
-            </div>
-          ))}
-        </GridLayout>
+        {isMobile ? (
+          <div className="mobile-stack">{widgetItems}</div>
+        ) : (
+          <GridLayout
+            className="layout"
+            layout={layout}
+            cols={12}
+            rowHeight={80}
+            width={gridWidth}
+            onLayoutChange={handleLayoutChange}
+            draggableHandle=".widget-header"
+            compactType="vertical"
+            margin={[12, 12]}
+            containerPadding={[0, 0]}
+          >
+            {widgetItems}
+          </GridLayout>
+        )}
 
         {widgets.length === 0 && (
           <div className="empty-state">

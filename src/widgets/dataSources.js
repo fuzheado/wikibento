@@ -8,6 +8,53 @@ const PAGEVIEWS_API = 'https://wikimedia.org/api/rest_v1/metrics/pageviews';
 const WIKISTATS_API = 'https://wikistats.wmcloud.org/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
+import { createTtlCache } from '../lib/fetchCache';
+
+const WIKISTATS_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)';
+
+/** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
+const wikistatsCache = createTtlCache(5 * 60 * 1000);
+
+/**
+ * fetch() with a timeout and retry-with-backoff for transient failures
+ * (network errors, 5xx). 4xx errors fail fast (retrying won't help).
+ * Returns the response text.
+ */
+async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { headers: { 'User-Agent': WIKISTATS_UA }, signal: controller.signal });
+      if (resp.status >= 500 && attempt < retries) {
+        lastErr = new Error(`HTTP ${resp.status}`);
+      } else if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      } else {
+        return await resp.text();
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        lastErr = new Error(`timed out after ${timeoutMs / 1000}s`);
+      } else if (!(e instanceof Error && e.message.startsWith('HTTP '))) {
+        lastErr = e; // network-level failure (e.g. Safari's "Load failed")
+      } else {
+        lastErr = e;
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+    if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  throw lastErr;
+}
+
+/** Fetch a URL through the shared Wikistats cache (in-flight coalescing). */
+function fetchWikistatsText(url) {
+  return wikistatsCache.get(url, () => fetchTextWithRetry(url));
+}
+
 // ── GLAM Category Usage (GLAMorgan-style) ────────────────
 // Bounded, browser-native replication of GLAMorgan: a client-side category
 // walk (PetScan itself is unusable from browsers — it ignores `max` and
@@ -483,40 +530,29 @@ export async function fetchCategorySize(category, wiki = 'commons.wikimedia', sa
 }
 
 /** 4. Wikistats — per-wiki aggregate stats. Uses CSV format (dump action doesn't support JSON). */
+/** 4. Wikistats — per-wiki aggregate stats. Uses CSV format (dump action doesn't support JSON). */
 export async function fetchWikistats(table = 'wikipedias', lang = null) {
-  const params = new URLSearchParams({
-    action: 'dump',
-    table,
-    format: 'csv',
+ const params = new URLSearchParams({ action: 'dump', table, format: 'csv', });
+ try {
+  const csv = await fetchWikistatsText(`${WIKISTATS_API}?${params}`);
+  const lines = csv.trim().split('\n');
+  const headers = lines[0].split(',');
+  const rows = lines.slice(1).map(line => {
+   const vals = line.split(',');
+   const obj = {};
+   headers.forEach((h, i2) => { obj[h.trim()] = vals[i2]?.trim(); });
+   return obj;
   });
-  try {
-    const resp = await fetch(`${WIKISTATS_API}?${params}`, {
-      headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)' }
-    });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const csv = await resp.text();
-    const lines = csv.trim().split('\n');
-    const headers = lines[0].split(',');
-    const rows = lines.slice(1).map(line => {
-      const vals = line.split(',');
-      const obj = {};
-      headers.forEach((h, i) => { obj[h.trim()] = vals[i]?.trim(); });
-      return obj;
-    });
-    if (lang) {
-      return rows.find(r => r.lang === lang) || rows[0];
-    }
-    // Return top 10 by 'good' articles
-    const sorted = [...rows].filter(r => r.good).sort((a, b) => (parseInt(b.good) || 0) - (parseInt(a.good) || 0));
-    return { rows: sorted.slice(0, 10), table };
-  } catch (e) {
-    throw new Error(`Wikistats fetch failed: ${e.message}`);
+  if (lang) {
+   return rows.find(r => r.lang === lang) || rows[0];
   }
+  // Return top 10 by 'good' articles
+  const sorted = [...rows].filter(r => r.good).sort((a, b) => (parseInt(b.good) || 0) - (parseInt(a.good) || 0));
+  return { rows: sorted.slice(0, 10), table };
+ } catch (e) {
+  throw new Error(`Wikistats fetch failed: ${e.message}`);
+ }
 }
-
-/** 5. Commons File Usage — how many wiki pages use a given Commons file.
- *  Also fetches imageinfo (thumbnail + description) so the widget can show
- *  the image itself and its summary text. */
 export async function fetchFileUsage(filename, topN = 10) {
   const params = new URLSearchParams({
     action: 'query',

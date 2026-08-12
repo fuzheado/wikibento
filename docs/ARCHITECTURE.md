@@ -119,7 +119,7 @@ export/reset ──────────────────────�
 
 | # | Issue | Location | Impact / Fix |
 |---|---|---|---|
-| 1 | ~~Grid width fixed, no resize listener~~ | App.jsx | **Fixed 2026-08-12** — rAF-throttled `resize` listener + `gridWidth` state |
+| 1 | ~~Grid width fixed, no resize listener~~ | App.jsx | **Fixed 2026-08-12** — rAF-throttled `resize` listener + `gridWidth` state; **<768px renders a single-column stack** (Grafana-style) instead of the grid |
 | 2 | ~~Category Size subtitle heuristic~~ | widgets/index.js | **Fixed 2026-08-12** — subtitle now derived from `config.wiki` |
 | 3 | ~~`recharts@3.10.1` unused dependency~~ | package.json | **Fixed 2026-08-12** — removed from `package.json` + lockfile (Phase 0) |
 | 4 | ~~`public/favicon.svg` / `icons.svg` dead assets~~ | public/ | **Fixed 2026-08-12** — deleted; index.html uses an inline emoji data-URI favicon |
@@ -130,8 +130,9 @@ export/reset ──────────────────────�
 | 9 | ~~No React error boundary~~ | main.jsx | **Fixed 2026-08-12** — `ErrorBoundary` wraps each grid item (auto-resets on config change, Try Again button) |
 | 10 | Browser strips the `User-Agent` header set via `fetch` (forbidden header) | dataSources.js | Harmless no-op: Wikimedia API etiquette is satisfied by the browser's own UA; keep it for non-browser reuse (tests, curl) |
 | 11 | Dev-mode StrictMode double-mounts effects → double API fetches in dev | main.jsx | Dev only; production build unaffected |
-| 12 | No shared fetch cache | WidgetFrame.jsx | Two widgets hitting the same endpoint (e.g. Wiki Stats + Top 10 both fetch the Wikistats CSV) fetch independently; add a tiny in-memory TTL cache in v2 |
+| 12 | ~~No shared fetch cache~~ | dataSources.js | **Fixed 2026-08-12 (Wikistats)** — 5-min TTL cache + in-flight coalescing (`lib/fetchCache.js`); two widgets now share one CSV fetch. Other fetchers can adopt the same helper |
 | 13 | `AddWidgetPanel` can't be closed with Escape, and overlay has no focus trap | AddWidgetPanel.jsx | Minor a11y gap — the Share panel (added 2026-08-12) does support Escape-to-close; apply the same pattern here |
 | 14 | Config panel has no per-field validation (e.g. `topN` accepts 0/negative) | WidgetFrame.jsx | Validate or clamp in transform/fetch |
 | 15 | `handleLayoutChange` persists on every drag tick | App.jsx | Synchronous `localStorage.setItem` per mousemove — fine at this payload size, but debounce if dashboards grow |
 | 16 | Long dashboards can't QR-share: `#/d/` links > ~1,500 chars are too dense for phones | SharePanel.jsx | The Share modal QR-encodes the current `?config=` URL when present; otherwise caps at 1,500 chars and shows a friendly notice |
+| 17 | Wikistats fetch had no timeout/retry — transient network failures (Safari "Load failed") killed both widgets | dataSources.js | **Fixed 2026-08-12** — 15 s AbortController timeout, retry ×2 with backoff, 5xx retried / 4xx fail-fast; clear "timed out" message |

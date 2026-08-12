@@ -28,7 +28,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 | Idea | Effort | Impact | Notes |
 |---|---|---|---|
 | ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all 7 widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
-| **Shared fetch cache** | S | Medium | Wiki Stats + Top 10 fetch the same 333-row CSV independently. A 5-minute in-memory TTL cache keyed by URL halves API load and speeds refresh |
+| **Shared fetch cache** | S | Medium | **Done 2026-08-12 for Wikistats** (5-min TTL + coalescing, `lib/fetchCache.js`); extend to other fetchers when needed |
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |
 | **CORS proxy** | M | Low (today) | Not needed while all sources are CORS-enabled. Only required if a non-Wikimedia source (e.g. a scraped site) becomes a widget. Toolforge can host a tiny `fetch`-proxy webservice if it ever matters |
@@ -61,6 +61,9 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
+- **Responsive multi-breakpoint grid** — done 2026-08-12 in simplified form:
+  <768px collapses to a single-column stack (Grafana-style); future option is
+  react-grid-layout `Responsive` with intermediate breakpoints (md/sm)
 - **Config validation** — clamp `topN` to 1–50, reject empty domains/categories
   (ARCHITECTURE #14)
 - **Layout import via drag-drop of dashboard.json** onto the page

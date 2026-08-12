@@ -125,6 +125,18 @@ body {
 }
 .grid-item:hover { border-color: var(--accent-dim); }
 
+/* Mobile (<768px): single-column stack instead of the 12-col grid —
+   Grafana-style; 75px columns are unusable on phones. */
+.mobile-stack {
+ display: flex;
+ flex-direction: column;
+ gap: 12px;
+}
+.mobile-stack .grid-item {
+ width: 100%;
+}
+
+
 /* ── Widget Frame ───────────────────────────────────────── */
 
 .widget-frame {

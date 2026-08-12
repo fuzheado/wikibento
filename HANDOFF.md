@@ -31,6 +31,11 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   QR code (client-side `qrcode-generator`, inline SVG) + copyable link — encodes
   the current `?config=` URL when present (short, phone-friendly), else the
   self-contained hash link when under ~1,500 chars, else a friendly notice
+- ✅ **Responsive layout (2026-08-12):** phones (<768px) get a single-column card
+  stack instead of 75px-wide grid columns; tablets/desktops keep the grid
+- ✅ **Wikistats robustness (2026-08-12):** shared 5-min TTL fetch cache (Wiki Stats
+  + Top 10 now cost ONE request for the 195 KB CSV) + 15 s timeout +
+  retry-with-backoff; transient "Load failed" errors self-heal
 
 ## Quick Start
 
@@ -93,11 +98,13 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 - `_title` (custom widget title) isn't editable in the config panel
 - AddWidgetPanel: no Escape-to-close, no focus trap (SharePanel has Escape-to-close)
-- Wikistats CSV parser is naive (no quoted-field handling); 195 KB per fetch, no shared cache
+- Wikistats CSV parser is naive (no quoted-field handling) — fetching is now
+  cached + retried, but the parse itself still assumes no commas in fields
 - `handleLayoutChange` persists to localStorage on every drag tick (fine at current payload size)
 
 *Fixed in Phase 0 (2026-08-12): resize reflow, error boundary, recharts,
-`public/favicon.svg` + `icons.svg`. Added (2026-08-12): QR share panel.*
+`public/favicon.svg` + `icons.svg`. Added (2026-08-12): QR share panel,
+responsive mobile stack, Wikistats cache + timeout + retry.*
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
@@ -106,9 +113,11 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md
-2. Phase 1: **time-range selectors** for pageviews, **shared fetch cache** (Wikistats CSV!), **CIM-first GLAM mode**
+2. Phase 1: **time-range selectors** for pageviews, **CIM-first GLAM mode**
 3. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
 4. ~~QR code share~~ — **done 2026-08-12**: Share panel with client-side QR (see README)
+5. ~~Shared fetch cache (Wikistats)~~ — **done 2026-08-12**: 5-min TTL cache +
+   in-flight coalescing + 15 s timeout + retry (see README)
 
 ## Identity & Attribution
 

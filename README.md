@@ -42,6 +42,9 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 
 ## Features
 
+- **Responsive layout** — on phones (<768px) the 12-column grid collapses to a
+  single-column card stack (Grafana-style); tablets and desktops keep the full
+  drag-and-drop grid
 - **Drag & drop** — grab a widget's title bar to reposition it (12-column grid, vertical compaction)
 - **Resize** — drag the bottom-right corner of any widget
 - **Add Widget panel** — searchable catalog; click to add
@@ -54,6 +57,9 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   files, pages on wikis, total views, top-image filmstrip, and per-page usage of
   the top file (GLAMorgan-style)
 - **Auto-refresh** — configurable per widget (default: 1 h, Wikistats widgets default 2 h)
+- **Resilient fetches** — the Wikistats CSV is fetched through a shared TTL cache
+  (two widgets hitting the same 195 KB file now cost one request) with a 15 s
+  timeout and retry-with-backoff, so transient network hiccups don't kill widgets
 - **Resilience** — each widget is wrapped in an error boundary: a render crash
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
