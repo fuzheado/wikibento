@@ -21,8 +21,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit 7b89266)
-- ⏳ **Not deployed to Toolforge** — tool account `tools.wikibento` does not exist yet
-  (create at admin.toolforge.org, then follow docs/DEPLOYMENT.md)
+- ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
+  node20 webservice serving dist/ via deploy/server.js; demo URL verified live
+  (all 7 widgets). Updates: rsync dist/ + `toolforge webservice node20 restart`
 
 ## Quick Start
 
@@ -92,7 +93,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
-1. **Deploy to Toolforge** (docs/DEPLOYMENT.md) — create `tools.wikibento`, rsync `dist/`, `webservice --backend=kubernetes static start`
+1. ~~Deploy to Toolforge~~ — **done 2026-08-12**: https://wikibento.toolforge.org/
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

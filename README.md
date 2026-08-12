@@ -11,6 +11,7 @@ anywhere.
 All seven widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
 Commons, Wikistats) directly from the browser — no backend, no login, no proxy.
 
+**Live:** [wikibento.toolforge.org](https://wikibento.toolforge.org/) ·
 Source: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)
 
 ---
@@ -21,7 +22,7 @@ A ready-made 7-widget dashboard config is hosted on Wikimedia Commons. Open
 the app with this URL and the whole dashboard loads immediately:
 
 ```
-https://<your-host>/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json
+https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json
 ```
 
 (The file is plain JSON — see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md). Any
