@@ -111,7 +111,9 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 - The LLM wiki (`~/.llm-wiki`) has observations/insights from this project's
   development (search `wikiwidget`, `wikibento`, `commons-impact-metrics`).
-- Relevant skills: `wikimedia-commons` (incl. Commons Impact Metrics section),
+- Relevant skills: `toolforge-nodejs` (**deployments — read before any webservice
+  command**; the `static` webservice type does not exist, use node20),
+  `wikimedia-toolforge`, `wikimedia-commons` (incl. Commons Impact Metrics section),
   `wikimedia-api-access`, `commons-file-resolution`, `wikimedia-api-strategy`.
 - **Widget ideas bank:** docs/WIDGET-IDEAS.md — unprioritized proposals with
   verified API/CORS notes (Wiki Edu dashboards etc.); move to ROADMAP when scheduled.
