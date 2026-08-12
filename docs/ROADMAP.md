@@ -3,6 +3,29 @@
 Status as of the 2026-08-12 audit: **all 7 widgets verified live**, build clean,
 app fully functional as a v1. This document orders what comes next.
 
+## Strategy — Power Widgets → Starter Packs → Spike Alert (2026-08-12 brainstorm)
+
+The widget strategy agreed 2026-08-12 (full taxonomy in [WIDGET-IDEAS.md](WIDGET-IDEAS.md), source: brainstorm doc):
+
+```
+Power widgets (SPARQL, PetScan, URL extractor)  →  makes WikiBento a framework
+Starter packs (7 pre-built bentos)              →  removes the cold start
+Spike alert (the killer widget)                 →  makes it shareable / PR-worthy
+```
+
+- **Tier 1 power widgets** — SPARQL Query (WDQS, CORS-enabled), PetScan Query,
+  Arbitrary URL Extractor. One widget = infinite metrics; this is what turns
+  "a nice dashboard" into "a framework."
+- **Starter packs** — pre-configured JSON bentos (same `dashboard.json` format
+  already exported). Grafana/Kibana-style adoption: users select, then tweak.
+  Lineup: 🏛️ GLAM Footprint · 📰 Newsroom Pulse · 🔭 WikiProject Monitor ·
+  🎪 Edit-a-thon Live · 📈 Campaign Tracker · 🧑‍🔬 Researcher's View · ✍️ Personal Dashboard.
+- **Spike alert (Article Watch)** — pageviews with a 3×-baseline spike detector;
+  the hero, screenshot-able feature (newsroom / GLAM "suddenly famous" moments).
+
+Tiers 2–5 (GLAM, Article, Live, Community) are detailed in WIDGET-IDEAS.md; many
+Tier-2 GLAM widgets already ship (GLAM Category Usage, File Usage Map).
+
 ## Phase 0 — Quick Wins (½ day, no new features)
 
 Housekeeping found during the code audit. Safe for a first PR.
@@ -31,7 +54,12 @@ Housekeeping found during the code audit. Safe for a first PR.
 | **Shared fetch cache** | S | Medium | **Done 2026-08-12 for Wikistats** (5-min TTL + coalescing, `lib/fetchCache.js`); extend to other fetchers when needed |
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |
-| **CORS proxy** | M | Low (today) | Not needed while all sources are CORS-enabled. Only required if a non-Wikimedia source (e.g. a scraped site) becomes a widget. Toolforge can host a tiny `fetch`-proxy webservice if it ever matters |
+| **CORS proxy** | M | Medium (soon) | Currently unneeded (all sources CORS-enabled) — but the **Arbitrary URL Extractor power widget** makes it required for non-Wikimedia scraped sources. Toolforge can host a tiny `fetch`-proxy webservice |
+| **Power widget: SPARQL Query** | M | High | Run any SPARQL against WDQS (`query.wikidata.org`, CORS-enabled; also QLever commons-query for Commons SDC); render table / bar chart / map. One widget = infinite metrics — the framework maker. See WIDGET-IDEAS.md Tier 1 |
+| **Power widget: PetScan Query** | S–M | High | Category/template intersections via `petscan.wmcloud.org` (`format=json` + PSID); list/table output. ⚠️ gotcha: PetScan ignores `max` in quick-intersection mode — always pass bounded params (depth, categories). See WIDGET-IDEAS.md Tier 1 |
+| **Power widget: Arbitrary URL Extractor** | M | High | Paste a tool URL + CSS selector/regex, pick a metric (sum/count/top-N). The escape hatch wrapping any tool; non-CORS targets need the proxy row above |
+| **Spike alert (Article Watch)** | M | High | Pageviews + anomaly detector: watched article jumps 3× its baseline → widget lights up. Newsroom editorial intelligence; the shareable hero feature. Needs baseline-window config (7/30 d) |
+| **Starter packs** | S each | High | 7 pre-configured bentos as `dashboard.json` presets with a picker on first run. Ship first 3: GLAM Footprint, Newsroom Pulse, Edit-a-thon Live. See WIDGET-IDEAS.md Part 2 |
 | **Multi-device sync via on-wiki JSON** | M–L | High | Store the dashboard at `User:Fuzheado/dashboard.json` on-wiki; fetch on load, push on change. Requires OAuth for writes — see below |
 | **User authentication / OAuth** | L | High | OAuth 2.0 (MediaWiki) enables on-wiki sync, personal dashboards, and eventually save-to-page. See the `wikimedia-auth-oauth` skill |
 | **Widget marketplace** | L | Medium | Community-contributed widgets need a schema-versioned registry (current configs have no version field) and a hosting story. Premature until the registry API stabilizes — but adding `schemaVersion` to exports now costs nothing |
@@ -79,9 +107,14 @@ Housekeeping found during the code audit. Safe for a first PR.
 > dashboard.wikiedu.org is CORS-enabled, impact.wikiedu.org is not.
 
 
-- More widgets: article quality (Lift Wing/ORES), recent changes stream
-  (EventStreams), category intersection (PetScan), page assessment
-  (PageAssessments), watchlist-style "your dashboard" with OAuth
+- More widgets — full taxonomy in [WIDGET-IDEAS.md](WIDGET-IDEAS.md) (5 tiers):
+  Tier 2 GLAM (Commons Gallery, BaGLAMa-style tracker, Structured Data panel),
+  Tier 3 Article (embed, revision history, size/growth, what-links-here, language
+  coverage, Wikidata item card), Tier 4 Live (top-read, ITN, on-this-day,
+  hashtag tracker), Tier 5 Community (contribution counter, WikiProject pulse,
+  vital articles, discussion monitor — watchlist feed needs OAuth). Also:
+  article quality (Lift Wing/ORES), recent changes stream (EventStreams), page
+  assessment (PageAssessments), watchlist-style "your dashboard" with OAuth
 - PWA: manifest + service worker for offline dashboards (pageview data caches well)
 - Automated smoke tests (Playwright) against the live API endpoints to catch upstream
   format changes — especially the naive Wikistats CSV parser (ARCHITECTURE #5)
@@ -90,5 +123,8 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 Phase 0 first (zero-risk cleanup, teaches the codebase). Then, in order:
 **Import** → **time-range selectors** → **shared cache** → **URL-shareable dashboards**
-→ decide on OAuth/on-wiki sync (biggest design commitment; revisit after the others
-are in, since the export format will have stabilized).
+→ **power widgets** (SPARQL, PetScan, URL extractor — biggest leverage) →
+**3 starter packs** (GLAM Footprint, Newsroom Pulse, Edit-a-thon Live) →
+**spike alert** (the PR-worthy hero feature) → decide on OAuth/on-wiki sync
+(biggest design commitment; revisit after the others are in, since the export
+format will have stabilized).

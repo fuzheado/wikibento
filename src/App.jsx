@@ -217,6 +217,16 @@ export default function App() {
     </div>
   ));
 
+  // Mobile stack order follows the grid layout (top-left first), not the
+  // widgets array order — dragging on desktop only changes `layout` positions,
+  // so sorting by (y, x) keeps the phone stack in visual reading order.
+  const layoutPos = new Map(layout.map(l => [l.i, l]));
+  const mobileItems = [...widgetItems].sort((a, b) => {
+    const la = layoutPos.get(a.key) || { y: Infinity, x: Infinity };
+    const lb = layoutPos.get(b.key) || { y: Infinity, x: Infinity };
+    return (la.y - lb.y) || (la.x - lb.x);
+  });
+
   return (
     <div className="app">
       <header className="app-header">
@@ -261,7 +271,7 @@ export default function App() {
 
       <div className="dashboard-container">
         {isMobile ? (
-          <div className="mobile-stack">{widgetItems}</div>
+          <div className="mobile-stack">{mobileItems}</div>
         ) : (
           <GridLayout
             className="layout"

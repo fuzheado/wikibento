@@ -18,6 +18,14 @@ export const EXAMPLE_DASHBOARD = {
   version: CONFIG_VERSION,
   widgets: [
     {
+      id: 'example-markdown',
+      widgetType: 'markdown',
+      config: {
+        text: '# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** — add widgets, drag them around, and share your board with a link.\n\n- 📊 **Article Pageviews** — 30-day traffic\n- 🏆 **Top 10 Wikipedias** — biggest language editions\n- 🖼️ **File Usage Map** — where a Commons file is used\n\n> Edit any widget with ⚙. Export/import your board as JSON, or share it via 🔗.',
+        refreshSeconds: 86400,
+      },
+    },
+    {
       id: 'example-pageviews',
       widgetType: 'pageviews',
       config: { article: 'Main_Page', project: 'en.wikipedia', displayMode: 'stat', refreshSeconds: 3600 },
@@ -65,13 +73,14 @@ export const EXAMPLE_DASHBOARD = {
     },
   ],
   layout: [
-    { i: 'example-pageviews', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'example-linkcount', x: 3, y: 0, w: 3, h: 3, minW: 2, minH: 2 },
-    { i: 'example-category', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 3 },
-    { i: 'example-fileusage', x: 9, y: 0, w: 3, h: 5, minW: 2, minH: 4 },
-    { i: 'example-wikistats', x: 0, y: 4, w: 3, h: 3, minW: 2, minH: 2 },
-    { i: 'example-topwikis', x: 3, y: 4, w: 4, h: 4, minW: 3, minH: 3 },
-    { i: 'example-glam', x: 7, y: 4, w: 5, h: 6, minW: 3, minH: 4 },
+    { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
+    { i: 'example-pageviews', x: 0, y: 4, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'example-linkcount', x: 3, y: 4, w: 3, h: 3, minW: 2, minH: 2 },
+    { i: 'example-category', x: 6, y: 4, w: 3, h: 4, minW: 2, minH: 3 },
+    { i: 'example-fileusage', x: 9, y: 4, w: 3, h: 5, minW: 2, minH: 4 },
+    { i: 'example-wikistats', x: 0, y: 8, w: 3, h: 3, minW: 2, minH: 2 },
+    { i: 'example-topwikis', x: 3, y: 8, w: 4, h: 4, minW: 3, minH: 3 },
+    { i: 'example-glam', x: 7, y: 8, w: 5, h: 6, minW: 3, minH: 4 },
   ],
 };
 

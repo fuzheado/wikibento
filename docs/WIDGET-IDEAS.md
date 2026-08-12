@@ -80,6 +80,113 @@ there. Add new ideas freely; keep the entry format.
 
 ---
 
+## Tier 1 — Power Widgets (2026-08-12 brainstorm: build first, biggest leverage)
+
+> These three make WikiBento a *framework*, not a dashboard. They multiply the value of every other widget. Full strategy in [ROADMAP.md](ROADMAP.md) §Strategy.
+
+### SPARQL Query
+
+- **What it shows:** run any arbitrary SPARQL query; render results as table / bar chart / map. One widget = infinite metrics (Wikidata stats, category analysis, cross-wiki comparisons, geographic data).
+- **Feasibility:** ✅ WDQS (`query.wikidata.org/sparql`) is CORS-enabled; also QLever (`commons-query.wikimedia.org`) for Commons SDC graphs (see `wikimedia-commons-sparql` skill). Pre-written query library + editable query input; renderers: table / bar / map (hand-rolled SVG as elsewhere).
+- **Effort:** M (query editor + 3 renderers)
+- **Notes:** the "hole card" for power users; consider a query library of curated examples (top images of X, license distribution, depicts counts) to seed it.
+
+### PetScan Query
+
+- **What it shows:** category/template intersections output as a list or table (replaces a dozen niche tools).
+- **Feasibility:** ✅ `petscan.wmcloud.org` supports `format=json` (PSID URLs persist queries). ⚠️ **gotcha (verified in HANDOFF):** PetScan ignores the `max` cap in quick-intersection mode — max=100 returned all 239,084 files / 39 MB. Always bound queries by depth/categories, and cap output client-side. Never use it for big categories in the GLAM widget — that does its own bounded categorymembers walk.
+- **Effort:** S–M
+- **Notes:** Swiss army knife of wiki queries; pairs naturally with the WikiProject Monitor pack (PetScan + recentchanges).
+
+### Arbitrary URL Extractor
+
+- **What it shows:** paste a tool URL + CSS selector/regex, pick a metric (sum, count, top-N). The escape hatch that lets WikiBento wrap *any* tool, even ones without APIs.
+- **Feasibility:** ⚠️ needs CORS on the target. CORS-enabled Wikimedia endpoints work directly; anything else needs the ROADMAP **CORS proxy** (Toolforge `fetch`-proxy webservice) — this widget is the reason the proxy graduates from "not needed" to required.
+- **Effort:** M (selector UI + metric extraction + proxy wiring)
+- **Notes:** fulfills the original "generic widget" vision; makes WikiBento open-ended.
+
+## Tier 2 — GLAM & Impact (2026-08-12 brainstorm: the "money" widgets)
+
+> The clearest path to adoption and funding — institutions with budgets and reporting needs. ✅ Already shipped: GLAM Category Usage (GLAMorgan-style), File Usage Map, Commons Impact Metrics via GLAM widget.
+
+### Commons Gallery
+
+- **What it shows:** image grid from a category (visual appeal + GLAM demo value).
+- **Feasibility:** ✅ Commons `categorymembers` (CORS-enabled) — the same API the Category Size widget already uses for its random photo sample; reuse that code path.
+- **Effort:** S
+- **Notes:** near-free once the Category Size sample code is factored out.
+
+### BaGLAMa-style tracker
+
+- **What it shows:** monthly views per image *over time* for a category (replaces stale BaGLAMa 2).
+- **Feasibility:** ⚠️ needs snapshot history. Commons Impact Metrics only keeps the latest monthly snapshot; the GLAM widget already fetches top-file views, but *over-time* data requires archiving CIM snapshots (a scheduled fetch, e.g. monthly Toolforge cron) or a per-file pageviews approach.
+- **Effort:** M–L (includes snapshot-archiving design)
+- **Notes:** check what CIM's snapshot endpoint exposes per file before committing to an archive design.
+
+### Structured Data panel
+
+- **What it shows:** depicts / creator / license stats for a category (GLAM + research).
+- **Feasibility:** ✅ WCQS SPARQL (QLever, no auth) or Commons Action API (`wbgetentities`). Category → MediaInfo entities → statement breakdown.
+- **Effort:** M
+- **Notes:** see `wikimedia-commons-sdc` and `wikimedia-commons-sparql` skills.
+
+## Tier 3 — Article & Content (2026-08-12 brainstorm: monitoring)
+
+| Idea | Data source | Feasibility | Effort | Notes |
+|---|---|---|---|---|
+| **Article embed** | REST `/page/{title}` | ✅ CORS-enabled, returns HTML | S | Render article or section inline; strip nav cruft |
+| **Revision history** | Action API `revisions` | ✅ | S | Reverse-chronological edit list |
+| **Article size/growth** | Action API `rvprop=size` | ✅ | S | Byte count over time — is it growing? |
+| **What links here** | Action API `linkshere` | ✅ | S | Incoming link count |
+| **Language coverage** | Action API `langlinks` | ✅ | S | How many languages — global reach |
+| **Wikidata item card** | Wikibase `wbgetentities` | ✅ | S | The structured data behind an article |
+
+> Pageviews sparkline (daily trend) already ships as Article Pageviews.
+
+## Tier 4 — Live & Trending (2026-08-12 brainstorm: "wow, it's alive")
+
+| Idea | Data source | Feasibility | Effort | Notes |
+|---|---|---|---|---|
+| **Top read today** | Pageviews `top/` endpoint | ✅ | S | Most-viewed articles right now |
+| **In the news (ITN)** | Action API parse of ITN template | ✅ | S | Current-events front-page feed |
+| **On this day** | Selected anniversaries parse | ✅ | S | Historical engagement driver |
+| **Recent changes (filtered)** | Action API `recentchanges` | ✅ | S | Live edit feed, filterable — also `wikimedia-eventstreams` for true realtime |
+| **Hashtag tracker** | Hashtags tool API | ⚠️ verify | M | Live campaign monitoring; check `hashtags.wmcloud.org` API shape |
+
+## Tier 5 — Community & Editors (2026-08-12 brainstorm: people)
+
+| Idea | Data source | Feasibility | Effort | Notes |
+|---|---|---|---|---|
+| **Contribution counter** | Action API `usercontribs` | ✅ | S | Edits by user / date-range |
+| **Watchlist feed** | Action API `watchlist` | 🔒 needs OAuth | M | Private data — see ROADMAP OAuth row |
+| **WikiProject pulse** | PetScan + `recentchanges` | ✅ (once PetScan widget exists) | M | Activity in a project's articles |
+| **Vital articles progress** | Vital list + PageAssessments | ✅ | M | Completeness of "must-have" articles |
+| **Discussion monitor** | Talk page `revisions` | ✅ | S | Recent talk-page activity |
+
+## The Killer Widget — Article Watch + Spike Alert (2026-08-12 brainstorm)
+
+- **What it shows:** pageviews with a spike detector — when a watched article's views jump **3× its baseline** (breaking news, viral moment), the widget lights up.
+- **Audiences:** newsroom editorial intelligence (the story before it's reported); GLAM institutions ("your collection is suddenly famous"); everyone (the single most screenshot-able widget).
+- **Feasibility:** ✅ RESTBase pageviews supports arbitrary ranges — baseline = mean of previous N days vs today/rolling window. Edge cases: partial-day "today" numbers, zero-view days, rate spikes from bot traffic.
+- **Effort:** M (baseline-window config 7/30 d, threshold, alert state + glow styling)
+- **Notes:** the hero feature that gets WikiBento written up; pairs with 📰 Newsroom Pulse pack. Consider per-widget "watched articles" list + browser notification via the [Notifications API].
+
+## Starter Packs — pre-built bentos (2026-08-12 brainstorm: Strong Yes)
+
+> Grafana/Kibana adoption pattern: people select a dashboard and tweak it, they don't build one. A starter pack is just a `dashboard.json` preset — same format the app already exports (docs/JSON-FORMAT.md). One file per pack, loaded from a picker on first run.
+
+| Pack | Target user | Widgets | Dependencies |
+|---|---|---|---|
+| 🏛️ GLAM Footprint | Museum/archive director | Commons gallery, GLAMorgan panel, file usage map, CIM, language coverage | Gallery widget + langlinks (Tier 3) |
+| 📰 Newsroom Pulse | Journalist/editor | Top read today, ITN, spike alert, pageviews trend, article embed | Top-read + ITN + spike alert |
+| 🔭 WikiProject Monitor | WikiProject coordinator | Recent changes (filtered), size growth, category size, discussion monitor, vital articles | RC filter + vital articles |
+| 🎪 Edit-a-thon Live | Event organizer | Contribution counter, live RC, new-articles feed, hashtag tracker, Commons gallery | Hashtag tracker |
+| 📈 Campaign Tracker | Wiki Loves / campaign lead | Upload counter, per-category growth, top contributors, files-in-use | Needs investigation |
+| 🧑‍🔬 Researcher's View | Academic | SPARQL, Wikidata item card, langlinks, pageviews, citation metrics | SPARQL widget + citation widget |
+| ✍️ Personal Dashboard | Any editor | Watchlist feed, contribution counter, article watch, on-this-day | 🔒 Watchlist needs OAuth |
+
+**Ship order:** GLAM Footprint, Newsroom Pulse, Edit-a-thon Live (first 3; many required widgets already exist or are Tier-1).
+
 ## How to Add an Idea
 
 Copy the format above: **title, links, what it shows, verified feasibility

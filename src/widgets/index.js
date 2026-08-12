@@ -287,4 +287,24 @@ export const WIDGET_TYPES = {
       rows: (data.rows || []).map(r => [r.lang, (parseInt(r.good) || 0).toLocaleString()]),
     }),
   },
+
+  markdown: {
+    id: 'markdown',
+    name: 'Text / Markdown',
+    icon: '📝',
+    description: 'Free-form Markdown card — notes, headings, links, explanations',
+    defaults: {
+      text: '## Welcome\n\nThis is a **Markdown** card. Click ⚙ to edit the text.',
+      allowExternalImages: false,
+      refreshSeconds: 86400,
+    },
+    renderer: 'MarkdownCard',
+    dataSource: 'static (no fetch)',
+    configFields: [
+      { key: 'text', label: 'Markdown content', type: 'textarea', rows: 8, placeholder: '# Heading\n\nSome **bold** text…' },
+      { key: 'allowExternalImages', label: 'Allow external images (any https host)', type: 'boolean' },
+    ],
+    // No fetch — a static widget: WidgetFrame renders transform(null, config)
+    transform: (data, config) => ({ markdown: config.text, allowExternalImages: config.allowExternalImages }),
+  },
 };

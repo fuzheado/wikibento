@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WIDGET_TYPES } from './index';
+import { renderMarkdown } from '../lib/markdown';
 
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
@@ -21,7 +22,17 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
   const renderer = def?.getRenderer?.(widget.config) || def?.renderer || 'StatCard';
 
   const load = useCallback(async () => {
-    if (!def?.fetch) return;
+    if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
+      // Static widget (no fetch): render straight from config.
+      setState({
+        loading: false,
+        error: null,
+        data: WIDGET_TYPES[widget.widgetType]?.transform
+          ? WIDGET_TYPES[widget.widgetType].transform(null, widget.config)
+          : null,
+      });
+      return;
+    }
     setState(s => ({ ...s, loading: true, error: null }));
     try {
       const data = await def.fetch(widget.config);
@@ -37,8 +48,9 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     load();
   }, [load]);
 
-  // Auto-refresh
+  // Auto-refresh (static widgets have nothing to refresh)
   useEffect(() => {
+    if (!WIDGET_TYPES[widget.widgetType]?.fetch) return;
     const secs = (widget.config.refreshSeconds || 3600) * 1000;
     intervalRef.current = setInterval(load, secs);
     return () => clearInterval(intervalRef.current);
@@ -97,6 +109,13 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
                   onChange={e => handleConfigChange(field.key, parseInt(e.target.value) || 0)}
                   placeholder={field.placeholder}
                 />
+              ) : field.type === 'textarea' ? (
+                <textarea
+                  value={widget.config[field.key] || ''}
+                  onChange={e => handleConfigChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  rows={field.rows || 6}
+                />
               ) : (
                 <input
                   type="text"
@@ -135,6 +154,7 @@ function WidgetContent({ type, data }) {
     case 'RankingCard': return <RankingCard data={data} />;
     case 'TrendCard': return <TrendCard data={data} />;
     case 'GlamCard': return <GlamCard data={data} />;
+    case 'MarkdownCard': return <MarkdownCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -313,5 +333,14 @@ function TrendCard({ data }) {
         <span>{chartData[chartData.length - 1]?.[Object.keys(chartData[chartData.length - 1])[0]]}</span>
       </div>
     </div>
+  );
+}
+
+function MarkdownCard({ data }) {
+  return (
+    <div
+      className="markdown-card"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(data.markdown, { allowExternalImages: data.allowExternalImages }) }}
+    />
   );
 }

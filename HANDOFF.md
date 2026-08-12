@@ -17,7 +17,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 widget types all verified against live APIs (see README "Verified Working")
+- ✅ 7 data-driven widget types verified live (see README "Verified Working") + 📝 Text/Markdown static card (8 total, 2026-08-12)
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit 7b89266)
@@ -115,6 +115,10 @@ responsive mobile stack, Wikistats cache + timeout + retry.*
 
 1. ~~Deploy to Toolforge~~ — **done 2026-08-12**: https://wikibento.toolforge.org/
 1. ~~Phase 0 cleanup~~ — **done 2026-08-12**: recharts, dead assets, resize listener, error boundary
+1. **Widget strategy agreed 2026-08-12** — ROADMAP §Strategy + WIDGET-IDEAS:
+   power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
+   bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →
+   spike alert (hero feature). Brainstorm doc: wiki source SRC-2026-08-12-004.
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

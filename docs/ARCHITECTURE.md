@@ -119,7 +119,7 @@ export/reset ──────────────────────�
 
 | # | Issue | Location | Impact / Fix |
 |---|---|---|---|
-| 1 | ~~Grid width fixed, no resize listener~~ | App.jsx | **Fixed 2026-08-12** — rAF-throttled `resize` listener + `gridWidth` state; **<768px renders a single-column stack** (Grafana-style) instead of the grid |
+| 1 | ~~Grid width fixed, no resize listener~~ | App.jsx | **Fixed 2026-08-12** — rAF-throttled `resize` listener + `gridWidth` state; **<768px renders a single-column stack** (Grafana-style) instead of the grid. Stack order = grid layout (y, then x) so it mirrors desktop reading order; drags on desktop are reflected on phones |
 | 2 | ~~Category Size subtitle heuristic~~ | widgets/index.js | **Fixed 2026-08-12** — subtitle now derived from `config.wiki` |
 | 3 | ~~`recharts@3.10.1` unused dependency~~ | package.json | **Fixed 2026-08-12** — removed from `package.json` + lockfile (Phase 0) |
 | 4 | ~~`public/favicon.svg` / `icons.svg` dead assets~~ | public/ | **Fixed 2026-08-12** — deleted; index.html uses an inline emoji data-URI favicon |

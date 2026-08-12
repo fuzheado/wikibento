@@ -10,10 +10,10 @@ Every widget is defined by 5 things:
 | Piece | Where | What it does |
 |---|---|---|
 | `defaults` | registry entry | Starting config, merged when added from the catalog |
-| `configFields` | registry entry | Renders the ⚙ config form (text / number / select) |
-| `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws |
+| `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
+| `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
-| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` |
+| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` |
 
 ## Step-by-Step
 
@@ -63,6 +63,7 @@ myWidget: {
     // type: 'select'  → add options: [{value, label}]
     // type: 'number'  → parsed with parseInt (use 0 as the "off" value)
     // type: 'boolean' → renders a checkbox
+    // type: 'textarea' → multi-line text (rows: N, default 6) — e.g. Markdown content
   ],
   fetch: (config) => fetchMyData(config.param),
   transform: (data) => ({
@@ -126,3 +127,29 @@ ping: {
 ```
 
 That's the whole widget — registry entry, zero new files.
+
+## Static widgets (no fetch)
+
+A widget that needs no network — like the **Text / Markdown** card — simply
+**omits `fetch`** and derives its render data from config in `transform`:
+
+```js
+markdown: {
+  id: 'markdown',
+  name: 'Text / Markdown',
+  icon: '📝',
+  description: 'Free-form Markdown card — notes, headings, links',
+  defaults: { text: '## Welcome\n\nEdit me with ⚙', refreshSeconds: 86400 },
+  renderer: 'MarkdownCard',
+  dataSource: 'static (no fetch)',
+  configFields: [
+    { key: 'text', label: 'Markdown content', type: 'textarea', rows: 8 },
+  ],
+  transform: (data, config) => ({ markdown: config.text }),
+},
+```
+
+WidgetFrame renders `transform(null, config)` immediately — no Loading state,
+no auto-refresh interval. The Markdown renderer is `src/lib/markdown.js`
+(zero-dep, escape-first; subset: headings, bold/italic/code/links, lists,
+quotes, hr, fenced code blocks).
