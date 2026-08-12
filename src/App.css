@@ -248,6 +248,12 @@ body {
   font-size: 12px;
 }
 
+/* Error boundary fallback (one crashing widget can't kill the dashboard) */
+.widget-crash-message {
+ margin: 0 12px 8px;
+ word-break: break-word;
+}
+
 .widget-empty {
   color: var(--text-secondary);
   font-size: 13px;

@@ -4,6 +4,7 @@ import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
 import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
+import ErrorBoundary from './components/ErrorBoundary';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { buildShareLink, readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
@@ -47,6 +48,22 @@ export default function App() {
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   const [shareFeedback, setShareFeedback] = useState(null);
+  // Grid width follows the window — recomputed on resize (rAF-throttled so
+  // react-grid-layout doesn't re-layout on every pixel of a window drag).
+  const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
+
+  useEffect(() => {
+    let rafId;
+    const onResize = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setGridWidth(window.innerWidth - 40));
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
 
   // Boot: URL config (?config= or #/d/…) takes priority over localStorage,
   // which takes priority over defaults.
@@ -236,7 +253,7 @@ export default function App() {
           layout={layout}
           cols={12}
           rowHeight={80}
-          width={window.innerWidth - 40}
+          width={gridWidth}
           onLayoutChange={handleLayoutChange}
           draggableHandle=".widget-header"
           compactType="vertical"
@@ -245,11 +262,16 @@ export default function App() {
         >
           {widgets.map(w => (
             <div key={w.id} className="grid-item">
-              <WidgetFrame
-                widget={w}
-                onRemove={handleRemoveWidget}
-                onUpdateConfig={handleUpdateConfig}
-              />
+              <ErrorBoundary
+                resetKey={w.config}
+                label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
+              >
+                <WidgetFrame
+                  widget={w}
+                  onRemove={handleRemoveWidget}
+                  onUpdateConfig={handleUpdateConfig}
+                />
+              </ErrorBoundary>
             </div>
           ))}
         </GridLayout>

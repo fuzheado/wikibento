@@ -7,12 +7,11 @@ app fully functional as a v1. This document orders what comes next.
 
 Housekeeping found during the code audit. Safe for a first PR.
 
-- [ ] **Remove unused `recharts` dependency** (package.json) — never imported, kept
-      out of the bundle only by tree-shaking
-- [ ] **Delete dead assets** `public/favicon.svg` + `public/icons.svg` (favicon is
+- [x] **Remove unused `recharts` dependency** (package.json) — done 2026-08-12
+- [x] **Delete dead assets** `public/favicon.svg` + `public/icons.svg` — done 2026-08-12 (favicon is
       an inline data URI in index.html)
-- [ ] **Fix grid resize reflow** — `window.innerWidth - 40` is computed once per
-      render; add a `resize` listener (ARCHITECTURE #1)
+- [x] **Fix grid resize reflow** — done 2026-08-12: rAF-throttled `resize` listener +
+      `gridWidth` state (ARCHITECTURE #1)
 - [x] **Fix Category Size subtitle heuristic** — done 2026-08-12: subtitle now
       derived from `config.wiki` (ARCHITECTURE #2)
 - [x] **Sanitize user input** — done 2026-08-12: `Category:` / `File:` prefixes
@@ -20,8 +19,9 @@ Housekeeping found during the code audit. Safe for a first PR.
 - [x] **Asset-aware widget titles** — done 2026-08-12: renderers display transform
       `title`/`subtitle`; headers show `labelFromConfig(config)` live; pageviews
       trend mode fixed via `getRenderer` dispatch
-- [ ] **Add an Error Boundary** around each grid item so one crashing widget
-      can't kill the dashboard (ARCHITECTURE #9)
+- [x] **Add an Error Boundary** around each grid item — done 2026-08-12:
+      `ErrorBoundary.jsx` wraps every widget; auto-recovers on config change,
+      Try Again button (ARCHITECTURE #9)
 
 ## Phase 1 — v2 Features (the "What's Not Here" list, evaluated)
 

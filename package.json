@@ -13,8 +13,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-grid-layout": "^2.2.4",
-    "react-resizable": "^4.0.2",
-    "recharts": "^3.10.1"
+    "react-resizable": "^4.0.2"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

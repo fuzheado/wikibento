@@ -54,6 +54,9 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   files, pages on wikis, total views, top-image filmstrip, and per-page usage of
   the top file (GLAMorgan-style)
 - **Auto-refresh** — configurable per widget (default: 1 h, Wikistats widgets default 2 h)
+- **Resilience** — each widget is wrapped in an error boundary: a render crash
+  shows a themed fallback with Try Again instead of killing the dashboard; the
+  grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
 - **Example dashboard** — ✨ loads a showcase dashboard with all 7 widget types (real working assets)
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
@@ -90,6 +93,7 @@ wikibento/
     ├── components/
     │   ├── AddWidgetPanel.jsx # searchable widget catalog modal
     │   ├── ImportPanel.jsx    # validated JSON import (file or paste)
+    │   ├── ErrorBoundary.jsx  # per-widget crash isolation (Try Again + auto-recover)
     │   └── AboutPanel.jsx     # ⓘ About modal
     ├── lib/
     │   ├── dashboardConfig.js # format v1: example dashboard + validateDashboard()
@@ -108,7 +112,7 @@ wikibento/
 | Build | Vite 8.2 |
 | Grid | react-grid-layout 2.2.4 + react-resizable 4.0.2 |
 | Linting | Oxlint (react + oxc plugins) |
-| Charts | Hand-rolled SVG (no chart library used — `recharts` is an **unused dependency**) |
+| Charts | Hand-rolled SVG (no chart library used) |
 
 ## Verified Working (smoke-tested 2026-08-12)
 

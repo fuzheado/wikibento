@@ -14,7 +14,8 @@ adding one registry entry (see [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md)).
 App  (state: widgets[], layout[], panel visibility)
 ├── GridLayout  (react-grid-layout, 12 cols, rowHeight 80, vertical compaction)
 │   └── .grid-item × N
-│       └── WidgetFrame  (fetch lifecycle, config panel, title bar)
+│       └── ErrorBoundary  (one crashing widget can't kill the dashboard)
+│           └── WidgetFrame  (fetch lifecycle, config panel, title bar)
 │           ├── .widget-header      ← drag handle (draggableHandle=".widget-header")
 │           │   ├── title (icon + _title)
 │           │   └── ⚙ config · ↻ refresh · ✕ remove
@@ -109,7 +110,7 @@ export/reset ──────────────────────�
    what makes the catalog panel, config forms, and rendering all generic.
 3. **Centralized fetch state.** Renderers are pure; WidgetFrame owns loading/error/retry.
 4. **Hand-rolled SVG charts.** The sparkline and TrendCard are ~30 lines of SVG — no
-   chart library needed. (`recharts` is installed but never imported; see Known Issues.)
+   chart library needed. (`recharts` was removed in the Phase 0 cleanup.)
 5. **localStorage as the database.** Deliberate for v1: zero infra, survives refresh.
    On-wiki sync is the natural v2 upgrade (see ROADMAP.md).
 
@@ -117,15 +118,15 @@ export/reset ──────────────────────�
 
 | # | Issue | Location | Impact / Fix |
 |---|---|---|---|
-| 1 | Grid width is fixed at `window.innerWidth - 40`, computed once per render — **no resize listener** | App.jsx | Widgets won't reflow when the window is resized until some other re-render; fix with a `resize` listener + `useState` |
+| 1 | ~~Grid width fixed, no resize listener~~ | App.jsx | **Fixed 2026-08-12** — rAF-throttled `resize` listener + `gridWidth` state |
 | 2 | ~~Category Size subtitle heuristic~~ | widgets/index.js | **Fixed 2026-08-12** — subtitle now derived from `config.wiki` |
-| 3 | `recharts@3.10.1` is an unused dependency | package.json | Not in the bundle (tree-shaken), but should be removed from `package.json` |
-| 4 | `public/favicon.svg` and `public/icons.svg` are dead assets | public/ | index.html uses an inline emoji data-URI favicon; neither file is referenced. Delete or wire up |
+| 3 | ~~`recharts@3.10.1` unused dependency~~ | package.json | **Fixed 2026-08-12** — removed from `package.json` + lockfile (Phase 0) |
+| 4 | ~~`public/favicon.svg` / `icons.svg` dead assets~~ | public/ | **Fixed 2026-08-12** — deleted; index.html uses an inline emoji data-URI favicon |
 | 5 | Wikistats CSV parser splits on commas without quote handling | dataSources.js `fetchWikistats` | Works for the current s23 format; a field containing a comma would misalign columns |
 | 6 | `exturlusage` count capped at 10 × 500 = 5,000 (API clamps `eulimit` to 500 for non-bots) | dataSources.js `countExtUrlUsage` | Matches Special:LinkSearch's displayed cap; bigger domains show "(5,000+ total)". Exact counts require DB replicas (SCALABILITY.md) |
 | 7 | `_title` is not editable in the config panel | WidgetFrame.jsx | No configField renders it; users can't rename widgets |
-| 8 | Export only — **no import** of `dashboard.json` | App.jsx | Add an Import button (validates `{widgets, layout}`) |
-| 9 | No React error boundary | main.jsx | A render error in one widget crashes the whole dashboard; wrap each grid item |
+| 8 | ~~Export only — no import~~ | App.jsx | **Fixed 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()` |
+| 9 | ~~No React error boundary~~ | main.jsx | **Fixed 2026-08-12** — `ErrorBoundary` wraps each grid item (auto-resets on config change, Try Again button) |
 | 10 | Browser strips the `User-Agent` header set via `fetch` (forbidden header) | dataSources.js | Harmless no-op: Wikimedia API etiquette is satisfied by the browser's own UA; keep it for non-browser reuse (tests, curl) |
 | 11 | Dev-mode StrictMode double-mounts effects → double API fetches in dev | main.jsx | Dev only; production build unaffected |
 | 12 | No shared fetch cache | WidgetFrame.jsx | Two widgets hitting the same endpoint (e.g. Wiki Stats + Top 10 both fetch the Wikistats CSV) fetch independently; add a tiny in-memory TTL cache in v2 |

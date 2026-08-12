@@ -15,7 +15,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 ## Current Status
 
-**Feature-complete for v1, verified live, not yet deployed.**
+**Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
 - ✅ 7 widget types all verified against live APIs (see README "Verified Working")
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
@@ -24,6 +24,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live
   (all 7 widgets). Updates: rsync dist/ + `toolforge webservice node20 restart`
+- ✅ **Phase 0 cleanup done (2026-08-12):** recharts removed, dead assets
+  (`public/favicon.svg`, `icons.svg`) deleted, grid resize listener added,
+  per-widget error boundary added
 
 ## Quick Start
 
@@ -84,22 +87,23 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
-- Grid width fixed at `window.innerWidth - 40` — no window-resize listener (widgets don't reflow on resize)
-- No React error boundary — a render crash in one widget kills the whole dashboard
 - `_title` (custom widget title) isn't editable in the config panel
-- `recharts` is an unused dependency; `public/favicon.svg` + `icons.svg` are dead assets
 - AddWidgetPanel: no Escape-to-close, no focus trap
 - Wikistats CSV parser is naive (no quoted-field handling); 195 KB per fetch, no shared cache
+- `handleLayoutChange` persists to localStorage on every drag tick (fine at current payload size)
+
+*Fixed in Phase 0 (2026-08-12): resize reflow, error boundary, recharts,
+`public/favicon.svg` + `icons.svg`.*
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
 1. ~~Deploy to Toolforge~~ — **done 2026-08-12**: https://wikibento.toolforge.org/
+1. ~~Phase 0 cleanup~~ — **done 2026-08-12**: recharts, dead assets, resize listener, error boundary
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md
-2. Phase 0 cleanup: remove recharts, dead assets, fix resize listener, error boundary, tooltip text
-3. Phase 1: dashboard **Import is done**; next: **time-range selectors** for pageviews, **shared fetch cache** (Wikistats CSV!), **CIM-first GLAM mode**
-4. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
+2. Phase 1: **time-range selectors** for pageviews, **shared fetch cache** (Wikistats CSV!), **CIM-first GLAM mode**
+3. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
 
 ## Identity & Attribution
 
