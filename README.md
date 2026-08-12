@@ -62,9 +62,11 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
-- **Shareable links** — 🔗 copies a self-contained link (config embedded in the
-  URL hash `#/d/…`); `?config=<url>` loads a hosted `dashboard.json` (on-wiki
-  pages via the Action API, or any CORS-enabled host)
+- **Shareable links** — 🔗 opens a Share panel with a **QR code** (scan to open
+  on your phone — ideal for demos) + copyable link. The QR encodes the current
+  `?config=` URL when present (short, phone-friendly); otherwise the
+  self-contained hash link `#/d/…` (config embedded, under a size cap);
+  oversized configs show a friendly notice instead of an un-scanable QR
 - **ⓘ About** — built-in explainer of what the tool does and how to use it
 - **Reset** — reverts to the 3 default starter widgets
 
@@ -93,11 +95,13 @@ wikibento/
     ├── components/
     │   ├── AddWidgetPanel.jsx # searchable widget catalog modal
     │   ├── ImportPanel.jsx    # validated JSON import (file or paste)
+    │   ├── SharePanel.jsx     # QR code + copyable link modal
     │   ├── ErrorBoundary.jsx  # per-widget crash isolation (Try Again + auto-recover)
     │   └── AboutPanel.jsx     # ⓘ About modal
     ├── lib/
     │   ├── dashboardConfig.js # format v1: example dashboard + validateDashboard()
-    │   └── share.js           # URL loading/sharing (?config=, #/d/<base64>)
+    │   ├── share.js           # URL loading/sharing (?config=, #/d/<base64>)
+    │   └── qr.js              # URL → inline SVG QR code (qrcode-generator)
     └── widgets/
         ├── index.js           # WIDGET_TYPES registry (add a widget here)
         ├── WidgetFrame.jsx    # title bar, config panel, load/error/refresh lifecycle
@@ -113,6 +117,7 @@ wikibento/
 | Grid | react-grid-layout 2.2.4 + react-resizable 4.0.2 |
 | Linting | Oxlint (react + oxc plugins) |
 | Charts | Hand-rolled SVG (no chart library used) |
+| QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
 ## Verified Working (smoke-tested 2026-08-12)
 

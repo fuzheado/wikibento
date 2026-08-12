@@ -27,6 +27,10 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **Phase 0 cleanup done (2026-08-12):** recharts removed, dead assets
   (`public/favicon.svg`, `icons.svg`) deleted, grid resize listener added,
   per-widget error boundary added
+- ✅ **QR share panel (2026-08-12):** 🔗 Share now opens a modal with a scannable
+  QR code (client-side `qrcode-generator`, inline SVG) + copyable link — encodes
+  the current `?config=` URL when present (short, phone-friendly), else the
+  self-contained hash link when under ~1,500 chars, else a friendly notice
 
 ## Quick Start
 
@@ -88,12 +92,12 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
 - `_title` (custom widget title) isn't editable in the config panel
-- AddWidgetPanel: no Escape-to-close, no focus trap
+- AddWidgetPanel: no Escape-to-close, no focus trap (SharePanel has Escape-to-close)
 - Wikistats CSV parser is naive (no quoted-field handling); 195 KB per fetch, no shared cache
 - `handleLayoutChange` persists to localStorage on every drag tick (fine at current payload size)
 
 *Fixed in Phase 0 (2026-08-12): resize reflow, error boundary, recharts,
-`public/favicon.svg` + `icons.svg`.*
+`public/favicon.svg` + `icons.svg`. Added (2026-08-12): QR share panel.*
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
@@ -104,6 +108,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
    and verified endpoints in docs/WIDGET-IDEAS.md
 2. Phase 1: **time-range selectors** for pageviews, **shared fetch cache** (Wikistats CSV!), **CIM-first GLAM mode**
 3. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
+4. ~~QR code share~~ — **done 2026-08-12**: Share panel with client-side QR (see README)
 
 ## Identity & Attribution
 

@@ -4,10 +4,11 @@ import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
 import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
+import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
-import { buildShareLink, readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
+import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import './App.css';
@@ -44,10 +45,10 @@ export default function App() {
   const [layout, setLayout] = useState([]);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
-  const [shareFeedback, setShareFeedback] = useState(null);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
@@ -184,20 +185,8 @@ export default function App() {
     URL.revokeObjectURL(url);
   }, [widgets, layout]);
 
-  /** Copy a self-contained share link (config embedded in the URL hash). */
-  const handleShare = useCallback(async () => {
-    const json = JSON.stringify({ version: CONFIG_VERSION, widgets, layout });
-    const link = buildShareLink(json);
-    try {
-      await navigator.clipboard.writeText(link);
-      setShareFeedback('✓ Link copied');
-    } catch {
-      // Clipboard unavailable (e.g. non-secure context) — show the link.
-      window.prompt('Copy this share link:', link);
-      setShareFeedback('Link shown in dialog');
-    }
-    setTimeout(() => setShareFeedback(null), 2500);
-  }, [widgets, layout]);
+  /** Open the Share panel (QR code + copyable link). */
+  const openShare = useCallback(() => setShowShare(true), []);
 
   if (!initialized) {
     return (
@@ -225,8 +214,8 @@ export default function App() {
           <button className="btn" onClick={() => setShowImportPanel(true)} title="Import dashboard config from JSON">
             ⬆ Import
           </button>
-          <button className="btn" onClick={handleShare} title="Copy a share link (config embedded in the URL)">
-            {shareFeedback || '🔗 Share'}
+          <button className="btn" onClick={openShare} title="Share via QR code or link (config embedded in the URL)">
+            🔗 Share
           </button>
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">
             ⬇ Export
@@ -294,6 +283,14 @@ export default function App() {
         <ImportPanel
           onImport={handleImport}
           onClose={() => setShowImportPanel(false)}
+        />
+      )}
+
+      {showShare && (
+        <SharePanel
+          widgets={widgets}
+          layout={layout}
+          onClose={() => setShowShare(false)}
         />
       )}
 

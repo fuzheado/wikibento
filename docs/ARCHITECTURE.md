@@ -25,6 +25,7 @@ App  (state: widgets[], layout[], panel visibility)
 │               ├── RankingCard     ← header + numbered rows
 │               └── TrendCard       ← SVG polyline chart
 ├── AddWidgetPanel  (modal catalog, search filter)
+├── SharePanel  (QR code + copyable link modal)
 └── .empty-state
 ```
 
@@ -130,6 +131,7 @@ export/reset ──────────────────────�
 | 10 | Browser strips the `User-Agent` header set via `fetch` (forbidden header) | dataSources.js | Harmless no-op: Wikimedia API etiquette is satisfied by the browser's own UA; keep it for non-browser reuse (tests, curl) |
 | 11 | Dev-mode StrictMode double-mounts effects → double API fetches in dev | main.jsx | Dev only; production build unaffected |
 | 12 | No shared fetch cache | WidgetFrame.jsx | Two widgets hitting the same endpoint (e.g. Wiki Stats + Top 10 both fetch the Wikistats CSV) fetch independently; add a tiny in-memory TTL cache in v2 |
-| 13 | `AddWidgetPanel` can't be closed with Escape, and overlay has no focus trap | AddWidgetPanel.jsx | Minor a11y gap |
+| 13 | `AddWidgetPanel` can't be closed with Escape, and overlay has no focus trap | AddWidgetPanel.jsx | Minor a11y gap — the Share panel (added 2026-08-12) does support Escape-to-close; apply the same pattern here |
 | 14 | Config panel has no per-field validation (e.g. `topN` accepts 0/negative) | WidgetFrame.jsx | Validate or clamp in transform/fetch |
 | 15 | `handleLayoutChange` persists on every drag tick | App.jsx | Synchronous `localStorage.setItem` per mousemove — fine at this payload size, but debounce if dashboards grow |
+| 16 | Long dashboards can't QR-share: `#/d/` links > ~1,500 chars are too dense for phones | SharePanel.jsx | The Share modal QR-encodes the current `?config=` URL when present; otherwise caps at 1,500 chars and shows a friendly notice |
