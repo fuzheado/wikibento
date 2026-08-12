@@ -134,6 +134,15 @@ exactly what `dashboard.json` looks like after export.
   **Working example:** `?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json`
   (verified 2026-08-12 — 7 widgets load from the on-wiki config). Any other
   host must send CORS headers (`raw.githubusercontent.com`, Toolforge tools, etc.).
+- **`?config=<w.wiki short URL>`** — Wikimedia's URL shortener
+  (`https://w.wiki/XXXX`, or bare `w.wiki/XXXX`) is expanded server-side by the
+  same-origin `/api/resolve` endpoint (deploy/server.js — browsers can't follow
+  w.wiki redirects because the target page sends no CORS headers). After
+  expansion the URL goes through the normal wiki/direct fetch logic. **Working
+  example:** `?config=https://w.wiki/TR9R` (verified 2026-08-12 — expands to the
+  Bento-demo.json page, 8 widgets load). On a plain static host without the
+  resolver, a CORS-enabled w.wiki target still works via direct fetch; otherwise
+  a clear error is shown.
 - **`#/d/<base64url>`** — the config embedded directly in the URL hash
   (self-contained; no hosting needed). The 🔗 Share button produces these.
 - Load order: URL config > saved dashboard (localStorage) > defaults. A failed

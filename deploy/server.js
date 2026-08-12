@@ -1,6 +1,7 @@
 /**
  * WikiBento — zero-dependency static server for Toolforge (node20).
  * Serves dist/ with proper MIME types and cache headers.
+ * Also resolves short URLs (w.wiki) for the ?config= loader via /api/resolve.
  * See docs/DEPLOYMENT.md; pattern per the toolforge-nodejs skill.
  */
 import { createServer } from 'node:http';
@@ -30,6 +31,29 @@ const MIME = {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${PORT}`);
+
+    // ── /api/resolve: expand short URLs (w.wiki) to their final target ──
+    // The browser can't follow w.wiki redirects (the target page sends no CORS
+    // headers), so this endpoint follows the redirect server-side and returns
+    // the final URL. The client then fetches via the Action API / direct fetch.
+    if (url.pathname === '/api/resolve') {
+      const target = url.searchParams.get('url') || '';
+      if (!/^https:\/\//i.test(target)) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'url must be an absolute https:// URL' }));
+        return;
+      }
+      try {
+        const r = await fetch(target, { redirect: 'follow' });
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ url: r.url || target, status: r.status }));
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: `resolve failed: ${e.message}` }));
+      }
+      return;
+    }
+
     const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
     const filePath = resolve(join(ROOT, pathname));
     // Prevent directory traversal

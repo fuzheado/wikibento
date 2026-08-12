@@ -13,6 +13,9 @@
 
 const WIKI_HOST_RE = /(wikipedia|wikimedia|wiktionary|wikisource|wikiquote|wikibooks|wikiversity|wikinews|wikivoyage|wikispecies)\.org$/;
 
+/** Bare w.wiki/XXXX (no scheme) — the Wikimedia URL shortener. */
+const WWIKI_BARE_RE = /^w\.wiki\//i;
+
 /** UTF-8-safe base64url (no + / or padding — URL-safe). */
 export function encodeDashboardHash(json) {
   const b64 = btoa(unescape(encodeURIComponent(json)));
@@ -47,13 +50,50 @@ export function readHashConfig() {
  * Fetch a remote dashboard config as text.
  * Wiki page URLs go through the Action API (parse → wikitext) which is
  * CORS-enabled; other URLs are fetched directly (host must allow CORS).
+ * w.wiki short URLs are expanded via the same-origin /api/resolve endpoint
+ * (deploy/server.js) when available, since browsers can't follow the redirect
+ * (the target page sends no CORS headers).
  */
 export async function fetchRemoteConfig(url) {
-  const u = new URL(url, window.location.origin); // relative paths resolve against the app origin
+  // Bare w.wiki/XXXX (no scheme) → https://w.wiki/XXXX
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(url) && WWIKI_BARE_RE.test(url)) {
+    url = `https://${url}`;
+  }
+  let u = new URL(url, window.location.origin); // relative paths resolve against the app origin
+
+  // w.wiki short URL → ask the same-origin resolver for the final target.
+  if (u.hostname === 'w.wiki') {
+    const resolved = await resolveShortUrl(u.href);
+    if (resolved) {
+      u = new URL(resolved, window.location.origin);
+    } else {
+      // No resolver (plain static host): try the browser fetch directly —
+      // works only when the redirect target sends CORS headers.
+      const resp = await fetch(u);
+      if (!resp.ok) throw new Error(`Fetch failed: HTTP ${resp.status} for ${url}`);
+      return resp.text();
+    }
+  }
+
   if (WIKI_HOST_RE.test(u.hostname)) return fetchWikiPageText(u);
   const resp = await fetch(u);
   if (!resp.ok) throw new Error(`Fetch failed: HTTP ${resp.status} for ${url}`);
   return resp.text();
+}
+
+/** Resolve a short URL to its final target via the same-origin resolver.
+ *  Returns null when the resolver isn't available (e.g. plain static host). */
+async function resolveShortUrl(shortUrl) {
+  try {
+    const api = new URL('/api/resolve', window.location.origin);
+    api.searchParams.set('url', shortUrl);
+    const resp = await fetch(api);
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    return d.url || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Fetch the raw wikitext of a wiki page via action=parse (CORS-enabled).

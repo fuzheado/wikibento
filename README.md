@@ -32,6 +32,8 @@ the app with this URL and the whole dashboard loads immediately:
 https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json
 ```
 
+(Or use a [w.wiki](https://w.wiki) short link for the same config: `?config=https://w.wiki/TR9R` — expanded automatically via the same-origin `/api/resolve` endpoint.)
+
 (The file is plain JSON — see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md). Any
 on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 
