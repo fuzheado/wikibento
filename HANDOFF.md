@@ -96,6 +96,11 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
+- **OPEN BUG — iOS Safari "Load failed" on Wikistats + pageviews widgets**
+  (see **docs/BUG-REPORT-ios-safari-fetch.md**): Safari-only network-layer
+  failures to `wikimedia.org` + `wikistats.wmcloud.org`, both networks, not
+  reproduced in Chromium. Mitigations live (timeout/retry/cache, URL-bearing
+  errors, 🧪 diagnostics panel). Deferred for later debugging.
 - `_title` (custom widget title) isn't editable in the config panel
 - AddWidgetPanel: no Escape-to-close, no focus trap (SharePanel has Escape-to-close)
 - Wikistats CSV parser is naive (no quoted-field handling) — fetching is now
