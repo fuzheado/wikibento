@@ -131,6 +131,7 @@ wikibento/
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — local + Toolforge static hosting (`tools.wikibento`)
 - [docs/ROADMAP.md](docs/ROADMAP.md) — v2 ideas, quick wins, and known limitations
+- [docs/WIDGET-IDEAS.md](docs/WIDGET-IDEAS.md) — the widget idea bank (Wiki Edu dashboards and more), with verified API notes
 - [docs/SCALABILITY.md](docs/SCALABILITY.md) — batching, caching, and efficiency notes for tracking hundreds of files/categories
 - [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) — the dashboard JSON format spec (v1), with [machine-readable schema](docs/dashboard.schema.json) and URL-loading docs
 - [docs/AUTHORS.md](docs/AUTHORS.md) — author identity (User:Fuzheado)

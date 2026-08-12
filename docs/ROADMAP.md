@@ -70,6 +70,12 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 ## Phase 3 — Stretch
 
+> Widget proposals and links live in **[WIDGET-IDEAS.md](WIDGET-IDEAS.md)** —
+> including Wiki Edu dashboard/impact widgets (campaign overview, topic stats,
+> quality distributions). Several are blocked on the CORS proxy (Phase 1):
+> dashboard.wikiedu.org is CORS-enabled, impact.wikiedu.org is not.
+
+
 - More widgets: article quality (Lift Wing/ORES), recent changes stream
   (EventStreams), category intersection (PetScan), page assessment
   (PageAssessments), watchlist-style "your dashboard" with OAuth
