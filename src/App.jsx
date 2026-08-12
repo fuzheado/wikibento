@@ -199,7 +199,7 @@ export default function App() {
           <span className="app-subtitle">Wikimedia Dashboard</span>
         </div>
         <div className="app-actions">
-          <button className="btn" onClick={handleLoadExample} title="Load an example dashboard with all 6 widget types">
+          <button className="btn" onClick={handleLoadExample} title="Load an example dashboard with all 7 widget types">
             ✨ Example
           </button>
           <button className="btn btn-primary" onClick={() => setShowAddPanel(true)}>

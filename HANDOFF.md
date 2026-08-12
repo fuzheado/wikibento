@@ -20,7 +20,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ 7 widget types all verified against live APIs (see README "Verified Working")
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo initialized and pushed to GitHub (main, commit 4a35b93+)
+- ✅ Git repo initialized and pushed to GitHub (main, current commit 7b89266)
 - ⏳ **Not deployed to Toolforge** — tool account `tools.wikibento` does not exist yet
   (create at admin.toolforge.org, then follow docs/DEPLOYMENT.md)
 
@@ -87,13 +87,15 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 - No React error boundary — a render crash in one widget kills the whole dashboard
 - `_title` (custom widget title) isn't editable in the config panel
 - `recharts` is an unused dependency; `public/favicon.svg` + `icons.svg` are dead assets
-- ✨ Example button tooltip still says "all 6 widget types" (it's 7 now)
 - AddWidgetPanel: no Escape-to-close, no focus trap
 - Wikistats CSV parser is naive (no quoted-field handling); 195 KB per fetch, no shared cache
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
 1. **Deploy to Toolforge** (docs/DEPLOYMENT.md) — create `tools.wikibento`, rsync `dist/`, `webservice --backend=kubernetes static start`
+1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
+   has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
+   and verified endpoints in docs/WIDGET-IDEAS.md
 2. Phase 0 cleanup: remove recharts, dead assets, fix resize listener, error boundary, tooltip text
 3. Phase 1: dashboard **Import is done**; next: **time-range selectors** for pageviews, **shared fetch cache** (Wikistats CSV!), **CIM-first GLAM mode**
 4. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
@@ -110,5 +112,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   development (search `wikiwidget`, `wikibento`, `commons-impact-metrics`).
 - Relevant skills: `wikimedia-commons` (incl. Commons Impact Metrics section),
   `wikimedia-api-access`, `commons-file-resolution`, `wikimedia-api-strategy`.
+- **Widget ideas bank:** docs/WIDGET-IDEAS.md — unprioritized proposals with
+  verified API/CORS notes (Wiki Edu dashboards etc.); move to ROADMAP when scheduled.
 - The on-wiki demo config is `Commons:WikiPortraits/Bento-demo.json` — the
   WikiPortraits project hosts it; coordinate changes with that page's editors.

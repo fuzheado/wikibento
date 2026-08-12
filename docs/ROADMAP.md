@@ -1,6 +1,6 @@
 # Roadmap — Next Steps
 
-Status as of the 2026-08-12 audit: **all 6 widgets verified live**, build clean,
+Status as of the 2026-08-12 audit: **all 7 widgets verified live**, build clean,
 app fully functional as a v1. This document orders what comes next.
 
 ## Phase 0 — Quick Wins (½ day, no new features)
@@ -27,7 +27,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 | Idea | Effort | Impact | Notes |
 |---|---|---|---|
-| ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all 6 widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
+| ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all 7 widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
 | **Shared fetch cache** | S | Medium | Wiki Stats + Top 10 fetch the same 333-row CSV independently. A 5-minute in-memory TTL cache keyed by URL halves API load and speeds refresh |
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |

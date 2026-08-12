@@ -1,6 +1,6 @@
 # Deployment
 
-WikiBento is a pure static SPA — `dist/` is ~304 KB. It runs anywhere static files
+WikiBento is a pure static SPA — `dist/` is ~313 KB. It runs anywhere static files
 are served. CORS is handled by the Wikimedia endpoints themselves, so **no proxy or
 backend is required**.
 
@@ -61,7 +61,7 @@ rules. Just point any static file server at `dist/` and upload.
 
 - [ ] `npm run build` — confirm 43 modules, no errors
 - [ ] Smoke-test `npx vite preview` locally before shipping
-- [ ] Verify the live URL loads and all 6 widgets fetch data (browser console clean,
+- [ ] Verify the live URL loads and all 7 widgets fetch data (browser console clean,
       no CORS errors)
 - [ ] Widgets hit `*.wikipedia.org`, `commons.wikimedia.org`, `wikimedia.org`,
       `wikistats.wmcloud.org` — all CORS-enabled; if any future source isn't, that's
@@ -70,4 +70,4 @@ rules. Just point any static file server at `dist/` and upload.
 ## Release Notes (2026-08-12 build)
 
 - Vite 8.2.1 production build: 43 modules
-- `dist/` = 304 KB total (index 0.58 KB, JS 272.2 KB / 82.3 KB gzip, CSS 10.3 KB / 2.6 KB gzip)
+- `dist/` = 313 KB total (index 0.58 KB, JS 299.0 KB / 89.7 KB gzip, CSS 14.4 KB / 3.4 KB gzip)

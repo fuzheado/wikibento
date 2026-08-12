@@ -14,7 +14,7 @@ and categories**, with batching mechanics verified against the live APIs on
 | **globalusage** (File Usage Map) | 1 call / file, `gulimit=500` | ✅ multi-title (≤ 50 titles) | 100 files → 2 calls. ⚠️ Response size scales as `titles × gulimit` — 50 × 500 entries is a heavy payload; in batch mode lower `gulimit` (100–200) or accept truncation |
 | **imageinfo** (thumbnail + caption) | rides the fileUsage call | ✅ multi-title + `iiurlwidth` | Combine with globalusage in the same multi-title query (`prop=globalusage\|imageinfo`) |
 | **pageviews** (RESTBase) | 1 call / article | ❌ **no batch endpoint** for arbitrary article sets (RESTBase `top` only covers most-viewed lists) | Parallelize with a concurrency cap + cache. For very large sets, aggregate server-side or use dumps |
-| **exturlusage** (Link Count) | 1–3 **sequential** calls / domain (pagination) | ❌ one domain per query | Parallelize domains (cap ~4–6 concurrent), cache with TTL. Counts are capped at 1,500 anyway — for exact counts at scale, prefer an enwiki **database replica** query on `el_index` (server-side only) |
+| **exturlusage** (Link Count) | 1–3 **sequential** calls / domain (pagination) | ❌ one domain per query | Parallelize domains (cap ~4–6 concurrent), cache with TTL. Counts are capped at 5,000 anyway — for exact counts at scale, prefer an enwiki **database replica** query on `el_index` (server-side only) |
 | **Wikistats CSV** | 1 full dump per widget (**195 KB**, 333+ rows) | ✅ **fetch once, share** | The same CSV serves every Wiki Stats *and* Top 10 widget. A TTL cache keyed by URL turns N fetches into 1; also parse once and index by `lang` instead of re-parsing per widget |
 | **random sample** (CirrusSearch) | 1 call / widget refresh | ❌ deliberately uncacheable — `srsort=random` needs a fresh seed per request (that's the point) | Cheap per call; for hundreds of categories just cap concurrency. Do NOT cache (catprobe notes this too) |
 
@@ -43,7 +43,7 @@ and categories**, with batching mechanics verified against the live APIs on
 
 ## 3. The Server-Side Option (when client-side batching stops being enough)
 
-At thousands of assets — or when **exactness** matters (exturlusage cap at 1,500;
+At thousands of assets — or when **exactness** matters (exturlusage cap at 5,000;
 0-use files) — a thin Toolforge aggregator service is the natural upgrade:
 
 - One endpoint like `/dashboard?ids=…` that runs the batched multi-title queries
