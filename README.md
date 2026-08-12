@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈324 KB total (~99 KB
+(the same grid engine used by Grafana and Kibana), ≈341 KB total (~101 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -46,19 +46,25 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **GLAM Category Usage** | 📈 | Commons API + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month, top-image filmstrip, per-page usage detail |
-| **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code; a starting card or explanatory card (no fetch) |
+| **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
 
 - **Responsive layout** — on phones (<768px) the 12-column grid collapses to a
-  single-column card stack (Grafana-style); tablets and desktops keep the full
-  drag-and-drop grid
+  single-column card stack (Grafana-style) that follows the grid's reading order
+  (top-left first, so desktop drags are reflected on phones); tablets and
+  desktops keep the full drag-and-drop grid
 - **Drag & drop** — grab a widget's title bar to reposition it (12-column grid, vertical compaction)
 - **Resize** — drag the bottom-right corner of any widget
 - **Add Widget panel** — searchable catalog; click to add
 - **Asset-aware titles** — every box headline and title bar shows *what it's
   analyzing* (article, category, file, domain), updating live when you change it
 - **Per-widget config** — ⚙️ gear → edit article, domain, wiki, category, etc., with live re-fetch
+- **Text / Markdown cards** — 📝 free-form Markdown (headings, lists, links,
+  code, images). Images are https-only with a **Wikimedia-host default
+  allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
+  "Allow external images" opt-in — so a shared dashboard can't leak viewers'
+  IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
@@ -114,12 +120,13 @@ wikibento/
     │   └── AboutPanel.jsx     # ⓘ About modal
     ├── lib/
     │   ├── dashboardConfig.js # format v1: example dashboard + validateDashboard()
+    │   ├── markdown.js        # tiny zero-dep Markdown renderer (Text/Markdown widget)
     │   ├── share.js           # URL loading/sharing (?config=, #/d/<base64>)
     │   └── qr.js              # URL → inline SVG QR code (qrcode-generator)
     └── widgets/
         ├── index.js           # WIDGET_TYPES registry (add a widget here)
         ├── WidgetFrame.jsx    # title bar, config panel, load/error/refresh lifecycle
-        └── dataSources.js     # 6 API fetchers (7 widgets incl. GLAM pipeline)
+        └── dataSources.js     # 6 API fetchers (7 data widgets incl. GLAM pipeline)
 ```
 
 ## Technology Stack
@@ -135,7 +142,8 @@ wikibento/
 
 ## Verified Working (smoke-tested 2026-08-12)
 
-- ✅ All 7 widget types render live data in the browser
+- ✅ All 7 data-driven widget types render live data in the browser; the 8th
+  (Text/Markdown) is static — no fetch, renders from config
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 7 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
@@ -145,7 +153,10 @@ wikibento/
 - ✅ File Usage Map: image + summary caption (Blue Marble, 500px thumb)
 - ✅ GLAM Category Usage: 500 files, 21/33 viewed, 235 pages on 58 wikis, 314,375 views (Featured pictures, 2026-07); top-file detail (Lion 97,121 views)
 - ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
-- ✅ Production build: 43 modules, 299.0 KB JS (89.7 KB gzip) + 14.4 KB CSS (3.4 KB gzip)
+- ✅ Text/Markdown card: markdown rendering verified (headings/bold/links/lists/code);
+  Wikimedia images render by default, external hosts blocked with an opt-in toggle,
+  XSS payloads (`<script>`, `onerror`) inert
+- ✅ Production build: 54 modules, 323.4 KB JS (97.4 KB gzip) + 17.5 KB CSS (4.0 KB gzip)
 
 ## Documentation
 
