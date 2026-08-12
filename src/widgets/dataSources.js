@@ -10,7 +10,7 @@ const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
 
-const WIKISTATS_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)';
+const WIKIBENTO_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)';
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
 const wikistatsCache = createTtlCache(5 * 60 * 1000);
@@ -21,24 +21,25 @@ const wikistatsCache = createTtlCache(5 * 60 * 1000);
  * Returns the response text.
  */
 async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2 } = {}) {
+  const shortUrl = url.replace(/^https?:\/\//, '').slice(0, 80); // for error messages
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const resp = await fetch(url, { headers: { 'User-Agent': WIKISTATS_UA }, signal: controller.signal });
+      const resp = await fetch(url, { headers: { 'User-Agent': WIKIBENTO_UA }, signal: controller.signal });
       if (resp.status >= 500 && attempt < retries) {
-        lastErr = new Error(`HTTP ${resp.status}`);
+        lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
       } else if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status}`);
+        throw new Error(`HTTP ${resp.status} (${shortUrl})`);
       } else {
         return await resp.text();
       }
     } catch (e) {
       if (e.name === 'AbortError') {
-        lastErr = new Error(`timed out after ${timeoutMs / 1000}s`);
+        lastErr = new Error(`timed out after ${timeoutMs / 1000}s (${shortUrl})`);
       } else if (!(e instanceof Error && e.message.startsWith('HTTP '))) {
-        lastErr = e; // network-level failure (e.g. Safari's "Load failed")
+        lastErr = e.message.includes(shortUrl) ? e : new Error(`${e.message} (${shortUrl})`);
       } else {
         lastErr = e;
       }
@@ -50,7 +51,6 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2 } = {}) 
   throw lastErr;
 }
 
-/** Fetch a URL through the shared Wikistats cache (in-flight coalescing). */
 function fetchWikistatsText(url) {
   return wikistatsCache.get(url, () => fetchTextWithRetry(url));
 }
@@ -356,11 +356,8 @@ export async function fetchGlamStats(cfg = {}) {
 
 
 async function fetchJSON(url) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)' }
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+ const text = await fetchTextWithRetry(url);
+ return JSON.parse(text);
 }
 
 function daysAgo(n) {
