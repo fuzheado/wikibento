@@ -677,6 +677,63 @@ body {
  border-color: var(--accent);
 }
 
+/* ── Diagnostics Panel (network self-test) ──────────────── */
+
+.diag-panel {
+ width: 520px;
+}
+.diag-body {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ padding: 0 16px 16px;
+}
+.diag-results {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ max-height: 50vh;
+ overflow-y: auto;
+}
+.diag-row {
+ border: 1px solid var(--border);
+ border-radius: var(--radius-sm);
+ padding: 8px 10px;
+ background: var(--bg);
+}
+.diag-label {
+ font-size: 12px;
+ font-weight: 600;
+ margin-bottom: 6px;
+}
+.diag-line {
+ display: flex;
+ gap: 8px;
+ align-items: baseline;
+ font-size: 12px;
+ line-height: 1.6;
+}
+.diag-status {
+ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.diag-mode {
+ color: var(--text-secondary);
+ min-width: 130px;
+}
+.diag-detail {
+ color: var(--text-secondary);
+ font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ font-size: 11px;
+ word-break: break-all;
+}
+.diag-ok {
+ color: var(--success);
+}
+.diag-bad {
+ color: var(--danger);
+}
+
+
 
 /* ── Glam Card (GLAMorgan-style impact stats) ──────────── */
 

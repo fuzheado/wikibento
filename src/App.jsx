@@ -4,6 +4,7 @@ import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
 import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
+import DiagnosticsPanel from './components/DiagnosticsPanel';
 import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WIDGET_TYPES } from './widgets';
@@ -47,6 +48,7 @@ export default function App() {
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
@@ -244,6 +246,9 @@ export default function App() {
           <button className="btn" onClick={() => setShowAbout(true)} title="About WikiBento">
             ⓘ
           </button>
+          <button className="btn" onClick={() => setShowDiagnostics(true)} title="Network self-test (debugging)">
+            🧪
+          </button>
         </div>
       </header>
 
@@ -305,6 +310,10 @@ export default function App() {
 
       {showAbout && (
         <AboutPanel onClose={() => setShowAbout(false)} />
+      )}
+
+      {showDiagnostics && (
+        <DiagnosticsPanel onClose={() => setShowDiagnostics(false)} />
       )}
     </div>
   );
