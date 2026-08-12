@@ -2,13 +2,20 @@
 
 ![WikiBento demo dashboard](docs/screenshot.png)
 
-A dark-themed, drag-and-drop widget dashboard for Wikimedia — **insights and
-action** — built on [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana). It's a single-page React app
-(≈313 KB total, ~93 KB gzipped) hostable as static files on Toolforge or
-anywhere.
+WikiBento is a drag-and-drop dashboard for Wikimedia — a single board for
+keeping an eye on things and acting on them. Wikimedia's data and activity
+live across many places: pageview and stats APIs, wiki pages, recent changes,
+Commons. WikiBento brings what you care about into one place — starting with
+metrics like article pageviews, external link counts, category sizes, file
+usage, and GLAM-style impact stats, and extending to listings and feeds you
+can click through and act on, like recent changes and usage trails.
 
-All seven widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
+It's a single-page React app built on
+[react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
+(the same grid engine used by Grafana and Kibana), ≈324 KB total (~99 KB
+gzipped), hostable as static files on Toolforge or anywhere.
+
+All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
 Commons, Wikistats) directly from the browser — no backend, no login, no proxy.
 
 **Live:** [wikibento.toolforge.org](https://wikibento.toolforge.org/) ·
