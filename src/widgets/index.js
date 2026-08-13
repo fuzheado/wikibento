@@ -17,6 +17,8 @@ import {
   fetchEditHistory,
   fetchArticleGallery,
   fetchPanoramaFile,
+ fetchCommonsGallery,
+ fetchArticleList,
 } from './dataSources';
 
 const NAMESPACE_LABELS = {
@@ -573,6 +575,108 @@ export const WIDGET_TYPES = {
       rows: data.rows,
       size: config.iconSize || 'medium',
       fit: config.imageFit || 'contain',
+    }),
+  },
+
+  fileGallery: {
+    id: 'fileGallery',
+    name: 'Commons File Gallery',
+    icon: '🗂️',
+    description: 'Gallery of any Commons files you list — grid or list, ordered or random',
+    labelFromConfig: (c) => `${(c.files || '').split('\n').filter(Boolean).length} files`,
+    defaults: {
+      files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
+      order: 'listed',      // 'listed' | 'random' | 'alpha' | 'largest'
+      displayMode: 'grid',  // 'grid' | 'list'
+      iconSize: 'medium',
+      imageFit: 'contain',
+      maxItems: 0,          // 0 = all
+      refreshSeconds: 3600,
+    },
+    renderer: 'GalleryGridCard',
+    getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
+    dataSource: 'Commons API imageinfo (batched)',
+    configFields: [
+      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 8, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
+      { key: 'order', label: 'Order', type: 'select', options: [
+        { value: 'listed', label: 'As listed' },
+        { value: 'random', label: 'Random (reshuffles each refresh)' },
+        { value: 'alpha', label: 'Alphabetical' },
+        { value: 'largest', label: 'Largest first (by dimensions)' },
+      ]},
+      { key: 'displayMode', label: 'Display', type: 'select', options: [
+        { value: 'grid', label: 'Grid (captions below)' },
+        { value: 'list', label: 'List (thumb left, caption right)' },
+      ]},
+      { key: 'iconSize', label: 'Grid size', type: 'select', options: [
+        { value: 'small', label: 'Small' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'large', label: 'Large' },
+      ]},
+      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
+        { value: 'contain', label: 'Letterbox (always show whole image)' },
+        { value: 'cover', label: 'Fill crop (square crop)' },
+      ]},
+      { key: 'maxItems', label: 'Max files (0 = all)', type: 'number', placeholder: '0' },
+    ],
+    fetch: (config) => fetchCommonsGallery(config.files),
+    transform: (data, config) => {
+      const ORDER_LABELS = { listed: 'as listed', random: 'random order', alpha: 'alphabetical', largest: 'largest first' };
+      const order = config.order || 'listed';
+      const rows = [...data.rows];
+      if (order === 'random') {
+        // Fisher–Yates shuffle — fresh order every refresh (transform re-runs on load).
+        for (let i = rows.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [rows[i], rows[j]] = [rows[j], rows[i]];
+        }
+      } else if (order === 'alpha') {
+        rows.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (order === 'largest') {
+        rows.sort((a, b) => ((b.width || 0) * (b.height || 0)) - ((a.width || 0) * (a.height || 0)));
+      }
+      const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
+      const subtitleBits = [
+        `${rows.length} file${rows.length === 1 ? '' : 's'}`,
+        order !== 'listed' ? ORDER_LABELS[order] : null,
+        data.missing ? `${data.missing} not found` : null,
+      ].filter(Boolean);
+      return {
+        title: 'Commons files',
+        subtitle: subtitleBits.join(' · '),
+        rows: maxItems ? rows.slice(0, maxItems) : rows,
+        size: config.iconSize || 'medium',
+        fit: config.imageFit || 'contain',
+      };
+    },
+  },
+
+  articleList: {
+    id: 'articleList',
+    name: 'Article List',
+    icon: '📋',
+    description: 'Clickable list of articles — pasted titles, optional thumbnails + intros',
+    labelFromConfig: (c) => `${(c.articles || '').split('\n').filter(Boolean).length} articles`,
+    defaults: {
+      articles: 'Ada Lovelace\nAlbert Einstein',
+      project: 'en.wikipedia',
+      enrich: true,          // thumbnails + intros via pageimages|extracts
+      maxItems: 0,           // 0 = all
+      refreshSeconds: 3600,
+    },
+    renderer: 'ArticleListCard',
+    dataSource: 'MediaWiki API pageimages|extracts (batched, optional)',
+    configFields: [
+      { key: 'articles', label: 'Article titles (one per line)', type: 'textarea', rows: 8, placeholder: 'Ada Lovelace\nAlbert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'enrich', label: 'Thumbnails + intros', type: 'boolean' },
+      { key: 'maxItems', label: 'Max articles (0 = all)', type: 'number', placeholder: '0' },
+    ],
+    fetch: (config) => fetchArticleList(config.articles, config.project, { enrich: config.enrich, maxItems: config.maxItems }),
+    transform: (data, config) => ({
+      title: 'Articles',
+      subtitle: `${data.rows.length} article${data.rows.length === 1 ? '' : 's'}${config.enrich ? ' · with thumbnails + intros' : ''}`,
+      rows: data.rows,
     }),
   },
 

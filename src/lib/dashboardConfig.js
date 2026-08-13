@@ -112,6 +112,16 @@ export const EXAMPLE_DASHBOARD = {
       widgetType: 'panorama360',
       config: { filename: "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg", project: 'commons.wikimedia', autoRotate: false, refreshSeconds: 3600 },
     },
+    {
+      id: 'example-filegallery',
+      widgetType: 'fileGallery',
+      config: { files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg', order: 'listed', displayMode: 'grid', iconSize: 'medium', imageFit: 'contain', maxItems: 0, refreshSeconds: 3600 },
+    },
+    {
+      id: 'example-articlelist',
+      widgetType: 'articleList',
+      config: { articles: 'Ada Lovelace\nAlbert Einstein', project: 'en.wikipedia', enrich: true, maxItems: 0, refreshSeconds: 3600 },
+    },
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -129,6 +139,8 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-edithistory', x: 0, y: 24, w: 12, h: 5, minW: 3, minH: 3 },
     { i: 'example-gallery', x: 0, y: 29, w: 12, h: 7, minW: 3, minH: 4 },
     { i: 'example-panorama', x: 0, y: 36, w: 6, h: 4, minW: 3, minH: 2 },
+    { i: 'example-filegallery', x: 6, y: 36, w: 6, h: 5, minW: 3, minH: 3 },
+    { i: 'example-articlelist', x: 0, y: 40, w: 6, h: 4, minW: 3, minH: 3 },
   ],
 };
 

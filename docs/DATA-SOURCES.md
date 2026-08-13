@@ -365,3 +365,18 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 See [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md) — the pattern is: write an
 async fetcher returning `{ data }` or throwing, register it in `WIDGET_TYPES`,
 describe it in the docs above, done.
+
+## 15. Commons File Gallery — Commons API `imageinfo` (batched) **Widget:** Commons File Gallery · **Fetcher:** `fetchCommonsGallery(filesText)`
+- **Input:** a textarea list of Commons files, one per line (`File:` prefix optional). Ordering is client-side in the transform — re-sorting never re-fetches.
+- **Endpoint:** Action API `prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=400&iiextmetadatafilter=ImageDescription` (`origin=*`) — 400px thumbs + dimensions + description caption. **Adaptive batching by encoded length (~4,500 chars/chunk), not by count** — long filenames (WLM) blow GET URLs (HTTP 414) otherwise.
+- **Missing files:** counted (`missing` in the fetch result), surfaced in the subtitle ("3 files · 1 not found") — never fatal.
+- **Order modes:** `listed` (input order) · `random` (Fisher–Yates shuffle, fresh each refresh) · `alpha` (title) · `largest` (width×height). `maxItems` clamps rows.
+- **Gotcha (fixed 2026-08-13):** strip the `File:` prefix for normalization but **re-add it in the API `titles`** — without the prefix every title resolves as a missing main-namespace page.
+- **Renderer:** reuses `GalleryGridCard` / `GalleryListCard` (same `{title, caption, thumbUrl, fileUrl}` row contract as the Article Gallery) — no new renderer code.
+
+## 16. Article List — MediaWiki API `pageimages|extracts` (batched, optional) **Widget:** Article List · **Fetcher:** `fetchArticleList(articlesText, project, opts)`
+- **Input:** a textarea list of article titles, one per line; `project` select (en/de/fr like the other article widgets).
+- **Plain mode (no network):** rows are pure config → title + page URL, no fetch at all.
+- **Enriched mode (`enrich: true`):** batched `prop=pageimages|extracts&piprop=thumbnail&pithumbsize=120&exintro&explaintext&exsentences=3` — 50 titles/call (the Top Pages expanded-view pattern); adds a 120px thumb + 3-sentence intro per row.
+- **Gotcha (fixed 2026-08-13):** the API returns canonical titles **with spaces** even when queried with underscores — look up enrichment results by `p.title` as returned, not by the underscore form.
+- **Renderer:** `ArticleListCard` (new, small) — clickable rows, optional thumb left + 3-line-clamped intro; rows link out to the project wiki in a new tab.

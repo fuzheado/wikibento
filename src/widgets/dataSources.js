@@ -1049,3 +1049,106 @@ export async function fetchPanoramaFile(filename, project = 'commons.wikimedia')
     mime: ii.mime,
   };
 }
+
+/** Parse a textarea list into clean, deduped titles (one per line). */
+function parseTitleList(text) {
+  return [...new Set(String(text || '').split('\n').map((l) => l.trim()).filter(Boolean))];
+}
+
+/**
+ * 15. Commons File Gallery — an arbitrary list of Commons files (one per
+ *  line) → batched imageinfo (400px thumbs + dimensions + description
+ *  caption). Ordering is applied client-side in the widget transform, so
+ *  re-sorting never re-fetches. Missing files are counted, not fatal.
+ */
+export async function fetchCommonsGallery(filesText) {
+  const titles = parseTitleList(filesText).map((t) => t.replace(/^File:\s*/i, '').replace(/ /g, '_'));
+  if (!titles.length) throw new Error('Enter at least one Commons file (one per line)');
+  const rows = [];
+  // Adaptive batching: long filenames (WLM etc.) blow GET URLs (HTTP 414) —
+  // chunk by encoded length, not by count (same rule as fetchBatchedUsage).
+  const MAX_ENCODED = 4500;
+  let chunk = [];
+  let chunkLen = 0;
+  const flush = async () => {
+    if (!chunk.length) return;
+    const params = new URLSearchParams({
+      action: 'query',
+      prop: 'imageinfo',
+      titles: chunk.map((t) => `File:${t}`).join('|'),
+      iiprop: 'url|size|extmetadata',
+      iiurlwidth: '400',
+      iiextmetadatafilter: 'ImageDescription',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const d = await fetchJSON(`https://commons.wikimedia.org/w/api.php?${params}`);
+    for (const p of d?.query?.pages || []) {
+      if (p.missing) continue;
+      const ii = p.imageinfo?.[0];
+      if (!ii) continue;
+      rows.push({
+        title: p.title.replace(/^File:/, '').replace(/_/g, ' '),
+        fileUrl: `https://commons.wikimedia.org/wiki/${p.title.replace(/ /g, '_')}`,
+        thumbUrl: ii.thumburl?.split('?')[0],
+        caption: stripHtml(ii.extmetadata?.ImageDescription?.value || ''),
+        width: ii.width,
+        height: ii.height,
+      });
+    }
+    chunk = [];
+    chunkLen = 0;
+  };
+  for (const t of titles) {
+    const len = encodeURIComponent(t).length + 1;
+    if (chunk.length && chunkLen + len > MAX_ENCODED) await flush();
+    chunk.push(t);
+    chunkLen += len;
+  }
+  await flush();
+  return { rows, total: titles.length, missing: titles.length - rows.length };
+}
+
+/**
+ * 16. Article List — clickable list of pasted article titles (one per line).
+ *  Plain links are pure config (no network); the optional enrichment adds
+ *  thumbnails + intros via batched pageimages|extracts (50 titles/call —
+ *  the Top Pages expanded-view pattern).
+ */
+export async function fetchArticleList(articlesText, project = 'en.wikipedia', opts = {}) {
+  const titles = parseTitleList(articlesText);
+  if (!titles.length) throw new Error('Enter at least one article title (one per line)');
+  const maxItems = Math.max(parseInt(opts.maxItems) || 0, 0);
+  const list = (maxItems ? titles.slice(0, maxItems) : titles).map((t) => ({
+    title: t.replace(/_/g, ' '),
+    pageUrl: `https://${project}.org/wiki/${t.replace(/ /g, '_')}`,
+  }));
+  if (!opts.enrich) return { rows: list };
+  const info = {};
+  for (let i = 0; i < list.length; i += 50) {
+    const params = new URLSearchParams({
+      action: 'query',
+      prop: 'pageimages|extracts',
+      titles: list.slice(i, i + 50).map((r) => r.title.replace(/ /g, '_')).join('|'),
+      piprop: 'thumbnail',
+      pithumbsize: '120',
+      exintro: '1',
+      explaintext: '1',
+      exsentences: '3',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+    for (const p of d?.query?.pages || []) {
+      info[p.title] = { thumb: p.thumbnail?.source?.split('?')[0], extract: p.extract || '' };
+    }
+  }
+  return {
+    rows: list.map((r) => {
+      const enriched = info[r.title] || {};
+      return { ...r, thumbUrl: enriched.thumb, extract: enriched.extract };
+    }),
+  };
+}

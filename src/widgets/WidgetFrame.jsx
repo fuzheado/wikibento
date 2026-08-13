@@ -164,7 +164,7 @@ function WidgetContent({ type, data }) {
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} />;
     case 'GalleryListCard': return <GalleryListCard data={data} />;
-    case 'PanoramaCard': return <PanoramaCard data={data} />;
+    case 'ArticleListCard': return <ArticleListCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -536,6 +536,29 @@ function GalleryGridCard({ data }) {
           <a key={img.title} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
             <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
             {img.caption && <span className="gallery-caption">{img.caption}</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Article List — clickable rows: optional thumb left, title + intro. */
+function ArticleListCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="article-list-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="ranking-rows">
+        {rows.length === 0 && <div className="widget-empty">No articles</div>}
+        {rows.map((r) => (
+          <a key={r.title} className="article-list-row" href={r.pageUrl} target="_blank" rel="noopener noreferrer" title={r.title}>
+            {r.thumbUrl && <img className="article-list-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
+            <span className="article-list-body">
+              <span className="article-list-title">{r.title}</span>
+              {r.extract && <span className="article-list-extract">{r.extract}</span>}
+            </span>
           </a>
         ))}
       </div>

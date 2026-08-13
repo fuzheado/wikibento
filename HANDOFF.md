@@ -18,6 +18,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
 - ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (14 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery)
+- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 16 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)
