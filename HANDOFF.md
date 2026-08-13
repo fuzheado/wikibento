@@ -92,7 +92,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   `showInGallery` metadata is useless (true for everything). Thumb URLs
   utm-stripped (`cleanThumbUrl`). Verified: Einstein → 32 captioned images,
   both modes + size variants in browser. Schema/README/DATA-SOURCES §13
-  updated.
+  updated. **DEPLOYED to Toolforge 2026-08-13** (commit 4cf2c93, bundle
+  index-BEguwTL7.js) — verified live: gallery renders 32 captioned images,
+  no console errors from the new endpoints.
 
 ## Quick Start
 
