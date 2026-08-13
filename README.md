@@ -37,6 +37,13 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 
 (Or use a [w.wiki](https://w.wiki) short link for the same config: `?config=https://w.wiki/TR9R` — expanded automatically via the same-origin `/api/resolve` endpoint.)
 
+A **full-catalog sample** (all 27 widget types, real working assets) is hosted
+with the app itself:
+
+```
+https://wikibento.toolforge.org/?config=/dashboard.json
+```
+
 (The file is plain JSON — see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md). Any
 on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 
@@ -117,7 +124,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 26 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 27 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -208,8 +215,8 @@ wikibento/
 - ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
 - ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
 - ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too)
-- ✅ All 16 data-driven widget types render live data in the browser; the 25th (Text/Markdown) and 26th (Wiki Page — a static iframe) are static — no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 26 widgets
+- ✅ All 25 data-driven widget types render live data in the browser; the 26th (Text/Markdown) and 27th (Wiki Page — a static iframe) are static — no fetch, renders from config
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 27 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com
