@@ -1,8 +1,15 @@
 # Deployment
 
-WikiBento is a pure static SPA — `dist/` is ~313 KB. It runs anywhere static files
-are served. CORS is handled by the Wikimedia endpoints themselves, so **no proxy or
-backend is required**.
+WikiBento is a Vite-built SPA (`dist/`) served by a tiny zero-dependency Node
+server (`deploy/server.js`) — the server exists because two features need a
+same-origin endpoint that static hosting can't provide:
+
+- `/api/proxy` — top.hatnote.com has **no CORS headers** (Top Wikipedia
+  Articles widget)
+- `/api/resolve` — w.wiki short-URL expansion for `?config=` links
+
+So the deployment is **node20 webservice on Toolforge**; plain static hosting
+works only for dashboards that don't use those two features.
 
 ## Local
 
@@ -14,60 +21,88 @@ npm run lint         # oxlint
 npx vite preview     # serve the built dist/ at http://localhost:4173
 ```
 
-## Toolforge (recommended for a permanent URL)
+## Toolforge (the production deployment)
 
-Two options — both serve `dist/` as-is (the app uses absolute asset paths, so no
-`base` path tricks are needed on the toolforge.org subdomain).
+### SSH — read this first (the #1 gotcha for fresh sessions)
 
-### Option A — tools-static (simplest, no webservice)
+- **SSH with your personal account, NOT the tool account.** `ssh tools.wikibento@dev.toolforge.org`
+  fails with `Permission denied (publickey)` — tool accounts are not SSH
+  logins. On this machine the personal user is **`alih`**:
+  `ssh alih@dev.toolforge.org`
+- Tool-level commands (webservice, kubectl) run **inside** that SSH session
+  with `sudo -niu tools.wikibento <command>`.
+- ⚠️ `become` does **not** work in chained SSH commands (`become X; cmd`
+  replaces the shell; the rest runs unbecome'd). Always `sudo -niu` directly.
+- In this Pi setup the host is pre-registered in the hosts inventory as
+  `tools` (alih@dev.toolforge.org) — `host_exec` on `tools` just works.
 
-Copy the build to the tool account's `~/www/static/`; it's served at
-`https://tools-static.wmflabs.org/{tool}/` (files under a path — the SPA works because
-it has no router; `index.html` uses absolute `/assets/...` URLs, so it must be the
-**document root** of that path, i.e. `~/www/static/index.html`).
+### Layout on the tool
 
-```bash
-npm run build
-scp -r dist/* tools.wikibento@dev.toolforge.org:www/static/
-# or rsync for repeatable deploys
-rsync -av --delete dist/ tools.wikibento@dev.toolforge.org:www/static/
-ssh tools.wikibento@dev.toolforge.org "chmod -R a+rX ~/www/static"
+```
+/data/project/wikibento/www/js/     ← the deployed app
+├── server.js                       ← deploy/server.js (copy)
+├── package.json                    ← {"type":"module"} for the ESM import
+└── dist/                           ← the Vite build (rsync target)
 ```
 
-### Option B — toolforge.org subdomain (nicer URL, needs webservice)
+The webservice serves `dist/` via `server.js` (root = `~/www/js/`, `ROOT`
+defaults to `dist/` next to the server). Do NOT use `~/www/static/` or
+`~/public_html/` — those are leftovers from the pre-node20 static era, and the
+`static` webservice type no longer exists.
 
-Serve from `~/public_html/` with the lightweight default webservice:
+### Deploy (the whole procedure)
 
 ```bash
+# 1. build
 npm run build
-rsync -av --delete dist/ tools.wikibento@dev.toolforge.org:public_html/
-ssh tools.wikibento@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes static start"
-# status:  ... webservice --backend=kubernetes static status
-# deploy update: rsync again, then restart the webservice
+
+# 2. push the build (rsync --delete so stale asset bundles don't linger)
+rsync -az --delete dist/ alih@dev.toolforge.org:/data/project/wikibento/www/js/dist/
+
+# 3. restart the webservice
+ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart"
 ```
 
-Result: `https://wikibento.toolforge.org/`.
+If `server.js` / `package.json` changed too (rare), push those as well:
 
-> Tool account (`tools.wikibento`) must already exist — create it at
-> [admin.toolforge.org](https://admin.toolforge.org) if not.
+```bash
+scp deploy/server.js deploy/package.json alih@dev.toolforge.org:/data/project/wikibento/www/js/
+```
 
-### Option C — any static host
+### Verify
 
-`dist/` is host-agnostic: Netlify, GitHub Pages, S3, a DreamHost `~/domain.com/`
-directory, etc. There is no server-side code, no environment variables, no routing
-rules. Just point any static file server at `dist/` and upload.
+```bash
+# status
+ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes node20 status"
+
+# logs (startup line: "WikiBento serving dist/ on port 8000")
+ssh alih@dev.toolforge.org "sudo -niu tools.wikibento kubectl logs --tail=50 deployment/wikibento"
+
+# live check — the new bundle hash appears in index.html
+curl -s https://wikibento.toolforge.org/ | grep -oE 'assets/index-[A-Za-z0-9_-]+\.js'
+```
+
+Browser check: open https://wikibento.toolforge.org/ → ✨ Example → confirm
+widgets render and the console is clean apart from the known hatnote/WMF
+fallback noise. If a deploy "looks missing" after refresh, hard-refresh
+(⌘⇧R) — index.html is served `no-cache`, assets are immutable (HANDOFF
+gotcha #11).
+
+## Alternative hosts
+
+`dist/` + a server that provides `/api/proxy` + `/api/resolve` (or any CORS
+proxy for hatnote) will work anywhere: Netlify functions, GitHub Pages with a
+serverless proxy, etc. Without those endpoints, the Top Wikipedia Articles
+widget falls back to the WMF Pageviews API (marked "via WMF Pageviews API")
+and `?config=` w.wiki links won't resolve — everything else still works.
 
 ## Deployment Checklist
 
-- [ ] `npm run build` — confirm 43 modules, no errors
+- [ ] `npm run build` — no errors
 - [ ] Smoke-test `npx vite preview` locally before shipping
-- [ ] Verify the live URL loads and all 7 widgets fetch data (browser console clean,
-      no CORS errors)
-- [ ] Widgets hit `*.wikipedia.org`, `commons.wikimedia.org`, `wikimedia.org`,
-      `wikistats.wmcloud.org` — all CORS-enabled; if any future source isn't, that's
-      the moment to add a CORS proxy (see ROADMAP.md)
-
-## Release Notes (2026-08-12 build)
-
-- Vite 8.2.1 production build: 43 modules
-- `dist/` = 313 KB total (index 0.58 KB, JS 299.0 KB / 89.7 KB gzip, CSS 14.4 KB / 3.4 KB gzip)
+- [ ] `rsync` dist/ → the tool (with `--delete`)
+- [ ] Restart: `sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart`
+- [ ] Verify live: bundle hash in index.html changed; ✨ Example renders;
+      `/api/resolve` still answers (`?url=https://w.wiki/TR9R`)
+- [ ] New endpoints that need CORS → confirm `origin=*` (Action API) or
+      origin-reflection (api.wikimedia.org) before shipping

@@ -219,7 +219,7 @@ wikibento/
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — local + Toolforge static hosting (`tools.wikibento`)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — local dev + Toolforge node20 deployment (SSH as `alih@`, `sudo -niu tools.wikibento`), full deploy procedure
 - [docs/ROADMAP.md](docs/ROADMAP.md) — v2 ideas, quick wins, and known limitations
 - [docs/WIDGET-IDEAS.md](docs/WIDGET-IDEAS.md) — the widget idea bank (Wiki Edu dashboards and more), with verified API notes
 - [docs/SCALABILITY.md](docs/SCALABILITY.md) — batching, caching, and efficiency notes for tracking hundreds of files/categories

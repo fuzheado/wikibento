@@ -22,8 +22,15 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
-  node20 webservice serving dist/ via deploy/server.js; demo URL verified live
-  (all 7 widgets). Updates: rsync dist/ + `toolforge webservice node20 restart`
+  node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
+  **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
+  SSH as the PERSONAL account (`ssh alih@dev.toolforge.org` — `tools.wikibento@`
+  is NOT an SSH login and fails with publickey); tool commands via
+  `sudo -niu tools.wikibento` (never `become` over chained SSH); then:
+  `npm run build` → `rsync -az --delete dist/ alih@dev.toolforge.org:/data/project/wikibento/www/js/dist/`
+  → `ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart"`
+  → verify bundle hash + `/api/resolve`. This Pi's hosts inventory has
+  `tools` = alih@dev.toolforge.org (use `host_exec`).
 - ✅ **Phase 0 cleanup done (2026-08-12):** recharts removed, dead assets
   (`public/favicon.svg`, `icons.svg`) deleted, grid resize listener added,
   per-widget error boundary added
