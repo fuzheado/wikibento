@@ -317,6 +317,33 @@ editors) — a drop-in replacement for the twice-daily bot reports, live.
   PagePiles is the cleanest first target (stable ID + tidy JSON); PetScan
   PSID second (bigger lists, unbounded by default).
 
+## Mapping: Kartographer-style widgets (2026-08-13 analysis)
+
+> The user direction: what interesting things can we do with maps —
+> Kartographer data + OpenStreetMap. All data sources below verified
+> CORS-enabled from the browser (2026-08-13); the widget doesn't need
+> Kartographer itself — it replicates Kartographer's data services
+> client-side with CORS-enabled APIs.
+
+**Engine:** Leaflet (~42 KB) — the project's AGENTS.md already documents its
+pitfalls (`setView()` before tiles load or the map stays blank;
+`invalidateSize()` after dynamic containers). MapLibre GL if vector tiles
+are wanted later; kepler.gl (kepler-gl skill, SPARQL→GeoJSON) for
+analysis-grade maps. ⚠️ **Tile policy caveat:** Wikimedia's own tile servers
+(`maps.wikimedia.org`) are for Wikimedia projects — verify the current
+policy before using them in a standalone widget; OpenFreeMap (free, no key)
+or OSMF standard tiles (UA + attribution) are safe basemap defaults.
+
+| Widget idea | Data source (verified) | Effort | Notes |
+|---|---|---|---|
+| **Commons category photo map** — every geolocated photo in a category on one map, pins with thumbnails | `categorymembers` walk + batched `prop=coordinates` (Commons Action API, `origin=*`) | M | Replicates Kartographer's `commonscategory` service client-side. The killer GLAM widget (WLM photo maps, event coverage); pairs with the GLAM widget's file walk |
+| **Article location map** — map of an article's subject + context | Wikidata P625 via WDQS (`?item wdt:P625 ?coord`, CORS ✅) | S–M | Start from any article's Wikidata item; show region geoshape + nearby photos |
+| **Geoshape widget** — Wikidata geoshapes (P3896) as polygon overlays | `https://maps.wikimedia.org/geoshape?getgeojson=1&ids=Q214051` → FeatureCollection (verified: Tokyo MultiPolygon, **CORS `*`**) | S | Protected areas, regions, cities as filled polygons — the `Mapshape` pattern (wikivoyage skill) |
+| **Nearby POI (OSM Overpass)** — "what's around here" | `overpass-api.de/api/interpreter` with `[out:json]` — **CORS `*`** (verified: cafe query 200) | S–M | Radius + amenity filters; Wikivoyage-listing-style pins; add Nominatim search (`CORS *` verified) for "map of X" |
+| **Wikidata map renderer** (SPARQL widget) | WDQS P625 queries → GeoJSON pins with labels + images | part of SPARQL widget (M–L) | The planned map renderer; timeline/graph renderers noted above |
+| **Wikivoyage POI map** | Wikivoyage listings (lat/long via Module:Listing or pre-built exports at wikivoyage.github.io) | M | Destination map with See/Do/Eat/Buy categories and colors |
+| **Article-country map** | Lift Wing `article-country` model (ML) + coordinates | M | ML meets maps: articles classified by predicted country, plotted — e.g. "coverage map" of an event or campaign |
+
 ---
 
 ## How to Add an Idea
