@@ -230,6 +230,30 @@ per-article assessment widget to complete the WikiProject Monitor pack.
 
 **Ship order:** GLAM Footprint, Newsroom Pulse, Edit-a-thon Live (first 3; many required widgets already exist or are Tier-1).
 
+## Historical Dashboard: Faebot GLAM dashboard (2026-08-13 analysis)
+
+> Source: [User:Faebot/GLAM_dashboard](https://commons.wikimedia.org/wiki/User:Faebot/GLAM_dashboard)
+> (Commons). A bot-maintained report system for **batch upload projects**: give
+> Faebot a "bucket category" and it generates six reports, updated twice a
+> day, transcluded as a live dashboard (example: Commons:Batch uploading/
+> Wellcome Images). WikiBento can make all of these **live** instead of
+> twice-daily. Mapping report → widget:
+
+| # | Faebot report (per project) | WikiBento widget | Feasibility | Notes |
+|---|---|---|---|---|
+| 1 | **Top 24 most used files** (usage across wikis, with thumbs — verified: Wellcome top = 338 usages) | **File Usage Map — already shipped**; add a bucket variant: top-N files by usage count across a whole category | S | The GLAM widget already computes per-file usage counts internally (`fileStats`) — a "Top used files" ranking (sorted by # of using pages instead of views) is a small transform/filmstrip addition |
+| 2 | **Top 24 most edited file pages** | **Recently edited files in category** (last-edit timestamp per file) | S | ⚠️ the Action API has no per-page edit-count property — use batched `prop=revisions&rvlimit=1&rvprop=timestamp` over `categorymembers` (50/call) and rank by recency; captures the same "files needing attention" spirit |
+| 3 | **Top 100 most populated categories** used by the bucket's files (verified: "Artworks without Wikidata item (97,327)") | **Category population** — which categories the bucket's files populate | M | Walk the bucket (`collectCategoryFiles` exists) + batched `prop=categories` (50/call) → aggregate counts; RankingCard. The "where did my uploads land" report |
+| 4 | **Top 24 largest files by resolution** | **Largest files in category** | S–M | `categorymembers` + batched `prop=imageinfo&iiprop=size` → sort by width×height; show dimensions + thumb |
+| 5 | **Random lists for improvement** | **Random file sample** — already 80% shipped in Category Size (random photo sample); add a "shuffle" button + more rows | S | Pull the sample code out of Category Size into a shared helper |
+| 6 | **All editors to the file pages** (volunteers) | **File page editors** — who's been editing the bucket's file pages | M | Batched `prop=revisions&rvprop=user` over the walk; aggregate unique users + edit counts; RankingCard. Useful for edit-a-thon follow-up |
+
+**Pack tie-in:** the six reports compose into an **🎨 Upload Project Monitor**
+starter pack (bucket category → usage + recency + population + size + sample +
+editors) — a drop-in replacement for the twice-daily bot reports, live.
+
+---
+
 ## How to Add an Idea
 
 Copy the format above: **title, links, what it shows, verified feasibility
