@@ -12,14 +12,17 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈365 KB total (~109 KB
+(the same grid engine used by Grafana and Kibana), ≈373 KB total (~112 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
 Commons, Wikistats) directly from the browser — no backend, no login, no proxy.
 
-**Live:** [wikibento.toolforge.org](https://wikibento.toolforge.org/) ·
-Source: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)
+**Live:** [wikibento.toolforge.org](https://wikibento.toolforge.org/)
+
+**Example:** [Alysa Liu](https://wikibento.toolforge.org/?config=https://w.wiki/TR9R)
+
+**Source**: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)
 
 ---
 
@@ -218,7 +221,7 @@ wikibento/
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 364.98 KB JS (109.32 KB gzip) + 35.34 KB CSS (7.61 KB gzip)
+- ✅ Production build: 372.94 KB JS (112.01 KB gzip) + 36.60 KB CSS (7.83 KB gzip)
 
 ## Documentation
 

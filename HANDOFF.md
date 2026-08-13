@@ -18,11 +18,11 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
 - ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (17 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List + 🧠 SPARQL Query)
-- ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **NOT YET DEPLOYED** (2026-08-13).
+- ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **DEPLOYED to Toolforge 2026-08-13** (commit bfbce6e, bundle index-BJjaG_ta.js) — verified live: multi-institution bars (Met 72,433), /api/resolve OK.
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 17 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo initialized and pushed to GitHub (main, current commit 68dea21)
+- ✅ Git repo initialized and pushed to GitHub (main, current commit bfbce6e)
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
@@ -152,7 +152,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (364.98 KB JS / 109.32 KB gzip)
+npm run build      # → dist/ (372.94 KB JS / 112.01 KB gzip)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```
