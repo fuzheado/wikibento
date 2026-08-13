@@ -845,6 +845,9 @@ body {
   gap: 8px;
 }
 
+.glam-card > * {
+ flex-shrink: 0;
+}
 .glam-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
