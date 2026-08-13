@@ -15,6 +15,7 @@ import {
   fetchArticleQuality,
   fetchAssessments,
   fetchEditHistory,
+  fetchArticleGallery,
 } from './dataSources';
 
 const NAMESPACE_LABELS = {
@@ -523,6 +524,48 @@ export const WIDGET_TYPES = {
       title: data.article.replace(/_/g, ' '),
       rows: data.rows,
       total: data.total,
+    }),
+  },
+
+  gallery: {
+    id: 'gallery',
+    name: 'Article Gallery',
+    icon: '🖼️',
+    description: 'Significant images in an article with captions (grid or list)',
+    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
+    defaults: {
+      article: 'Albert Einstein',
+      project: 'en.wikipedia',
+      displayMode: 'grid',   // 'grid' | 'list'
+      iconSize: 'medium',    // grid: 'small' | 'medium' | 'large'
+      minSize: 200,          // drop images smaller than this (px)
+      maxItems: 0,           // 0 = all
+      refreshSeconds: 3600,
+    },
+    renderer: 'GalleryGridCard',
+    getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
+    dataSource: 'REST /page/media-list + imageinfo',
+    configFields: [
+      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'displayMode', label: 'Display', type: 'select', options: [
+        { value: 'grid', label: 'Grid (captions below)' },
+        { value: 'list', label: 'List (thumb left, caption right)' },
+      ]},
+      { key: 'iconSize', label: 'Grid size', type: 'select', options: [
+        { value: 'small', label: 'Small' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'large', label: 'Large' },
+      ]},
+      { key: 'minSize', label: 'Min image size (px)', type: 'number', placeholder: '200' },
+      { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', placeholder: '0' },
+    ],
+    fetch: (config) => fetchArticleGallery(config.article, config.project, config.minSize, config.maxItems),
+    transform: (data, config) => ({
+      title: data.article.replace(/_/g, ' '),
+      subtitle: `${data.rows.length} images${data.dropped ? ` · ${data.dropped} filtered (tiny/uncaptioned)` : ''}`,
+      rows: data.rows,
+      size: config.iconSize || 'medium',
     }),
   },
 };

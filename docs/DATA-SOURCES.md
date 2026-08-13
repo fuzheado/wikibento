@@ -286,6 +286,36 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 - **Verified:** Albert Einstein → 18 projects; Germany/History of Science/
   Physics/… all GA with Top/High/Mid/Low badges — 2026-08-13.
 
+## 13. Article Gallery — REST `/page/media-list` + `imageinfo`
+
+**Widget:** Article Gallery · **Fetcher:** `fetchArticleGallery(article, project, minSize, maxItems)`
+
+- **Endpoint:** `https://{project}.org/api/rest_v1/page/media-list/{title}` —
+  Parsoid's server-side media extraction: every media item with `type`
+  (image/audio/video), `title`, `caption.html`, `srcset` (1x/2x thumb URLs),
+  `section_id`, `leadImage`, `showInGallery`. One call, ~30–60 KB. **No
+  wikitext parsing needed** — this IS MediaWiki's AST/Parsoid output (the
+  `wikimedia-wikitext` skill's rule: don't parse wikitext when you don't need
+  write-back).
+- **CORS:** ✅ `Access-Control-Allow-Origin: *` (REST API).
+- **Significance filter (verified 2026-08-13):** keep only `type=image` items
+  WITH `caption` — caption-less items are exactly the noise: France's
+  `Flag_of_France.svg` (infobox flag), EU/map SVGs, territorial-waters maps,
+  government portraits. Then a batched `prop=imageinfo&iiprop=size|mime`
+  (50 titles/call) drops images smaller than `minSize` (default 200 px) —
+  catches remaining tiny icons/logos. Captioned SVGs (significant diagrams)
+  survive the filter, as intended.
+- **Gotchas:** `showInGallery` is NOT a useful filter — true for every image
+  on 4 pages tested (only audio gets false). `srcset` URLs are
+  protocol-relative with `utm_source/campaign/content` params — normalized
+  to absolute https + stripped (see `cleanThumbUrl`). Captions are HTML with
+  links → stripped to plain text (`stripHtml`) for the widget.
+- **Display modes:** grid (small/medium/large via `iconSize`, CSS
+  `auto-fill minmax(110/170/250px, 1fr)`) or list (90×60 thumb left, caption
+  right, file name below).
+- **Verified:** Albert Einstein → 32 captioned images (of 35 total); France →
+  38 of 47 captioned — 2026-08-13.
+
 ## Wikimedia API Etiquette (applies to any future fetchers)
 
 - Keep a descriptive User-Agent with contact info (the code's constant is

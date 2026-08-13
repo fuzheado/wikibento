@@ -82,6 +82,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   **DEPLOYED to Toolforge 2026-08-13** (commit b9d62f7, bundle
   index-CF9Vo_m5.js) — verified live: all 4 vitals render, no console
   errors from the new endpoints.
+- ✅ **Article Gallery widget (2026-08-13):** 🖼️ significant images with
+  captions for any article. REST `/page/media-list` (Parsoid's own media
+  extraction — no wikitext parsing) + batched `imageinfo`. Significance
+  filter (verified): keep only captioned images — caption-less items are
+  exactly the noise (infobox flags like `Flag_of_France.svg`, maps, logos);
+  `minSize` (default 200px) drops tiny icons. Display modes: grid
+  (small/medium/large) or list (thumb left, caption right + filename).
+  `showInGallery` metadata is useless (true for everything). Thumb URLs
+  utm-stripped (`cleanThumbUrl`). Verified: Einstein → 32 captioned images,
+  both modes + size variants in browser. Schema/README/DATA-SOURCES §13
+  updated.
 
 ## Quick Start
 

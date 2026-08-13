@@ -1097,3 +1097,24 @@ body {
 .assess-importance.imp-Mid { background: rgba(74,158,255,0.2); color: #7fb8ff; }
 .assess-importance.imp-Low { background: rgba(139,143,163,0.18); color: #a7abc0; }
 .assess-importance.imp-Unknown, .assess-importance.imp-NA, .assess-importance.imp-none { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+
+/* ── Article Gallery ────────────────────────────────────── */
+.gallery-card { display: flex; flex-direction: column; padding: 8px 10px; }
+.gallery-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 8px; padding: 2px; align-content: start; }
+.gallery-small { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.gallery-medium { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.gallery-large { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.gallery-item { display: flex; flex-direction: column; text-decoration: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.gallery-item:hover { border-color: var(--accent-dim); }
+.gallery-thumb { width: 100%; height: 80px; object-fit: cover; background: var(--bg); }
+.gallery-medium .gallery-thumb { height: 120px; }
+.gallery-large .gallery-thumb { height: 160px; }
+.gallery-caption { font-size: 10px; color: var(--text-secondary); padding: 4px 6px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.gallery-item:hover .gallery-caption { color: var(--text); }
+.gallery-list { flex: 1; min-height: 0; overflow-y: auto; }
+.gallery-list-item { display: flex; gap: 10px; padding: 6px 4px; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.gallery-list-item:hover { background: rgba(255,255,255,0.02); }
+.gallery-list-thumb { width: 90px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+.gallery-list-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.gallery-list-caption { font-size: 11px; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gallery-list-file { font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

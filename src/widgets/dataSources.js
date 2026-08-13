@@ -936,3 +936,80 @@ export async function fetchEditHistory(article, project = 'en.wikipedia', limit 
   }));
   return { article, project, rows };
 }
+
+/** Normalize a media-list thumb URL: absolute https + no utm_* params. */
+function cleanThumbUrl(url) {
+  if (!url) return null;
+  const clean = url.replace(/^\/\//, 'https://');
+  try {
+    const u = new URL(clean);
+    ['utm_source', 'utm_campaign', 'utm_content', 'utm_medium', 'utm_term'].forEach((k) => u.searchParams.delete(k));
+    return u.href;
+  } catch {
+    return clean.split('?')[0];
+  }
+}
+
+/**
+ * Article gallery — significant images with captions.
+ * REST /page/media-list is Parsoid's server-side media extraction (images +
+ * captions + srcset in one CORS-enabled call — no wikitext parsing needed).
+ * Significance heuristic (verified 2026-08-13): keep only type=image items
+ * WITH captions — caption-less items are exactly the noise (infobox flags
+ * like Flag_of_France.svg, maps, logos, portraits); then a batched imageinfo
+ * call drops images smaller than minSize (tiny icons).
+ */
+export async function fetchArticleGallery(article, project = 'en.wikipedia', minSize = 200, maxItems = 0) {
+  const title = article.replace(/ /g, '_');
+  let list;
+  try {
+    list = await fetchJSON(`https://${project}.org/api/rest_v1/page/media-list/${encodeURIComponent(title)}`);
+  } catch (e) {
+    if (e.message?.startsWith('HTTP 404')) throw new Error(`Article not found: ${article}`);
+    throw new Error(`Gallery fetch failed: ${e.message}`);
+  }
+  const images = (list?.items || []).filter((it) => it.type === 'image' && it.caption?.html);
+  if (!images.length) return { article, rows: [], total: 0, dropped: 0 };
+
+  // Authoritative dimensions + mime via batched imageinfo (50 titles/call).
+  const info = {};
+  for (let i = 0; i < images.length; i += 50) {
+    const params = new URLSearchParams({
+      action: 'query',
+      prop: 'imageinfo',
+      titles: images.slice(i, i + 50).map((it) => it.title).join('|'),
+      iiprop: 'size|mime',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    try {
+      const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+      for (const p of d?.query?.pages || []) {
+        const ii = p.imageinfo?.[0];
+        if (ii) info[p.title] = { width: ii.width, height: ii.height, mime: ii.mime };
+      }
+    } catch { /* dimension filter is best-effort */ }
+  }
+
+  const min = Math.max(parseInt(minSize) || 200, 0);
+  const rows = [];
+  let dropped = 0;
+  for (const it of images) {
+    const dim = info[it.title];
+    if (dim && (dim.width < min || dim.height < min)) { dropped++; continue; }
+    const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
+    const thumbUrl = cleanThumbUrl(src?.src);
+    if (!thumbUrl) { dropped++; continue; }
+    rows.push({
+      title: it.title.replace(/^File:/, '').replace(/_/g, ' '),
+      fileUrl: `https://${project}.org/wiki/${it.title.replace(/ /g, '_')}`,
+      caption: stripHtml(it.caption?.html || ''),
+      thumbUrl,
+      width: dim?.width,
+      height: dim?.height,
+    });
+  }
+  const limit = Math.max(parseInt(maxItems) || 0, 0);
+  return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped };
+}

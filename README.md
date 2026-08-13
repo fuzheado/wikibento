@@ -53,6 +53,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
 | **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
 | **WikiProject Assessment** | 🧭 | MediaWiki API `prop=pageassessments` | Quality class + importance per WikiProject banner (enwiki and other PageAssessments wikis) |
+| **Article Gallery** | 🖼️ | [REST `/page/media-list`](https://en.wikipedia.org/api/rest_v1/page/media-list/Albert_Einstein) + `imageinfo` | Significant images with captions — grid (small/medium/large) or list (thumb left, caption right); filters out uncaptioned flags/logos/maps and tiny icons |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
@@ -161,6 +162,12 @@ wikibento/
 
 ## Verified Working (smoke-tested 2026-08-12)
 
+- ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
+  imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
+  drops infobox flags/maps (verified: France's `Flag_of_France.svg` and all
+  map SVGs have no caption); grid mode (small/medium/large) + list mode
+  (thumb left, caption right); min-size filter (200px) for tiny icons;
+  utm-stripped thumb URLs; example dashboard includes the gallery
 - ✅ **Article Vitals (2026-08-13):** Article Excerpt (REST summary — Ada
   Lovelace: description, thumbnail, first paragraph), Edit History (byte
   deltas + user + timestamp + comment, newest-first), Article Quality (Lift

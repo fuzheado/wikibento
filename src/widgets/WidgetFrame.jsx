@@ -160,6 +160,8 @@ function WidgetContent({ type, data }) {
     case 'EditHistoryCard': return <EditHistoryCard data={data} />;
     case 'QualityCard': return <QualityCard data={data} />;
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
+    case 'GalleryGridCard': return <GalleryGridCard data={data} />;
+    case 'GalleryListCard': return <GalleryListCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -510,6 +512,50 @@ function AssessmentsCard({ data }) {
             <span className={`assess-badge assess-class cls-${r.class || 'none'}`}>{r.class || '—'}</span>
             <span className={`assess-badge assess-importance imp-${r.importance || 'none'}`}>{r.importance || '—'}</span>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Article Gallery — grid of thumbs with captions below (size: small/medium/large). */
+function GalleryGridCard({ data }) {
+  const size = data.size || 'medium';
+  const rows = data.rows || [];
+  return (
+    <div className="gallery-card">
+      <div className="ranking-title" title={data.title}>{data.title}</div>
+      <div className="ranking-subtitle">{data.subtitle}</div>
+      <div className={`gallery-grid gallery-${size}`}>
+        {rows.length === 0 && <div className="widget-empty">No captioned images found</div>}
+        {rows.map((img) => (
+          <a key={img.title} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
+            <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
+            {img.caption && <span className="gallery-caption">{img.caption}</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Article Gallery — list rows: thumb left, caption right. */
+function GalleryListCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="gallery-card gallery-list-card">
+      <div className="ranking-title" title={data.title}>{data.title}</div>
+      <div className="ranking-subtitle">{data.subtitle}</div>
+      <div className="gallery-list">
+        {rows.length === 0 && <div className="widget-empty">No captioned images found</div>}
+        {rows.map((img) => (
+          <a key={img.title} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer">
+            <img className="gallery-list-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
+            <div className="gallery-list-body">
+              <span className="gallery-list-caption">{img.caption || img.title}</span>
+              <span className="gallery-list-file">{img.title}</span>
+            </div>
+          </a>
         ))}
       </div>
     </div>
