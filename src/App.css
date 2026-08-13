@@ -880,7 +880,7 @@ body {
   opacity: 0.8;
 }
 
-.glam-detail .col-0 { flex: 0 0 52px; text-align: left; }
+.glam-detail .col-0 { flex: 0 0 108px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .glam-detail .col-1 { flex: 3; text-align: left; }
 .glam-detail .col-2 { flex: 1; text-align: right; color: var(--accent); font-weight: 600; }
 .glam-detail .ranking-row { font-size: 10px; }

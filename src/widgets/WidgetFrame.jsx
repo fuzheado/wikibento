@@ -284,7 +284,7 @@ function GlamCard({ data }) {
           <div className="ranking-rows">
             {data.detail.rows.map((row, i) => (
               <div key={i} className="ranking-row">
-                <span className="ranking-col col-0">{row.wiki}</span>
+                <span className="ranking-col col-0" title={row.wiki}>{row.wiki.replace(/\.org$/, '')}</span>
                 <span className="ranking-col col-1" title={`${row.wiki}:${row.page}`}>{row.page}</span>
                 <span className="ranking-col col-2">{row.views.toLocaleString()}</span>
               </div>
