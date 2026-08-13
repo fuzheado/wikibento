@@ -224,6 +224,15 @@ containment), index.html no-cache.*
    power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
    bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →
    spike alert (hero feature). Brainstorm doc: wiki source SRC-2026-08-12-004.
+1. **UX + WikiProject directions noted 2026-08-13** (user session) — ROADMAP
+   §Phase 2: categorized Add Widget catalog (registry `category` field),
+   slide-out toolbox instead of centered modal (drawer pattern proven in
+   wikigraph), debounced search (don't load while typing; current search is
+   local filter — note applies to future live-loading), lean display mode
+   (decorations hidden by default, hover/tap to reveal). WIDGET-IDEAS Tier 6:
+   WikiProject widget family — assessment scale + popular pages (endpoints
+   verified: `/Popular_pages` = Rank·Views·Quality·Importance table, 501
+   rows, ~360 KB; ⚠️ `prop=wikitable` doesn't exist — parse `prop=text`).
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

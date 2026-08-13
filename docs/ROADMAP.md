@@ -89,6 +89,31 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
+- **Categorized Add Widget catalog** (2026-08-13 note) — 13 widget types in a
+  linear list is unwieldy. Add sections to the panel: each registry entry gets
+  a `category` field (e.g. `commons` / `wikipedia-article` / `stats-tools` /
+  `content`), and the panel groups + labels them ("Wikimedia Commons",
+  "Wikipedia article vitals", "Stats & external tools", "Content").
+  Sections could collapse to headers; keep the free-text search filtering
+  across all categories.
+- **Slide-out toolbox instead of centered modal** (2026-08-13 note) — the Add
+  Widget modal covers the dashboard you're building on. Consider a 360–400px
+  right-side slide-out drawer so the grid stays visible while browsing
+  (pattern proven in the wikigraph project: `position: fixed; right: -420px`
+  + `transition: right 0.3s ease`, `.open { right: 0 }`, always-rendered
+  panel). Same for Import/Share if they grow.
+- **Debounced search — don't load while typing** (2026-08-13 note) — the
+  current catalog search is a local `filter()` over the registry (no network,
+  no cost), but if we ever add live-loading to the panel — opensearch
+  autocomplete, live previews, or the URL-extractor power widget's probes —
+  debounce input ~250–300 ms (wait-for-pause) and cancel stale requests with
+  `AbortController` before issuing new ones.
+- **Lean display mode — hidden decorations by default** (2026-08-13 note) — a
+  "view mode" where widget title bars, ⚙/↻/✕ buttons, and borders are hidden;
+  they appear on hover (or when any widget is being edited) so the dashboard
+  reads as a clean data wall rather than an editing surface. Global toggle in
+  the toolbar; per-widget config unchanged; ensure touch devices get a
+  tap-to-reveal fallback (hover doesn't exist there).
 - **Responsive multi-breakpoint grid** — done 2026-08-12 in simplified form:
   <768px collapses to a single-column stack (Grafana-style); future option is
   react-grid-layout `Responsive` with intermediate breakpoints (md/sm)

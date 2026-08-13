@@ -187,6 +187,25 @@ quality + assessments) fits the starter-packs ship list.
 | **Vital articles progress** | Vital list + PageAssessments | ✅ | M | Completeness of "must-have" articles |
 | **Discussion monitor** | Talk page `revisions` | ✅ | S | Recent talk-page activity |
 
+## Tier 6 — WikiProject widgets (2026-08-13 note: user direction)
+
+> A whole set of widgets for WikiProject coordinators, complementing the
+> per-article 🧭 **WikiProject Assessment** widget (already shipped) and the
+> 🔭 WikiProject Monitor starter pack. The two headline widgets:
+
+| Idea | Data source | Feasibility | Effort | Notes |
+|---|---|---|---|---|
+| **WikiProject assessment scale** | Parse the project's `Wikipedia:WikiProject_{name}/Assessment` subpage wikitable (Action API `action=parse&page=…&prop=text` + client-side `DOMParser` — CORS `origin=*`) | ✅ | S–M | The quality×importance matrix (FA→Stub × Top→Low) most projects maintain; render as a distribution grid or badge counts. Bot-refreshed weekly. Case-sensitive names; not all projects have the subpage — probe `prop=info` first (pattern from the `wikimedia-page-assessment` skill) |
+| **WikiProject popular pages** | Parse `Wikipedia:WikiProject_{name}/Popular_pages` via `action=parse&prop=text` + `DOMParser` (CORS `origin=*`) | ✅ verified 2026-08-13 | S | The bot-generated monthly table (Physics page: 501 rows, ~360 KB HTML; row = Rank · Page · Views · Views/day · Quality · Importance, e.g. `1 · Albert Einstein · 290,130 · 9,671 · GA · Top`). RankingCard-ready (reuse the Top Wikipedia Articles renderer contract); use the TTL fetch cache (Wikistats pattern). Monthly data lag 1–2 months; probe existence first. ⚠️ `prop=wikitable` does NOT exist — use `prop=text` + parse the HTML (never regex wikitext) |
+| WikiProject activity feed | PetScan (once the power widget exists) + `recentchanges` | ✅ | M | Existing "WikiProject pulse" idea (Tier 5) — new/changed articles in the project's scope |
+| Vital articles progress | Vital list + PageAssessments | ✅ | M | Existing Tier 5 idea — completeness of "must-have" articles |
+
+**Notes:** the popular-pages table literally contains views + quality +
+importance in one row — one widget gives the "most important thing a project
+lead checks every month". Both widgets pair with the already-shipped
+per-article assessment widget to complete the WikiProject Monitor pack.
+
+
 ## The Killer Widget — Article Watch + Spike Alert (2026-08-12 brainstorm)
 
 - **What it shows:** pageviews with a spike detector — when a watched article's views jump **3× its baseline** (breaking news, viral moment), the widget lights up.
