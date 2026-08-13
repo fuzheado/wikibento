@@ -72,12 +72,7 @@ Housekeeping found during the code audit. Safe for a first PR.
       visibility-based fetching. Full analysis in
       [SCALABILITY.md](SCALABILITY.md) (batching verified live 2026-08-12).
 
-- [ ] **CIM-first mode for GLAM widget** — try the precomputed Commons Impact
-      Metrics snapshot (`category-metrics-snapshot`) first; on 404 (category not
-      on the allow-list) fall back to the live walk. Registered categories get
-      instant exact numbers at any scale; the widget subtitle marks
-      "precomputed" vs "live". Registration process documented in the
-      `wikimedia-commons` skill and docs/GLAMORGAN-WIDGET.md.
+- [x] **CIM widget family (done 2026-08-13, separate widgets)** — the CIM-first idea shipped as **8 dedicated widgets** (snapshot, views-over-time, top files/wikis/pages/editors, global leaderboard, file spotlight) with a 1-h TTL cache and 404-disambiguation (probe previous month to separate 'not registered' from 'no data for this month'). The live `glamorgan` walk stays a separate, unchanged widget by design (2026-08-13 decision) — no CIM-first fallback inside it
 
 ## Phase 2 — Polish & Platform
 
@@ -89,7 +84,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
-- **Categorized Add Widget catalog** (2026-08-13 note) — 18 widget types in a
+- **Categorized Add Widget catalog** (2026-08-13 note) — 26 widget types in a
   linear list is unwieldy. Add sections to the panel: each registry entry gets
   a `category` field (e.g. `commons` / `wikipedia-article` / `stats-tools` /
   `content`), and the panel groups + labels them ("Wikimedia Commons",

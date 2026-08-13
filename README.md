@@ -61,6 +61,14 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
 | **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
 | **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor |
+| **CIM Category Snapshot** | 🎯 | [CIM](https://wikimedia.org/api/rest_v1/metrics/commons-analytics/) `category-metrics-snapshot` | Exact **precomputed** stats for a CIM-registered category: files · used · wikis · pages (deep/shallow) |
+| **CIM Views Over Time** | 📈 | CIM `pageviews-per-category-monthly` | Monthly pageview trend of pages using the category's files (2–24 months) |
+| **CIM Top Files** | 🖼️ | CIM `top-viewed-media-files-monthly` + `imageinfo` | Most-viewed files with thumbnails + views |
+| **CIM Top Wikis** | 🌍 | CIM `top-wikis-per-category-monthly` | Which wikis use the category's files most |
+| **CIM Top Pages** | 📄 | CIM `top-pages-per-category-monthly` | Pages using the files, by views |
+| **CIM Top Editors** | ✍️ | CIM `top-editors-monthly` | Top contributors by edit count (creates/updates/all) |
+| **CIM Global Leaderboard** | 🏆 | CIM `top-viewed-categories-monthly` | Top 100 most-viewed categories on Commons, optional category highlight |
+| **CIM File Spotlight** | 🔦 | CIM `media-file-metrics-snapshot` + `pageviews-per-media-file-monthly` | One file: wikis/pages using it + monthly view trend |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
@@ -93,6 +101,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   batched 50 titles/call — pattern from the Wiki-Top-100 project), and
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
+- **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. Unregistered categories get a friendly "register via {{Views from category}}" state (404 ≠ error); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
 - **SPARQL power widget** — 🧠 run any SPARQL against Wikidata (WDQS) or Commons (QLever) and get a big number, bars, line, or table — auto-detected from the result shape (manual override in ⚙). Canned presets unlock instant dashboards (collection depth, multi-institution comparison, Women-in-Red %, Commons top-depicts); 60 s timeout + retry + 10-min cache tame WDQS flakiness; long queries POST form-urlencoded (no CORS preflight)
 - **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
 - **Commons media previews** — File Usage Map can show the image itself + its
@@ -108,7 +117,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 18 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 26 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -198,8 +207,9 @@ wikibento/
 - ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
 - ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
 - ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
-- ✅ All 16 data-driven widget types render live data in the browser; the 17th (Text/Markdown) and 18th (Wiki Page — a static iframe) are static — no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 18 widgets
+- ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too)
+- ✅ All 16 data-driven widget types render live data in the browser; the 25th (Text/Markdown) and 26th (Wiki Page — a static iframe) are static — no fetch, renders from config
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 26 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com

@@ -21,7 +21,7 @@ const wikistatsCache = createTtlCache(5 * 60 * 1000);
  * (network errors, 5xx). 4xx errors fail fast (retrying won't help).
  * Returns the response text.
  */
-async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null, contentType = null } = {}) {
+async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null, contentType = null, withBody = false } = {}) {
   const shortUrl = url.replace(/^https?:\/\//, '').slice(0, 80); // for error messages
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -37,11 +37,15 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method 
       if (resp.status >= 500 && attempt < retries) {
         lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
       } else if (!resp.ok) {
-        throw new Error(`HTTP ${resp.status} (${shortUrl})`);
-      } else {
-        return await resp.text();
-      }
-    } catch (e) {
+   let errBody = null;
+   if (withBody) { try { errBody = (await resp.text()).slice(0, 300); } catch { /* body optional */ } }
+   const err = new Error(`HTTP ${resp.status} (${shortUrl})`);
+   if (errBody) err.body = errBody;
+   throw err;
+  } else {
+   return await resp.text();
+  }
+ } catch (e) {
       if (e.name === 'AbortError') {
         lastErr = new Error(`timed out after ${timeoutMs / 1000}s (${shortUrl})`);
       } else if (!(e instanceof Error && e.message.startsWith('HTTP '))) {
@@ -1257,4 +1261,210 @@ export async function fetchSparql(query, endpoint = 'wdqs', maxRows = 100) {
     });
     return { vars, rows };
   });
+}
+
+// ── Commons Impact Metrics (CIM) — precomputed monthly data ─────────
+// WMF's allow-list dataset: exact category-tree stats for ~1,755 primary
+// categories + subcats (7 levels). Every endpoint: CORS `*`, {context,
+// items} envelope. Only allow-listed categories have data — unregistered
+// (or out-of-range) categories 404 with "not loaded yet" in the body
+// (the 404 is AMBIGUOUS: registered categories with no data for the
+// requested month return the same body — verified 2026-08-13; the
+// disambiguation probe below separates the two cases).
+// NOTE: CIM "views" = pageviews of pages USING the files, not media
+// requests. Data is monthly, end-exclusive, lags ~1-2 days.
+const CIM_BASE = 'https://wikimedia.org/api/rest_v1/metrics/commons-analytics/';
+const CIM_TTL = 60 * 60 * 1000; // monthly data — 1 h cache is plenty
+const cimCache = createTtlCache(CIM_TTL);
+
+/** A category (or month range) with no CIM data — the friendly state. */
+export class CimUnregisteredError extends Error {}
+
+function cleanCategoryForCim(name) {
+  return String(name || '').replace(/^Category:\s*/i, '').trim().replace(/ /g, '_');
+}
+function cleanMediaFileForCim(name) {
+  return String(name || '').replace(/^File:\s*/i, '').trim().replace(/ /g, '_');
+}
+/** Previous calendar month (complete CIM data; current month is partial). */
+function prevCimMonth(d = new Date()) {
+  return { year: d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(), month: d.getMonth() === 0 ? 12 : d.getMonth() };
+}
+function shiftCimMonth(year, month, delta) {
+  const d = new Date(Date.UTC(year, month - 1 + delta, 1));
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 };
+}
+function cimDate(year, month) { return `${year}${String(month).padStart(2, '0')}01`; }
+
+/** GET one CIM path → items[] (never the raw envelope); 404-with-body →
+ *  CimUnregisteredError; other errors pass through. TTL-cached. */
+async function fetchCim(path) {
+  const url = CIM_BASE + path;
+  return cimCache.get(`cim::${path}`, async () => {
+    let text;
+    try {
+      text = await fetchTextWithRetry(url, { timeoutMs: 30000, retries: 1, withBody: true });
+    } catch (e) {
+      if (e.body && e.body.includes('not loaded yet')) {
+        throw new CimUnregisteredError('No precomputed (CIM) data yet — categories register via {{Views from category}} on the category page (processed monthly)');
+      }
+      throw e;
+    }
+    let d;
+    try { d = JSON.parse(text); } catch { throw new Error('CIM returned non-JSON'); }
+    return d.items || [];
+  });
+}
+
+/** Month-scoped fetch with 404 disambiguation: on "not loaded yet", probe
+ *  the previous month — probe OK = registered but no data for that month;
+ *  probe 404 = not in CIM (or data doesn't reach that far back). */
+async function fetchCimMonth(path, probePath) {
+  try {
+    return await fetchCim(path);
+  } catch (e) {
+    if (!(e instanceof CimUnregisteredError) || !probePath) throw e;
+    try {
+      await fetchCim(probePath);
+    } catch (p) {
+      if (p instanceof CimUnregisteredError) throw e; // both 404 → unregistered
+      throw p;
+    }
+    throw new Error('No CIM data for this month — try a more recent month');
+  }
+}
+
+/** 19a. CIM Category Snapshot — exact headline stats for a category. */
+export async function fetchCimSnapshot(category, scope = 'deep', year, month) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const start = cimDate(y, m);
+  const end = cimDate(...Object.values(shiftCimMonth(y, m, 1)));
+  const probeStart = cimDate(py, pm);
+  const probeEnd = cimDate(...Object.values(shiftCimMonth(py, pm, 1)));
+  const items = await fetchCimMonth(
+    `category-metrics-snapshot/${cat}/${start}/${end}`,
+    `category-metrics-snapshot/${cat}/${probeStart}/${probeEnd}`,
+  );
+  const it = items[0] || {};
+  return {
+    category: cat,
+    files: it['media-file-count'] ?? 0,
+    filesDeep: it['media-file-count-deep'] ?? 0,
+    used: it['used-media-file-count'] ?? 0,
+    usedDeep: it['used-media-file-count-deep'] ?? 0,
+    wikis: it['leveraging-wiki-count'] ?? 0,
+    wikisDeep: it['leveraging-wiki-count-deep'] ?? 0,
+    pages: it['leveraging-page-count'] ?? 0,
+    pagesDeep: it['leveraging-page-count-deep'] ?? 0,
+  };
+}
+
+/** 19b. CIM Views Over Time — monthly pageview series (views of pages
+ *  using the category's files). */
+export async function fetchCimTrend(category, scope = 'deep', wiki = 'all-wikis', year, month, months = 6) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(months) || 6, 2), 24);
+  const end = shiftCimMonth(y, m, 1);
+  const start = shiftCimMonth(y, m, -(n - 1));
+  const items = await fetchCimMonth(
+    `pageviews-per-category-monthly/${cat}/${scope}/${wiki}/${cimDate(start.year, start.month)}/${cimDate(end.year, end.month)}`,
+    `pageviews-per-category-monthly/${cat}/${scope}/${wiki}/${cimDate(py, pm)}/${cimDate(...Object.values(shiftCimMonth(py, pm, 1)))}`,
+  );
+  const rows = items.map((it) => ({ date: (it.timestamp || '').slice(0, 7), views: it['pageview-count'] ?? 0 }));
+  return { category: cat, rows };
+}
+
+/** 19c. CIM Top Files — most-viewed media files (with thumbnails). */
+export async function fetchCimTopFiles(category, scope = 'deep', wiki = 'all-wikis', year, month, topN = 10) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(topN) || 10, 1), 50);
+  const items = await fetchCim(
+    `top-viewed-media-files-monthly/${cat}/${scope}/${wiki}/${y}/${String(m).padStart(2, '0')}`,
+  );
+  const rows = items.slice(0, n).map((it) => ({ title: it['media-file'], views: it['pageview-count'] ?? 0 }));
+  const withThumbs = rows.map((r) => ({ title: `File:${r.title.replace(/_/g, " ")}` })); // imageinfo returns spaces — match its normalization
+  await attachThumbs(withThumbs); // best-effort 120px thumbs (imageinfo, 50/call)
+  rows.forEach((r, i) => { r.thumbUrl = withThumbs[i].thumbUrl; });
+  return { category: cat, rows };
+}
+
+/** 19d–19f. CIM rankings — wikis / pages / editors using the category. */
+export async function fetchCimTopWikis(category, scope = 'deep', year, month, topN = 10) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(topN) || 10, 1), 50);
+  const items = await fetchCim(`top-wikis-per-category-monthly/${cat}/${scope}/${y}/${String(m).padStart(2, '0')}`);
+  return { category: cat, rows: items.slice(0, n).map((it) => ({ wiki: it.wiki, views: it['pageview-count'] ?? 0 })) };
+}
+
+export async function fetchCimTopPages(category, scope = 'deep', wiki = 'all-wikis', year, month, topN = 10) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(topN) || 10, 1), 50);
+  const items = await fetchCim(`top-pages-per-category-monthly/${cat}/${scope}/${wiki}/${y}/${String(m).padStart(2, '0')}`);
+  return { category: cat, rows: items.slice(0, n).map((it) => ({ wiki: it['page-wiki'], page: it['page-title'], views: it['pageview-count'] ?? 0 })) };
+}
+
+export async function fetchCimTopEditors(category, scope = 'deep', editType = 'all-edit-types', year, month, topN = 10) {
+  const cat = cleanCategoryForCim(category);
+  if (!cat) throw new Error('Enter a Commons category');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(topN) || 10, 1), 50);
+  const items = await fetchCim(`top-editors-monthly/${cat}/${scope}/${editType}/${y}/${String(m).padStart(2, '0')}`);
+  return { category: cat, rows: items.slice(0, n).map((it) => ({ user: it['user-name'], edits: it['edit-count'] ?? 0 })) };
+}
+
+/** 19g. CIM Global Leaderboard — top 100 viewed categories (no rank-of-X). */
+export async function fetchCimLeaderboard(scope = 'deep', wiki = 'all-wikis', year, month) {
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const items = await fetchCim(`top-viewed-categories-monthly/${scope}/${wiki}/${y}/${String(m).padStart(2, '0')}`);
+  return { rows: items.map((it) => ({ category: it.category, views: it['pageview-count'] ?? 0, rank: it.rank ?? 0 })) };
+}
+
+/** 19h. CIM File Spotlight — per-file stats + monthly view trend. */
+export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year, month) {
+  const file = cleanMediaFileForCim(mediaFile);
+  if (!file) throw new Error('Enter a Commons file name');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const start = cimDate(y, m);
+  const end = cimDate(...Object.values(shiftCimMonth(y, m, 1)));
+  const probeStart = cimDate(py, pm);
+  const probeEnd = cimDate(...Object.values(shiftCimMonth(py, pm, 1)));
+  const [snapItems, trendItems] = await Promise.all([
+    fetchCimMonth(`media-file-metrics-snapshot/${file}/${start}/${end}`, `media-file-metrics-snapshot/${file}/${probeStart}/${probeEnd}`),
+    fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${start}/${end}`),
+  ]);
+  const snap = snapItems[0] || {};
+  const trend = trendItems.map((it) => ({ date: (it.timestamp || '').slice(0, 7), views: it['pageview-count'] ?? 0 }));
+  return {
+    file,
+    wikis: snap['leveraging-wiki-count'] ?? 0,
+    pages: snap['leveraging-page-count'] ?? 0,
+    views: trend.reduce((s, t) => s + t.views, 0),
+    trend,
+  };
 }

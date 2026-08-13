@@ -13,7 +13,7 @@ Every widget is defined by 5 things:
 | `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
-| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` |
+| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` |
 
 ## Step-by-Step
 
@@ -88,6 +88,8 @@ myWidget: {
 - **GalleryGridCard** (Article Gallery, grid) — `{ title, subtitle, rows: [{title, caption, thumbUrl, fileUrl}], size }`
 - **GalleryListCard** (Article Gallery, list) — same contract, rows render thumb-left/caption-right
 - **ArticleListCard** (Article List) — `{ title, subtitle, rows: [{title, pageUrl, thumbUrl?, extract?}] }` — clickable rows, optional thumb + 3-line intro. The same row contract works for any pasted-list widget.
+- **CimSnapshotCard** (CIM Snapshot / File Spotlight) — `{ title, subtitle?, stats: [{label, value, sub}], trend?: [{date, views}] }` — reuses the GlamCard stat-tile markup, optional monthly-view sparkline.
+- **CimTopFilesCard** (CIM Top Files) — `{ title, subtitle?, rows: [{title, views, thumbUrl?}] }` — ranked rows with 44px thumbs (RankingCard has none).
 - **SparqlCard** (SPARQL Query) — one renderer, mode decided by the transform: `{ mode, title, subtitle, … }` where mode is `stat` (StatCard contract), `line` (TrendCard contract), `bar` (`{rows: [{label, value}]}`), or `table` (`{columns, rows: [[cells]]}`). Auto-detect lives in the widget's `transform` (config.renderer overrides).
 
 Need a new shape? Add a renderer component to `WidgetFrame.jsx` and extend the

@@ -169,6 +169,10 @@ function WidgetContent({ type, data }) {
     case 'SparqlCard': return <SparqlCard data={data} />;
 
     case 'WikiPageCard': return <WikiPageCard data={data} />;
+
+    case 'CimSnapshotCard': return <CimSnapshotCard data={data} />;
+
+    case 'CimTopFilesCard': return <CimTopFilesCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -733,6 +737,65 @@ function WikiPageCard({ data }) {
         referrerPolicy="no-referrer"
         loading="lazy"
       />
+    </div>
+  );
+}
+
+/** CIM Snapshot — 4 stat tiles + optional view trend (File Spotlight). */
+function CimSnapshotCard({ data }) {
+  return (
+    <div className="glam-card">
+      {data.title && <div className="stat-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="stat-subtitle">{data.subtitle}</div>}
+      <div className="glam-stats">
+        {(data.stats || []).map((s, i) => (
+          <div key={i} className="glam-stat">
+            <div className="glam-stat-value" title={s.value}>{s.value}</div>
+            <div className="glam-stat-label">{s.label}</div>
+            {s.sub && <div className="glam-stat-sub">{s.sub}</div>}
+          </div>
+        ))}
+      </div>
+      {data.trend && data.trend.length > 0 && (
+        <div className="mini-sparkline">
+          {(() => {
+            const max = Math.max(...data.trend.map((t) => t.views), 1);
+            return data.trend.map((t, i) => (
+              <div key={i} className="spark-bar" style={{ height: `${Math.max((t.views / max) * 30, 1)}px` }} title={`${t.date}: ${t.views.toLocaleString()} views`} />
+            ));
+          })()}
+          <span className="spark-label">monthly views</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** CIM Top Files — ranked rows with 48px thumbs (RankingCard has none). */
+function CimTopFilesCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="ranking-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="ranking-header">
+        <span className="rank-num" />
+        <span className="ranking-col col-1">File</span>
+        <span className="ranking-col col-2">Views</span>
+      </div>
+      <div className="ranking-rows">
+        {rows.length === 0 && <div className="widget-empty">No files</div>}
+        {rows.map((r, i) => (
+          <div key={r.title} className="ranking-row cim-top-file">
+            <span className="rank-num">{i + 1}.</span>
+            <a className="cim-top-file-main" href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(r.title.replace(/ /g, '_'))}`} target="_blank" rel="noopener noreferrer" title={r.title}>
+              {r.thumbUrl && <img className="cim-top-file-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
+              <span className="cim-top-file-name">{r.title}</span>
+            </a>
+            <span className="ranking-col col-2">{r.views.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -132,6 +132,21 @@ export const EXAMPLE_DASHBOARD = {
   widgetType: 'wikiPage',
   config: { page: 'Help:Introduction', project: 'en.wikipedia', mobile: false, fragment: '', refreshSeconds: 3600 },
  },
+ {
+  id: 'example-cimsnapshot',
+  widgetType: 'cimSnapshot',
+  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0, refreshSeconds: 3600 },
+ },
+ {
+  id: 'example-cimtrend',
+  widgetType: 'cimTrend',
+  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', months: 6, month: 0, refreshSeconds: 3600 },
+ },
+ {
+  id: 'example-cimtopfiles',
+  widgetType: 'cimTopFiles',
+  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
+ },
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -153,6 +168,9 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-articlelist', x: 0, y: 40, w: 6, h: 4, minW: 3, minH: 3 },
   { i: 'example-sparql', x: 6, y: 40, w: 6, h: 5, minW: 3, minH: 3 },
  { i: 'example-wikipage', x: 0, y: 45, w: 12, h: 6, minW: 3, minH: 3 },
+ { i: 'example-cimsnapshot', x: 0, y: 51, w: 4, h: 4, minW: 3, minH: 3 },
+ { i: 'example-cimtrend', x: 4, y: 51, w: 4, h: 4, minW: 3, minH: 3 },
+ { i: 'example-cimtopfiles', x: 8, y: 51, w: 4, h: 6, minW: 3, minH: 3 },
   ],
 };
 

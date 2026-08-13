@@ -95,6 +95,16 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
 | | `mobile` | boolean (`?useformat=mobile` — MobileFrontend mobile view on the same domain) |
 | | `fragment` | string, optional `#anchor` |
+| `cimSnapshot` | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` |
+| | `month` | number (default: last complete month) |
+| `cimTrend` | `category` / `scope` / `wiki` | string · `deep` \| `shallow` · `all-wikis` \| project |
+| | `months` | number, integer 2–24 |
+| `cimTopFiles` | `category` / `scope` / `wiki` / `topN` | as above; `topN` number |
+| `cimTopWikis` | `category` / `scope` / `topN` | as above |
+| `cimTopPages` | `category` / `scope` / `wiki` / `topN` | as above |
+| `cimTopEditors` | `category` / `scope` / `editType` / `topN` | `editType`: `all-edit-types` \| `create` \| `update` |
+| `cimLeaderboard` | `scope` / `wiki` / `highlight` | `highlight`: optional category (rank shown if in top 100) |
+| `cimFileSpotlight` | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |
