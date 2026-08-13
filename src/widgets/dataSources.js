@@ -604,6 +604,64 @@ const topPagesCache = createTtlCache(10 * 60 * 1000);
 function compactNumber(n) {
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 }
+/** Thumbnail URL from hatnote: strip utm_* tracking params; null for the generic placeholder globe. */
+function hatnoteThumb(url) {
+ if (!url || url.includes('top.hatnote.com/img/w.png')) return null;
+ try {
+  const u = new URL(url);
+  ['utm_source', 'utm_campaign', 'utm_content', 'utm_medium', 'utm_term'].forEach(k => u.searchParams.delete(k));
+  return u.href;
+ } catch {
+  return url.split('?')[0];
+ }
+}
+
+/** Non-article page prefixes — hatnote/WMF tops include Main_Page, Special:*,
+ *  Wikipedia:* helper pages that aren't useful in a top-articles list
+ *  (pattern from the Wiki-Top-100 project). */
+const NON_ARTICLE_PREFIXES = ['Special', 'Wikipedia', 'Talk', 'User', 'Help', 'File', 'Template', 'Category', 'Portal', 'Draft', 'Module', 'MediaWiki', 'Main_Page'];
+
+function isArticlePage(title) {
+ if (!title || title === 'Main_Page') return false;
+ const prefix = title.split(':')[0];
+ return !NON_ARTICLE_PREFIXES.includes(prefix);
+}
+
+/** Enrich article rows with clean thumbnails + intros via the CORS-enabled
+ *  MediaWiki Action API (prop=pageimages|extracts, origin=*). Batched
+ *  50 titles/call. Best-effort: rows pass through unchanged on failure. */
+async function enrichTopArticles(lang, rows) {
+ if (!rows.length || lang === 'commons') return rows;
+ const api = new URL(`https://${lang}.wikipedia.org/w/api.php`);
+ const out = [];
+ for (let i = 0; i < rows.length; i += 50) {
+  const batch = rows.slice(i, i + 50);
+  api.search = new URLSearchParams({
+   action: 'query',
+   prop: 'pageimages|extracts',
+   titles: batch.map(r => r.title.replace(/_/g, ' ')).join('|'),
+   piprop: 'thumbnail', pithumbsize: 120,
+   exintro: 1, explaintext: 1, exchars: 300,
+   format: 'json', origin: '*',
+  });
+  try {
+   const d = await fetchJSON(api.href);
+   const pages = d?.query?.pages || {};
+   const byTitle = new Map();
+   Object.values(pages).forEach(p => byTitle.set(p.title.replace(/ /g, '_'), p));
+   batch.forEach(r => {
+    const p = byTitle.get(r.title);
+    if (p && p.thumbnail?.source) r.imageUrl = p.thumbnail.source;
+    if (p && p.extract) r.summary = p.extract;
+    out.push(r);
+   });
+  } catch {
+   out.push(...batch); // enrichment is best-effort; keep hatnote fields
+  }
+ }
+ return out;
+}
+
 
 async function fetchViaProxy(url) {
   // Same-origin /api/proxy (deploy/server.js) wraps { status, body } with ACAO:*.
@@ -645,6 +703,9 @@ async function fetchTopPageDay(lang, { y, m, d }) {
       articles: data.articles.map((a) => ({
         title: a.title, rank: a.rank, views: a.pviews ?? a.views,
         views_short: a.views_short || compactNumber(a.pviews ?? a.views),
+        imageUrl: hatnoteThumb(a.image_url),
+        summary: a.summary || '',
+        url: a.url || '',
       })),
     };
   } catch { /* fall through */ }
@@ -661,6 +722,9 @@ async function fetchTopPageDay(lang, { y, m, d }) {
       articles: data.articles.map((a) => ({
         title: a.title, rank: a.rank, views: a.pviews ?? a.views,
         views_short: a.views_short || compactNumber(a.pviews ?? a.views),
+        imageUrl: hatnoteThumb(a.image_url),
+        summary: a.summary || '',
+        url: a.url || '',
       })),
     };
   } catch { /* fall through */ }
@@ -680,6 +744,7 @@ async function fetchTopPageDay(lang, { y, m, d }) {
       articles: items.map((a) => ({
         title: a.article, rank: a.rank, views: a.views,
         views_short: compactNumber(a.views),
+        imageUrl: null, summary: '', url: '',
       })),
     };
   } catch { return null; }
@@ -691,11 +756,20 @@ async function fetchTopPageDay(lang, { y, m, d }) {
  */
 export async function fetchTopPages(cfg = {}) {
   const lang = cfg.lang || 'en';
+  const enrich = cfg.showExpanded && lang !== 'commons';
   const candidates = topPageCandidates(cfg);
   let lastErr = null;
   for (const c of candidates) {
     const day = await fetchTopPageDay(lang, c);
-    if (day) return day;
+    if (day) {
+      // Drop non-article helper pages (Main_Page, Special:*, Wikipedia:*…) —
+      // pattern from the Wiki-Top-100 project (hatnote + WMF both include them).
+      day.articles = day.articles.filter(a => isArticlePage(a.title));
+      // Expanded view: fetch clean thumbnails + intros from the CORS-enabled
+      // MediaWiki API (works for both hatnote and WMF fallback data).
+      if (enrich) day.articles = await enrichTopArticles(lang, day.articles);
+      return day;
+    }
     lastErr = `no data for ${c.y}/${c.m}/${c.d}`;
   }
   throw new Error(`Top pages fetch failed: ${lastErr || 'no data available'}`);

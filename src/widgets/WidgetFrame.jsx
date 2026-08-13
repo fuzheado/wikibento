@@ -155,6 +155,7 @@ function WidgetContent({ type, data }) {
     case 'TrendCard': return <TrendCard data={data} />;
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
+    case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -344,5 +345,36 @@ function MarkdownCard({ data }) {
       className="markdown-card"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(data.markdown, { allowExternalImages: data.allowExternalImages }) }}
     />
+  );
+}
+
+/** Expanded Top-Pages rows: thumbnail + title + views + summary (hatnote). */
+function TopPagesExpandedCard({ data }) {
+  return (
+    <div className="ranking-card toppages-expanded">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="ranking-rows">
+        {(data.rows || []).map((row, i) => (
+          <div key={i} className="toppages-row">
+            <span className="rank-num">{i + 1}.</span>
+            {row.imageUrl ? (
+              <a className="toppages-thumb" href={row.url || '#'} target="_blank" rel="noopener noreferrer" title={row.title}>
+                <img src={row.imageUrl} alt={row.title} loading="lazy" />
+              </a>
+            ) : (
+              <span className="toppages-thumb toppages-thumb-empty" title="No thumbnail available" />
+            )}
+            <div className="toppages-body">
+              <div className="toppages-line">
+                <a className="toppages-title" href={row.url || '#'} target="_blank" rel="noopener noreferrer">{row.title}</a>
+                <span className="toppages-views">{row.views}</span>
+              </div>
+              {row.summary && <div className="toppages-summary">{row.summary}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

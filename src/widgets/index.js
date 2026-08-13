@@ -310,9 +310,11 @@ export const WIDGET_TYPES = {
       day: new Date().getUTCDate(),
       topN: 10, // 0 = default (10), 100 = all
       filterNoise: true,
+      showExpanded: false, // thumbnail + summary per row (hatnote data)
       refreshSeconds: 3600,
     },
     renderer: 'RankingCard',
+    getRenderer: (config) => config.showExpanded ? 'TopPagesExpandedCard' : 'RankingCard',
     dataSource: 'top.hatnote.com (via /api/proxy) + WMF pageviews top fallback',
     configFields: [
       { key: 'lang', label: 'Language', type: 'select', options: [
@@ -340,6 +342,7 @@ export const WIDGET_TYPES = {
       { key: 'day', label: 'Day', type: 'number', placeholder: '1-31' },
       { key: 'topN', label: 'Top N (0 = default 10, 100 = all)', type: 'number', placeholder: '10' },
       { key: 'filterNoise', label: 'Filter TLD/spam noise (.xxx, XXX…)', type: 'boolean' },
+      { key: 'showExpanded', label: 'Expanded view (thumbnail + summary)', type: 'boolean' },
     ],
     fetch: (config) => fetchTopPages(config),
     transform: (data, config) => {
@@ -356,9 +359,25 @@ export const WIDGET_TYPES = {
       const raw = config.topN == null || config.topN <= 0 ? 10 : config.topN;
       const topN = Math.min(raw, 100);
       const rows = articles.slice(0, topN);
+      const subtitle = `${data.dateLabel} · ${topN >= 100 ? `all ${rows.length}` : `top ${rows.length}`}${filtered ? ` (${filtered} filtered)` : ''}${data.source === 'wmf' ? ' · via WMF Pageviews API' : ''}${data.totalTrafficShort ? ` · ${data.totalTrafficShort} views total` : ''}`;
+      if (config.showExpanded) {
+        return {
+          title: `${data.fullLang || 'en'} Wikipedia`,
+          subtitle,
+          expanded: true,
+          columns: ['Article', 'Views'],
+          rows: rows.map((a) => ({
+            title: a.title,
+            views: a.views_short,
+            imageUrl: a.imageUrl,
+            summary: a.summary,
+            url: a.url,
+          })),
+        };
+      }
       return {
         title: `${data.fullLang || 'en'} Wikipedia`,
-        subtitle: `${data.dateLabel} · ${topN >= 100 ? `all ${rows.length}` : `top ${rows.length}`}${filtered ? ` (${filtered} filtered)` : ''}${data.source === 'wmf' ? ' · via WMF Pageviews API' : ''}${data.totalTrafficShort ? ` · ${data.totalTrafficShort} views total` : ''}`,
+        subtitle,
         columns: ['Article', 'Views'],
         // No rank column: the RankingCard numbers rows sequentially 1..N,
         // so after noise filtering the list is renumbered (no gaps).

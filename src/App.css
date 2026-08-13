@@ -885,6 +885,71 @@ body {
 .glam-detail .col-2 { flex: 1; text-align: right; color: var(--accent); font-weight: 600; }
 .glam-detail .ranking-row { font-size: 10px; }
 
+
+/* ── Top Pages Expanded (thumbnail + summary rows) ──────── */
+
+.toppages-expanded .ranking-rows { flex: 1; min-height: 0; overflow-y: auto; }
+
+.toppages-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.toppages-row:hover { background: rgba(255,255,255,0.02); }
+
+.toppages-thumb {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.05);
+}
+.toppages-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.toppages-thumb-empty {
+  border: 1px dashed var(--border);
+}
+
+.toppages-body { flex: 1; min-width: 0; }
+
+.toppages-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.toppages-title {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.toppages-title:hover { color: var(--accent); text-decoration: underline; }
+.toppages-views {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.toppages-summary {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* ── About Panel ────────────────────────────────────────── */
 
 .about-panel {

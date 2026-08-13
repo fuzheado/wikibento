@@ -209,6 +209,12 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
   (`^\.` dot-TLDs like `.xxx`/`.xyz`, `x{3,4}` variants like `XXX (beer)`).
   Today's data literally has `.xxx` at rank #1 — the filter is why the list
   starts at rank 2. The subtitle reports how many were filtered.
+- **Expanded view:** when `showExpanded` is on, each row is enriched with a
+  120px thumbnail + intro via the CORS-enabled MediaWiki Action API
+  (`prop=pageimages|extracts&piprop=thumbnail&pithumbsize=120&exintro&explaintext&exchars=300`,
+  batched 50 titles/call with `origin=*`). Non-article helper pages
+  (`Main_Page`, `Special:*`, `Wikipedia:*`, `Talk:*`…) are filtered out of
+  both sources (pattern from the Wiki-Top-100 project).
 - **Languages:** hatnote covers 28 (en, de, fr, ko, et, sv, hu, da, it, pa, ca,
   es, fa, ur, zh, kn, no, bn, id, ta, lv, el, fi, ar, cs, or, te, gl).
 - **Verified:** en 2026-08-11 — rank 1 `.xxx` (sponsored TLD), rank 9 `.xyz`;

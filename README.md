@@ -48,7 +48,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **GLAM Category Usage** | 📈 | Commons API + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month, top-image filmstrip, per-page usage detail |
-| **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…) |
+| **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
@@ -74,7 +74,12 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   TLD/spam pages (`.xxx`, `.xyz`, `XXX (beer)`…) — toggle off in ⚙ if wanted.
   hatnote sends no CORS headers, so the Toolforge deployment fetches it via a
   same-origin proxy (`/api/proxy`); elsewhere it falls back to the
-  CORS-enabled WMF Pageviews `top` endpoint (marked "via WMF Pageviews API")
+  CORS-enabled WMF Pageviews `top` endpoint (marked "via WMF Pageviews API").
+  **Expanded view** (⚙ checkbox): each row gets a 120px thumbnail + intro
+  extract from the CORS-enabled MediaWiki API (`prop=pageimages|extracts`,
+  batched 50 titles/call — pattern from the Wiki-Top-100 project), and
+  non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
+  from both sources
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
