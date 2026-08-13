@@ -126,6 +126,45 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 ## Phase 3 — Stretch
 
+### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
+
+> The vision: one widget's output feeds another's input — a text box that
+> changes other widgets, or a Wikidata item card whose QID (or a property
+> of it, e.g. P6108 IIIF manifest URL) drives another widget. A
+> directed-acyclic-graph of triggering. **Don't reinvent the wheel — the
+> mature pieces exist; the work is integrating them into the registry.**
+
+**What exists already (the "don't build" list):**
+
+| Need | Mature package/pattern | Notes |
+|---|---|---|
+| "A box that changes widgets" | **Grafana dashboard variables** (text/query/constant, `$var` interpolation) | WikiBento already borrows Grafana's grid — variables are the natural next Grafana pattern; works without a DAG engine |
+| Dependency graph / recompute | **Jotai** (derived atoms = declarative DAG, ~6 KB) · MobX computed · @preact/signals · **@observablehq/runtime** (Observable's reactive cell runtime — canonical dataflow engine, MIT) | Choose ONE reactive graph primitive; don't hand-roll invalidation |
+| Fetch + invalidation on input change | **TanStack Query** dependent queries (`enabled: !!qid`, cache keys from inputs) | The half people get wrong by hand; dependent-query invalidation is solved here |
+| Visual wiring UI (users draw edges) | **React Flow** (xyflow, MIT) | Only if user-facing DAG authoring is wanted; Node-RED is the mature full-flow engine but wrong UX for a dashboard |
+| Batch/server DAGs | Airflow/Prefect/Dagster | Ruled out — server-side, not client-side |
+| IIIF deep-zoom rendering | **OpenSeadragon** (or Mirador/UV) | Don't build tile rendering; Wikidata P6108 = IIIF manifest URL (verified); ⚠️ external manifests need CORS per institution; Commons native IIIF not shipped (T261621/T187872 open) — zoomviewer proxy is the workaround |
+
+**Phased plan:**
+
+1. **Phase A — dashboard variables (cheap)**: a "Variable" widget type
+   (text/select/number) writing to `dashboard.variables`; widget configs
+   reference `{{var}}`; the fetch context resolves them. Config stays
+   serializable JSON — Share/export format gains `variables` (format v1→v2,
+   ties into the schemaVersion note above).
+2. **Phase B — declarative wiring**: config-level `input: { widget: id,
+   field: qid }`; outputs declared per widget (e.g. Wikidata item card
+   outputs `qid`, claims, P6108/P18/P625); consumers fetch via dependent
+   queries. Widget family: **Wikidata item card** (wbgetentities) →
+   **claims/property viewer** → **IIIF viewer** (P6108 → OpenSeadragon),
+   **image widget** (P18), **map widget** (P625).
+3. **Phase C — visual wiring**: React Flow edge-drawing between widgets;
+   cycles rejected (it's a DAG).
+
+**Config/schema impact:** variables + inputs change the dashboard format —
+add `schemaVersion` to exports now (the marketplace note already says this
+costs nothing).
+
 > Widget proposals and links live in **[WIDGET-IDEAS.md](WIDGET-IDEAS.md)** —
 > including Wiki Edu dashboard/impact widgets (campaign overview, topic stats,
 > quality distributions). Several are blocked on the CORS proxy (Phase 1):
