@@ -156,6 +156,10 @@ function WidgetContent({ type, data }) {
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
+    case 'ExcerptCard': return <ExcerptCard data={data} />;
+    case 'EditHistoryCard': return <EditHistoryCard data={data} />;
+    case 'QualityCard': return <QualityCard data={data} />;
+    case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -372,6 +376,139 @@ function TopPagesExpandedCard({ data }) {
               </div>
               {row.summary && <div className="toppages-summary">{row.summary}</div>}
             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Article Excerpt — title, description, thumbnail + first paragraph. */
+function ExcerptCard({ data }) {
+  return (
+    <div className="excerpt-card">
+      {data.title && (
+        <div className="excerpt-title" title={data.title}>
+          <a href={data.pageUrl || '#'} target="_blank" rel="noopener noreferrer">{data.title}</a>
+        </div>
+      )}
+      {data.description && <div className="excerpt-desc">{data.description}</div>}
+      <div className="excerpt-body">
+        {data.thumbnailUrl && (
+          <img className="excerpt-thumb" src={data.thumbnailUrl} alt={data.title} loading="lazy" />
+        )}
+        {data.extract && <p className="excerpt-text">{data.extract}</p>}
+      </div>
+    </div>
+  );
+}
+
+/** Edit History — newest-first rows: byte delta, user, time, comment. */
+function formatEditTime(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return ts;
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function EditHistoryCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="ranking-card edit-history-card">
+      <div className="ranking-title" title={data.title}>{data.title}</div>
+      <div className="ranking-subtitle">Recent edits (newest first)</div>
+      <div className="ranking-rows">
+        {rows.length === 0 && <div className="widget-empty">No edits found</div>}
+        {rows.map((r) => (
+          <div key={r.revid} className="edit-row">
+            <div className="edit-line">
+              <span
+                className={`edit-delta ${r.delta == null ? '' : r.delta >= 0 ? 'delta-pos' : 'delta-neg'}`}
+                title={r.delta == null ? 'older than shown' : 'bytes changed by this edit'}
+              >
+                {r.delta == null ? '·' : (r.delta >= 0 ? '+' : '−') + Math.abs(r.delta)}
+              </span>
+              <a
+                className="edit-user"
+                href={`https://${data.project || 'en.wikipedia'}.org/wiki/Special:Contributions/${encodeURIComponent(r.user)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {r.user}
+              </a>
+              <span className="edit-time">{formatEditTime(r.timestamp)}</span>
+            </div>
+            <div className="edit-comment" title={r.comment}>{r.comment}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Article Quality — ORES class + probability distribution (or continuous score). */
+const GRADE_COLORS = { FA: '#c9a227', GA: '#3cb371', B: '#5b8dd9', C: '#9fb7d9', Start: '#d9a36b', Stub: '#d97b6b' };
+const GRADE_ORDER = ['FA', 'GA', 'B', 'C', 'Start', 'Stub'];
+
+function QualityCard({ data }) {
+  if (data.grade == null && data.score != null) {
+    const pct = Math.round(data.score * 100);
+    return (
+      <div className="quality-card">
+        <div className="quality-title" title={data.title}>{data.title}</div>
+        <div className="quality-grade-row">
+          <span className="quality-grade" style={{ background: pct >= 70 ? '#3cb371' : pct >= 40 ? '#5b8dd9' : '#d97b6b' }}>{pct}%</span>
+          <span className="quality-model" title={data.model}>{data.model}</span>
+        </div>
+        <div className="quality-bar">
+          <div className="quality-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="quality-sub">Revision {data.revid}</div>
+      </div>
+    );
+  }
+  const probs = data.probabilities || {};
+  return (
+    <div className="quality-card">
+      <div className="quality-title" title={data.title}>{data.title}</div>
+      <div className="quality-grade-row">
+        <span className="quality-grade" style={{ background: GRADE_COLORS[data.grade] || 'var(--accent)' }}>{data.grade}</span>
+        <span className="quality-model" title={data.model}>{data.model}</span>
+      </div>
+      <div className="quality-probs">
+        {GRADE_ORDER.map((g) => (
+          <div key={g} className={`quality-prob-row${g === data.grade ? ' is-top' : ''}`}>
+            <span className="quality-prob-label">{g}</span>
+            <div className="quality-prob-bar">
+              <div
+                className="quality-prob-fill"
+                style={{ width: `${((probs[g] || 0) * 100).toFixed(1)}%`, background: GRADE_COLORS[g] }}
+              />
+            </div>
+            <span className="quality-prob-pct">{((probs[g] || 0) * 100).toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="quality-sub">Revision {data.revid}</div>
+    </div>
+  );
+}
+
+/** WikiProject Assessment — project × class × importance rows. */
+function AssessmentsCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="ranking-card assessments-card">
+      <div className="ranking-title" title={data.title}>{data.title}</div>
+      <div className="ranking-subtitle">
+        {data.total > rows.length ? `Top ${rows.length} of ${data.total} WikiProjects` : `${data.total} WikiProject${data.total === 1 ? '' : 's'}`}
+      </div>
+      <div className="ranking-rows">
+        {rows.length === 0 && <div className="widget-empty">No WikiProject assessments found</div>}
+        {rows.map((r, i) => (
+          <div key={i} className="assess-row">
+            <span className="assess-project" title={`WikiProject ${r.project}`}>{r.project}</span>
+            <span className={`assess-badge assess-class cls-${r.class || 'none'}`}>{r.class || '—'}</span>
+            <span className={`assess-badge assess-importance imp-${r.importance || 'none'}`}>{r.importance || '—'}</span>
           </div>
         ))}
       </div>

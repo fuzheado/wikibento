@@ -68,6 +68,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   squished to a 9px sliver by the stats area — `.glam-card > * { flex-shrink: 0 }`
   (overflow:hidden on the title made its min-height compute to 0, so flex
   crushed it; the card now scrolls instead)
+- ✅ **Article Vitals widgets (2026-08-13):** four new single-article widgets —
+  📄 **Article Excerpt** (REST `/page/summary`: description + thumbnail + first
+  paragraph), 🕓 **Edit History** (`prop=revisions` newest-first with byte
+  deltas, diff-linked users), 🏅 **Article Quality (ORES)** (Lift Wing
+  `enwiki-articlequality` POST — FA/GA/B/C/Start/Stub + probability
+  distribution bars; falls back to the modern continuous `articlequality`
+  model), 🧭 **WikiProject Assessment** (`prop=pageassessments` — per-project
+  class + importance badges). All CORS-verified (Lift Wing reflects the
+  origin; Action API needs `origin=*`; `palimit=500` gets all projects).
+  Verified live: Einstein → FA 53.9%, 18 assessed projects. Schema enum +
+  example dashboard + README/DATA-SOURCES/WIDGET-DEVELOPMENT docs updated.
 
 ## Quick Start
 
@@ -176,6 +187,7 @@ containment), index.html no-cache.*
 1. ~~Top Pages expanded view~~ — **done 2026-08-13**: thumbnails + intros via MW API enrichment (see Current Status)
 1. ~~w.wiki short URLs in ?config=~~ — **done 2026-08-12**: /api/resolve endpoint (see Current Status)
 1. ~~GLAM display fixes~~ — **done 2026-08-13**: wiki-column shorthand + nowrap, title squish fix (see Current Status)
+1. ~~Article Vitals widgets~~ — **done 2026-08-13**: Excerpt, Edit History, ORES Quality, WikiProject Assessment (see Current Status)
 1. **Widget strategy agreed 2026-08-12** — ROADMAP §Strategy + WIDGET-IDEAS:
    power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
    bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →

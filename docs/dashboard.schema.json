@@ -28,7 +28,7 @@
         "id": { "type": "string", "minLength": 1 },
         "widgetType": {
           "type": "string",
-          "enum": ["pageviews", "linkcount", "categorySize", "wikistats", "fileUsage", "topWikipedias", "glamorgan", "markdown"]
+          "enum": ["pageviews", "linkcount", "categorySize", "wikistats", "fileUsage", "topWikipedias", "glamorgan", "markdown", "topPages", "excerpt", "edithistory", "quality", "assessments"]
         },
         "config": {
           "type": "object",

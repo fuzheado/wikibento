@@ -220,6 +220,72 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 - **Verified:** en 2026-08-11 — rank 1 `.xxx` (sponsored TLD), rank 9 `.xyz`;
   top-10 after filtering; ko/ja/fr/de dates via both sources — 2026-08-12.
 
+## 9. Article Excerpt — REST `/page/summary`
+
+**Widget:** Article Excerpt · **Fetcher:** `fetchArticleSummary(article, project)`
+
+- **Endpoint:** `https://{project}.org/api/rest_v1/page/summary/{title}` —
+  one call returns `title`, `description` (short desc), `extract` (first
+  paragraph, plain text), `thumbnail.source`, `content_urls.desktop.page`.
+- **CORS:** ✅ `Access-Control-Allow-Origin: *` (REST API — no `origin=` param needed).
+- **Edge cases:** 404 → friendly "Article not found"; `type: 'disambiguation'`
+  → the widget shows a notice instead of a misleading paragraph.
+- **Verified:** Ada Lovelace 2026-08-13 (description "English mathematician
+  (1815–1852)" + thumbnail + first paragraph).
+
+## 10. Edit History — MediaWiki API `prop=revisions`
+
+**Widget:** Edit History · **Fetcher:** `fetchEditHistory(article, project, limit)`
+
+- **Endpoint:** `action=query&prop=revisions&rvlimit={n}&rvprop=timestamp|user|comment|ids|size&rvdir=older&origin=*`
+  — newest-first revision list (`rvdir=older` = latest first).
+- **Byte deltas:** computed client-side as `size[i] − size[i+1]` (page size at
+  each revision); the oldest shown row has no delta (marked `·`).
+- **Limits:** `rvlimit` max 50 per call for normal users; the widget caps at 50.
+- **CORS:** `origin=*` (standard Action API pattern).
+- **Verified:** Albert Einstein 2026-08-13 — +4/−70/−2/… rows with user links
+  to `Special:Contributions` and local times.
+
+## 11. Article Quality — Lift Wing (api.wikimedia.org)
+
+**Widget:** Article Quality (ORES) · **Fetcher:** `fetchArticleQuality(article, project)`
+
+- **Two-step fetch:** 1) resolve the latest revision id via
+  `prop=revisions&rvlimit=1&rvprop=ids` (with `origin=*`); 2) score it.
+- **Primary model:** `POST https://api.wikimedia.org/service/lw/inference/v1/models/{wiki}-articlequality:predict`
+  body `{"rev_id": N}` — the frozen Revscoring/ORES model: prediction
+  FA/GA/B/C/Start/Stub + per-class probabilities. Response envelope:
+  `{wiki}.scores.{revid}.articlequality.score.{prediction, probability}`.
+- **Fallback:** `POST …/models/articlequality:predict` body
+  `{"rev_id": N, "lang": "en"}` — modern continuous 0–1 score (used when the
+  wiki has no revscoring model).
+- **CORS:** api.wikimedia.org **reflects the requesting origin** (not `*`) —
+  works from wikibento.toolforge.org and localhost; preflight allows POST +
+  `Content-Type: application/json`. No auth needed at dashboard scale
+  (50k req/hr anonymous, 15 req/s).
+- **No prediction cache on Lift Wing** — every call runs fresh inference; the
+  widget's 1 h refresh is fine, but don't lower it aggressively.
+- **Verified:** Albert Einstein → FA at 53.9% (GA 34.8%, B 8.4%, …), rev 1367582180 — 2026-08-13.
+
+## 12. WikiProject Assessment — MediaWiki API `prop=pageassessments`
+
+**Widget:** WikiProject Assessment · **Fetcher:** `fetchAssessments(article, project, topN)`
+
+- **Endpoint:** `action=query&prop=pageassessments&palimit=500&origin=*` —
+  returns every WikiProject banner's `{class, importance}` for the article
+  (the PageAssessments extension; no DB tunnel needed for single-article
+  lookups — the `wikimedia-page-assessment` skill's SQL path is for
+  project-wide queries).
+- **Coverage caveat:** the extension is only deployed on enwiki (best),
+  zhwiki, trwiki, etc. — **not** on dewiki/frwiki/eswiki/ruwiki. Articles on
+  those wikis render an empty state ("No WikiProject assessments found").
+- **Sorting:** importance rank (Top > High > Mid > Low) then class rank
+  (FA > FL > GA > …), then project name; `topN` (default 12, max 50) truncates
+  with a "Top N of M WikiProjects" subtitle.
+- **CORS:** `origin=*` (standard Action API pattern).
+- **Verified:** Albert Einstein → 18 projects; Germany/History of Science/
+  Physics/… all GA with Top/High/Mid/Low badges — 2026-08-13.
+
 ## Wikimedia API Etiquette (applies to any future fetchers)
 
 - Keep a descriptive User-Agent with contact info (the code's constant is

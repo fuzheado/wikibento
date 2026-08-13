@@ -143,6 +143,30 @@ there. Add new ideas freely; keep the entry format.
 
 > Pageviews sparkline (daily trend) already ships as Article Pageviews.
 
+### Article Vitals family (2026-08-13 — all endpoints verified live + CORS-checked)
+
+> **✅ SHIPPED 2026-08-13** — all four widgets implemented and verified live:
+> 📄 excerpt, 🕓 edithistory, 🏅 quality, 🧭 assessments. See
+> docs/DATA-SOURCES.md §9–12 and HANDOFF.md.
+
+> The "vitals" concept: any crucial info about ONE article, in any grid
+> arrangement. Recommended as **separate widgets** (one registry entry each,
+> per the WIDGET_TYPES pattern) + a shared `resolveLatestRev(title)` helper —
+> the grid is the configuration. Rough total: 4 widgets ≈ 250 lines + one
+> compact list renderer for edit history. Details in the LLM wiki concept
+> page `article-vitals-widget-family`.
+
+| Vitals | Data source | Feasibility | Effort | Notes |
+|---|---|---|---|---|
+| **Article excerpt** | REST `/page/summary/{title}` (title, description, thumbnail, extract) or `prop=extracts&exintro` | ✅ CORS `*` (REST) / `origin=*` | S | REST summary doubles as a vitals header (description + thumb) |
+| **Edit history** | Action API `prop=revisions` (`rvprop=timestamp\|user\|comment\|ids\|size`, `rvdir=older`) | ✅ `origin=*` verified | S | Reverse-chron list; byte deltas via size |
+| **Pageviews** | RESTBase | ✅ already shipped | done | Article Pageviews widget (`displayMode: stat\|trend`); time-range selector = Phase 1 |
+| **ORES article quality** | Lift Wing POST `enwiki-articlequality` (revid in → FA/GA/B/C/Start/Stub + probabilities) or modern continuous `articlequality` | ✅ origin-reflecting CORS (works from Toolforge); needs revid → `prop=revisions&rvlimit=1` first | S–M | Probabilities per class → distribution-bar visual; frozen Revscoring model is the familiar ORES grade |
+| **WikiProject assessment** | Action API `prop=pageassessments` | ✅ `origin=*` verified | S | Per-project class + importance (enwiki has the best coverage; extension absent on frwiki/dewiki — empty state needed) |
+
+**Starter pack tie-in:** a "Vitals" bento (one article → excerpt + pageviews +
+quality + assessments) fits the starter-packs ship list.
+
 ## Tier 4 — Live & Trending (2026-08-12 brainstorm: "wow, it's alive")
 
 | Idea | Data source | Feasibility | Effort | Notes |

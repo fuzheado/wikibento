@@ -11,6 +11,10 @@ import {
   fetchFileUsage,
   fetchGlamStats,
   fetchTopPages,
+  fetchArticleSummary,
+  fetchArticleQuality,
+  fetchAssessments,
+  fetchEditHistory,
 } from './dataSources';
 
 const NAMESPACE_LABELS = {
@@ -20,6 +24,13 @@ const NAMESPACE_LABELS = {
   '10': 'templates',
   '14': 'categories',
 };
+
+/** Shared project picker for the article-focused widgets. */
+const PROJECT_OPTIONS = [
+  { value: 'en.wikipedia', label: 'English Wikipedia' },
+  { value: 'de.wikipedia', label: 'German Wikipedia' },
+  { value: 'fr.wikipedia', label: 'French Wikipedia' },
+];
 
 // Previous calendar month (complete pageview data) for widget defaults.
 const PREV_MONTH = (() => {
@@ -404,5 +415,114 @@ export const WIDGET_TYPES = {
     ],
     // No fetch — a static widget: WidgetFrame renders transform(null, config)
     transform: (data, config) => ({ markdown: config.text, allowExternalImages: config.allowExternalImages }),
+  },
+
+  excerpt: {
+    id: 'excerpt',
+    name: 'Article Excerpt',
+    icon: '📄',
+    description: 'First paragraph, description, and thumbnail for an article',
+    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
+    defaults: {
+      article: 'Albert Einstein',
+      project: 'en.wikipedia',
+      refreshSeconds: 3600,
+    },
+    renderer: 'ExcerptCard',
+    dataSource: 'REST /page/summary',
+    configFields: [
+      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+    ],
+    fetch: (config) => fetchArticleSummary(config.article, config.project),
+    transform: (data) => ({
+      title: data.title,
+      description: data.description,
+      extract: data.extract,
+      thumbnailUrl: data.thumbnailUrl,
+      pageUrl: data.pageUrl,
+    }),
+  },
+
+  edithistory: {
+    id: 'edithistory',
+    name: 'Edit History',
+    icon: '🕓',
+    description: 'Recent edits to an article, newest first, with byte deltas',
+    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
+    defaults: {
+      article: 'Albert Einstein',
+      project: 'en.wikipedia',
+      limit: 10,
+      refreshSeconds: 3600,
+    },
+    renderer: 'EditHistoryCard',
+    dataSource: 'Action API prop=revisions',
+    configFields: [
+      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'limit', label: 'Edits to show', type: 'number', placeholder: '10 (max 50)' },
+    ],
+    fetch: (config) => fetchEditHistory(config.article, config.project, Math.min(parseInt(config.limit) || 10, 50)),
+    transform: (data) => ({
+      title: data.article.replace(/_/g, ' '),
+      project: data.project,
+      rows: data.rows,
+    }),
+  },
+
+  quality: {
+    id: 'quality',
+    name: 'Article Quality (ORES)',
+    icon: '🏅',
+    description: 'Predicted quality class for an article (Lift Wing / ORES)',
+    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
+    defaults: {
+      article: 'Albert Einstein',
+      project: 'en.wikipedia',
+      refreshSeconds: 3600,
+    },
+    renderer: 'QualityCard',
+    dataSource: 'Lift Wing (api.wikimedia.org)',
+    configFields: [
+      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+    ],
+    fetch: (config) => fetchArticleQuality(config.article, config.project),
+    transform: (data) => ({
+      title: data.article.replace(/_/g, ' '),
+      grade: data.grade,
+      probabilities: data.probabilities,
+      score: data.score,
+      revid: data.revid,
+      model: data.model,
+    }),
+  },
+
+  assessments: {
+    id: 'assessments',
+    name: 'WikiProject Assessment',
+    icon: '🧭',
+    description: 'Quality + importance ratings from WikiProject banners',
+    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
+    defaults: {
+      article: 'Albert Einstein',
+      project: 'en.wikipedia',
+      topN: 12,
+      refreshSeconds: 3600,
+    },
+    renderer: 'AssessmentsCard',
+    dataSource: 'Action API prop=pageassessments',
+    configFields: [
+      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'topN', label: 'Projects to show', type: 'number', placeholder: '12 (max 50)' },
+    ],
+    fetch: (config) => fetchAssessments(config.article, config.project, Math.min(parseInt(config.topN) || 12, 50)),
+    transform: (data) => ({
+      title: data.article.replace(/_/g, ' '),
+      rows: data.rows,
+      total: data.total,
+    }),
   },
 };

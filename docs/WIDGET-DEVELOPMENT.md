@@ -13,7 +13,7 @@ Every widget is defined by 5 things:
 | `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
-| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` |
+| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` |
 
 ## Step-by-Step
 
@@ -81,6 +81,10 @@ myWidget: {
 - **StatCard** — `{ title, subtitle?, value, detail?, trend?, trendLabel? }`
 - **RankingCard** — `{ title, subtitle?, columns: [c1, c2], rows: [[r1c1, r1c2], ...] }`
 - **TrendCard** — `{ chartData: [{date, views}], chartKey, chartLabel }`
+- **ExcerptCard** (Article Excerpt) — `{ title, description?, extract, thumbnailUrl?, pageUrl? }`
+- **EditHistoryCard** (Edit History) — `{ title, project, rows: [{revid, timestamp, user, comment, delta}] }`
+- **QualityCard** (Article Quality) — `{ title, grade?, probabilities?, score?, revid, model }`
+- **AssessmentsCard** (WikiProject Assessment) — `{ title, rows: [{project, class, importance}], total }`
 
 Need a new shape? Add a renderer component to `WidgetFrame.jsx` and extend the
 `WidgetContent` switch — keep it dumb (it only receives the transformed `data`).

@@ -20,14 +20,19 @@ const wikistatsCache = createTtlCache(5 * 60 * 1000);
  * (network errors, 5xx). 4xx errors fail fast (retrying won't help).
  * Returns the response text.
  */
-async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2 } = {}) {
+async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null } = {}) {
   const shortUrl = url.replace(/^https?:\/\//, '').slice(0, 80); // for error messages
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const resp = await fetch(url, { headers: { 'User-Agent': WIKIBENTO_UA }, signal: controller.signal });
+      const resp = await fetch(url, {
+        method,
+        headers: { 'User-Agent': WIKIBENTO_UA, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body,
+        signal: controller.signal,
+      });
       if (resp.status >= 500 && attempt < retries) {
         lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
       } else if (!resp.ok) {
@@ -357,6 +362,12 @@ export async function fetchGlamStats(cfg = {}) {
 
 async function fetchJSON(url) {
  const text = await fetchTextWithRetry(url);
+ return JSON.parse(text);
+}
+
+/** POST JSON (Lift Wing inference) with timeout+retry; returns parsed JSON. */
+async function postJSON(url, payload, timeoutMs = 30000) {
+ const text = await fetchTextWithRetry(url, { method: 'POST', body: JSON.stringify(payload), timeoutMs });
  return JSON.parse(text);
 }
 
@@ -773,4 +784,155 @@ export async function fetchTopPages(cfg = {}) {
     lastErr = `no data for ${c.y}/${c.m}/${c.d}`;
   }
   throw new Error(`Top pages fetch failed: ${lastErr || 'no data available'}`);
+}
+
+// ── Article Vitals (single-article widgets) ────────────────
+
+/** Resolve the latest revision id for a title (needed by Lift Wing models). */
+export async function resolveLatestRev(article, project = 'en.wikipedia') {
+  const params = new URLSearchParams({
+    action: 'query',
+    prop: 'revisions',
+    titles: article,
+    rvlimit: '1',
+    rvprop: 'ids',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+  const page = data?.query?.pages?.[0];
+  if (!page || page.missing || !page.revisions?.[0]) {
+    throw new Error(`Article not found: ${article}`);
+  }
+  return { revid: page.revisions[0].revid, pageid: page.pageid };
+}
+
+/**
+ * Article summary — first paragraph (REST /page/summary). CORS-enabled
+ * (Access-Control-Allow-Origin: *), returns title + description + thumbnail
+ * + extract in one call.
+ */
+export async function fetchArticleSummary(article, project = 'en.wikipedia') {
+  const title = article.replace(/ /g, '_');
+  let data;
+  try {
+    data = await fetchJSON(`https://${project}.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`);
+  } catch (e) {
+    if (e.message?.startsWith('HTTP 404')) throw new Error(`Article not found: ${article}`);
+    throw new Error(`Summary fetch failed: ${e.message}`);
+  }
+  if (data.type === 'disambiguation') {
+    return {
+      title: data.title,
+      description: data.description || '',
+      extract: `"${data.title}" is a disambiguation page — pick a specific article.`,
+      thumbnailUrl: data.thumbnail?.source || null,
+      pageUrl: data.content_urls?.desktop?.page || null,
+    };
+  }
+  return {
+    title: data.title || article,
+    description: data.description || '',
+    extract: data.extract || '',
+    thumbnailUrl: data.thumbnail?.source || null,
+    pageUrl: data.content_urls?.desktop?.page || null,
+  };
+}
+
+/**
+ * Article quality — ORES class via Lift Wing. First tries the frozen
+ * revscoring `{wiki}-articlequality` model (the familiar FA/GA/B/C/Start/Stub
+ * grades + per-class probabilities); falls back to the modern continuous
+ * `articlequality` model (0–1 score) for wikis without a revscoring model.
+ */
+export async function fetchArticleQuality(article, project = 'en.wikipedia') {
+  const lang = project.replace('.wikipedia', '');
+  const wiki = `${lang}wiki`;
+  const { revid } = await resolveLatestRev(article, project);
+  // 1. Classic ORES grade (revscoring, frozen) — familiar classes.
+  try {
+    const data = await postJSON(`https://api.wikimedia.org/service/lw/inference/v1/models/${wiki}-articlequality:predict`, { rev_id: revid });
+    const score = data?.[wiki]?.scores?.[String(revid)]?.articlequality?.score;
+    if (score?.prediction) {
+      return {
+        article,
+        revid,
+        grade: score.prediction,
+        probabilities: score.probability || {},
+        model: `ORES class (${wiki}-articlequality)`,
+      };
+    }
+  } catch { /* fall through to the modern model */ }
+  // 2. Modern continuous articlequality (0–1).
+  try {
+    const data = await postJSON('https://api.wikimedia.org/service/lw/inference/v1/models/articlequality:predict', { rev_id: revid, lang });
+    if (typeof data?.score === 'number') {
+      return { article, revid, score: data.score, model: 'articlequality (continuous)' };
+    }
+  } catch (e) {
+    throw new Error(`Quality fetch failed: ${e.message}`);
+  }
+  throw new Error(`No quality model available for ${project}`);
+}
+
+/**
+ * WikiProject assessments — prop=pageassessments (enwiki has the best
+ * coverage; extension absent on most other wikis → empty state). Returns
+ * per-project { class, importance } sorted by importance then class rank.
+ */
+export async function fetchAssessments(article, project = 'en.wikipedia', topN = 12) {
+  const params = new URLSearchParams({
+    action: 'query',
+    prop: 'pageassessments',
+    titles: article,
+    palimit: '500',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+  const page = data?.query?.pages?.[0];
+  if (!page || page.missing) throw new Error(`Article not found: ${article}`);
+  const IMPORTANCE_RANK = { Top: 0, High: 1, Mid: 2, Low: 3, Unknown: 4, NA: 5 };
+  const CLASS_RANK = { FA: 0, FL: 1, GA: 2, A: 3, B: 4, C: 5, Start: 6, Stub: 7, List: 8, Book: 9, Category: 10, Disambig: 11, File: 12, Portal: 13, Project: 14, Redirect: 15, Template: 16, NA: 17 };
+  const rows = Object.entries(page.pageassessments || {})
+    .map(([name, v]) => ({ project: name, class: v?.class || '', importance: v?.importance || '' }))
+    .sort((a, b) =>
+      (IMPORTANCE_RANK[a.importance] ?? 6) - (IMPORTANCE_RANK[b.importance] ?? 6)
+      || (CLASS_RANK[a.class] ?? 99) - (CLASS_RANK[b.class] ?? 99)
+      || a.project.localeCompare(b.project)
+    );
+  return { article, rows: rows.slice(0, topN), total: rows.length };
+}
+
+/**
+ * Edit history — prop=revisions, newest first, with byte deltas
+ * (size diff vs the previous revision) and diff links.
+ */
+export async function fetchEditHistory(article, project = 'en.wikipedia', limit = 10) {
+  const params = new URLSearchParams({
+    action: 'query',
+    prop: 'revisions',
+    titles: article,
+    rvlimit: String(limit),
+    rvprop: 'timestamp|user|comment|ids|size',
+    rvdir: 'older',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+  const page = data?.query?.pages?.[0];
+  if (!page || page.missing) throw new Error(`Article not found: ${article}`);
+  const revs = page.revisions || [];
+  const rows = revs.map((r, i) => ({
+    revid: r.revid,
+    timestamp: r.timestamp,
+    user: r.user || '(anon)',
+    comment: r.comment || '(no edit summary)',
+    size: r.size,
+    delta: i < revs.length - 1 ? r.size - revs[i + 1].size : null,
+  }));
+  return { article, project, rows };
 }

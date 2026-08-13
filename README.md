@@ -49,6 +49,10 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **GLAM Category Usage** | 📈 | Commons API + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month, top-image filmstrip, per-page usage detail |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
+| **Article Excerpt** | 📄 | [REST `/page/summary`](https://en.wikipedia.org/api/rest_v1/page/summary/Ada_Lovelace) | First paragraph + short description + thumbnail for any article, linked to the page |
+| **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
+| **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
+| **WikiProject Assessment** | 🧭 | MediaWiki API `prop=pageassessments` | Quality class + importance per WikiProject banner (enwiki and other PageAssessments wikis) |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
@@ -157,6 +161,12 @@ wikibento/
 
 ## Verified Working (smoke-tested 2026-08-12)
 
+- ✅ **Article Vitals (2026-08-13):** Article Excerpt (REST summary — Ada
+  Lovelace: description, thumbnail, first paragraph), Edit History (byte
+  deltas + user + timestamp + comment, newest-first), Article Quality (Lift
+  Wing ORES class — Albert Einstein → FA at 53.9%, full class distribution),
+  WikiProject Assessment (18 projects, class + importance badges); config
+  change re-fetches live; schema + example dashboard updated
 - ✅ All 7 data-driven widget types render live data in the browser; the 8th
   (Text/Markdown) is static — no fetch, renders from config
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 7 widgets
