@@ -693,7 +693,7 @@ export const WIDGET_TYPES = {
     id: 'wikiPage',
     name: 'Wiki Page',
     icon: '📄',
-    description: 'Embed any MediaWiki page — desktop or mobile (Minerva) view, links browse inside',
+    description: 'Embed any MediaWiki page — desktop or mobile view, links browse inside',
     labelFromConfig: (c) => (c.page || '').trim().replace(/_/g, ' '),
     defaults: {
       page: 'Help:Introduction',
@@ -707,7 +707,7 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
       { key: 'project', label: 'Project', type: 'select', options: WIKI_PAGE_PROJECTS },
-      { key: 'mobile', label: 'Mobile view (Minerva skin)', type: 'boolean' },
+      { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
     ],
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
@@ -719,15 +719,18 @@ export const WIDGET_TYPES = {
       if (!page) return { url: null, page: '', project };
       const title = page.replace(/ /g, '_');
       const frag = String(config.fragment || '').replace(/^#/, '').trim();
-      // Mobile view = Minerva skin on the SAME domain. The m. subdomains
-      // are retired — en.m.wikipedia.org 301s to en.wikipedia.org (verified
-      // 2026-08-13), so host-swapping no longer works. `?useskin=minerva`
-      // is the canonical stateless way to request the mobile skin.
+      // Mobile view on the SAME domain. The m. subdomains are retired —
+      // en.m.wikipedia.org 301s to en.wikipedia.org (verified 2026-08-13),
+      // so host-swapping no longer works. `?useformat=mobile` is
+      // MobileFrontend's own preview parameter — it activates the mobile
+      // view on the standard domain (verified 200 + Minerva skin HTML,
+      // 2026-08-13; no special cookies). `?useskin=minerva` also works but
+      // is the generic skin override rather than the documented switch.
       const host = project === 'commons.wikimedia'
         ? 'https://commons.wikimedia.org'
         : `https://${project}.org`;
       return {
-        url: `${host}/wiki/${title}${mobile ? '?useskin=minerva' : ''}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
+        url: `${host}/wiki/${title}${mobile ? '?useformat=mobile' : ''}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
         page: title.replace(/_/g, ' '),
         project,
       };

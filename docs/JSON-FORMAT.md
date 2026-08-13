@@ -93,7 +93,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `maxItems` | number (0 = all) |
 | `wikiPage` | `page` | string, any namespace (e.g. `Help:Introduction`) |
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
-| | `mobile` | boolean (`?useskin=minerva` — Minerva mobile skin on the same domain) |
+| | `mobile` | boolean (`?useformat=mobile` — MobileFrontend mobile view on the same domain) |
 | | `fragment` | string, optional `#anchor` |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
