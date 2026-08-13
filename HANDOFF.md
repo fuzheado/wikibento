@@ -17,7 +17,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (9 total, 2026-08-12)
+- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (13 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery)
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)
@@ -117,7 +117,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (331.5 KB JS / 99.9 KB gzip)
+npm run build      # → dist/ (355.9 KB JS / 107.2 KB gzip)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```

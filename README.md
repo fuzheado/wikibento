@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈350 KB total (~104 KB
+(the same grid engine used by Grafana and Kibana), ≈356 KB total (~107 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -98,7 +98,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 9 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 13 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -160,7 +160,7 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-08-13)
 
 - ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
   imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
@@ -200,7 +200,7 @@ wikibento/
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 331.5 KB JS (99.9 KB gzip) + 18.7 KB CSS (4.2 KB gzip)
+- ✅ Production build: 355.9 KB JS (107.2 KB gzip) + 23.1 KB CSS (5 KB gzip)
 
 ## Documentation
 
