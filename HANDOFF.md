@@ -222,6 +222,11 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   reproduced in Chromium. Mitigations live (timeout/retry/cache, URL-bearing
   errors, 🧪 diagnostics panel). Deferred for later debugging.
 - `_title` (custom widget title) isn't editable in the config panel
+- **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
+  defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
+  share link), a refresh re-applies the URL config (URL > localStorage > defaults
+  priority) — the reset "doesn't stick". Fix: `handleReset` should also blank the URL
+  params (`history.replaceState` to the bare path, removing `?config=` / `#/d/`).
 - AddWidgetPanel: no Escape-to-close, no focus trap (SharePanel has Escape-to-close)
 - Wikistats CSV parser is naive (no quoted-field handling) — fetching is now
   cached + retried, but the parse itself still assumes no commas in fields

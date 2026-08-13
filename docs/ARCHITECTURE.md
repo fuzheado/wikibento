@@ -130,6 +130,7 @@ export/reset ──────────────────────�
 | 9 | ~~No React error boundary~~ | main.jsx | **Fixed 2026-08-12** — `ErrorBoundary` wraps each grid item (auto-resets on config change, Try Again button) |
 | 10 | Browser strips the `User-Agent` header set via `fetch` (forbidden header) | dataSources.js | Harmless no-op: Wikimedia API etiquette is satisfied by the browser's own UA; keep it for non-browser reuse (tests, curl) |
 | 11 | Dev-mode StrictMode double-mounts effects → double API fetches in dev | main.jsx | Dev only; production build unaffected |
+| 12 | ↺ Reset doesn't clear the URL config (`?config=` / `#/d/<base64>`) | App.jsx `handleReset` | Reset restores defaults, but refresh re-applies the URL config (URL has priority). Fix: `history.replaceState` to the bare path in `handleReset` |
 | 12 | ~~No shared fetch cache~~ | dataSources.js | **Fixed 2026-08-12 (Wikistats)** — 5-min TTL cache + in-flight coalescing (`lib/fetchCache.js`); two widgets now share one CSV fetch. Other fetchers can adopt the same helper |
 | 13 | `AddWidgetPanel` can't be closed with Escape, and overlay has no focus trap | AddWidgetPanel.jsx | Minor a11y gap — the Share panel (added 2026-08-12) does support Escape-to-close; apply the same pattern here |
 | 14 | Config panel has no per-field validation (e.g. `topN` accepts 0/negative) | WidgetFrame.jsx | Validate or clamp in transform/fetch |
