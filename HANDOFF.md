@@ -123,7 +123,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   export") → load via `?url` script injection; Pannellum 2.5.7 rejects
   cross-origin `#config=` JSON. Verified live: Imiloa grounds 12740×6370
   renders + rotates; File:Example.jpg flags not-2:1; config change rebuilds
-  the viewer.
+  the viewer. **DEPLOYED to Toolforge 2026-08-13** (commit ec9d26c, bundle
+  index-BSwIQuK-.js + lazy asset pannellum-BqmdIb_j.js) — verified live:
+  canvas renders, drag rotates (pixel-diff).
 
 ## Quick Start
 
