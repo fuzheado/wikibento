@@ -65,7 +65,7 @@ const CIM_EDIT_TYPES = [
 ];
 const CIM_CATEGORY_FIELD = { key: 'category', label: 'Commons category', type: 'text', placeholder: 'Files from the Biodiversity Heritage Library' };
 const CIM_MONTH_FIELD = { key: 'month', label: 'Month (default: last complete month)', type: 'number', placeholder: '7' };
-const cimRanking = (title, subtitle, columns, rows) => ({ title, subtitle, columns, rows });
+const cimRanking = (title, subtitle, columns, rows, colClasses) => ({ title, subtitle, columns, rows, colClasses });
 
 // Wiki Page widget: en/de/fr + Commons (the shared PROJECT_OPTIONS stays
 // article-focused — commons.wikimedia breaks the other article widgets).
@@ -811,6 +811,7 @@ export const WIDGET_TYPES = {
       `wikis using the files · ${config.scope} · precomputed (CIM)`,
       ['Wiki', 'Views'],
       data.rows.map((r) => [r.wiki, r.views.toLocaleString()]),
+      ['cim-name', 'cim-num'],
     ),
   },
 
@@ -830,6 +831,7 @@ export const WIDGET_TYPES = {
       `pages using the files · ${config.scope} · precomputed (CIM)`,
       ['Wiki', 'Page', 'Views'],
       data.rows.map((r) => [r.wiki, r.page.replace(/_/g, ' '), r.views.toLocaleString()]),
+      ['cim-name', 'cim-name', 'cim-num'],
     ),
   },
 
@@ -849,6 +851,7 @@ export const WIDGET_TYPES = {
       `top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
       ['Editor', 'Edits'],
       data.rows.map((r) => [r.user, r.edits.toLocaleString()]),
+      ['cim-name', 'cim-num'],
     ),
   },
 
@@ -878,6 +881,7 @@ export const WIDGET_TYPES = {
           : highlight ? `${highlight} not in the top 100 · precomputed (CIM)` : 'top 100 · precomputed (CIM)',
         ['Rank', 'Category', 'Views'],
         data.rows.map((r) => [String(r.rank), r.category.replace(/_/g, ' '), r.views.toLocaleString()]),
+        ['cim-rank', 'cim-name', 'cim-num'],
       );
     },
   },

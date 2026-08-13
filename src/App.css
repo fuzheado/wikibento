@@ -1164,3 +1164,8 @@ body {
 .cim-top-file-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
 .cim-top-file-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cim-top-file-main:hover .cim-top-file-name { color: var(--accent); }
+/* ── CIM ranking columns (explicit, not positional) ──────── */
+.cim-rank { flex: 0 0 34px; text-align: left; }
+.cim-name { flex: 3; text-align: left; min-width: 0; }
+.cim-num { flex: 1; text-align: right; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.cim-top-file-views { flex: 0 0 84px; text-align: right; color: var(--accent); font-weight: 600; white-space: nowrap; }

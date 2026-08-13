@@ -222,6 +222,7 @@ function StatCard({ data }) {
 }
 
 function RankingCard({ data }) {
+  const colClass = (i) => (data.colClasses?.[i] ? `ranking-col ${data.colClasses[i]}` : `ranking-col col-${i}`);
   return (
     <div className="ranking-card">
       {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
@@ -243,7 +244,7 @@ function RankingCard({ data }) {
           {/* spacer matching the row rank-num, so header aligns with rows */}
           <span className="rank-num" />
           {data.columns.map((col, i) => (
-            <span key={i} className={`ranking-col col-${i}`}>{col}</span>
+            <span key={i} className={colClass(i)}>{col}</span>
           ))}
         </div>
       )}
@@ -252,7 +253,7 @@ function RankingCard({ data }) {
           <div key={i} className="ranking-row">
             <span className="rank-num">{i + 1}.</span>
             {row.map((cell, j) => (
-              <span key={j} className={`ranking-col col-${j}`} title={String(cell)}>{cell}</span>
+              <span key={j} className={colClass(j)} title={String(cell)}>{cell}</span>
             ))}
           </div>
         ))}
@@ -792,7 +793,7 @@ function CimTopFilesCard({ data }) {
               {r.thumbUrl && <img className="cim-top-file-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
               <span className="cim-top-file-name">{r.title}</span>
             </a>
-            <span className="ranking-col col-2">{r.views.toLocaleString()}</span>
+            <span className="ranking-col cim-top-file-views">{r.views.toLocaleString()}</span>
           </div>
         ))}
       </div>

@@ -1454,9 +1454,10 @@ export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year,
   const end = cimDate(...Object.values(shiftCimMonth(y, m, 1)));
   const probeStart = cimDate(py, pm);
   const probeEnd = cimDate(...Object.values(shiftCimMonth(py, pm, 1)));
+  const trendStart = shiftCimMonth(y, m, -5); // 6-month sparkline window
   const [snapItems, trendItems] = await Promise.all([
     fetchCimMonth(`media-file-metrics-snapshot/${file}/${start}/${end}`, `media-file-metrics-snapshot/${file}/${probeStart}/${probeEnd}`),
-    fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${start}/${end}`),
+    fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(trendStart.year, trendStart.month)}/${end}`),
   ]);
   const snap = snapItems[0] || {};
   const trend = trendItems.map((it) => ({ date: (it.timestamp || '').slice(0, 7), views: it['pageview-count'] ?? 0 }));
@@ -1464,7 +1465,7 @@ export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year,
     file,
     wikis: snap['leveraging-wiki-count'] ?? 0,
     pages: snap['leveraging-page-count'] ?? 0,
-    views: trend.reduce((s, t) => s + t.views, 0),
+    views: trend[trend.length - 1]?.views ?? 0, // selected month (snapshot window)
     trend,
   };
 }
