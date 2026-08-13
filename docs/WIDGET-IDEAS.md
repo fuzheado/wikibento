@@ -252,6 +252,46 @@ per-article assessment widget to complete the WikiProject Monitor pack.
 starter pack (bucket category → usage + recency + population + size + sample +
 editors) — a drop-in replacement for the twice-daily bot reports, live.
 
+## Historical Tools: the glamtools family (2026-08-13 analysis)
+
+> Magnus Manske's GLAM toolset (now GPL on Codeberg, alive at
+> **glamtools.toolforge.org**). GLAMorous itself is **not dead** — it moved
+> from the old `glamorous.toolforge.org` (404) to
+> `glamtools.toolforge.org/glamorous/` (verified 2026-08-13). It's a
+> **form-based server-side tool with no JSON API** — treat it as a feature
+> catalog, not a data source. The family maps to widgets:
+
+| Tool (verified status) | What it shows | WikiBento mapping | Effort |
+|---|---|---|---|
+| **GLAMorous** (alive @ glamtools) | Which projects use a category's files — per-project + per-file breakdowns; mode: category / **user uploads** / page / **PagePile**; depth, negative cats, article-space-only filter | **Shipped**: File Usage Map + GLAM widget cover the core. Missing pieces: per-file **daily pageview chart** (the tool's "daily views" tab — a BaGLAMa-style trend, see below) and the **user-uploads mode** (a file list from `list=allimages&auuser=` — new input type) | S–M |
+| **BaGLAMa** (part of glamtools) | Monthly pageviews of pages that use a category's files, **over time** (long-term trends on pre-computed data) | Already listed in Tier 2 ("BaGLAMa-style tracker"): the GLAM widget does single-month; the over-time version needs CIM snapshot archiving or a scheduled monthly fetch (Toolforge cron) | M–L |
+| **Treeviews** | Monthly pageviews for a **category tree** | **New widget: category-tree pageviews** — aggregate per-article pageviews over a bounded tree walk (the GLAM widget already walks trees); single-month, live | M |
+| **Unused files** | Files in a category **not used on any wiki** | **New widget: unused files** — trivially computable with the existing `fetchBatchedUsage` (empty `globalusage` = unused); render as a worklist with thumbs + random sample | S |
+
+## List Sources: PagePiles + PetScan as widget inputs (2026-08-13 note)
+
+> The user direction: **PetScan and PagePiles are list *generators* with ugly
+> output** — WikiBento's job is to be the beautiful consumer. Both are
+> verified browser-fetchable:
+
+- ✅ **PagePiles** — `https://pagepile.toolforge.org/api.php?id={ID}&action=get_data&format=json`
+  → `{pages: [...], wiki, language, project}` — **CORS `*`** (verified with a
+  real pile 115851: 4 pages, enwiki). Piles are created from pasted lists,
+  SPARQL (first column = Wikidata item), Quarry, PasteBin, or search — so a
+  pile ID is a *stable handle for any list*. Add `pagepile_format=json` or
+  `callback=` for JSONP.
+- ✅ **PetScan** — `petscan.wmcloud.org/?format=json&...&doit=1` — **CORS `*`**
+  (verified 2026-08-13); PSID URLs persist queries. ⚠️ gotcha (HANDOFF):
+  PetScan ignores `max` in quick-intersection mode — always bound inputs.
+- **Architecture idea: a "list source" config field** — any article/file
+  widget (pageviews, quality, assessments, excerpt, gallery, unused files…)
+  accepts one of: `category` (walk), `pile ID` (PagePiles API), `PSID`
+  (PetScan), or a **pasted list** (textarea) as its input; the widget shows
+  which list it's consuming and lets you click through items. One input
+  vocabulary across the registry instead of per-widget article fields.
+  PagePiles is the cleanest first target (stable ID + tidy JSON); PetScan
+  PSID second (bigger lists, unbounded by default).
+
 ---
 
 ## How to Add an Idea
