@@ -320,6 +320,37 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 - **Verified:** Albert Einstein → 32 captioned images (of 35 total); France →
   38 of 47 captioned — 2026-08-13.
 
+## 14. 360° Panorama — Commons `imageinfo` + Pannellum
+
+**Widget:** 360° Panorama Viewer · **Fetcher:** `fetchPanoramaFile(filename, project)`
+
+- **Endpoint:** Action API `prop=imageinfo&iiprop=url|size|mime&iiurlwidth=4096`
+  (`origin=*`) — resolves a Commons file to a **4096px-wide display copy**
+  (aspect preserved) instead of the 10–20 MB original; also returns original
+  URL, dimensions, mime.
+- **360-ness check:** aspect ratio ≈ 2:1 (`|width/height − 2| < 0.03`) →
+  `equirectangular: true`; the widget shows a "not 2:1" warning otherwise.
+  Pannellum additionally auto-reads Google Photo Sphere GPano XMP at render
+  time, so true photospheres without a 2:1 ratio still render.
+- **Viewer:** Pannellum 2.5.7 (MIT, WebGL, ~21 KB gz) **vendored** at
+  `src/vendor/pannellum.js` and lazy-loaded via `src/lib/pannellumLoader.js`
+  (script injection of the `?url` asset — a separate 56 KB dist asset,
+  fetched only when a panorama widget mounts; singleton across widgets).
+  `viewer.resize()` is wired to a ResizeObserver so the WebGL canvas tracks
+  widget resizes; `viewer.destroy()` on unmount/config change.
+- **Why vendored + injected, not `import pannellum`:** the npm build is a
+  window-assigning IIFE — rolldown fails with "Missing export"; loading it
+  as a classic `<script>` (via Vite `?url`) sets `window.pannellum` reliably.
+  ⚠️ Pannellum 2.5.7 rejects cross-origin `#config=` JSON in pannellum.htm;
+  the JS API has no such restriction.
+- **Layout constraints (new pattern):** registry entries can declare
+  `defaultLayout: { w, h, minW, minH, maxW?, maxH? }` — App.jsx
+  `handleAddWidget` passes them to react-grid-layout (minW/minH/maxW/maxH
+  clamp resize/drag). The panorama defaults to w:4 h:3 with minW:3 minH:2
+  (verified: drag-resize clamps at 253×310).
+- **Verified:** Imiloa grounds 360 (12740×6370) renders + drag-rotates in the
+  widget; File:Example.jpg correctly flags "not 2:1" — 2026-08-13.
+
 ## Wikimedia API Etiquette (applies to any future fetchers)
 
 - Keep a descriptive User-Agent with contact info (the code's constant is

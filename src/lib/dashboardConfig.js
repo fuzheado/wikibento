@@ -107,6 +107,11 @@ export const EXAMPLE_DASHBOARD = {
       widgetType: 'gallery',
       config: { article: 'Albert Einstein', project: 'en.wikipedia', displayMode: 'grid', iconSize: 'medium', minSize: 200, maxItems: 0, refreshSeconds: 3600 },
     },
+    {
+      id: 'example-panorama',
+      widgetType: 'panorama360',
+      config: { filename: "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg", project: 'commons.wikimedia', autoRotate: false, refreshSeconds: 3600 },
+    },
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -123,6 +128,7 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-assessments', x: 9, y: 19, w: 3, h: 6, minW: 2, minH: 4 },
     { i: 'example-edithistory', x: 0, y: 24, w: 12, h: 5, minW: 3, minH: 3 },
     { i: 'example-gallery', x: 0, y: 29, w: 12, h: 7, minW: 3, minH: 4 },
+    { i: 'example-panorama', x: 0, y: 36, w: 6, h: 4, minW: 3, minH: 2 },
   ],
 };
 

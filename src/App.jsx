@@ -132,10 +132,20 @@ export default function App() {
 
   const handleAddWidget = useCallback((widget) => {
     const newWidgets = [...widgets, widget];
-    const newLayout = [
-      ...layout,
-      { i: widget.id, x: 0, y: Infinity, w: 3, h: 3, minW: 2, minH: 2 },
-    ];
+ const newLayout = [
+  ...layout,
+  (() => {
+   // Per-widget layout constraints from the registry (react-grid-layout
+   // minW/minH/maxW/maxH) — e.g. the 360° viewer needs a minimum size.
+   const dl = WIDGET_TYPES[widget.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
+   return {
+    i: widget.id, x: 0, y: Infinity,
+    w: dl.w, h: dl.h, minW: dl.minW, minH: dl.minH,
+    ...(dl.maxW != null ? { maxW: dl.maxW } : {}),
+    ...(dl.maxH != null ? { maxH: dl.maxH } : {}),
+   };
+  })(),
+ ];
     setWidgets(newWidgets);
     setLayout(newLayout);
     persist(newWidgets, newLayout);

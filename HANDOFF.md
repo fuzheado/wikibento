@@ -111,6 +111,19 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   background; new `imageFit` config opts into `cover` (square fill-crop).
   Verified live: 32/32 images contain, all tiles square, 6 wide + 5 tall
   images letterboxed (bundle index-bbwxWEKh.js).
+- ✅ **360° Panorama Viewer widget (2026-08-13):** 🌐 Pannellum 2.5.7 (vendored
+  `src/vendor/pannellum.js` + lazy `pannellumLoader.js` — separate 56 KB dist
+  asset, singleton script tag). Config: Commons file → `imageinfo`
+  (iiurlwidth=4096 display copy, original URL, dims) → interactive WebGL
+  viewer: drag/look-around, auto-rotate toggle, fullscreen, 2:1 + GPano
+  detection with "not 2:1" warning, viewer.resize() via ResizeObserver,
+  destroy on unmount. **New registry pattern: `defaultLayout`** — per-widget
+  min/max size constraints (panorama: w4×h3, min 3×2; verified clamped by
+  drag). Gotchas: npm pannellum build is a window-IIFE (rolldown "Missing
+  export") → load via `?url` script injection; Pannellum 2.5.7 rejects
+  cross-origin `#config=` JSON. Verified live: Imiloa grounds 12740×6370
+  renders + rotates; File:Example.jpg flags not-2:1; config change rebuilds
+  the viewer.
 
 ## Quick Start
 

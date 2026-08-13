@@ -54,6 +54,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
 | **WikiProject Assessment** | 🧭 | MediaWiki API `prop=pageassessments` | Quality class + importance per WikiProject banner (enwiki and other PageAssessments wikis) |
 | **Article Gallery** | 🖼️ | [REST `/page/media-list`](https://en.wikipedia.org/api/rest_v1/page/media-list/Albert_Einstein) + `imageinfo` | Significant images with captions — grid (small/medium/large) or list (thumb left, caption right); filters out uncaptioned flags/logos/maps and tiny icons |
+| **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
@@ -168,6 +169,16 @@ wikibento/
   map SVGs have no caption); grid mode (small/medium/large) + list mode
   (thumb left, caption right); min-size filter (200px) for tiny icons;
   utm-stripped thumb URLs; example dashboard includes the gallery
+- ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
+  lazy-loaded as a separate 56 KB asset) renders real Commons
+  equirectangular files — Imiloa grounds 12740×6370 verified live in the
+  widget: WebGL canvas, drag-to-look-around (pixel-diff verified),
+  auto-rotate, 2:1 + GPano detection with a "not 2:1" warning, display via
+  iiurlwidth=4096 thumb instead of the 10–20 MB original. New: per-widget
+  layout constraints (registry `defaultLayout` → react-grid-layout
+  minW/minH/maxW/maxH) — panorama defaults to w:4 h:3, can't shrink below
+  3×2 (verified by drag-resize). Config change re-fetches and rebuilds the
+  viewer
 - ✅ **Article Vitals (2026-08-13):** Article Excerpt (REST summary — Ada
   Lovelace: description, thumbnail, first paragraph), Edit History (byte
   deltas + user + timestamp + comment, newest-first), Article Quality (Lift

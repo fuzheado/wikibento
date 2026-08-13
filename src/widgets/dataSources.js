@@ -1013,3 +1013,39 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
   const limit = Math.max(parseInt(maxItems) || 0, 0);
   return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped };
 }
+
+/**
+ * Panorama source — resolve a Commons file to a displayable equirectangular
+ * URL for the 360° viewer. Uses the iiurlwidth=4096 thumb (aspect preserved)
+ * instead of the 10–20 MB original. `equirectangular` = aspect ratio ≈ 2:1
+ * (Pannellum also auto-reads Google Photo Sphere GPano XMP at render time).
+ */
+export async function fetchPanoramaFile(filename, project = 'commons.wikimedia') {
+  const title = String(filename || '').replace(/^File:\s*/i, '').replace(/ /g, '_');
+  if (!title) throw new Error('Enter a Commons file name');
+  const params = new URLSearchParams({
+    action: 'query',
+    prop: 'imageinfo',
+    titles: `File:${title}`,
+    iiprop: 'url|size|mime',
+    iiurlwidth: '4096',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+  const page = data?.query?.pages?.[0];
+  const ii = page?.imageinfo?.[0];
+  if (!page || page.missing || !ii) throw new Error(`File not found: ${filename}`);
+  const width = ii.width || 0;
+  const height = ii.height || 0;
+  return {
+    fileTitle: page.title,
+    url: ii.thumburl || ii.url,
+    originalUrl: ii.url,
+    width,
+    height,
+    equirectangular: width > 0 && height > 0 && Math.abs(width / height - 2) < 0.03,
+    mime: ii.mime,
+  };
+}

@@ -16,6 +16,7 @@ import {
   fetchAssessments,
   fetchEditHistory,
   fetchArticleGallery,
+  fetchPanoramaFile,
 } from './dataSources';
 
 const NAMESPACE_LABELS = {
@@ -572,6 +573,42 @@ export const WIDGET_TYPES = {
       rows: data.rows,
       size: config.iconSize || 'medium',
       fit: config.imageFit || 'contain',
+    }),
+  },
+
+  panorama360: {
+    id: 'panorama360',
+    name: '360° Panorama Viewer',
+    icon: '🌐',
+    description: 'Interactive 360° panorama from a Commons equirectangular file',
+    labelFromConfig: (c) => c.filename?.replace(/^File:\s*/i, '').replace(/_/g, ' '),
+    defaults: {
+      filename: "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
+      project: 'commons.wikimedia',
+      autoRotate: false,
+      refreshSeconds: 3600,
+    },
+    renderer: 'PanoramaCard',
+    dataSource: 'Commons imageinfo + Pannellum',
+    // Per-widget layout constraints (react-grid-layout minW/minH/maxW/maxH).
+    defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
+    configFields: [
+      { key: 'filename', label: 'Commons file (360° / equirectangular)', type: 'text', placeholder: 'File:Example 360.jpg' },
+      { key: 'project', label: 'Project', type: 'select', options: [
+        { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
+      ]},
+      { key: 'autoRotate', label: 'Auto-rotate', type: 'boolean' },
+    ],
+    fetch: (config) => fetchPanoramaFile(config.filename, config.project),
+    transform: (data, config) => ({
+      fileTitle: data.fileTitle,
+      url: data.url,
+      originalUrl: data.originalUrl,
+      width: data.width,
+      height: data.height,
+      equirectangular: data.equirectangular,
+      mime: data.mime,
+      autoRotate: config.autoRotate,
     }),
   },
 };

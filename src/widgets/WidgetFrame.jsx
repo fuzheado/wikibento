@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
+import { loadPannellum } from '../lib/pannellumLoader';
+import '../vendor/pannellum.css';
 
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
@@ -162,6 +164,7 @@ function WidgetContent({ type, data }) {
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} />;
     case 'GalleryListCard': return <GalleryListCard data={data} />;
+    case 'PanoramaCard': return <PanoramaCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -558,6 +561,74 @@ function GalleryListCard({ data }) {
             </div>
           </a>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** 360° Panorama Viewer — Pannellum WebGL viewer over a Commons file. */
+function PanoramaCard({ data }) {
+  const containerRef = useRef(null);
+  const [status, setStatus] = useState('mounting');
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !data.url) return;
+    let cancelled = false;
+    let viewer = null;
+    setStatus(data.equirectangular === false ? 'not360' : 'loading');
+
+    loadPannellum().then((pannellum) => {
+      if (cancelled || !el.isConnected) return;
+      try {
+        viewer = pannellum.viewer(el, {
+          type: 'equirectangular',
+          panorama: data.url,
+          autoLoad: true,
+          ...(data.autoRotate ? { autoRotate: 2 } : {}),
+          title: data.fileTitle ? data.fileTitle.replace(/^File:/, '').replace(/_/g, ' ') : undefined,
+          showFullscreenCtrl: true,
+        });
+        viewer.on('load', () => { if (!cancelled) setStatus('loaded'); });
+        viewer.on('error', (msg) => { if (!cancelled) setStatus(`error:${msg}`); });
+      } catch (e) {
+        if (!cancelled) setStatus(`error:${e.message}`);
+      }
+    }).catch((e) => {
+      if (!cancelled) setStatus(`error:${e.message}`);
+    });
+
+    // Keep the WebGL canvas in sync with widget resizes.
+    const ro = new ResizeObserver(() => { try { viewer?.resize(); } catch { /* noop */ } });
+    ro.observe(el);
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+      try { viewer?.destroy(); } catch { /* noop */ }
+    };
+  }, [data.url, data.autoRotate, data.equirectangular, data.fileTitle]);
+
+  const label = data.fileTitle ? data.fileTitle.replace(/^File:/, '').replace(/_/g, ' ') : '360° panorama';
+  return (
+    <div className="panorama-card">
+      <div className="panorama-meta">
+        <span className="panorama-file" title={data.fileTitle}>{label}</span>
+        {data.equirectangular === false ? (
+          <span className="panorama-badge warn">not 2:1 — may not be a 360°</span>
+        ) : (
+          <span className="panorama-badge">360° · {data.width}×{data.height}</span>
+        )}
+        {data.originalUrl && (
+          <a className="panorama-orig" href={data.originalUrl} target="_blank" rel="noopener noreferrer" title="Open original file">⤴</a>
+        )}
+      </div>
+      <div className="panorama-container" ref={containerRef}>
+        {status.startsWith('error') && (
+          <div className="widget-error"><span>⚠ {status.slice(6)}</span></div>
+        )}
+        {status === 'not360' && (
+          <div className="panorama-placeholder">This file is not 2:1 equirectangular — it may still be a Photo Sphere (Pannellum auto-detects GPano XMP).</div>
+        )}
       </div>
     </div>
   );
