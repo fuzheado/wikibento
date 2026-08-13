@@ -344,6 +344,28 @@ or OSMF standard tiles (UA + attribution) are safe basemap defaults.
 | **Wikivoyage POI map** | Wikivoyage listings (lat/long via Module:Listing or pre-built exports at wikivoyage.github.io) | M | Destination map with See/Do/Eat/Buy categories and colors |
 | **Article-country map** | Lift Wing `article-country` model (ML) + coordinates | M | ML meets maps: articles classified by predicted country, plotted — e.g. "coverage map" of an event or campaign |
 
+## 360° Panorama Viewer widgets (2026-08-13 analysis — proven live)
+
+> The user direction: embed a 360° viewer in a widget — "that shouldn't be
+> too hard, right?" **Correct — proven live today**: Pannellum 2.5.7
+> (~21 KB gzipped, WebGL, no deps, MIT) rendered a real Commons
+> equirectangular (12740×6370, exactly 2:1) from upload.wikimedia.org in a
+> test page — `LOADED`, WebGL canvas active. The MediaWiki **PanoViewer**
+> extension is Pannellum under the hood — this widget is `{{PanoViewer}}`
+> in dashboard form.
+
+| Idea | Notes | Effort |
+|---|---|---|
+| **360° Viewer** (single file → interactive panorama) | Config: File title (+wiki) → `prop=imageinfo&iiprop=url\|size` → Pannellum JS API (`type: equirectangular`, `autoLoad`). Embed via **npm import** (~21 KB gz) or self-hosted `pannellum.htm` iframe with single-encoded `#panorama=` (⚠️ v2.5.7 rejects cross-origin JSON `#config=`; hash params are fine). **Practical tip: fetch `iiurlwidth=4096` thumb URL instead of the 10–20 MB original** — plenty for viewing, fast load. Call `viewer.resize()` from the existing grid resize listener. Pannellum reads Google Photo Sphere GPano XMP automatically; 2:1 aspect ratio is the easy 360-ness check | S |
+| **Category 360° gallery** | Walk a category (or `Category:360° panoramas` — **1M+ files**, see the 2026-06-26 taxonomy analysis: also Photo_Sphere, Spherical_panoramas, …_equirectangular_projection subcats) → filter 2:1 ratio → thumb grid → click to open in the viewer (reuse the Gallery grid + viewer). The "browse the 360s" widget | S–M |
+| **Article 360 filter** | Extend the Article Gallery widget with a 360-only toggle (files in 360 categories or 2:1 ratio) — "show me this article's panoramas" | S |
+| **Georeferenced tour (advanced)** | Pannellum hot spots + Wikidata POI data (P625) — label buildings/landmarks on the sphere; multi-scene virtual tours (`sceneId` hot spots) between related panoramas | M–L |
+
+**Notes:** WebGL texture rendering from cross-origin images works without CORS
+(and upload.wikimedia.org sends `ACAO: *` anyway). No CSP in the app.
+Gigapixel multires tiling (Pannellum `generate.py`) is the scale answer if
+needed later. Screenshot proof: `.playwright-cli/page-2026-08-13T03-24-32-348Z.png`.
+
 ---
 
 ## How to Add an Idea
