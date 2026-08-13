@@ -693,7 +693,7 @@ export const WIDGET_TYPES = {
     id: 'wikiPage',
     name: 'Wiki Page',
     icon: '📄',
-    description: 'Embed any MediaWiki page — desktop or mobile view, links browse inside',
+    description: 'Embed any MediaWiki page — desktop or mobile (Minerva) view, links browse inside',
     labelFromConfig: (c) => (c.page || '').trim().replace(/_/g, ' '),
     defaults: {
       page: 'Help:Introduction',
@@ -707,7 +707,7 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
       { key: 'project', label: 'Project', type: 'select', options: WIKI_PAGE_PROJECTS },
-      { key: 'mobile', label: 'Mobile view (m. site)', type: 'boolean' },
+      { key: 'mobile', label: 'Mobile view (Minerva skin)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
     ],
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
@@ -719,15 +719,15 @@ export const WIDGET_TYPES = {
       if (!page) return { url: null, page: '', project };
       const title = page.replace(/ /g, '_');
       const frag = String(config.fragment || '').replace(/^#/, '').trim();
-      let host;
-      if (project === 'commons.wikimedia') {
-        host = mobile ? 'https://commons.m.wikimedia.org' : 'https://commons.wikimedia.org';
-      } else {
-        const lang = project.replace(/\.wikipedia$/, '');
-        host = mobile ? `https://${lang}.m.wikipedia.org` : `https://${lang}.wikipedia.org`;
-      }
+      // Mobile view = Minerva skin on the SAME domain. The m. subdomains
+      // are retired — en.m.wikipedia.org 301s to en.wikipedia.org (verified
+      // 2026-08-13), so host-swapping no longer works. `?useskin=minerva`
+      // is the canonical stateless way to request the mobile skin.
+      const host = project === 'commons.wikimedia'
+        ? 'https://commons.wikimedia.org'
+        : `https://${project}.org`;
       return {
-        url: `${host}/wiki/${title}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
+        url: `${host}/wiki/${title}${mobile ? '?useskin=minerva' : ''}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
         page: title.replace(/_/g, ' '),
         project,
       };
