@@ -104,6 +104,13 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   `overflow: hidden` on `.widget-body` so no future content-height card can
   cover a header. Verified live at 1100px: fits, no overlap, ⚙ pointer-
   clickable (commit 4cf2c93 fix bundle index-BqgxhKa5.js).
+- ✅ **Gallery square tiles + letterboxing (2026-08-13):** grid thumbs were
+  `object-fit: cover` in fixed-height boxes — cropped wide panoramas and tall
+  portraits. Now square tiles (`aspect-ratio: 1/1`) with `object-fit: contain`
+  — the entire image is always visible, letterboxed against the tile
+  background; new `imageFit` config opts into `cover` (square fill-crop).
+  Verified live: 32/32 images contain, all tiles square, 6 wide + 5 tall
+  images letterboxed (bundle index-bbwxWEKh.js).
 
 ## Quick Start
 

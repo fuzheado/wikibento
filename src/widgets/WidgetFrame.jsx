@@ -521,6 +521,7 @@ function AssessmentsCard({ data }) {
 /** Article Gallery — grid of thumbs with captions below (size: small/medium/large). */
 function GalleryGridCard({ data }) {
   const size = data.size || 'medium';
+  const fit = data.fit || 'contain';
   const rows = data.rows || [];
   return (
     <div className="gallery-card">
@@ -530,7 +531,7 @@ function GalleryGridCard({ data }) {
         {rows.length === 0 && <div className="widget-empty">No captioned images found</div>}
         {rows.map((img) => (
           <a key={img.title} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
-            <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
+            <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
             {img.caption && <span className="gallery-caption">{img.caption}</span>}
           </a>
         ))}

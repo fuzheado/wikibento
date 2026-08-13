@@ -538,6 +538,7 @@ export const WIDGET_TYPES = {
       project: 'en.wikipedia',
       displayMode: 'grid',   // 'grid' | 'list'
       iconSize: 'medium',    // grid: 'small' | 'medium' | 'large'
+      imageFit: 'contain',   // grid: 'contain' (letterbox) | 'cover' (fill-crop)
       minSize: 200,          // drop images smaller than this (px)
       maxItems: 0,           // 0 = all
       refreshSeconds: 3600,
@@ -557,6 +558,10 @@ export const WIDGET_TYPES = {
         { value: 'medium', label: 'Medium' },
         { value: 'large', label: 'Large' },
       ]},
+      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
+        { value: 'contain', label: 'Letterbox (always show whole image)' },
+        { value: 'cover', label: 'Fill crop (square crop)' },
+      ]},
       { key: 'minSize', label: 'Min image size (px)', type: 'number', placeholder: '200' },
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', placeholder: '0' },
     ],
@@ -566,6 +571,7 @@ export const WIDGET_TYPES = {
       subtitle: `${data.rows.length} images${data.dropped ? ` · ${data.dropped} filtered (tiny/uncaptioned)` : ''}`,
       rows: data.rows,
       size: config.iconSize || 'medium',
+      fit: config.imageFit || 'contain',
     }),
   },
 };

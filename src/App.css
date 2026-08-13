@@ -1110,9 +1110,7 @@ body {
 .gallery-large { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .gallery-item { display: flex; flex-direction: column; text-decoration: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
 .gallery-item:hover { border-color: var(--accent-dim); }
-.gallery-thumb { width: 100%; height: 80px; object-fit: cover; background: var(--bg); }
-.gallery-medium .gallery-thumb { height: 120px; }
-.gallery-large .gallery-thumb { height: 160px; }
+.gallery-thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; background: var(--bg); }
 .gallery-caption { font-size: 10px; color: var(--text-secondary); padding: 4px 6px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .gallery-item:hover .gallery-caption { color: var(--text); }
 .gallery-list { flex: 1; min-height: 0; overflow-y: auto; }

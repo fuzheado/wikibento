@@ -312,7 +312,11 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
   links → stripped to plain text (`stripHtml`) for the widget.
 - **Display modes:** grid (small/medium/large via `iconSize`, CSS
   `auto-fill minmax(110/170/250px, 1fr)`) or list (90×60 thumb left, caption
-  right, file name below).
+  right, file name below). Grid thumbs are **square tiles**
+  (`aspect-ratio: 1/1`) with `object-fit: contain` by default — the whole
+  image is always visible, letterboxed against the tile background (no
+  cropping of wide panoramas or tall portraits); `imageFit: 'cover'` opts
+  back into square fill-crop.
 - **Verified:** Albert Einstein → 32 captioned images (of 35 total); France →
   38 of 47 captioned — 2026-08-13.
 
