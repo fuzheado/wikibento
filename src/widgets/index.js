@@ -308,7 +308,7 @@ export const WIDGET_TYPES = {
       year: new Date().getUTCFullYear(),
       month: new Date().getUTCMonth() + 1,
       day: new Date().getUTCDate(),
-      topN: 0, // 0 = all 100
+      topN: 10, // 0 = all 100
       filterNoise: true,
       refreshSeconds: 3600,
     },
@@ -352,13 +352,17 @@ export const WIDGET_TYPES = {
           return !bad;
         });
       }
-      const topN = config.topN ? Math.min(config.topN, 100) : 100;
+      // topN: 0 = all 100; missing (imported configs) → registry default 10
+      const raw = config.topN == null ? 10 : config.topN;
+      const topN = raw === 0 ? 100 : Math.min(raw, 100);
       const rows = articles.slice(0, topN);
       return {
         title: `${data.fullLang || 'en'} Wikipedia`,
-        subtitle: `${data.dateLabel} · top ${rows.length}${filtered ? ` (${filtered} filtered)` : ''}${data.source === 'wmf' ? ' · via WMF Pageviews API' : ''}${data.totalTrafficShort ? ` · ${data.totalTrafficShort} views total` : ''}`,
-        columns: ['#', 'Article', 'Views'],
-        rows: rows.map((a) => [String(a.rank), a.title, a.views_short]),
+        subtitle: `${data.dateLabel} · ${raw === 0 ? `all ${rows.length}` : `top ${rows.length}`}${filtered ? ` (${filtered} filtered)` : ''}${data.source === 'wmf' ? ' · via WMF Pageviews API' : ''}${data.totalTrafficShort ? ` · ${data.totalTrafficShort} views total` : ''}`,
+        columns: ['Article', 'Views'],
+        // No rank column: the RankingCard numbers rows sequentially 1..N,
+        // so after noise filtering the list is renumbered (no gaps).
+        rows: rows.map((a) => [a.title, a.views_short]),
       };
     },
   },

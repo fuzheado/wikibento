@@ -500,24 +500,25 @@ body {
   display: flex;
   padding: 2px 0;
   border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: baseline;
 }
 
 .ranking-row:hover { background: rgba(255,255,255,0.02); }
 
 .rank-num {
-  width: 24px;
-  color: var(--text-secondary);
+  width: 26px;
   flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
 }
 
 .ranking-col {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  overflow-wrap: anywhere;   /* long article names wrap instead of clipping */
 }
 
-.col-0 { flex: 2; }
-.col-1 { flex: 1; text-align: right; color: var(--accent); font-weight: 600; }
+.col-0 { flex: 3; }           /* main content column (article/page name) */
+.col-1 { flex: 1; text-align: right; color: var(--accent); font-weight: 600; white-space: nowrap; }
 
 /* ── Trend Card ─────────────────────────────────────────── */
 

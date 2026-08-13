@@ -222,6 +222,8 @@ function RankingCard({ data }) {
       {data.caption && <div className="card-caption">{data.caption}</div>}
       {data.columns && (
         <div className="ranking-header">
+          {/* spacer matching the row rank-num, so header aligns with rows */}
+          <span className="rank-num" />
           {data.columns.map((col, i) => (
             <span key={i} className={`ranking-col col-${i}`}>{col}</span>
           ))}
@@ -232,7 +234,7 @@ function RankingCard({ data }) {
           <div key={i} className="ranking-row">
             <span className="rank-num">{i + 1}.</span>
             {row.map((cell, j) => (
-              <span key={j} className={`ranking-col col-${j}`}>{cell}</span>
+              <span key={j} className={`ranking-col col-${j}`} title={String(cell)}>{cell}</span>
             ))}
           </div>
         ))}
