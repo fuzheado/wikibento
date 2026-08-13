@@ -86,10 +86,35 @@ there. Add new ideas freely; keep the entry format.
 
 ### SPARQL Query
 
-- **What it shows:** run any arbitrary SPARQL query; render results as table / bar chart / map. One widget = infinite metrics (Wikidata stats, category analysis, cross-wiki comparisons, geographic data).
-- **Feasibility:** ✅ WDQS (`query.wikidata.org/sparql`) is CORS-enabled; also QLever (`commons-query.wikimedia.org`) for Commons SDC graphs (see `wikimedia-commons-sparql` skill). Pre-written query library + editable query input; renderers: table / bar / map (hand-rolled SVG as elsewhere).
-- **Effort:** M (query editor + 3 renderers)
+- **What it shows:** run any arbitrary SPARQL query; render results as table / bar chart / map / **knowledge graph**. One widget = infinite metrics (Wikidata stats, category analysis, cross-wiki comparisons, geographic data).
+- **Feasibility:** ✅ WDQS (`query.wikidata.org/sparql`) is CORS-enabled; also QLever (`commons-query.wikimedia.org`) for Commons SDC graphs (see `wikimedia-commons-sparql` skill). Pre-written query library + editable query input; renderers below.
+- **Effort:** M–L (query editor + renderers)
 - **Notes:** the "hole card" for power users; consider a query library of curated examples (top images of X, license distribution, depicts counts) to seed it.
+
+**Renderer: force-directed knowledge graph (2026-08-13 note — user direction).**
+SPARQL output → network visualization, not just tables:
+
+- **Input shape:** queries returning two entity columns (+ optional predicate column)
+  render as nodes + edges, e.g. `SELECT ?item ?parent WHERE { ?item wdt:P279 ?parent }`
+  (subclass tree), or `?item ?pred ?target` triples. Label nodes via the
+  `wikibase:label` service (`?itemLabel`) or batched `wbgetentities`.
+- **Engine choice:** d3-force (`d3-force` module, ~25 KB, tree-shakeable) is the
+  pragmatic pick — the app is zero-chart-library so far, and force layout is
+  genuinely hard to hand-roll well (collision, links, tick loop). ⚠️ gotcha
+  (from the project AGENTS.md): the array passed to `d3.forceSimulation(nodes)`
+  must be the SAME array bound to the SVG `.data()` — the sim mutates
+  objects in place by adding `.x`/`.y`; copying the array renders everything
+  at (0,0).
+- **Prior art (own projects):** the **wikigraph** app (Wiki-Top-100 family)
+  already built a force-directed article-link graph with play mode, zoom,
+  label/legend toggles, and URL state sync — reuse those interaction
+  patterns. WikiPix + WikiBento's hand-rolled SVG show the codebase style.
+- **Other SPARQL renderers to consider:** map (SPARQL→GeoJSON, see the
+  `kepler-gl` skill), timeline (time-shaped results — the WDQS UI's built-in
+  views are table/map/timeline/graph, a good feature checklist), and line
+  charts for time-series shaped results.
+
+### PetScan Query
 
 ### PetScan Query
 
