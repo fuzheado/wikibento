@@ -38,6 +38,13 @@ const PROJECT_OPTIONS = [
   { value: 'fr.wikipedia', label: 'French Wikipedia' },
 ];
 
+// Wiki Page widget: en/de/fr + Commons (the shared PROJECT_OPTIONS stays
+// article-focused — commons.wikimedia breaks the other article widgets).
+const WIKI_PAGE_PROJECTS = [
+  ...PROJECT_OPTIONS,
+  { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
+];
+
 // Previous calendar month (complete pageview data) for widget defaults.
 const PREV_MONTH = (() => {
   const d = new Date();
@@ -680,6 +687,51 @@ export const WIDGET_TYPES = {
       subtitle: `${data.rows.length} article${data.rows.length === 1 ? '' : 's'}${config.enrich ? ' · with thumbnails + intros' : ''}`,
       rows: data.rows,
     }),
+  },
+
+  wikiPage: {
+    id: 'wikiPage',
+    name: 'Wiki Page',
+    icon: '📄',
+    description: 'Embed any MediaWiki page — desktop or mobile view, links browse inside',
+    labelFromConfig: (c) => (c.page || '').trim().replace(/_/g, ' '),
+    defaults: {
+      page: 'Help:Introduction',
+      project: 'en.wikipedia',
+      mobile: false,       // true = the m. site (mobile skin)
+      fragment: '',        // optional #anchor
+      refreshSeconds: 3600,
+    },
+    renderer: 'WikiPageCard',
+    dataSource: 'static (iframe to the wiki)',
+    configFields: [
+      { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
+      { key: 'project', label: 'Project', type: 'select', options: WIKI_PAGE_PROJECTS },
+      { key: 'mobile', label: 'Mobile view (m. site)', type: 'boolean' },
+      { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
+    ],
+    // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
+    // send no X-Frame-Options / frame-ancestors, verified 2026-08-13).
+    transform: (data, config) => {
+      const project = config.project || 'en.wikipedia';
+      const mobile = !!config.mobile;
+      const page = String(config.page || '').trim();
+      if (!page) return { url: null, page: '', project };
+      const title = page.replace(/ /g, '_');
+      const frag = String(config.fragment || '').replace(/^#/, '').trim();
+      let host;
+      if (project === 'commons.wikimedia') {
+        host = mobile ? 'https://commons.m.wikimedia.org' : 'https://commons.wikimedia.org';
+      } else {
+        const lang = project.replace(/\.wikipedia$/, '');
+        host = mobile ? `https://${lang}.m.wikipedia.org` : `https://${lang}.wikipedia.org`;
+      }
+      return {
+        url: `${host}/wiki/${title}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
+        page: title.replace(/_/g, ' '),
+        project,
+      };
+    },
   },
 
   sparql: {

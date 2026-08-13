@@ -91,6 +91,10 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` |
 | | `enrich` | boolean (batched thumbs + intros) |
 | | `maxItems` | number (0 = all) |
+| `wikiPage` | `page` | string, any namespace (e.g. `Help:Introduction`) |
+| | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
+| | `mobile` | boolean (m. site view) |
+| | `fragment` | string, optional `#anchor` |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |

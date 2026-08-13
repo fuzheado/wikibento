@@ -127,6 +127,11 @@ export const EXAMPLE_DASHBOARD = {
   widgetType: 'sparql',
   config: { preset: 'multi-institution', query: '', endpoint: 'wdqs', renderer: 'auto', maxRows: 100, refreshSeconds: 1800 },
  },
+ {
+  id: 'example-wikipage',
+  widgetType: 'wikiPage',
+  config: { page: 'Help:Introduction', project: 'en.wikipedia', mobile: false, fragment: '', refreshSeconds: 3600 },
+ },
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -147,6 +152,7 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-filegallery', x: 6, y: 36, w: 6, h: 5, minW: 3, minH: 3 },
     { i: 'example-articlelist', x: 0, y: 40, w: 6, h: 4, minW: 3, minH: 3 },
   { i: 'example-sparql', x: 6, y: 40, w: 6, h: 5, minW: 3, minH: 3 },
+ { i: 'example-wikipage', x: 0, y: 45, w: 12, h: 6, minW: 3, minH: 3 },
   ],
 };
 

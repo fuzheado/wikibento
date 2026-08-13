@@ -13,7 +13,7 @@ Every widget is defined by 5 things:
 | `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
-| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` |
+| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` |
 
 ## Step-by-Step
 

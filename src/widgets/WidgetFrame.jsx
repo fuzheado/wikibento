@@ -167,6 +167,8 @@ function WidgetContent({ type, data }) {
     case 'ArticleListCard': return <ArticleListCard data={data} />;
 
     case 'SparqlCard': return <SparqlCard data={data} />;
+
+    case 'WikiPageCard': return <WikiPageCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -713,6 +715,24 @@ function BarCard({ data }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Wiki Page — an iframe to the wiki itself (desktop or m. site).
+ *  Wikimedia pages send no X-Frame-Options / frame-ancestors (verified
+ *  2026-08-13), so a direct embed works; links browse inside the widget. */
+function WikiPageCard({ data }) {
+  if (!data?.url) return <div className="widget-empty">Enter a page title</div>;
+  return (
+    <div className="wikipage-card">
+      <iframe
+        className="wikipage-iframe"
+        src={data.url}
+        title={data.page}
+        referrerPolicy="no-referrer"
+        loading="lazy"
+      />
     </div>
   );
 }
