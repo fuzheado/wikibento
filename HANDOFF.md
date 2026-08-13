@@ -17,11 +17,11 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (14 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery)
-- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 16 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated.
+- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (16 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List)
+- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 16 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)
+- ✅ Git repo initialized and pushed to GitHub (main, current commit 68dea21)
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
@@ -151,7 +151,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (355.9 KB JS / 107.2 KB gzip)
+npm run build      # → dist/ (364.98 KB JS / 109.32 KB gzip)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```
@@ -221,6 +221,8 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
     `rsync --delete`, so a browser holding a cached index.html 404s. index.html
     is now served `Cache-Control: no-cache` (assets stay immutable); hard
     refresh (⌘⇧R) if a deploy looks missing.
+12. **Commons `imageinfo` needs the `File:` prefix re-added after normalization** (fixed 2026-08-13): strip `File:` for display/normalization, but query titles must be `File:Title` — without the prefix every title resolves as a missing main-namespace page and the gallery silently shows "0 files · N not found".
+13. **formatversion=2 returns canonical titles WITH spaces** (fixed 2026-08-13): even when you query `Ada_Lovelace`, the API answers `Ada Lovelace` — look up batched enrichment results by the returned title, not the underscore form (the Article List enrichment returned empty thumbs/extracts until fixed).
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
@@ -272,6 +274,7 @@ containment), index.html no-cache.*
    WikiProject widget family — assessment scale + popular pages (endpoints
    verified: `/Popular_pages` = Rank·Views·Quality·Importance table, 501
    rows, ~360 KB; ⚠️ `prop=wikitable` doesn't exist — parse `prop=text`).
+1. ~~Commons File Gallery + Article List widgets~~ — **done 2026-08-13**: pasted-list inputs (one per line), order modes, optional enrichment; PagePile/PSID list sources deferred (see Current Status)
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

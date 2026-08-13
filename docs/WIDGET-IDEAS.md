@@ -308,7 +308,7 @@ editors) — a drop-in replacement for the twice-daily bot reports, live.
 - ✅ **PetScan** — `petscan.wmcloud.org/?format=json&...&doit=1` — **CORS `*`**
   (verified 2026-08-13); PSID URLs persist queries. ⚠️ gotcha (HANDOFF):
   PetScan ignores `max` in quick-intersection mode — always bound inputs.
-- **Architecture idea: a "list source" config field** — any article/file
+- **Architecture idea: a "list source" config field** — ✅ **pasted-list mode shipped 2026-08-13** (🗂️ Commons File Gallery + 📋 Article List take a one-per-line textarea; pile ID / PSID remain future additions to the same field). Full idea: any article/file
   widget (pageviews, quality, assessments, excerpt, gallery, unused files…)
   accepts one of: `category` (walk), `pile ID` (PagePiles API), `PSID`
   (PetScan), or a **pasted list** (textarea) as its input; the widget shows

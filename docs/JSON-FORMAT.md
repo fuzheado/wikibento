@@ -64,6 +64,33 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `fileBudget` | number, integer 50–1,000 (files walked; capped trees labeled) |
 | | `topN` | number, integer 1–10 (filmstrip size) |
 | | `showDetail` | boolean (top-file per-page usage table) |
+| `markdown` | `text` | string, Markdown (static widget — no fetch) |
+| `topPages` | `lang` | 28 Wikipedia language codes (`en`, `de`, `fr`, …) |
+| | `dateMode` | `latest` \| `day` \| `month` \| `year` (hatnote data updates ~02:00 UTC) |
+| | `topN` | number, integer 1–100 (0/100 = all) |
+| | `filterNoise` | boolean (drop sponsored TLD/spam pages) |
+| | `showExpanded` | boolean (120px thumb + intro per row) |
+| `excerpt` | `article` / `project` | string (REST `/page/summary`) |
+| `edithistory` | `article` / `project` | string; `limit` number |
+| `quality` | `article` / `project` | string (Lift Wing ORES class) |
+| `assessments` | `article` / `project` | string; `topN` number |
+| `gallery` | `article` / `project` | string (REST `/page/media-list`) |
+| | `displayMode` | `grid` \| `list` |
+| | `iconSize` | `small` \| `medium` \| `large` |
+| | `imageFit` | `contain` \| `cover` |
+| | `minSize` / `maxItems` | numbers (px filter / row cap; 0 = all) |
+| `panorama360` | `filename` | string, Commons file (2:1 / GPano) |
+| | `project` | `commons.wikimedia` |
+| | `autoRotate` | boolean |
+| `fileGallery` | `files` | string, one Commons file per line (textarea) |
+| | `order` | `listed` \| `random` \| `alpha` \| `largest` |
+| | `displayMode` | `grid` \| `list` |
+| | `iconSize` / `imageFit` | as `gallery` |
+| | `maxItems` | number (0 = all) |
+| `articleList` | `articles` | string, one article title per line (textarea) |
+| | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` |
+| | `enrich` | boolean (batched thumbs + intros) |
+| | `maxItems` | number (0 = all) |
 
 **Every widget** additionally accepts:
 
@@ -74,6 +101,11 @@ The dashboard configuration format used by **Export**, **Import**, and
 
 **Unknown config keys** are tolerated (forward compatibility) but flagged as
 warnings by the validator.
+
+> The canonical widget-type list and per-type config vocabulary live in
+docs/dashboard.schema.json and the `WIDGET_TYPES` registry
+(src/widgets/index.js) — the runtime validator enforces them; keep this
+table in sync when adding a widget.
 
 ## Layout Item
 

@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈356 KB total (~107 KB
+(the same grid engine used by Grafana and Kibana), ≈365 KB total (~109 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -88,6 +88,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   batched 50 titles/call — pattern from the Wiki-Top-100 project), and
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
+- **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
@@ -149,7 +150,7 @@ wikibento/
     └── widgets/
         ├── index.js           # WIDGET_TYPES registry (add a widget here)
         ├── WidgetFrame.jsx    # title bar, config panel, load/error/refresh lifecycle
-        └── dataSources.js     # 7 API fetchers (8 data widgets incl. GLAM pipeline)
+        └── dataSources.js     # API fetchers (one per widget, batched where needed)
 ```
 
 ## Technology Stack
@@ -187,9 +188,10 @@ wikibento/
   Wing ORES class — Albert Einstein → FA at 53.9%, full class distribution),
   WikiProject Assessment (18 projects, class + importance badges); config
   change re-fetches live; schema + example dashboard updated
-- ✅ All 7 data-driven widget types render live data in the browser; the 8th
-  (Text/Markdown) is static — no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 7 widgets
+- ✅ **Commons File Gallery (2026-08-13):** 🗂️ pasted list of Commons files → batched `imageinfo` (400px thumbs + description captions); grid + list modes, order listed/random/alpha/largest (verified: 3 files, alphabetical subtitle, list mode, random order), missing-file counting ("3 files · 1 not found"), adaptive 4,500-char batching for long filenames
+- ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
+- ✅ All 15 data-driven widget types render live data in the browser; the 16th (Text/Markdown) is static — no fetch, renders from config
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 16 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com
@@ -213,7 +215,7 @@ wikibento/
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 355.9 KB JS (107.2 KB gzip) + 23.1 KB CSS (5 KB gzip)
+- ✅ Production build: 364.98 KB JS (109.32 KB gzip) + 35.34 KB CSS (7.61 KB gzip)
 
 ## Documentation
 
