@@ -169,7 +169,7 @@ wikibento/
 - ✅ Top Wikipedia Articles: hatnote via proxy (en latest: top-10 of 100, 4
   noise items filtered incl. rank-1 `.xxx`); WMF fallback (de, ja — "via WMF
   Pageviews API"); specific date (fr 2026-07-14); filterNoise toggle shows
-  `.xxx`/`.xyz` when off; topN 0=all (100 rows)
+  `.xxx`/`.xyz` when off; topN 100=all (96 rows after filter); 100-row card scrolls internally
 - ✅ Production build: 54 modules, 323.4 KB JS (97.4 KB gzip) + 17.5 KB CSS (4.0 KB gzip)
 
 ## Documentation

@@ -103,9 +103,14 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, {
       'Content-Type': MIME[extname(filePath)] || 'application/octet-stream',
       'Content-Length': data.length,
+      // Assets are content-hashed → cache hard. index.html must always
+      // revalidate so new builds propagate (old hashed bundles get deleted
+      // on rsync --delete; a stale index.html would 404 on them).
       'Cache-Control': immutable
         ? 'public, max-age=604800, immutable'
-        : 'public, max-age=3600',
+        : pathname === '/index.html'
+          ? 'no-cache'
+          : 'public, max-age=3600',
     });
     res.end(data);
   } catch {

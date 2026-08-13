@@ -122,6 +122,11 @@ body {
   transition: border-color .2s;
   display: flex;
   flex-direction: column;
+  /* Fill the fixed-height grid cell (react-grid-item) so tall content
+     (e.g. 100-row lists) scrolls inside the widget instead of growing
+     the card out of the frame. */
+  height: 100%;
+  min-height: 0;
 }
 .grid-item:hover { border-color: var(--accent-dim); }
 
@@ -134,6 +139,8 @@ body {
 }
 .mobile-stack .grid-item {
  width: 100%;
+ height: auto;   /* in the phone stack each card sizes to its content */
+ min-height: 0;
 }
 
 
@@ -479,6 +486,10 @@ body {
 
 .ranking-card {
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   font-size: 12px;
 }
 
@@ -492,7 +503,8 @@ body {
 }
 
 .ranking-rows {
-  max-height: calc(100% - 20px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
