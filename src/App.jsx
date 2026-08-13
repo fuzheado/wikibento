@@ -290,7 +290,7 @@ export default function App() {
             rowHeight={80}
             width={gridWidth}
             onLayoutChange={handleLayoutChange}
-            draggableHandle=".widget-header"
+            dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
             compactType="vertical"
             margin={[12, 12]}
             containerPadding={[0, 0]}

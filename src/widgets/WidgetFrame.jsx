@@ -622,7 +622,7 @@ function PanoramaCard({ data }) {
           <a className="panorama-orig" href={data.originalUrl} target="_blank" rel="noopener noreferrer" title="Open original file">⤴</a>
         )}
       </div>
-      <div className="panorama-container" ref={containerRef}>
+      <div className="panorama-container no-drag" ref={containerRef}>
         {status.startsWith('error') && (
           <div className="widget-error"><span>⚠ {status.slice(6)}</span></div>
         )}
