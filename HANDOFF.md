@@ -17,7 +17,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (13 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery)
+- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (14 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery)
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)

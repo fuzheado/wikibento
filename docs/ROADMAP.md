@@ -89,7 +89,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
-- **Categorized Add Widget catalog** (2026-08-13 note) — 13 widget types in a
+- **Categorized Add Widget catalog** (2026-08-13 note) — 14 widget types in a
   linear list is unwieldy. Add sections to the panel: each registry entry gets
   a `category` field (e.g. `commons` / `wikipedia-article` / `stats-tools` /
   `content`), and the panel groups + labels them ("Wikimedia Commons",

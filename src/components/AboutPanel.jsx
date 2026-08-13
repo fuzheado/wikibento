@@ -1,3 +1,5 @@
+import { WIDGET_TYPES } from '../widgets';
+
 /**
  * About modal — explains what WikiBento is and how to use it.
  */
@@ -35,7 +37,7 @@ export default function AboutPanel({ onClose }) {
             <li>Widgets <strong>auto-refresh</strong> (hourly by default) and remember your layout.</li>
             <li><strong>⬇ Export / ⬆ Import</strong> round-trip the full dashboard as JSON.</li>
             <li><strong>🔗 Share</strong> copies a link with the dashboard embedded — or use <code>?config=&lt;url&gt;</code> to load a hosted config.</li>
-            <li><strong>✨ Example</strong> loads a showcase dashboard with all 7 widget types.</li>
+            <li><strong>✨ Example</strong> loads a showcase dashboard with all {Object.keys(WIDGET_TYPES).length} widget types.</li>
           </ul>
 
           <h4>Try the demo file</h4>
