@@ -95,6 +95,15 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   updated. **DEPLOYED to Toolforge 2026-08-13** (commit 4cf2c93, bundle
   index-BEguwTL7.js) — verified live: gallery renders 32 captioned images,
   no console errors from the new endpoints.
+- ✅ **Gallery overflow fix (2026-08-13):** content-height gallery card could
+  exceed the widget body on windows < ~1280px wide — `align-items: center`
+  centered the overflow so its top painted OVER the header, burying the
+  ⚙/✕/↻ buttons (reproduced at 1100/1000/900/800px: card 1204–1864px vs
+  body 1074px). Fix: `.gallery-card { height: 100%; min-height: 0 }` (the
+  `.ranking-card` pattern — inner grid scrolls at any width) + defensive
+  `overflow: hidden` on `.widget-body` so no future content-height card can
+  cover a header. Verified live at 1100px: fits, no overlap, ⚙ pointer-
+  clickable (commit 4cf2c93 fix bundle index-BqgxhKa5.js).
 
 ## Quick Start
 
