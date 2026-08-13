@@ -79,6 +79,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   origin; Action API needs `origin=*`; `palimit=500` gets all projects).
   Verified live: Einstein → FA 53.9%, 18 assessed projects. Schema enum +
   example dashboard + README/DATA-SOURCES/WIDGET-DEVELOPMENT docs updated.
+  **DEPLOYED to Toolforge 2026-08-13** (commit b9d62f7, bundle
+  index-CF9Vo_m5.js) — verified live: all 4 vitals render, no console
+  errors from the new endpoints.
 
 ## Quick Start
 
