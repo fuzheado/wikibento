@@ -122,6 +122,11 @@ export const EXAMPLE_DASHBOARD = {
       widgetType: 'articleList',
       config: { articles: 'Ada Lovelace\nAlbert Einstein', project: 'en.wikipedia', enrich: true, maxItems: 0, refreshSeconds: 3600 },
     },
+ {
+  id: 'example-sparql',
+  widgetType: 'sparql',
+  config: { preset: 'multi-institution', query: '', endpoint: 'wdqs', renderer: 'auto', maxRows: 100, refreshSeconds: 1800 },
+ },
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -141,6 +146,7 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-panorama', x: 0, y: 36, w: 6, h: 4, minW: 3, minH: 2 },
     { i: 'example-filegallery', x: 6, y: 36, w: 6, h: 5, minW: 3, minH: 3 },
     { i: 'example-articlelist', x: 0, y: 40, w: 6, h: 4, minW: 3, minH: 3 },
+  { i: 'example-sparql', x: 6, y: 40, w: 6, h: 5, minW: 3, minH: 3 },
   ],
 };
 

@@ -88,10 +88,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
           {(def?.configFields || []).map(field => (
             <div key={field.key} className="config-field">
               <label>{field.label}</label>
-              {field.type === 'select' ? (
+              {field.type === 'select' || field.type === 'preset' ? (
                 <select
                   value={widget.config[field.key] || ''}
-                  onChange={e => handleConfigChange(field.key, e.target.value)}
+                  onChange={e => { const v = e.target.value; if (field.type === 'preset') { const p = (field.presets || []).find(x => x.id === v); onUpdateConfig(widget.id, { ...widget.config, [field.key]: v, query: p ? p.query : widget.config.query, endpoint: p ? p.endpoint : widget.config.endpoint }); } else { handleConfigChange(field.key, v); } }}
                 >
                   {field.options.map(o => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -165,6 +165,8 @@ function WidgetContent({ type, data }) {
     case 'GalleryGridCard': return <GalleryGridCard data={data} />;
     case 'GalleryListCard': return <GalleryListCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} />;
+
+    case 'SparqlCard': return <SparqlCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -652,6 +654,64 @@ function PanoramaCard({ data }) {
         {status === 'not360' && (
           <div className="panorama-placeholder">This file is not 2:1 equirectangular — it may still be a Photo Sphere (Pannellum auto-detects GPano XMP).</div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** SPARQL Query — one renderer, mode decided by the transform (auto-detect
+ *  or the ⚙ override). Composes the existing StatCard/TrendCard and the
+ *  new BarCard/TableCard — no new chart library. */
+function SparqlCard({ data }) {
+  if (!data) return <div className="widget-empty">No data</div>;
+  if (data.mode === 'stat') return <StatCard data={data} />;
+  if (data.mode === 'line') return <TrendCard data={data} />;
+  if (data.mode === 'bar') return <BarCard data={data} />;
+  return <TableCard data={data} />;
+}
+
+/** Table — generic columns, scrollable body (the SPARQL fallback). */
+function TableCard({ data }) {
+  const columns = data.columns || [];
+  const rows = data.rows || [];
+  return (
+    <div className="table-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="table-scroll">
+        <table className="sparql-table">
+          <thead>
+            <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && <tr><td className="widget-empty" colSpan={columns.length || 1}>No rows</td></tr>}
+            {rows.map((r, i) => (
+              <tr key={i}>{r.map((cell, j) => <td key={j} title={String(cell)}>{cell}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** Bar — horizontal label→value bars (hand-rolled, zero-chart-library style). */
+function BarCard({ data }) {
+  const rows = data.rows || [];
+  const max = Math.max(...rows.map((r) => r.value || 0), 1);
+  return (
+    <div className="bar-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="bar-rows">
+        {rows.length === 0 && <div className="widget-empty">No rows</div>}
+        {rows.map((r, i) => (
+          <div key={i} className="bar-row" title={`${r.label}: ${r.value?.toLocaleString?.() ?? r.value}`}>
+            <span className="bar-label">{r.label}</span>
+            <span className="bar-track"><span className="bar-fill" style={{ width: `${Math.max((r.value / max) * 100, 1)}%` }} /></span>
+            <span className="bar-value">{typeof r.value === 'number' ? r.value.toLocaleString() : r.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

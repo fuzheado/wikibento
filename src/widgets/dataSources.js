@@ -9,6 +9,7 @@ const WIKISTATS_API = 'https://wikistats.wmcloud.org/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
+import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 
 const WIKIBENTO_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)';
 
@@ -20,7 +21,7 @@ const wikistatsCache = createTtlCache(5 * 60 * 1000);
  * (network errors, 5xx). 4xx errors fail fast (retrying won't help).
  * Returns the response text.
  */
-async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null } = {}) {
+async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null, contentType = null } = {}) {
   const shortUrl = url.replace(/^https?:\/\//, '').slice(0, 80); // for error messages
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -29,7 +30,7 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method 
     try {
       const resp = await fetch(url, {
         method,
-        headers: { 'User-Agent': WIKIBENTO_UA, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        headers: { 'User-Agent': WIKIBENTO_UA, ...(body ? { 'Content-Type': contentType || 'application/json' } : {}) },
         body,
         signal: controller.signal,
       });
@@ -1151,4 +1152,109 @@ export async function fetchArticleList(articlesText, project = 'en.wikipedia', o
       return { ...r, thumbUrl: enriched.thumb, extract: enriched.extract };
     }),
   };
+}
+
+// ── SPARQL widget ───────────────────────────────────────────
+// Runs arbitrary SPARQL against WDQS (Wikidata) or QLever (Commons SDC),
+// plus the Humaniki precomputed gender-gap API (the Women-in-Red metric —
+// the equivalent WDQS query times out: 504, verified 2026-08-13).
+// All endpoints are CORS `*` from the browser; no proxy needed.
+// WDQS is flaky (95% SLO, live 502/504 seen) — 60 s timeout, one retry,
+// 10-min TTL cache, graceful errors.
+const SPARQL_TIMEOUT_MS = 60000;
+const SPARQL_GET_LIMIT = 1800; // WDQS GET URLs cap ~2,000 chars
+const sparqlCache = createTtlCache(10 * 60 * 1000);
+
+/** Shorten entity URIs (Q160236, M37200540) — others kept as-is. */
+function shortenSparqlUri(value) {
+  const m = String(value).match(/\/(entity|File|Category)\/([^/]+)$/);
+  return m ? m[2].replace(/_/g, ' ') : value;
+}
+
+/** SPARQL JSON literals are ALWAYS strings — coerce numerics via datatype. */
+function coerceSparqlValue(binding) {
+  if (binding.type === 'uri') return shortenSparqlUri(binding.value);
+  if (binding.type === 'literal' && binding.datatype) {
+    if (/#(?:integer|decimal|double|float|int|long|nonNegativeInteger|positiveInteger)$/.test(binding.datatype)) {
+      const n = Number(binding.value);
+      return Number.isFinite(n) ? n : binding.value;
+    }
+  }
+  return binding.value;
+}
+
+/**
+ * 17. SPARQL Query — arbitrary SPARQL (WDQS / QLever Commons) + Humaniki.
+ * Returns { vars, rows } — plain objects, never the raw bindings envelope.
+ * GET for short queries, POST form-urlencoded (no CORS preflight) beyond.
+ */
+export async function fetchSparql(query, endpoint = 'wdqs', maxRows = 100) {
+  const ep = SPARQL_ENDPOINTS[endpoint] || SPARQL_ENDPOINTS.wdqs;
+  const cap = Math.max(parseInt(maxRows) || 100, 1);
+
+  // Humaniki branch — precomputed gender-gap counts (not SPARQL).
+  if (endpoint === 'humaniki') {
+    const cached = await sparqlCache.get('humaniki::gap', async () => {
+      const d = await fetchJSON(`${ep.url}?project=enwiki&label_lang=en`);
+      const metrics = d?.metrics || [];
+      // ⚠️ Interpret value keys via the API's OWN bias_labels — Humaniki's
+      // QID convention differs from Wikidata's (verified 2026-08-13: its map
+      // says 6581097->male / 6581072->female, i.e. swapped vs Wikidata's
+      // Q6581072=male / Q6581097=female). Hardcoding QIDs gives 79.7% women;
+      // the label lookup gives the correct ~20.1% (matches Women in Red).
+      const labels = d?.meta?.bias_labels || {};
+      const femaleKey = Object.keys(labels).find((k) => /^female$/i.test(labels[k] || ''));
+      let total = 0;
+      let women = 0;
+      for (const m of metrics) {
+        for (const [gender, count] of Object.entries(m.values || {})) {
+          total += count;
+          if (gender === femaleKey) women += count;
+        }
+      }
+      if (!total) throw new Error('Humaniki returned no counts');
+      return {
+        vars: ['total', 'women', 'pct'],
+        rows: [{ total, women, pct: Math.round((women * 10000) / total) / 100 }],
+      };
+    });
+    return cached;
+  }
+
+  const q = String(query || '').trim();
+  if (!q) throw new Error('Enter a SPARQL query (or pick a preset)');
+
+  const params = new URLSearchParams({ query: q, format: 'json' });
+  const useGet = q.length <= SPARQL_GET_LIMIT;
+  const url = useGet ? `${ep.url}?${params}` : ep.url;
+  const body = useGet ? null : params.toString();
+
+  const cacheKey = `${endpoint}::${q}`;
+  return sparqlCache.get(cacheKey, async () => {
+    const text = await fetchTextWithRetry(url, {
+      timeoutMs: SPARQL_TIMEOUT_MS,
+      retries: 1,
+      method: useGet ? 'GET' : 'POST',
+      body,
+      contentType: 'application/x-www-form-urlencoded',
+    });
+    let d;
+    try {
+      d = JSON.parse(text);
+    } catch {
+      throw new Error('SPARQL endpoint returned non-JSON (is the query valid?)');
+    }
+    if (d?.error) {
+      const msg = typeof d.error === 'string' ? d.error : d.error.message || JSON.stringify(d.error);
+      throw new Error(`SPARQL error: ${msg}`);
+    }
+    const vars = d?.head?.vars || [];
+    if (!vars.length) throw new Error('SPARQL returned no variables');
+    const rows = (d?.results?.bindings || []).slice(0, cap).map((b) => {
+      const row = {};
+      for (const v of vars) row[v] = b[v] ? coerceSparqlValue(b[v]) : null;
+      return row;
+    });
+    return { vars, rows };
+  });
 }

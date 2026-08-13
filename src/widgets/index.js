@@ -19,7 +19,9 @@ import {
   fetchPanoramaFile,
  fetchCommonsGallery,
  fetchArticleList,
+ fetchSparql,
 } from './dataSources';
+import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 
 const NAMESPACE_LABELS = {
   '0': 'articles only',
@@ -678,6 +680,111 @@ export const WIDGET_TYPES = {
       subtitle: `${data.rows.length} article${data.rows.length === 1 ? '' : 's'}${config.enrich ? ' · with thumbnails + intros' : ''}`,
       rows: data.rows,
     }),
+  },
+
+  sparql: {
+    id: 'sparql',
+    name: 'SPARQL Query',
+    icon: '🧠',
+    description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, or trend',
+    labelFromConfig: (c) => (getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
+    defaults: {
+      preset: 'met-collection',
+      query: '',
+      endpoint: 'wdqs',      // 'wdqs' | 'qlever-commons' | 'humaniki'
+      renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table'
+      maxRows: 100,
+      refreshSeconds: 1800,
+    },
+    renderer: 'SparqlCard',
+    dataSource: 'WDQS / QLever SPARQL + Humaniki API',
+    configFields: [
+      { key: 'preset', label: 'Preset (fills the query)', type: 'preset',
+        options: SPARQL_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+        presets: SPARQL_PRESETS },
+      { key: 'query', label: 'SPARQL query', type: 'textarea', rows: 10, placeholder: 'SELECT ...' },
+      { key: 'endpoint', label: 'Endpoint', type: 'select', options: [
+        { value: 'wdqs', label: 'Wikidata (WDQS)' },
+        { value: 'qlever-commons', label: 'Commons SDC (QLever)' },
+        { value: 'humaniki', label: 'Humaniki (gender gap, precomputed)' },
+      ]},
+      { key: 'renderer', label: 'Renderer (auto-detects)', type: 'select', options: [
+        { value: 'auto', label: 'Auto (from result shape)' },
+        { value: 'stat', label: 'Big number' },
+        { value: 'bar', label: 'Bar chart' },
+        { value: 'line', label: 'Line chart' },
+        { value: 'table', label: 'Table' },
+      ]},
+      { key: 'maxRows', label: 'Max rows', type: 'number', placeholder: '100' },
+    ],
+    fetch: (config) => {
+      const preset = getPreset(config.preset);
+      const query = config.query || preset?.query || '';
+      const endpoint = config.endpoint || preset?.endpoint || 'wdqs';
+      return fetchSparql(query, endpoint, config.maxRows);
+    },
+    transform: (data, config) => {
+      const preset = getPreset(config.preset);
+      const title = preset?.label || 'SPARQL result';
+      const vars = data.vars || [];
+      const rows = data.rows || [];
+      const fmt = (v) => (typeof v === 'number' ? v.toLocaleString() : String(v ?? '—'));
+      // Which vars are numeric (per first row's coerced type)?
+      const numeric = (v) => rows.length > 0 && typeof rows[0][v] === 'number';
+      const numericVars = vars.filter(numeric);
+      const dateish = (v) => /year|date|time|month|decade|century/i.test(v) && !numeric(v);
+      const labelVar = vars.find((v) => /label$/i.test(v) && !numeric(v)) || vars.find((v) => !numeric(v) && !dateish(v));
+
+      // Manual override wins; otherwise detect from the result shape.
+      let mode = config.renderer || 'auto';
+      if (mode === 'auto') {
+        if (!rows.length || !numericVars.length) mode = 'table';
+        else if (rows.length === 1) mode = 'stat';
+        else if (vars.some(dateish)) mode = 'line';
+        else if (numericVars.length === 1) mode = 'bar';
+        else mode = 'table';
+      }
+      if (mode === 'bar' && !labelVar) mode = 'table';
+
+      if (mode === 'stat') {
+        const valueVar = numericVars[numericVars.length - 1] || vars[vars.length - 1];
+        const value = rows[0][valueVar];
+        const detail = vars.filter((v) => v !== valueVar).map((v) => `${v}: ${fmt(rows[0][v])}`).join(' · ');
+        return {
+          mode,
+          title,
+          subtitle: `${rows.length} row · ${valueVar}`,
+          value: valueVar === 'pct' ? `${value}%` : fmt(value),
+          detail,
+        };
+      }
+      if (mode === 'line') {
+        const xVar = vars.find(dateish) || vars.find((v) => !numeric(v));
+        const yVar = numericVars[0];
+        return {
+          mode,
+          title,
+          subtitle: `${rows.length} points · ${yVar} by ${xVar}`,
+          chartData: rows.map((r) => ({ date: String(r[xVar]), value: r[yVar] })),
+          chartKey: 'value',
+          chartLabel: yVar,
+        };
+      }
+      if (mode === 'bar') {
+        const rows2 = rows
+          .map((r) => ({ label: fmt(r[labelVar]), value: r[numericVars[0]] }))
+          .slice(0, 25);
+        return { mode, title, subtitle: `${rows2.length} rows · ${numericVars[0]}`, rows: rows2 };
+      }
+      // table (default)
+      return {
+        mode: 'table',
+        title,
+        subtitle: `${rows.length} rows · ${vars.join(', ')}`,
+        columns: vars,
+        rows: rows.map((r) => vars.map((v) => fmt(r[v]))),
+      };
+    },
   },
 
   panorama360: {

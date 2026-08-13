@@ -55,7 +55,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |
 | **CORS proxy** | S (partial) | High | **Done 2026-08-12 for hatnote + w.wiki:** deploy/server.js has `/api/resolve` (short-URL expansion) and `/api/proxy` (https GET, wraps `{status, body}` with `ACAO: *`) — used by the Top Wikipedia Articles widget and `?config=` w.wiki links. The **Arbitrary URL Extractor power widget** will reuse `/api/proxy` for arbitrary scraped sources |
-| **Power widget: SPARQL Query** | M–L | High | Run any SPARQL against WDQS (`query.wikidata.org`, CORS-enabled; also QLever commons-query for Commons SDC); render table / bar chart / map / **force-directed knowledge graph** (d3-force; input = two-entity-column results, e.g. subclass trees; prior art: the wikigraph app). See WIDGET-IDEAS.md Tier 1 |
+| ~~**Power widget: SPARQL Query**~~ | S–M | High | **Done 2026-08-13** — `sparql` widget: WDQS + QLever (Commons) + Humaniki (precomputed gender gap); auto-detecting renderer (big number / bars / line / table) with manual override; 4 presets (Met depth, multi-institution, Women-in-Red %, Commons top-depicts); 60 s timeout, retry, 10-min TTL cache; GET≤1,800 chars else form-urlencoded POST (no preflight). Map / force-graph renderers (d3-force) remain Phase 2 — see WIDGET-IDEAS.md Tier 1 |
 | **Power widget: PetScan Query** | S–M | High | Category/template intersections via `petscan.wmcloud.org` (`format=json` + PSID); list/table output. ⚠️ gotcha: PetScan ignores `max` in quick-intersection mode — always pass bounded params (depth, categories). See WIDGET-IDEAS.md Tier 1 |
 | **Power widget: Arbitrary URL Extractor** | M | High | Paste a tool URL + CSS selector/regex, pick a metric (sum/count/top-N). The escape hatch wrapping any tool; non-CORS targets need the proxy row above |
 | **Spike alert (Article Watch)** | M | High | Pageviews + anomaly detector: watched article jumps 3× its baseline → widget lights up. Newsroom editorial intelligence; the shareable hero feature. Needs baseline-window config (7/30 d) |
@@ -89,7 +89,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
-- **Categorized Add Widget catalog** (2026-08-13 note) — 16 widget types in a
+- **Categorized Add Widget catalog** (2026-08-13 note) — 17 widget types in a
   linear list is unwieldy. Add sections to the panel: each registry entry gets
   a `category` field (e.g. `commons` / `wikipedia-article` / `stats-tools` /
   `content`), and the panel groups + labels them ("Wikimedia Commons",

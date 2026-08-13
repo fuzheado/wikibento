@@ -56,6 +56,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Article Gallery** | 🖼️ | [REST `/page/media-list`](https://en.wikipedia.org/api/rest_v1/page/media-list/Albert_Einstein) + `imageinfo` | Significant images with captions — grid (small/medium/large) or list (thumb left, caption right); filters out uncaptioned flags/logos/maps and tiny icons |
 | **Commons File Gallery** | 🗂️ | Commons API `imageinfo` (batched) | Gallery of any Commons files you list (one per line) — grid or list; order as-listed / random / alphabetical / largest-first; missing files counted |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
+| **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
@@ -88,6 +89,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   batched 50 titles/call — pattern from the Wiki-Top-100 project), and
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
+- **SPARQL power widget** — 🧠 run any SPARQL against Wikidata (WDQS) or Commons (QLever) and get a big number, bars, line, or table — auto-detected from the result shape (manual override in ⚙). Canned presets unlock instant dashboards (collection depth, multi-institution comparison, Women-in-Red %, Commons top-depicts); 60 s timeout + retry + 10-min cache tame WDQS flakiness; long queries POST form-urlencoded (no CORS preflight)
 - **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
@@ -102,7 +104,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 16 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 17 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -190,8 +192,9 @@ wikibento/
   change re-fetches live; schema + example dashboard updated
 - ✅ **Commons File Gallery (2026-08-13):** 🗂️ pasted list of Commons files → batched `imageinfo` (400px thumbs + description captions); grid + list modes, order listed/random/alpha/largest (verified: 3 files, alphabetical subtitle, list mode, random order), missing-file counting ("3 files · 1 not found"), adaptive 4,500-char batching for long filenames
 - ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
-- ✅ All 15 data-driven widget types render live data in the browser; the 16th (Text/Markdown) is static — no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 16 widgets
+- ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
+- ✅ All 16 data-driven widget types render live data in the browser; the 17th (Text/Markdown) is static — no fetch, renders from config
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 17 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com

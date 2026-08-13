@@ -91,6 +91,11 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` |
 | | `enrich` | boolean (batched thumbs + intros) |
 | | `maxItems` | number (0 = all) |
+| `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
+| | `query` | string, SPARQL (textarea; empty uses the preset's) |
+| | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |
+| | `renderer` | `auto` \| `stat` \| `bar` \| `line` \| `table` |
+| | `maxRows` | number, integer (row cap) |
 
 **Every widget** additionally accepts:
 

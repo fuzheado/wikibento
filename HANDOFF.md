@@ -17,8 +17,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (16 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List)
-- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 16 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
+- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (17 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List + 🧠 SPARQL Query)
+- ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **NOT YET DEPLOYED** (2026-08-13).
+- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 17 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit 68dea21)
@@ -275,6 +276,7 @@ containment), index.html no-cache.*
    verified: `/Popular_pages` = Rank·Views·Quality·Importance table, 501
    rows, ~360 KB; ⚠️ `prop=wikitable` doesn't exist — parse `prop=text`).
 1. ~~Commons File Gallery + Article List widgets~~ — **done 2026-08-13**: pasted-list inputs (one per line), order modes, optional enrichment; PagePile/PSID list sources deferred (see Current Status)
+1. ~~SPARQL power widget~~ — **done 2026-08-13**: WDQS/QLever/Humaniki + auto renderer + presets (see Current Status); map + force-graph renderers remain Phase 2
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

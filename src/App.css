@@ -1142,3 +1142,16 @@ body {
 .article-list-title { font-size: 13px; color: var(--accent); line-height: 1.3; }
 .article-list-row:hover .article-list-title { text-decoration: underline; }
 .article-list-extract { font-size: 11px; color: var(--text-secondary); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* ── SPARQL Query (table + bar) ──────────────────────────── */
+.table-card, .bar-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
+.table-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.sparql-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.sparql-table th { position: sticky; top: 0; background: var(--surface); color: var(--text-secondary); text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); font-weight: 700; z-index: 1; }
+.sparql-table td { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sparql-table tr:hover td { background: rgba(255,255,255,0.02); }
+.bar-rows { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-label { width: 40%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--text); flex-shrink: 0; }
+.bar-track { flex: 1; background: rgba(255,255,255,0.05); border-radius: 4px; height: 14px; overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius: 4px; min-width: 2px; }
+.bar-value { width: 72px; text-align: right; font-size: 11px; color: var(--text-secondary); font-variant-numeric: tabular-nums; flex-shrink: 0; }
