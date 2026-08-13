@@ -26,6 +26,17 @@ export const EXAMPLE_DASHBOARD = {
       },
     },
     {
+      id: 'example-toppages',
+      widgetType: 'topPages',
+      config: {
+        lang: 'en',
+        dateMode: 'latest',
+        topN: 10,
+        filterNoise: true,
+        refreshSeconds: 3600,
+      },
+    },
+    {
       id: 'example-pageviews',
       widgetType: 'pageviews',
       config: { article: 'Main_Page', project: 'en.wikipedia', displayMode: 'stat', refreshSeconds: 3600 },
@@ -78,9 +89,10 @@ export const EXAMPLE_DASHBOARD = {
     { i: 'example-linkcount', x: 3, y: 4, w: 3, h: 3, minW: 2, minH: 2 },
     { i: 'example-category', x: 6, y: 4, w: 3, h: 4, minW: 2, minH: 3 },
     { i: 'example-fileusage', x: 9, y: 4, w: 3, h: 5, minW: 2, minH: 4 },
-    { i: 'example-wikistats', x: 0, y: 8, w: 3, h: 3, minW: 2, minH: 2 },
-    { i: 'example-topwikis', x: 3, y: 8, w: 4, h: 4, minW: 3, minH: 3 },
-    { i: 'example-glam', x: 7, y: 8, w: 5, h: 6, minW: 3, minH: 4 },
+    { i: 'example-toppages', x: 0, y: 8, w: 4, h: 5, minW: 3, minH: 4 },
+    { i: 'example-wikistats', x: 4, y: 8, w: 3, h: 3, minW: 2, minH: 2 },
+    { i: 'example-topwikis', x: 7, y: 8, w: 5, h: 4, minW: 3, minH: 3 },
+    { i: 'example-glam', x: 0, y: 13, w: 12, h: 6, minW: 3, minH: 4 },
   ],
 };
 

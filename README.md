@@ -48,6 +48,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **GLAM Category Usage** | 📈 | Commons API + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month, top-image filmstrip, per-page usage detail |
+| **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…) |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 
 ## Features
@@ -67,6 +68,13 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
+- **Top Wikipedia Articles** — 🔥 most-visited articles per language edition
+  (top.hatnote.com data, 28 languages). Date: "latest" or any day/month/year;
+  Top N: all / 10 / arbitrary; **default noise filter** removes sponsored
+  TLD/spam pages (`.xxx`, `.xyz`, `XXX (beer)`…) — toggle off in ⚙ if wanted.
+  hatnote sends no CORS headers, so the Toolforge deployment fetches it via a
+  same-origin proxy (`/api/proxy`); elsewhere it falls back to the
+  CORS-enabled WMF Pageviews `top` endpoint (marked "via WMF Pageviews API")
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
@@ -158,6 +166,10 @@ wikibento/
 - ✅ Text/Markdown card: markdown rendering verified (headings/bold/links/lists/code);
   Wikimedia images render by default, external hosts blocked with an opt-in toggle,
   XSS payloads (`<script>`, `onerror`) inert
+- ✅ Top Wikipedia Articles: hatnote via proxy (en latest: top-10 of 100, 4
+  noise items filtered incl. rank-1 `.xxx`); WMF fallback (de, ja — "via WMF
+  Pageviews API"); specific date (fr 2026-07-14); filterNoise toggle shows
+  `.xxx`/`.xyz` when off; topN 0=all (100 rows)
 - ✅ Production build: 54 modules, 323.4 KB JS (97.4 KB gzip) + 17.5 KB CSS (4.0 KB gzip)
 
 ## Documentation

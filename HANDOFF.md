@@ -17,7 +17,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 
-- ✅ 7 data-driven widget types verified live (see README "Verified Working") + 📝 Text/Markdown static card (8 total, 2026-08-12)
+- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (9 total, 2026-08-12)
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
 - ✅ Git repo initialized and pushed to GitHub (main, current commit 23c627d)
@@ -46,6 +46,12 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **Mobile stack ordering fix (2026-08-12):** the <768px single-column stack
   now sorts by grid position (y, then x) instead of widget-array insertion
   order — desktop drags are reflected on phones
+- ✅ **Top Wikipedia Articles widget (2026-08-12):** 🔥 most-visited articles
+  per language (top.hatnote.com, 28 langs) — "latest" or any date, top-N
+  (all/10/arbitrary), default noise filter (`.xxx`, `XXX (beer)`…). hatnote has
+  no CORS, so deploy/server.js gained `/api/proxy` (wraps `{status, body}`);
+  non-Toolforge hosts fall back to the CORS-enabled WMF Pageviews `top`
+  endpoint. See docs/DATA-SOURCES.md §8
 
 ## Quick Start
 
@@ -129,6 +135,7 @@ responsive mobile stack (order follows grid layout), Wikistats cache + timeout
 1. ~~Deploy to Toolforge~~ — **done 2026-08-12**: https://wikibento.toolforge.org/
 1. ~~Phase 0 cleanup~~ — **done 2026-08-12**: recharts, dead assets, resize listener, error boundary
 1. ~~📝 Text/Markdown widget~~ — **done 2026-08-12**: static widget + image domain policy (see Current Status)
+1. ~~🔥 Top Wikipedia Articles widget~~ — **done 2026-08-12**: hatnote via /api/proxy + WMF fallback (see Current Status)
 1. **Widget strategy agreed 2026-08-12** — ROADMAP §Strategy + WIDGET-IDEAS:
    power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
    bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →

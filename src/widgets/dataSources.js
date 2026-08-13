@@ -590,3 +590,113 @@ export async function fetchFileUsage(filename, topN = 10) {
     throw new Error(`File usage fetch failed: ${e.message}`);
   }
 }
+
+// ── Top Wikipedia Articles (top.hatnote.com) ─────────────
+// Per-day JSON at https://top.hatnote.com/{lang}/wikipedia/{y}/{m}/{d}.json
+// (month/day NOT zero-padded; data updated ~02:00 UTC daily). The host sends
+// no CORS headers, so the browser fetches via the same-origin /api/proxy
+// (deploy/server.js) and falls back to the CORS-enabled WMF Pageviews `top`
+// REST endpoint. Dates back off to the nearest available day.
+const HATNOTE_API = 'https://top.hatnote.com';
+const topPagesCache = createTtlCache(10 * 60 * 1000);
+
+/** Compact number ("1.2M", "105K") — mirrors hatnote's views_short. */
+function compactNumber(n) {
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+}
+
+async function fetchViaProxy(url) {
+  // Same-origin /api/proxy (deploy/server.js) wraps { status, body } with ACAO:*.
+  const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+  return topPagesCache.get(proxyUrl, () => fetchTextWithRetry(proxyUrl))
+    .then((text) => {
+      const wrapped = JSON.parse(text);
+      if (wrapped.status !== 200) throw new Error(`HTTP ${wrapped.status}`);
+      return JSON.parse(wrapped.body);
+    });
+}
+
+/** Candidate dates: today stepping back for 'latest', exact date for 'date'. */
+function topPageCandidates({ dateMode, year, month, day }) {
+  const out = [];
+  const d = dateMode === 'latest'
+    ? new Date()
+    : new Date(Date.UTC(year || 2026, (month || 1) - 1, day || 1));
+  const maxBack = dateMode === 'latest' ? 14 : 7;
+  for (let i = 0; i < maxBack; i++) {
+    const c = new Date(d.getTime() - i * 86400000);
+    out.push({ y: c.getUTCFullYear(), m: c.getUTCMonth() + 1, d: c.getUTCDate() });
+  }
+  return out;
+}
+
+/** Try hatnote (via proxy, then direct), then WMF REST for one day. */
+async function fetchTopPageDay(lang, { y, m, d }) {
+  // 1. hatnote via same-origin proxy (works on the Toolforge deployment)
+  try {
+    const data = await fetchViaProxy(`${HATNOTE_API}/${lang}/wikipedia/${y}/${m}/${d}.json`);
+    if (!data?.articles?.length) return null;
+    return {
+      source: 'hatnote',
+      dateLabel: data.formatted_date,
+      fullLang: data.full_lang,
+      totalTrafficShort: data.total_traffic_short,
+      permalink: data.permalink,
+      articles: data.articles.map((a) => ({
+        title: a.title, rank: a.rank, views: a.pviews ?? a.views,
+        views_short: a.views_short || compactNumber(a.pviews ?? a.views),
+      })),
+    };
+  } catch { /* fall through */ }
+  // 2. hatnote direct (only works if they ever add CORS)
+  try {
+    const data = JSON.parse(await fetchTextWithRetry(`${HATNOTE_API}/${lang}/wikipedia/${y}/${m}/${d}.json`));
+    if (!data?.articles?.length) return null;
+    return {
+      source: 'hatnote',
+      dateLabel: data.formatted_date,
+      fullLang: data.full_lang,
+      totalTrafficShort: data.total_traffic_short,
+      permalink: data.permalink,
+      articles: data.articles.map((a) => ({
+        title: a.title, rank: a.rank, views: a.pviews ?? a.views,
+        views_short: a.views_short || compactNumber(a.pviews ?? a.views),
+      })),
+    };
+  } catch { /* fall through */ }
+  // 3. WMF Pageviews top REST (CORS-enabled; zero-padded dates)
+  try {
+    const mm = String(m).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    const data = await fetchJSON(`${PAGEVIEWS_API}/top/${lang}.wikipedia/all-access/${y}/${mm}/${dd}`);
+    const items = data?.items?.[0]?.articles || [];
+    if (!items.length) return null;
+    return {
+      source: 'wmf',
+      dateLabel: `${y}/${mm}/${dd}`,
+      fullLang: lang,
+      totalTrafficShort: null,
+      permalink: null,
+      articles: items.map((a) => ({
+        title: a.article, rank: a.rank, views: a.views,
+        views_short: compactNumber(a.views),
+      })),
+    };
+  } catch { return null; }
+}
+
+/**
+ * Top Wikipedia articles for a language edition.
+ * cfg: { lang, dateMode ('latest'|'date'), year, month, day }
+ */
+export async function fetchTopPages(cfg = {}) {
+  const lang = cfg.lang || 'en';
+  const candidates = topPageCandidates(cfg);
+  let lastErr = null;
+  for (const c of candidates) {
+    const day = await fetchTopPageDay(lang, c);
+    if (day) return day;
+    lastErr = `no data for ${c.y}/${c.m}/${c.d}`;
+  }
+  throw new Error(`Top pages fetch failed: ${lastErr || 'no data available'}`);
+}

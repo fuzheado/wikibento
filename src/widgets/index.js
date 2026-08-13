@@ -10,6 +10,7 @@ import {
   fetchWikistats,
   fetchFileUsage,
   fetchGlamStats,
+  fetchTopPages,
 } from './dataSources';
 
 const NAMESPACE_LABELS = {
@@ -25,6 +26,13 @@ const PREV_MONTH = (() => {
   const d = new Date();
   return { year: d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(), month: d.getMonth() === 0 ? 12 : d.getMonth() };
 })();
+
+// Noisy sponsored/TLD articles that pollute the top list (.xxx, .xyz,
+// XXX, XXXX (beer)…) — filtered by default (config: filterNoise).
+const NOISE_RE = [
+  /^\.[a-z0-9-]{1,63}$/i,        // dot-TLD pages: .xxx, .xyz, .top
+  /^x{3,4}(\s*\([^)]*\))?$/i,  // bare/sponsored XXX variants: xxx, XXXX (beer)
+];
 
 export const WIDGET_TYPES = {
   pageviews: {
@@ -286,6 +294,73 @@ export const WIDGET_TYPES = {
       columns: ['Language', 'Articles'],
       rows: (data.rows || []).map(r => [r.lang, (parseInt(r.good) || 0).toLocaleString()]),
     }),
+  },
+
+  topPages: {
+    id: 'topPages',
+    name: 'Top Wikipedia Articles',
+    icon: '🔥',
+    description: 'Most-visited articles on a Wikipedia language edition (top.hatnote.com)',
+    labelFromConfig: (c) => c.lang ? `${c.lang}.wikipedia` : null,
+    defaults: {
+      lang: 'en',
+      dateMode: 'latest', // 'latest' | 'date'
+      year: new Date().getUTCFullYear(),
+      month: new Date().getUTCMonth() + 1,
+      day: new Date().getUTCDate(),
+      topN: 0, // 0 = all 100
+      filterNoise: true,
+      refreshSeconds: 3600,
+    },
+    renderer: 'RankingCard',
+    dataSource: 'top.hatnote.com (via /api/proxy) + WMF pageviews top fallback',
+    configFields: [
+      { key: 'lang', label: 'Language', type: 'select', options: [
+        { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' },
+        { value: 'fr', label: 'Français' }, { value: 'ko', label: '한국어' },
+        { value: 'et', label: 'Eesti' }, { value: 'sv', label: 'Svenska' },
+        { value: 'hu', label: 'Magyar' }, { value: 'da', label: 'Dansk' },
+        { value: 'it', label: 'Italiano' }, { value: 'pa', label: 'ਪੰਜਾਬੀ' },
+        { value: 'ca', label: 'Català' }, { value: 'es', label: 'Español' },
+        { value: 'fa', label: 'فارسی' }, { value: 'ur', label: 'اردو' },
+        { value: 'zh', label: '中文' }, { value: 'kn', label: 'ಕನ್ನಡ' },
+        { value: 'no', label: 'Norsk bokmål' }, { value: 'bn', label: 'বাংলা' },
+        { value: 'id', label: 'Bahasa Indonesia' }, { value: 'ta', label: 'தமிழ்' },
+        { value: 'lv', label: 'Latviešu' }, { value: 'el', label: 'Ελληνικά' },
+        { value: 'fi', label: 'Suomi' }, { value: 'ar', label: 'العربية' },
+        { value: 'cs', label: 'Čeština' }, { value: 'or', label: 'ଓଡ଼ିଆ' },
+        { value: 'te', label: 'తెలుగు' }, { value: 'gl', label: 'Galego' },
+      ]},
+      { key: 'dateMode', label: 'Date', type: 'select', options: [
+        { value: 'latest', label: 'Latest available' },
+        { value: 'date', label: 'Specific date…' },
+      ]},
+      { key: 'year', label: 'Year', type: 'number', placeholder: '2026' },
+      { key: 'month', label: 'Month', type: 'number', placeholder: '1-12' },
+      { key: 'day', label: 'Day', type: 'number', placeholder: '1-31' },
+      { key: 'topN', label: 'Top N (0 = all)', type: 'number', placeholder: '0' },
+      { key: 'filterNoise', label: 'Filter TLD/spam noise (.xxx, XXX…)', type: 'boolean' },
+    ],
+    fetch: (config) => fetchTopPages(config),
+    transform: (data, config) => {
+      let articles = data.articles;
+      let filtered = 0;
+      if (config.filterNoise !== false) {
+        articles = articles.filter((a) => {
+          const bad = NOISE_RE.some((re) => re.test(a.title));
+          if (bad) filtered++;
+          return !bad;
+        });
+      }
+      const topN = config.topN ? Math.min(config.topN, 100) : 100;
+      const rows = articles.slice(0, topN);
+      return {
+        title: `${data.fullLang || 'en'} Wikipedia`,
+        subtitle: `${data.dateLabel} · top ${rows.length}${filtered ? ` (${filtered} filtered)` : ''}${data.source === 'wmf' ? ' · via WMF Pageviews API' : ''}${data.totalTrafficShort ? ` · ${data.totalTrafficShort} views total` : ''}`,
+        columns: ['#', 'Article', 'Views'],
+        rows: rows.map((a) => [String(a.rank), a.title, a.views_short]),
+      };
+    },
   },
 
   markdown: {

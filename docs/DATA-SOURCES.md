@@ -185,6 +185,35 @@ categories 404 with *"the category you asked for is not loaded yet"* — that's
 the registration check, not an error. Planned pattern: try CIM first, fall
 back to this live fetcher on 404 (ROADMAP Phase 1.5).
 
+## 8. Top Wikipedia Articles — top.hatnote.com + WMF fallback
+
+**Widget:** Top Wikipedia Articles · **Fetcher:** `fetchTopPages(cfg)`
+
+- **Primary:** `https://top.hatnote.com/{lang}/wikipedia/{year}/{month}/{day}.json`
+  — per-day top-100 JSON (month/day **not zero-padded**; data updated ~02:00 UTC).
+  Fields: `articles[]` (`title`, `rank`, `views`/`pviews`, `views_short`,
+  `history`, `streak_len`, `summary`, `image_url`), `formatted_date`,
+  `full_lang`, `total_traffic[_short]`, `permalink`.
+- **CORS gotcha:** top.hatnote.com sends **no CORS headers** — browsers can't
+  fetch it directly. The Toolforge deployment fetches via the same-origin
+  `/api/proxy?url=` endpoint (deploy/server.js, wraps `{status, body}` with
+  `ACAO: *`). See also `/api/resolve` (w.wiki).
+- **Fallback:** `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/{lang}.wikipedia/all-access/{y}/{mm}/{dd}`
+  (zero-padded, CORS-enabled, top 1000) — used when the proxy is unavailable
+  (plain static hosts) or the language isn't among hatnote's 28; the widget
+  subtitle marks "via WMF Pageviews API".
+- **Date handling:** `dateMode: 'latest'` steps back up to 14 days from today
+  (UTC) until a day exists; `dateMode: 'date'` uses year/month/day and steps
+  back up to 7 days (weekends/current-day gaps).
+- **Noise filter (default on):** `filterNoise` drops sponsored TLD/spam pages
+  (`^\.` dot-TLDs like `.xxx`/`.xyz`, `x{3,4}` variants like `XXX (beer)`).
+  Today's data literally has `.xxx` at rank #1 — the filter is why the list
+  starts at rank 2. The subtitle reports how many were filtered.
+- **Languages:** hatnote covers 28 (en, de, fr, ko, et, sv, hu, da, it, pa, ca,
+  es, fa, ur, zh, kn, no, bn, id, ta, lv, el, fi, ar, cs, or, te, gl).
+- **Verified:** en 2026-08-11 — rank 1 `.xxx` (sponsored TLD), rank 9 `.xyz`;
+  top-10 after filtering; ko/ja/fr/de dates via both sources — 2026-08-12.
+
 ## Wikimedia API Etiquette (applies to any future fetchers)
 
 - Keep a descriptive User-Agent with contact info (the code's constant is

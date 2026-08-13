@@ -54,6 +54,42 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // ── /api/proxy: CORS-enabled fetch proxy (https GET only) ──
+    // Some data sources send no CORS headers (e.g. top.hatnote.com), so the
+    // browser can't fetch them directly. This endpoint fetches server-side and
+    // returns { status, body } wrapped in JSON with ACAO: * so the app (or any
+    // origin) can read it. Read-only, https-only.
+    if (url.pathname === '/api/proxy') {
+      if (req.method !== 'GET') {
+        res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'GET only' }));
+        return;
+      }
+      const target = url.searchParams.get('url') || '';
+      if (!/^https:\/\//i.test(target)) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'url must be an absolute https:// URL' }));
+        return;
+      }
+      try {
+        const r = await fetch(target, {
+          redirect: 'follow',
+          headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) proxy' },
+        });
+        const body = await r.text();
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({ status: r.status, url: r.url || target, body }));
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: `proxy fetch failed: ${e.message}` }));
+      }
+      return;
+    }
+
     const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
     const filePath = resolve(join(ROOT, pathname));
     // Prevent directory traversal
