@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈341 KB total (~101 KB
+(the same grid engine used by Grafana and Kibana), ≈350 KB total (~104 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -93,7 +93,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 8 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 9 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -141,7 +141,7 @@ wikibento/
     └── widgets/
         ├── index.js           # WIDGET_TYPES registry (add a widget here)
         ├── WidgetFrame.jsx    # title bar, config panel, load/error/refresh lifecycle
-        └── dataSources.js     # 6 API fetchers (7 data widgets incl. GLAM pipeline)
+        └── dataSources.js     # 7 API fetchers (8 data widgets incl. GLAM pipeline)
 ```
 
 ## Technology Stack
@@ -174,8 +174,16 @@ wikibento/
 - ✅ Top Wikipedia Articles: hatnote via proxy (en latest: top-10 of 100, 4
   noise items filtered incl. rank-1 `.xxx`); WMF fallback (de, ja — "via WMF
   Pageviews API"); specific date (fr 2026-07-14); filterNoise toggle shows
-  `.xxx`/`.xyz` when off; topN 100=all (96 rows after filter); 100-row card scrolls internally
-- ✅ Production build: 54 modules, 323.4 KB JS (97.4 KB gzip) + 17.5 KB CSS (4.0 KB gzip)
+  `.xxx`/`.xyz` when off; topN 100=all (96 rows after filter); 100-row card
+  scrolls internally
+- ✅ Expanded view (⚙ checkbox): 120px thumbnails + intro extracts via the
+  MediaWiki API (prop=pageimages|extracts) — Spider-Man poster, Lucy Davis
+  photo; non-article pages (Main_Page, Special:*) filtered from both sources
+- ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
+  expand via the same-origin `/api/resolve` endpoint and load the dashboard
+- ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
+  on hover; category title no longer squished by the stats area (flex-shrink)
+- ✅ Production build: 331.5 KB JS (99.9 KB gzip) + 18.7 KB CSS (4.2 KB gzip)
 
 ## Documentation
 

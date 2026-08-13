@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-08-12 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-08-13 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -20,7 +20,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (9 total, 2026-08-12)
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo initialized and pushed to GitHub (main, current commit 23c627d)
+- ✅ Git repo initialized and pushed to GitHub (main, current commit ec1b532)
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live
   (all 7 widgets). Updates: rsync dist/ + `toolforge webservice node20 restart`
@@ -52,13 +52,29 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   no CORS, so deploy/server.js gained `/api/proxy` (wraps `{status, body}`);
   non-Toolforge hosts fall back to the CORS-enabled WMF Pageviews `top`
   endpoint. See docs/DATA-SOURCES.md §8
+- ✅ **Top Pages expanded view (2026-08-13):** ⚙ "Expanded view (thumbnail +
+  summary)" checkbox — each row shows a 120px thumbnail, linked title, views,
+  and a 3-line intro. Enrichment via the CORS-enabled MediaWiki API
+  (`prop=pageimages|extracts`, batched 50 titles/call — pattern from the
+  fuzheado/Wiki-Top-100 repo); non-article pages (Main_Page, Special:*,
+  Wikipedia:*…) are filtered from both hatnote and WMF data
+- ✅ **w.wiki short URLs (2026-08-12):** `?config=https://w.wiki/TR9R` (or bare
+  `w.wiki/TR9R`) expands via the same-origin `/api/resolve` endpoint in
+  deploy/server.js — browsers can't follow w.wiki redirects to wiki pages (the
+  target sends no CORS headers), so the server follows the redirect and the
+  client re-dispatches through the normal wiki/Action-API path
+- ✅ **GLAM fixes (2026-08-13):** wiki column shows shorthand (`en.wikipedia`,
+  full hostname on hover) and is 108px nowrap; the category title is no longer
+  squished to a 9px sliver by the stats area — `.glam-card > * { flex-shrink: 0 }`
+  (overflow:hidden on the title made its min-height compute to 0, so flex
+  crushed it; the card now scrolls instead)
 
 ## Quick Start
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (323 KB JS / 97.4 KB gzip)
+npm run build      # → dist/ (331.5 KB JS / 99.9 KB gzip)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```
@@ -81,7 +97,7 @@ App.jsx (state: widgets[] + layout[], URL boot, persistence)
 ```
 
 Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
-(6 fetchers), `src/widgets/WidgetFrame.jsx` (lifecycle + renderers),
+(7 fetchers), `src/widgets/WidgetFrame.jsx` (lifecycle + renderers),
 `src/lib/dashboardConfig.js` (format + `validateDashboard()` + example),
 `src/lib/markdown.js` (zero-dep Markdown renderer for the Text/Markdown widget),
 `src/lib/share.js` (URL loading/sharing).
@@ -111,6 +127,23 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 7. **Wikimedia API etiquette**: pace requests (≥1s), use the
    `$WIKIMEDIA_USER_AGENT` env var, honor 429 Retry-After. Multi-title batching
    (50 titles/call) is the scale pattern — see docs/SCALABILITY.md.
+8. **top.hatnote.com has NO CORS headers** — browsers can't fetch it directly;
+   the Toolforge deployment uses the same-origin `/api/proxy` endpoint
+   (deploy/server.js). Data updates ~02:00 UTC; month/day in URLs are NOT
+   zero-padded; there is no "latest" path — back off from today.
+9. **w.wiki redirects are browser-unfollowable to wiki pages**: the 301 itself
+   carries `Access-Control-Allow-Origin: *`, but the target page (e.g.
+   commons.wikimedia.org) sends no CORS headers, so `fetch()` fails with
+   "Failed to fetch" and `redirect:'manual'` exposes no Location. Expand
+   server-side (`/api/resolve`) — see the `wikimedia-url-shortener` skill.
+10. **CSS: `overflow: hidden` on a flex item makes `min-height: auto` compute
+    to 0** — a fixed-height flex column will crush such children to a sliver
+    when content overflows (the GLAM title bug). Fix: `flex-shrink: 0` on
+    children and let the container scroll.
+11. **Stale index.html bites after deploys**: old bundles are deleted by
+    `rsync --delete`, so a browser holding a cached index.html 404s. index.html
+    is now served `Cache-Control: no-cache` (assets stay immutable); hard
+    refresh (⌘⇧R) if a deploy looks missing.
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
@@ -128,7 +161,11 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 *Fixed in Phase 0 (2026-08-12): resize reflow, error boundary, recharts,
 `public/favicon.svg` + `icons.svg`. Added (2026-08-12): QR share panel,
 responsive mobile stack (order follows grid layout), Wikistats cache + timeout
-+ retry, 📝 Text/Markdown widget (static pattern + image domain policy).*
++ retry, 📝 Text/Markdown widget (static pattern + image domain policy),
+🔥 Top Wikipedia Articles + /api/proxy. Added (2026-08-13): expanded Top Pages
+view (MW API enrichment), w.wiki /api/resolve, GLAM wiki-column + title fixes,
+Top-100 display fixes (default 10, single counter, wrap titles, card
+containment), index.html no-cache.*
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
@@ -136,6 +173,9 @@ responsive mobile stack (order follows grid layout), Wikistats cache + timeout
 1. ~~Phase 0 cleanup~~ — **done 2026-08-12**: recharts, dead assets, resize listener, error boundary
 1. ~~📝 Text/Markdown widget~~ — **done 2026-08-12**: static widget + image domain policy (see Current Status)
 1. ~~🔥 Top Wikipedia Articles widget~~ — **done 2026-08-12**: hatnote via /api/proxy + WMF fallback (see Current Status)
+1. ~~Top Pages expanded view~~ — **done 2026-08-13**: thumbnails + intros via MW API enrichment (see Current Status)
+1. ~~w.wiki short URLs in ?config=~~ — **done 2026-08-12**: /api/resolve endpoint (see Current Status)
+1. ~~GLAM display fixes~~ — **done 2026-08-13**: wiki-column shorthand + nowrap, title squish fix (see Current Status)
 1. **Widget strategy agreed 2026-08-12** — ROADMAP §Strategy + WIDGET-IDEAS:
    power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
    bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →
