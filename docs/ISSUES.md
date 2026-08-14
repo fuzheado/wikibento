@@ -174,7 +174,7 @@ Page links only resolvable when wiki ≠ all-wikis (see ISSUE-08 note).
 
 **Status:** open. Source: tiago.bio.br comparison, 2026-08-14.
 
-## ISSUE-07 · CIM Top Editors: link user names — **open**
+## ISSUE-07 · CIM Top Editors: link user names — **done (3861d26)**
 
 **What:** user names render as plain text; tiago.bio.br links
 [User] | [Talk] | [Contrib] (Commons `User:`, `User_talk:`,
@@ -187,9 +187,14 @@ work; `RankingCard` already supports `{text, href}` cells (ISSUE-02 fix).
 separate cells or one cell with `[User]|[Talk]|[Contrib]` superscript
 links (match Tiago's pattern; keep row height small).
 
-**Status:** open. Source: tiago.bio.br comparison, 2026-08-14.
+**Fixed 2026-08-14 (3861d26):** new `{text, links}` multi-link cell shape in
+`RankingCard` (`.ranking-multi` — name + small link row, JSON-serializable);
+the transform emits `editorLinks(user)` → `[User]|[Talk]|[Contrib]`
+(underscore-encoded, `User:`/`User_talk:`/`Special:Contributions`).
+Verified live: 10 rows × 3 links, first user SchlurcherBot → correct
+Commons URLs.
 
-## ISSUE-08 · CIM Top Pages: link page titles (wiki-aware) — **open**
+## ISSUE-08 · CIM Top Pages: link page titles (wiki-aware) — **done (3861d26)**
 
 **What:** page titles render as plain text even when a single wiki is
 selected; tiago.bio.br links pages when wiki ≠ all-wikis and shows a
@@ -202,7 +207,14 @@ all-wikis mode lacks a resolvable host.
 when `config.wiki !== 'all-wikis'`, plain text + a subtitle note when
 all-wikis. Same `{text, href}` mechanism as ISSUE-02/07.
 
-**Status:** open. Source: tiago.bio.br comparison, 2026-08-14.
+**Fixed 2026-08-14 (3861d26):** better than proposed — the API returns a
+per-row `page-wiki` host prefix (verified: `en.wikipedia`, `de.wikipedia`…
+only, deep+all-wikis), so links resolve **per row regardless of
+`config.wiki`** — all-wikis mode gets links too, no note needed.
+`pageHref()` guards unknown prefixes (dotted hosts → `{wiki}.org`; known
+single-word hosts wikidata/species/meta/commons/incubator/mediawiki;
+else plain text). Verified live: 10 linked pages in all-wikis mode
+(Dog → en.wikipedia.org/wiki/Dog).
 
 ## ISSUE-09 · CIM month selector: dropdown of available months — **open** (UX)
 
