@@ -105,6 +105,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | `cimTopEditors` | `category` / `scope` / `editType` / `topN` | `editType`: `all-edit-types` \| `create` \| `update` |
 | `cimLeaderboard` | `scope` / `wiki` / `highlight` | `highlight`: optional category (rank shown if in top 100) |
 | `cimFileSpotlight` | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project |
+| `cimFileTraffic` | `filename` / `wiki` / `months` | as above; `months` number 3–24 (fetch window) |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |

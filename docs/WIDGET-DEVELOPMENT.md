@@ -1,3 +1,21 @@
+# The Temporal-Scope Constitution (read before adding any widget)
+
+Every widget whose data has a temporal scope MUST display the **resolved**
+scope in its subtitle — "2026-07" (month), "2026-02 → 2026-07" (range),
+"2026-07-15 → 2026-08-13" (day window) — never "last month" or "30 days".
+A number without its time context is useless.
+
+- Every registry entry MUST declare `timeScope`: `'month' | 'range' | 'day' | 'point'`
+  (`'point'` = snapshot-as-of-now / static / query-defined — exempt from the
+  date rule but must still declare its nature).
+- The scope must be derivable from CONFIG ALONE (helpers in `src/lib/scope.js`:
+  `resolveMonth`, `shiftMonth`, `fmtMonth`, `fmtMonthRange`, `fmtDayRange`,
+  `dayWindow`) — transforms render it from config, not from fetched data.
+- **Enforcement is automated:** `tests/scope-compliance.test.mjs` (run by
+  `npm test`, wired into `npm run build`) fails any scoped widget whose
+  subtitle lacks the date pattern — a non-compliant widget cannot be built,
+  so it cannot be deployed. This is the "constitutional" gate.
+
 # Adding a New Widget
 
 The registry pattern means a new widget is **one entry in `WIDGET_TYPES`** plus
@@ -13,7 +31,7 @@ Every widget is defined by 5 things:
 | `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
-| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` |
+| `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` \| `FileTrafficCard` |
 
 ## Step-by-Step
 
@@ -89,6 +107,7 @@ myWidget: {
 - **GalleryListCard** (Article Gallery, list) — same contract, rows render thumb-left/caption-right
 - **ArticleListCard** (Article List) — `{ title, subtitle, rows: [{title, pageUrl, thumbUrl?, extract?}] }` — clickable rows, optional thumb + 3-line intro. The same row contract works for any pasted-list widget.
 - **CimSnapshotCard** (CIM Snapshot / File Spotlight) — `{ title, subtitle?, stats: [{label, value, sub}], trend?: [{date, views}] }` — reuses the GlamCard stat-tile markup, optional monthly-view sparkline.
+- **FileTrafficCard** (CIM File Traffic) — `{ title, subtitle, rows: [{date, views}] }` — SVG line chart with labeled X/Y axes and −/+ zoom (client-side slice of the fetched window); the card header shows the displayed range.
 - **CimTopFilesCard** (CIM Top Files) — `{ title, subtitle?, rows: [{title, views, thumbUrl?}] }` — ranked rows with 44px thumbs (RankingCard has none).
 - **SparqlCard** (SPARQL Query) — one renderer, mode decided by the transform: `{ mode, title, subtitle, … }` where mode is `stat` (StatCard contract), `line` (TrendCard contract), `bar` (`{rows: [{label, value}]}`), or `table` (`{columns, rows: [[cells]]}`). Auto-detect lives in the widget's `transform` (config.renderer overrides).
 

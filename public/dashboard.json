@@ -2,7 +2,7 @@
   "version": 1,
   "widgets": [
     {
-      "id": "welcome",
+      "id": "markdown",
       "widgetType": "markdown",
       "config": {
         "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** — add widgets, drag them around, and share your board with a link.\n\n- 📊 **Article Pageviews** — 30-day traffic\n- 🏆 **Top 10 Wikipedias** — biggest language editions\n- 🖼️ **File Usage Map** — where a Commons file is used\n\n> Edit any widget with ⚙. Export/import your board as JSON, or share it via 🔗.",
@@ -10,7 +10,18 @@
       }
     },
     {
-      "id": "pv",
+      "id": "toppages",
+      "widgetType": "topPages",
+      "config": {
+        "lang": "en",
+        "dateMode": "latest",
+        "topN": 10,
+        "filterNoise": true,
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "pageviews",
       "widgetType": "pageviews",
       "config": {
         "article": "Main_Page",
@@ -20,7 +31,7 @@
       }
     },
     {
-      "id": "links",
+      "id": "linkcount",
       "widgetType": "linkcount",
       "config": {
         "domain": "Libretexts.org",
@@ -29,7 +40,7 @@
       }
     },
     {
-      "id": "catsize",
+      "id": "category",
       "widgetType": "categorySize",
       "config": {
         "category": "Images from Wiki Loves Monuments 2024",
@@ -48,6 +59,17 @@
       }
     },
     {
+      "id": "fileusage",
+      "widgetType": "fileUsage",
+      "config": {
+        "filename": "The Earth seen from Apollo 17.jpg",
+        "topN": 10,
+        "showImage": true,
+        "showCaption": true,
+        "refreshSeconds": 3600
+      }
+    },
+    {
       "id": "topwikis",
       "widgetType": "topWikipedias",
       "config": {
@@ -55,14 +77,19 @@
       }
     },
     {
-      "id": "toppages",
-      "widgetType": "topPages",
+      "id": "glam",
+      "widgetType": "glamorgan",
       "config": {
-        "lang": "en",
-        "dateMode": "latest",
-        "topN": 10,
-        "filterNoise": true,
-        "refreshSeconds": 3600
+        "category": "Featured pictures on Wikimedia Commons",
+        "depth": 0,
+        "year": 2026,
+        "month": 7,
+        "negcats": "",
+        "negdepth": 0,
+        "fileBudget": 300,
+        "topN": 5,
+        "showDetail": true,
+        "refreshSeconds": 7200
       }
     },
     {
@@ -113,17 +140,6 @@
         "iconSize": "medium",
         "minSize": 200,
         "maxItems": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "fileusage",
-      "widgetType": "fileUsage",
-      "config": {
-        "filename": "The Earth seen from Apollo 17.jpg",
-        "topN": 10,
-        "showImage": true,
-        "showCaption": true,
         "refreshSeconds": 3600
       }
     },
@@ -185,23 +201,7 @@
       }
     },
     {
-      "id": "glam",
-      "widgetType": "glamorgan",
-      "config": {
-        "category": "Featured pictures on Wikimedia Commons",
-        "depth": 0,
-        "year": 2026,
-        "month": 7,
-        "negcats": "",
-        "negdepth": 0,
-        "fileBudget": 300,
-        "topN": 5,
-        "showDetail": true,
-        "refreshSeconds": 7200
-      }
-    },
-    {
-      "id": "cimsnap",
+      "id": "cimsnapshot",
       "widgetType": "cimSnapshot",
       "config": {
         "category": "Files from the Biodiversity Heritage Library",
@@ -231,6 +231,17 @@
         "wiki": "all-wikis",
         "month": 0,
         "topN": 10,
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "cimfiletraffic",
+      "widgetType": "cimFileTraffic",
+      "config": {
+        "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
+        "wiki": "all-wikis",
+        "months": 12,
+        "month": 0,
         "refreshSeconds": 3600
       }
     },
@@ -293,7 +304,7 @@
   ],
   "layout": [
     {
-      "i": "welcome",
+      "i": "markdown",
       "x": 0,
       "y": 0,
       "w": 12,
@@ -302,7 +313,7 @@
       "minH": 3
     },
     {
-      "i": "pv",
+      "i": "pageviews",
       "x": 0,
       "y": 4,
       "w": 3,
@@ -311,7 +322,7 @@
       "minH": 3
     },
     {
-      "i": "links",
+      "i": "linkcount",
       "x": 3,
       "y": 4,
       "w": 3,
@@ -320,7 +331,7 @@
       "minH": 2
     },
     {
-      "i": "catsize",
+      "i": "category",
       "x": 6,
       "y": 4,
       "w": 3,
@@ -329,9 +340,27 @@
       "minH": 3
     },
     {
-      "i": "wikistats",
+      "i": "fileusage",
       "x": 9,
       "y": 4,
+      "w": 3,
+      "h": 5,
+      "minW": 2,
+      "minH": 4
+    },
+    {
+      "i": "toppages",
+      "x": 0,
+      "y": 8,
+      "w": 4,
+      "h": 5,
+      "minW": 3,
+      "minH": 4
+    },
+    {
+      "i": "wikistats",
+      "x": 4,
+      "y": 8,
       "w": 3,
       "h": 3,
       "minW": 2,
@@ -339,35 +368,35 @@
     },
     {
       "i": "topwikis",
-      "x": 0,
+      "x": 7,
       "y": 8,
-      "w": 4,
+      "w": 5,
       "h": 4,
       "minW": 3,
       "minH": 3
     },
     {
-      "i": "toppages",
-      "x": 4,
-      "y": 8,
-      "w": 4,
-      "h": 5,
+      "i": "glam",
+      "x": 0,
+      "y": 13,
+      "w": 12,
+      "h": 6,
       "minW": 3,
       "minH": 4
     },
     {
       "i": "excerpt",
-      "x": 8,
-      "y": 8,
-      "w": 4,
-      "h": 4,
+      "x": 0,
+      "y": 19,
+      "w": 6,
+      "h": 5,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "quality",
-      "x": 0,
-      "y": 13,
+      "x": 6,
+      "y": 19,
       "w": 3,
       "h": 6,
       "minW": 2,
@@ -375,8 +404,8 @@
     },
     {
       "i": "assessments",
-      "x": 3,
-      "y": 13,
+      "x": 9,
+      "y": 19,
       "w": 3,
       "h": 6,
       "minW": 2,
@@ -384,9 +413,9 @@
     },
     {
       "i": "edithistory",
-      "x": 6,
-      "y": 13,
-      "w": 6,
+      "x": 0,
+      "y": 24,
+      "w": 12,
       "h": 5,
       "minW": 3,
       "minH": 3
@@ -394,35 +423,26 @@
     {
       "i": "gallery",
       "x": 0,
-      "y": 19,
+      "y": 29,
       "w": 12,
       "h": 7,
       "minW": 3,
       "minH": 4
     },
     {
-      "i": "fileusage",
-      "x": 0,
-      "y": 26,
-      "w": 4,
-      "h": 5,
-      "minW": 2,
-      "minH": 4
-    },
-    {
       "i": "panorama",
-      "x": 4,
-      "y": 26,
-      "w": 4,
-      "h": 3,
+      "x": 0,
+      "y": 36,
+      "w": 6,
+      "h": 4,
       "minW": 3,
       "minH": 2
     },
     {
       "i": "filegallery",
-      "x": 8,
-      "y": 26,
-      "w": 4,
+      "x": 6,
+      "y": 36,
+      "w": 6,
       "h": 5,
       "minW": 3,
       "minH": 3
@@ -430,70 +450,70 @@
     {
       "i": "articlelist",
       "x": 0,
-      "y": 31,
-      "w": 4,
+      "y": 40,
+      "w": 6,
       "h": 4,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "sparql",
-      "x": 4,
-      "y": 31,
-      "w": 4,
+      "x": 6,
+      "y": 40,
+      "w": 6,
       "h": 5,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "wikipage",
-      "x": 8,
-      "y": 31,
-      "w": 4,
-      "h": 5,
+      "x": 0,
+      "y": 45,
+      "w": 12,
+      "h": 6,
       "minW": 3,
       "minH": 3
     },
     {
-      "i": "glam",
+      "i": "cimsnapshot",
       "x": 0,
-      "y": 36,
-      "w": 12,
-      "h": 6,
-      "minW": 3,
-      "minH": 4
-    },
-    {
-      "i": "cimsnap",
-      "x": 0,
-      "y": 42,
-      "w": 3,
+      "y": 51,
+      "w": 4,
       "h": 4,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "cimtrend",
-      "x": 3,
-      "y": 42,
-      "w": 3,
+      "x": 4,
+      "y": 51,
+      "w": 4,
       "h": 4,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "cimtopfiles",
-      "x": 6,
-      "y": 42,
-      "w": 6,
+      "x": 8,
+      "y": 51,
+      "w": 4,
       "h": 6,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "cimfiletraffic",
+      "x": 0,
+      "y": 57,
+      "w": 6,
+      "h": 5,
       "minW": 3,
       "minH": 3
     },
     {
       "i": "cimtopwikis",
       "x": 0,
-      "y": 48,
+      "y": 58,
       "w": 3,
       "h": 4,
       "minW": 2,
@@ -502,7 +522,7 @@
     {
       "i": "cimtoppages",
       "x": 3,
-      "y": 48,
+      "y": 58,
       "w": 3,
       "h": 4,
       "minW": 2,
@@ -511,7 +531,7 @@
     {
       "i": "cimtopeditors",
       "x": 6,
-      "y": 48,
+      "y": 58,
       "w": 3,
       "h": 4,
       "minW": 2,
@@ -520,7 +540,7 @@
     {
       "i": "cimleaderboard",
       "x": 9,
-      "y": 48,
+      "y": 58,
       "w": 3,
       "h": 6,
       "minW": 2,
@@ -529,7 +549,7 @@
     {
       "i": "cimspotlight",
       "x": 0,
-      "y": 52,
+      "y": 62,
       "w": 6,
       "h": 4,
       "minW": 3,

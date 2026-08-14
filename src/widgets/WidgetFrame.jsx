@@ -173,6 +173,8 @@ function WidgetContent({ type, data }) {
     case 'CimSnapshotCard': return <CimSnapshotCard data={data} />;
 
     case 'CimTopFilesCard': return <CimTopFilesCard data={data} />;
+
+    case 'FileTrafficCard': return <FileTrafficCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -797,6 +799,79 @@ function CimTopFilesCard({ data }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** CIM File Traffic — interactive monthly traffic chart for one file.
+ *  SVG line chart with labeled X (months) and Y (views) axes; −/+ buttons
+ *  zoom the displayed window (3/6/12/24 months) client-side — the fetch
+ *  window (up to 24 months) is sliced, no refetch. The displayed range is
+ *  always shown in the card header (the constitutional scope rule). */
+function FileTrafficCard({ data }) {
+  const [months, setMonths] = useState(6);
+  const all = data.rows || [];
+  const opts = [3, 6, 12, 24];
+  const slice = all.slice(-months);
+  const max = Math.max(...slice.map((r) => r.views), 1);
+  const fmt = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(0)}K` : String(n));
+  const W = 340;
+  const H = 170;
+  const PAD_L = 52;
+  const PAD_R = 10;
+  const PAD_T = 12;
+  const PAD_B = 26;
+  const plotW = W - PAD_L - PAD_R;
+  const plotH = H - PAD_T - PAD_B;
+  const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({ y: PAD_T + plotH * (1 - f), v: max * f }));
+  const xAt = (i) => PAD_L + (slice.length <= 1 ? plotW / 2 : (i / (slice.length - 1)) * plotW);
+  const yAt = (v) => PAD_T + plotH * (1 - v / max);
+  const pts = slice.map((r, i) => `${xAt(i)},${yAt(r.views)}`).join(' ');
+  const startMonth = slice[0]?.date;
+  const endMonth = slice[slice.length - 1]?.date;
+  return (
+    <div className="file-traffic-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="file-traffic-toolbar">
+        <span className="file-traffic-range">{slice.length ? `${startMonth} → ${endMonth} · ${slice.length} months` : 'no data'}</span>
+        <span className="file-traffic-zoom">
+          <button className="widget-btn" disabled={months >= opts[opts.length - 1]} onClick={() => setMonths(opts[Math.min(opts.indexOf(months) + 1, opts.length - 1)])} title="Show more months (zoom out)">−</button>
+          <button className="widget-btn" disabled={months <= opts[0]} onClick={() => setMonths(opts[Math.max(opts.indexOf(months) - 1, 0)])} title="Show fewer months (zoom in)">+</button>
+        </span>
+      </div>
+      {slice.length === 0 ? <div className="widget-empty">No traffic data</div> : (
+        <div className="file-traffic-chart">
+          <svg viewBox={`0 0 ${W} ${H}`} className="file-traffic-svg">
+            {/* Y gridlines + labels */}
+            {yTicks.map((t, i) => (
+              <g key={i}>
+                <line x1={PAD_L} x2={W - PAD_R} y1={t.y} y2={t.y} className="file-traffic-grid" />
+                <text x={PAD_L - 6} y={t.y + 3} textAnchor="end" className="file-traffic-axis">{fmt(t.v)}</text>
+              </g>
+            ))}
+            {/* X labels (every 2nd month when crowded) */}
+            {slice.map((r, i) => (
+              (slice.length <= 6 || i % 2 === 0) && (
+                <text key={i} x={xAt(i)} y={H - PAD_B + 14} textAnchor="middle" className="file-traffic-axis">
+                  {r.date.slice(2)}
+                </text>
+              )
+            ))}
+            {/* Y axis title */}
+            <text x={12} y={PAD_T + 6} textAnchor="middle" transform={`rotate(-90 12 ${PAD_T + 6})`} className="file-traffic-axis-title">views</text>
+            {/* X axis title */}
+            <text x={PAD_L + plotW / 2} y={H - 3} textAnchor="middle" className="file-traffic-axis-title">month</text>
+            {/* line + hover points */}
+            <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            {slice.map((r, i) => (
+              <circle key={i} cx={xAt(i)} cy={yAt(r.views)} r="2.5" className="file-traffic-point">
+                <title>{`${r.date}: ${r.views.toLocaleString()} views`}</title>
+              </circle>
+            ))}
+          </svg>
+        </div>
+      )}
     </div>
   );
 }

@@ -146,7 +146,12 @@ export const EXAMPLE_DASHBOARD = {
   id: 'example-cimtopfiles',
   widgetType: 'cimTopFiles',
   config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
+ }, {
+  id: 'example-cimfiletraffic',
+  widgetType: 'cimFileTraffic',
+  config: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
  },
+
   ],
   layout: [
     { i: 'example-markdown', x: 0, y: 0, w: 12, h: 4, minW: 3, minH: 3 },
@@ -171,6 +176,7 @@ export const EXAMPLE_DASHBOARD = {
  { i: 'example-cimsnapshot', x: 0, y: 51, w: 4, h: 4, minW: 3, minH: 3 },
  { i: 'example-cimtrend', x: 4, y: 51, w: 4, h: 4, minW: 3, minH: 3 },
  { i: 'example-cimtopfiles', x: 8, y: 51, w: 4, h: 6, minW: 3, minH: 3 },
+  { i: 'example-cimfiletraffic', x: 0, y: 57, w: 6, h: 5, minW: 3, minH: 3 },
   ],
 };
 

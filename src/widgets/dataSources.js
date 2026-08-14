@@ -1303,7 +1303,7 @@ async function fetchCim(path) {
   return cimCache.get(`cim::${path}`, async () => {
     let text;
     try {
-      text = await fetchTextWithRetry(url, { timeoutMs: 30000, retries: 1, withBody: true });
+      text = await fetchTextWithRetry(url, { timeoutMs: 30000, retries: 2, withBody: true }); // CIM 500s intermittently (internal upstream 503s — verified 2026-08-13)
     } catch (e) {
       if (e.body && e.body.includes('not loaded yet')) {
         throw new CimUnregisteredError('No precomputed (CIM) data yet — categories register via {{Views from category}} on the category page (processed monthly)');
@@ -1468,4 +1468,35 @@ export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year,
     views: trend[trend.length - 1]?.views ?? 0, // selected month (snapshot window)
     trend,
   };
+}
+
+/** 19i. CIM File Traffic — monthly pageview series for one file over a
+ *  generous window (up to 24 months); the renderer zooms client-side. */
+export async function fetchCimFileTraffic(mediaFile, wiki = 'all-wikis', months = 12, year, month) {
+  const file = cleanMediaFileForCim(mediaFile);
+  if (!file) throw new Error('Enter a Commons file name');
+  const { year: py, month: pm } = prevCimMonth();
+  const y = parseInt(year) || py;
+  const m = parseInt(month) || pm;
+  const n = Math.min(Math.max(parseInt(months) || 12, 3), 24);
+  const end = shiftCimMonth(y, m, 1);
+  const start = shiftCimMonth(y, m, -(n - 1));
+  const items = await fetchCimTrafficWithHeal(file, wiki, start, end);
+  const rows = items.map((it) => ({ date: (it.timestamp || '').slice(0, 7), views: it['pageview-count'] ?? 0 }));
+  return { file, rows };
+}
+
+/** CIM 500s intermittently on SPECIFIC ranges (internal upstream 503 —
+ *  verified 2026-08-13: the exact 12-month window 2025-08→2026-08 500s
+ *  deterministically from browsers while curl gets 200; every other
+ *  window works, incl. 30-month ones). fetchCimFileTraffic self-heals by
+ *  dropping the earliest month and retrying once. */
+async function fetchCimTrafficWithHeal(file, wiki, start, end) {
+  try {
+    return await fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(start.year, start.month)}/${cimDate(end.year, end.month)}`);
+  } catch (e) {
+    if (!String(e.message).startsWith('HTTP 500')) throw e;
+    const s2 = shiftCimMonth(start.year, start.month, 1);
+    return fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(s2.year, s2.month)}/${cimDate(end.year, end.month)}`);
+  }
 }

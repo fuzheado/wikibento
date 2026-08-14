@@ -28,8 +28,10 @@ import {
  fetchCimTopEditors,
  fetchCimLeaderboard,
  fetchCimFileSpotlight,
+ fetchCimFileTraffic,
 } from './dataSources';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
+import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
 
 const NAMESPACE_LABELS = {
   '0': 'articles only',
@@ -90,7 +92,8 @@ const NOISE_RE = [
 export const WIDGET_TYPES = {
   pageviews: {
     id: 'pageviews',
-    name: 'Article Pageviews',
+
+    timeScope: 'range',    name: 'Article Pageviews',
     icon: '📊',
     description: '30-day pageview count for a Wikipedia article',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -121,7 +124,7 @@ export const WIDGET_TYPES = {
       if (config.displayMode === 'stat') {
         return {
           title: `${data.article.replace(/_/g, ' ')}`,
-          subtitle: '30-day pageviews',
+          subtitle: `${(() => { const w = dayWindow(30); return fmtDayRange(w.start.year, w.start.month, w.start.day, w.end.year, w.end.month, w.end.day); })()} · 30-day pageviews`,
           value: data.total?.toLocaleString(),
           detail: `~${data.avg?.toLocaleString()}/day`,
           trend: data.trend,
@@ -133,14 +136,15 @@ export const WIDGET_TYPES = {
         chartKey: 'views',
         chartLabel: 'Daily Pageviews',
         title: `${data.article.replace(/_/g, ' ')}`,
-        subtitle: '30-day pageviews',
+        subtitle: `${(() => { const w = dayWindow(30); return fmtDayRange(w.start.year, w.start.month, w.start.day, w.end.year, w.end.month, w.end.day); })()} · 30-day pageviews`,
       };
     },
   },
 
   linkcount: {
     id: 'linkcount',
-    name: 'External Link Count',
+
+    timeScope: 'point',    name: 'External Link Count',
     icon: '🔗',
     description: 'Count pages linking to a domain on Wikipedia',
     labelFromConfig: (c) => c.domain,
@@ -179,7 +183,8 @@ export const WIDGET_TYPES = {
 
   categorySize: {
     id: 'categorySize',
-    name: 'Category Size',
+
+    timeScope: 'point',    name: 'Category Size',
     icon: '📁',
     description: 'File/page count for a Commons or Wikipedia category',
     labelFromConfig: (c) => c.category?.replace(/^Category:\s*/i, ''),
@@ -211,7 +216,8 @@ export const WIDGET_TYPES = {
 
   wikistats: {
     id: 'wikistats',
-    name: 'Wiki Stats',
+
+    timeScope: 'point',    name: 'Wiki Stats',
     icon: '🌐',
     description: 'Aggregate stats for a Wikipedia language edition',
     labelFromConfig: (c) => c.lang ? `${c.lang}.wikipedia.org` : null,
@@ -252,7 +258,8 @@ export const WIDGET_TYPES = {
 
   fileUsage: {
     id: 'fileUsage',
-    name: 'File Usage Map',
+
+    timeScope: 'point',    name: 'File Usage Map',
     icon: '🖼️',
     description: 'How many wikis use a Commons file, with top breakdown',
     labelFromConfig: (c) => c.filename?.replace(/^File:\s*/i, ''),
@@ -285,7 +292,8 @@ export const WIDGET_TYPES = {
 
   glamorgan: {
     id: 'glamorgan',
-    name: 'GLAM Category Usage',
+
+    timeScope: 'month',    name: 'GLAM Category Usage',
     icon: '📈',
     description: 'Impact stats for a Commons category: files, used files, pages, total views (GLAMorgan-style)',
     labelFromConfig: (c) => c.category?.replace(/^Category:\s*/i, ''),
@@ -331,7 +339,8 @@ export const WIDGET_TYPES = {
 
   topWikipedias: {
     id: 'topWikipedias',
-    name: 'Top 10 Wikipedias',
+
+    timeScope: 'point',    name: 'Top 10 Wikipedias',
     icon: '🏆',
     description: 'Largest Wikipedias by article count',
     defaults: {
@@ -351,7 +360,8 @@ export const WIDGET_TYPES = {
 
   topPages: {
     id: 'topPages',
-    name: 'Top Wikipedia Articles',
+
+    timeScope: 'day',    name: 'Top Wikipedia Articles',
     icon: '🔥',
     description: 'Most-visited articles on a Wikipedia language edition (top.hatnote.com)',
     labelFromConfig: (c) => c.lang ? `${c.lang}.wikipedia` : null,
@@ -441,7 +451,8 @@ export const WIDGET_TYPES = {
 
   markdown: {
     id: 'markdown',
-    name: 'Text / Markdown',
+
+    timeScope: 'point',    name: 'Text / Markdown',
     icon: '📝',
     description: 'Free-form Markdown card — notes, headings, links, explanations',
     defaults: {
@@ -461,7 +472,8 @@ export const WIDGET_TYPES = {
 
   excerpt: {
     id: 'excerpt',
-    name: 'Article Excerpt',
+
+    timeScope: 'point',    name: 'Article Excerpt',
     icon: '📄',
     description: 'First paragraph, description, and thumbnail for an article',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -488,7 +500,8 @@ export const WIDGET_TYPES = {
 
   edithistory: {
     id: 'edithistory',
-    name: 'Edit History',
+
+    timeScope: 'point',    name: 'Edit History',
     icon: '🕓',
     description: 'Recent edits to an article, newest first, with byte deltas',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -515,7 +528,8 @@ export const WIDGET_TYPES = {
 
   quality: {
     id: 'quality',
-    name: 'Article Quality (ORES)',
+
+    timeScope: 'point',    name: 'Article Quality (ORES)',
     icon: '🏅',
     description: 'Predicted quality class for an article (Lift Wing / ORES)',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -543,7 +557,8 @@ export const WIDGET_TYPES = {
 
   assessments: {
     id: 'assessments',
-    name: 'WikiProject Assessment',
+
+    timeScope: 'point',    name: 'WikiProject Assessment',
     icon: '🧭',
     description: 'Quality + importance ratings from WikiProject banners',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -570,7 +585,8 @@ export const WIDGET_TYPES = {
 
   gallery: {
     id: 'gallery',
-    name: 'Article Gallery',
+
+    timeScope: 'point',    name: 'Article Gallery',
     icon: '🖼️',
     description: 'Significant images in an article with captions (grid or list)',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -618,7 +634,8 @@ export const WIDGET_TYPES = {
 
   fileGallery: {
     id: 'fileGallery',
-    name: 'Commons File Gallery',
+
+    timeScope: 'point',    name: 'Commons File Gallery',
     icon: '🗂️',
     description: 'Gallery of any Commons files you list — grid or list, ordered or random',
     labelFromConfig: (c) => `${(c.files || '').split('\n').filter(Boolean).length} files`,
@@ -691,7 +708,8 @@ export const WIDGET_TYPES = {
 
   articleList: {
     id: 'articleList',
-    name: 'Article List',
+
+    timeScope: 'point',    name: 'Article List',
     icon: '📋',
     description: 'Clickable list of articles — pasted titles, optional thumbnails + intros',
     labelFromConfig: (c) => `${(c.articles || '').split('\n').filter(Boolean).length} articles`,
@@ -720,7 +738,8 @@ export const WIDGET_TYPES = {
 
   cimSnapshot: {
     id: 'cimSnapshot',
-    name: 'CIM Category Snapshot',
+
+    timeScope: 'month',    name: 'CIM Category Snapshot',
     icon: '🎯',
     description: 'Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -733,21 +752,25 @@ export const WIDGET_TYPES = {
       CIM_MONTH_FIELD,
     ],
     fetch: (config) => fetchCimSnapshot(config.category, config.scope, undefined, config.month),
-    transform: (data, config) => ({
+    transform: (data, config) => {
+      const scope = resolveMonth(config.month);
+      return {
       title: data.category.replace(/_/g, ' '),
-      subtitle: `precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · deep: ${data.filesDeep.toLocaleString()} files` : ''}`,
+      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · deep: ${data.filesDeep.toLocaleString()} files` : ''}`,
       stats: [
         { label: 'Files', value: data.files.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
         { label: 'Files used', value: data.used.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
         { label: 'Wikis', value: data.wikis.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
         { label: 'Pages', value: data.pages.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
       ],
-    }),
+      };
+    },
   },
 
   cimTrend: {
     id: 'cimTrend',
-    name: 'CIM Views Over Time',
+
+    timeScope: 'range',    name: 'CIM Views Over Time',
     icon: '📈',
     description: 'Monthly pageview trend of pages using a CIM category\'s files',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -762,18 +785,24 @@ export const WIDGET_TYPES = {
       CIM_MONTH_FIELD,
     ],
     fetch: (config) => fetchCimTrend(config.category, config.scope, config.wiki, undefined, config.month, config.months),
-    transform: (data, config) => ({
+    transform: (data, config) => {
+      const end = resolveMonth(config.month);
+      const n = Math.min(Math.max(parseInt(config.months) || 6, 2), 24);
+      const start = shiftMonth(end.year, end.month, -(n - 1));
+      return {
       title: data.category.replace(/_/g, ' '),
-      subtitle: `pageviews of using pages · ${config.scope} · precomputed (CIM)`,
+      subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of using pages · ${config.scope} · precomputed (CIM)`,
       chartData: data.rows,
       chartKey: 'views',
       chartLabel: 'views',
-    }),
+      };
+    },
   },
 
   cimTopFiles: {
     id: 'cimTopFiles',
-    name: 'CIM Top Files',
+
+    timeScope: 'month',    name: 'CIM Top Files',
     icon: '🖼️',
     description: 'Most-viewed files in a CIM category — thumbnails + views',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -788,16 +817,20 @@ export const WIDGET_TYPES = {
       { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' },
     ],
     fetch: (config) => fetchCimTopFiles(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
-    transform: (data, config) => ({
+    transform: (data, config) => {
+      const scope = resolveMonth(config.month);
+      return {
       title: data.category.replace(/_/g, ' '),
-      subtitle: `top files by pageviews · ${config.scope} · precomputed (CIM)`,
+      subtitle: `${fmtMonth(scope.year, scope.month)} · top files by pageviews · ${config.scope} · precomputed (CIM)`,
       rows: data.rows.map((r) => ({ title: r.title.replace(/_/g, ' '), views: r.views, thumbUrl: r.thumbUrl })),
-    }),
+      };
+    },
   },
 
   cimTopWikis: {
     id: 'cimTopWikis',
-    name: 'CIM Top Wikis',
+
+    timeScope: 'month',    name: 'CIM Top Wikis',
     icon: '🌍',
     description: 'Which wikis use a CIM category\'s files most',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -806,18 +839,20 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM top-wikis-per-category-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopWikis(config.category, config.scope, undefined, config.month, config.topN),
-    transform: (data, config) => cimRanking(
+    transform: (data, config) => {
+ const sc = resolveMonth(config.month);
+ return cimRanking(
       data.category.replace(/_/g, ' '),
-      `wikis using the files · ${config.scope} · precomputed (CIM)`,
+      `${fmtMonth(sc.year, sc.month)} · wikis using the files · ${config.scope} · precomputed (CIM)`,
       ['Wiki', 'Views'],
       data.rows.map((r) => [r.wiki, r.views.toLocaleString()]),
       ['cim-name', 'cim-num'],
-    ),
-  },
+ ); } },
 
   cimTopPages: {
     id: 'cimTopPages',
-    name: 'CIM Top Pages',
+
+    timeScope: 'month',    name: 'CIM Top Pages',
     icon: '📄',
     description: 'Pages that use a CIM category\'s files, by views',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -826,18 +861,20 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM top-pages-per-category-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopPages(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
-    transform: (data, config) => cimRanking(
+    transform: (data, config) => {
+ const sc = resolveMonth(config.month);
+ return cimRanking(
       data.category.replace(/_/g, ' '),
-      `pages using the files · ${config.scope} · precomputed (CIM)`,
+      `${fmtMonth(sc.year, sc.month)} · pages using the files · ${config.scope} · precomputed (CIM)`,
       ['Wiki', 'Page', 'Views'],
       data.rows.map((r) => [r.wiki, r.page.replace(/_/g, ' '), r.views.toLocaleString()]),
       ['cim-name', 'cim-name', 'cim-num'],
-    ),
-  },
+ ); } },
 
   cimTopEditors: {
     id: 'cimTopEditors',
-    name: 'CIM Top Editors',
+
+    timeScope: 'month',    name: 'CIM Top Editors',
     icon: '✍️',
     description: 'Top contributors to a CIM category, by edit count',
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
@@ -846,18 +883,20 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM top-editors-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'editType', label: 'Edit type', type: 'select', options: CIM_EDIT_TYPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopEditors(config.category, config.scope, config.editType, undefined, config.month, config.topN),
-    transform: (data, config) => cimRanking(
+    transform: (data, config) => {
+ const sc = resolveMonth(config.month);
+ return cimRanking(
       data.category.replace(/_/g, ' '),
-      `top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
+      `${fmtMonth(sc.year, sc.month)} · top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
       ['Editor', 'Edits'],
       data.rows.map((r) => [r.user, r.edits.toLocaleString()]),
       ['cim-name', 'cim-num'],
-    ),
-  },
+ ); } },
 
   cimLeaderboard: {
     id: 'cimLeaderboard',
-    name: 'CIM Global Leaderboard',
+
+    timeScope: 'month',    name: 'CIM Global Leaderboard',
     icon: '🏆',
     description: 'Top 100 most-viewed categories on Commons (precomputed)',
     labelFromConfig: () => 'Top 100',
@@ -874,11 +913,13 @@ export const WIDGET_TYPES = {
     transform: (data, config) => {
       const highlight = (config.highlight || '').trim();
       const hl = highlight ? data.rows.find((r) => r.category.replace(/_/g, ' ').toLowerCase() === highlight.toLowerCase()) : null;
+      const scope = resolveMonth(config.month);
+      const mo = fmtMonth(scope.year, scope.month);
       return cimRanking(
         'Most-viewed categories',
         hl
-          ? `#${hl.rank} of top 100 · ${hl.category.replace(/_/g, ' ')} (${hl.views.toLocaleString()} views)`
-          : highlight ? `${highlight} not in the top 100 · precomputed (CIM)` : 'top 100 · precomputed (CIM)',
+          ? `${mo} · #${hl.rank} of top 100 · ${hl.category.replace(/_/g, ' ')} (${hl.views.toLocaleString()} views)`
+          : highlight ? `${mo} · ${highlight} not in the top 100 · precomputed (CIM)` : `${mo} · top 100 · precomputed (CIM)`,
         ['Rank', 'Category', 'Views'],
         data.rows.map((r) => [String(r.rank), r.category.replace(/_/g, ' '), r.views.toLocaleString()]),
         ['cim-rank', 'cim-name', 'cim-num'],
@@ -888,7 +929,8 @@ export const WIDGET_TYPES = {
 
   cimFileSpotlight: {
     id: 'cimFileSpotlight',
-    name: 'CIM File Spotlight',
+
+    timeScope: 'month',    name: 'CIM File Spotlight',
     icon: '🔦',
     description: 'One Commons file: wikis/pages using it + monthly view trend',
     labelFromConfig: (c) => (c.filename || '').replace(/_/g, ' '),
@@ -901,21 +943,54 @@ export const WIDGET_TYPES = {
       CIM_MONTH_FIELD,
     ],
     fetch: (config) => fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month),
-    transform: (data, config) => ({
+    transform: (data, config) => {
+      const scope = resolveMonth(config.month);
+      return {
       title: data.file.replace(/_/g, ' '),
-      subtitle: `precomputed (CIM) · pageviews of pages using this file`,
+      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
       stats: [
         { label: 'Wikis using it', value: data.wikis.toLocaleString(), sub: 'leveraging-wiki-count' },
         { label: 'Pages using it', value: data.pages.toLocaleString(), sub: 'leveraging-page-count' },
         { label: 'Views (month)', value: data.views.toLocaleString(), sub: 'pageviews of using pages' },
       ],
       trend: data.trend,
-    }),
+      };
+    },
+  },
+
+  cimFileTraffic: {
+    id: 'cimFileTraffic',
+
+    timeScope: 'range',    name: 'CIM File Traffic',
+    icon: '📉',
+    description: 'Monthly pageview traffic for one Commons file — labeled axes, zoom in/out',
+    labelFromConfig: (c) => (c.filename || '').replace(/_/g, ' '),
+    defaults: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
+    renderer: 'FileTrafficCard',
+    dataSource: 'CIM pageviews-per-media-file-monthly',
+    configFields: [
+      { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
+      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'months', label: 'Fetch window (3–24 months)', type: 'number', placeholder: '12' },
+      CIM_MONTH_FIELD,
+    ],
+    fetch: (config) => fetchCimFileTraffic(config.filename, config.wiki, config.months, undefined, config.month),
+    transform: (data, config) => {
+      const end = resolveMonth(config.month);
+      const n = Math.min(Math.max(parseInt(config.months) || 12, 3), 24);
+      const start = shiftMonth(end.year, end.month, -(n - 1));
+      return {
+        title: data.file.replace(/_/g, ' '),
+        subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of pages using this file · precomputed (CIM)`,
+        rows: data.rows,
+      };
+    },
   },
 
   wikiPage: {
     id: 'wikiPage',
-    name: 'Wiki Page',
+
+    timeScope: 'point',    name: 'Wiki Page',
     icon: '📄',
     description: 'Embed any MediaWiki page — desktop or mobile view, links browse inside',
     labelFromConfig: (c) => (c.page || '').trim().replace(/_/g, ' '),
@@ -963,7 +1038,8 @@ export const WIDGET_TYPES = {
 
   sparql: {
     id: 'sparql',
-    name: 'SPARQL Query',
+
+    timeScope: 'point',    name: 'SPARQL Query',
     icon: '🧠',
     description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, or trend',
     labelFromConfig: (c) => (getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
@@ -1068,7 +1144,8 @@ export const WIDGET_TYPES = {
 
   panorama360: {
     id: 'panorama360',
-    name: '360° Panorama Viewer',
+
+    timeScope: 'point',    name: '360° Panorama Viewer',
     icon: '🌐',
     description: 'Interactive 360° panorama from a Commons equirectangular file',
     labelFromConfig: (c) => c.filename?.replace(/^File:\s*/i, '').replace(/_/g, ' '),

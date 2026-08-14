@@ -1169,3 +1169,16 @@ body {
 .cim-name { flex: 3; text-align: left; min-width: 0; }
 .cim-num { flex: 1; text-align: right; color: var(--accent); font-weight: 600; white-space: nowrap; }
 .cim-top-file-views { flex: 0 0 84px; text-align: right; color: var(--accent); font-weight: 600; white-space: nowrap; }
+/* ── CIM File Traffic chart ──────────────────────────────── */
+.file-traffic-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
+.file-traffic-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.file-traffic-range { font-size: 11px; color: var(--text-secondary); }
+.file-traffic-zoom { display: flex; gap: 4px; }
+.file-traffic-zoom .widget-btn { padding: 0 8px; font-size: 13px; line-height: 1.4; }
+.file-traffic-zoom .widget-btn:disabled { opacity: 0.35; cursor: default; }
+.file-traffic-chart { flex: 1; min-height: 0; display: flex; }
+.file-traffic-svg { width: 100%; height: 100%; }
+.file-traffic-grid { stroke: rgba(255,255,255,0.07); stroke-width: 1; }
+.file-traffic-axis { fill: var(--text-secondary); font-size: 9px; }
+.file-traffic-axis-title { fill: var(--text-secondary); font-size: 9px; }
+.file-traffic-point { fill: var(--accent); }

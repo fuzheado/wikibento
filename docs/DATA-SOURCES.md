@@ -407,3 +407,9 @@ describe it in the docs above, done.
 - **Reliability:** 30 s timeout + 1 retry + **1-hour TTL cache** (monthly data); `refreshSeconds` default 3600 — don't hammer the `top-*` endpoints.
 - **Gotcha (fixed):** top-files thumbnails — `imageinfo` normalizes titles to spaces, so thumb lookup keys must be space-form (`title.replace(/_/g, ' ')`), not underscore form.
 - **GLAM live walk unchanged:** the `glamorgan` widget (on-demand category walk) remains a separate widget by design (2026-08-13 decision) — CIM widgets are precomputed-only.
+
+
+## 20. CIM File Traffic — interactive per-file chart **Widget:** CIM File Traffic · **Fetcher:** `fetchCimFileTraffic`
+- **Endpoint:** CIM `pageviews-per-media-file-monthly/{file}/{wiki}/{start}/{end}` — fetch window up to 24 months (default 12) ending at the last complete month.
+- **Renderer (`FileTrafficCard`):** hand-rolled SVG line chart with labeled axes — Y ticks compact (`254K`, `1.2M`), X = months (`26-02`), axis titles "views" / "month". **−/+ zoom buttons** slice the fetched window client-side (3/6/12/24 months — no refetch); the card header always shows the displayed range ("2026-02 → 2026-07 · 6 months"). Hover points show exact month+views.
+- **CIM flakiness (verified 2026-08-13):** the API deterministically 500s (internal upstream 503) for **specific ranges** from browsers — e.g. the exact 12-month window `20250801/20260801` fails while 11- and 13-month windows and 30-month windows succeed (curl gets 200 for the same URL — likely edge/backend-dependent). `fetchCimTrafficWithHeal` self-heals: on HTTP 500 it retries with the earliest month dropped. Related: `fetchCim` retries 5xx twice.
