@@ -1,559 +1,580 @@
 {
-  "version": 1,
-  "widgets": [
-    {
-      "id": "markdown",
-      "widgetType": "markdown",
-      "config": {
-        "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** — add widgets, drag them around, and share your board with a link.\n\n- 📊 **Article Pageviews** — 30-day traffic\n- 🏆 **Top 10 Wikipedias** — biggest language editions\n- 🖼️ **File Usage Map** — where a Commons file is used\n\n> Edit any widget with ⚙. Export/import your board as JSON, or share it via 🔗.",
-        "refreshSeconds": 86400
-      }
-    },
-    {
-      "id": "toppages",
-      "widgetType": "topPages",
-      "config": {
-        "lang": "en",
-        "dateMode": "latest",
-        "topN": 10,
-        "filterNoise": true,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "pageviews",
-      "widgetType": "pageviews",
-      "config": {
-        "article": "Main_Page",
-        "project": "en.wikipedia",
-        "displayMode": "stat",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "linkcount",
-      "widgetType": "linkcount",
-      "config": {
-        "domain": "Libretexts.org",
-        "wiki": "en.wikipedia",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "category",
-      "widgetType": "categorySize",
-      "config": {
-        "category": "Images from Wiki Loves Monuments 2024",
-        "wiki": "commons.wikimedia",
-        "sampleCount": 6,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "wikistats",
-      "widgetType": "wikistats",
-      "config": {
-        "table": "wikipedias",
-        "lang": "en",
-        "refreshSeconds": 7200
-      }
-    },
-    {
-      "id": "fileusage",
-      "widgetType": "fileUsage",
-      "config": {
-        "filename": "The Earth seen from Apollo 17.jpg",
-        "topN": 10,
-        "showImage": true,
-        "showCaption": true,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "topwikis",
-      "widgetType": "topWikipedias",
-      "config": {
-        "refreshSeconds": 7200
-      }
-    },
-    {
-      "id": "glam",
-      "widgetType": "glamorgan",
-      "config": {
-        "category": "Featured pictures on Wikimedia Commons",
-        "depth": 0,
-        "year": 2026,
-        "month": 7,
-        "negcats": "",
-        "negdepth": 0,
-        "fileBudget": 300,
-        "topN": 5,
-        "showDetail": true,
-        "refreshSeconds": 7200
-      }
-    },
-    {
-      "id": "excerpt",
-      "widgetType": "excerpt",
-      "config": {
-        "article": "Albert Einstein",
-        "project": "en.wikipedia",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "quality",
-      "widgetType": "quality",
-      "config": {
-        "article": "Albert Einstein",
-        "project": "en.wikipedia",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "assessments",
-      "widgetType": "assessments",
-      "config": {
-        "article": "Albert Einstein",
-        "project": "en.wikipedia",
-        "topN": 8,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "edithistory",
-      "widgetType": "edithistory",
-      "config": {
-        "article": "Albert Einstein",
-        "project": "en.wikipedia",
-        "limit": 10,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "gallery",
-      "widgetType": "gallery",
-      "config": {
-        "article": "Albert Einstein",
-        "project": "en.wikipedia",
-        "displayMode": "grid",
-        "iconSize": "medium",
-        "minSize": 200,
-        "maxItems": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "panorama",
-      "widgetType": "panorama360",
-      "config": {
-        "filename": "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
-        "project": "commons.wikimedia",
-        "autoRotate": false,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "filegallery",
-      "widgetType": "fileGallery",
-      "config": {
-        "files": "File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg",
-        "order": "listed",
-        "displayMode": "grid",
-        "iconSize": "medium",
-        "imageFit": "contain",
-        "maxItems": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "articlelist",
-      "widgetType": "articleList",
-      "config": {
-        "articles": "Ada Lovelace\nAlbert Einstein",
-        "project": "en.wikipedia",
-        "enrich": true,
-        "maxItems": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "sparql",
-      "widgetType": "sparql",
-      "config": {
-        "preset": "multi-institution",
-        "query": "",
-        "endpoint": "wdqs",
-        "renderer": "auto",
-        "maxRows": 100,
-        "refreshSeconds": 1800
-      }
-    },
-    {
-      "id": "wikipage",
-      "widgetType": "wikiPage",
-      "config": {
-        "page": "Help:Introduction",
-        "project": "en.wikipedia",
-        "mobile": false,
-        "fragment": "",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimsnapshot",
-      "widgetType": "cimSnapshot",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "month": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimtrend",
-      "widgetType": "cimTrend",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "wiki": "all-wikis",
-        "months": 6,
-        "month": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimtopfiles",
-      "widgetType": "cimTopFiles",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "wiki": "all-wikis",
-        "month": 0,
-        "topN": 10,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimfiletraffic",
-      "widgetType": "cimFileTraffic",
-      "config": {
-        "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
-        "wiki": "all-wikis",
-        "months": 12,
-        "month": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimtopwikis",
-      "widgetType": "cimTopWikis",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "month": 0,
-        "topN": 10,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimtoppages",
-      "widgetType": "cimTopPages",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "wiki": "all-wikis",
-        "month": 0,
-        "topN": 10,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimtopeditors",
-      "widgetType": "cimTopEditors",
-      "config": {
-        "category": "Files from the Biodiversity Heritage Library",
-        "scope": "deep",
-        "editType": "all-edit-types",
-        "month": 0,
-        "topN": 10,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimleaderboard",
-      "widgetType": "cimLeaderboard",
-      "config": {
-        "scope": "deep",
-        "wiki": "all-wikis",
-        "month": 0,
-        "highlight": "Wiki Loves Monuments 2024",
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "cimspotlight",
-      "widgetType": "cimFileSpotlight",
-      "config": {
-        "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
-        "wiki": "all-wikis",
-        "month": 0,
-        "refreshSeconds": 3600
-      }
-    }
-  ],
-  "layout": [
-    {
-      "i": "markdown",
-      "x": 0,
-      "y": 0,
-      "w": 12,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "pageviews",
-      "x": 0,
-      "y": 4,
-      "w": 3,
-      "h": 4,
-      "minW": 2,
-      "minH": 3
-    },
-    {
-      "i": "linkcount",
-      "x": 3,
-      "y": 4,
-      "w": 3,
-      "h": 3,
-      "minW": 2,
-      "minH": 2
-    },
-    {
-      "i": "category",
-      "x": 6,
-      "y": 4,
-      "w": 3,
-      "h": 4,
-      "minW": 2,
-      "minH": 3
-    },
-    {
-      "i": "fileusage",
-      "x": 9,
-      "y": 4,
-      "w": 3,
-      "h": 5,
-      "minW": 2,
-      "minH": 4
-    },
-    {
-      "i": "toppages",
-      "x": 0,
-      "y": 8,
-      "w": 4,
-      "h": 5,
-      "minW": 3,
-      "minH": 4
-    },
-    {
-      "i": "wikistats",
-      "x": 4,
-      "y": 8,
-      "w": 3,
-      "h": 3,
-      "minW": 2,
-      "minH": 2
-    },
-    {
-      "i": "topwikis",
-      "x": 7,
-      "y": 8,
-      "w": 5,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "glam",
-      "x": 0,
-      "y": 13,
-      "w": 12,
-      "h": 6,
-      "minW": 3,
-      "minH": 4
-    },
-    {
-      "i": "excerpt",
-      "x": 0,
-      "y": 19,
-      "w": 6,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "quality",
-      "x": 6,
-      "y": 19,
-      "w": 3,
-      "h": 6,
-      "minW": 2,
-      "minH": 4
-    },
-    {
-      "i": "assessments",
-      "x": 9,
-      "y": 19,
-      "w": 3,
-      "h": 6,
-      "minW": 2,
-      "minH": 4
-    },
-    {
-      "i": "edithistory",
-      "x": 0,
-      "y": 24,
-      "w": 12,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "gallery",
-      "x": 0,
-      "y": 29,
-      "w": 12,
-      "h": 7,
-      "minW": 3,
-      "minH": 4
-    },
-    {
-      "i": "panorama",
-      "x": 0,
-      "y": 36,
-      "w": 6,
-      "h": 4,
-      "minW": 3,
-      "minH": 2
-    },
-    {
-      "i": "filegallery",
-      "x": 6,
-      "y": 36,
-      "w": 6,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "articlelist",
-      "x": 0,
-      "y": 40,
-      "w": 6,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "sparql",
-      "x": 6,
-      "y": 40,
-      "w": 6,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "wikipage",
-      "x": 0,
-      "y": 45,
-      "w": 12,
-      "h": 6,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "cimsnapshot",
-      "x": 0,
-      "y": 51,
-      "w": 4,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "cimtrend",
-      "x": 4,
-      "y": 51,
-      "w": 4,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "cimtopfiles",
-      "x": 8,
-      "y": 51,
-      "w": 4,
-      "h": 6,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "cimfiletraffic",
-      "x": 0,
-      "y": 57,
-      "w": 6,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
-    },
-    {
-      "i": "cimtopwikis",
-      "x": 0,
-      "y": 58,
-      "w": 3,
-      "h": 4,
-      "minW": 2,
-      "minH": 3
-    },
-    {
-      "i": "cimtoppages",
-      "x": 3,
-      "y": 58,
-      "w": 3,
-      "h": 4,
-      "minW": 2,
-      "minH": 3
-    },
-    {
-      "i": "cimtopeditors",
-      "x": 6,
-      "y": 58,
-      "w": 3,
-      "h": 4,
-      "minW": 2,
-      "minH": 3
-    },
-    {
-      "i": "cimleaderboard",
-      "x": 9,
-      "y": 58,
-      "w": 3,
-      "h": 6,
-      "minW": 2,
-      "minH": 4
-    },
-    {
-      "i": "cimspotlight",
-      "x": 0,
-      "y": 62,
-      "w": 6,
-      "h": 4,
-      "minW": 3,
-      "minH": 3
-    }
-  ]
+ "version": 1,
+ "widgets": [
+  {
+   "id": "markdown",
+   "widgetType": "markdown",
+   "config": {
+    "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** \u2014 add widgets, drag them around, and share your board with a link.\n\n- \ud83d\udcca **Article Pageviews** \u2014 30-day traffic\n- \ud83c\udfc6 **Top 10 Wikipedias** \u2014 biggest language editions\n- \ud83d\uddbc\ufe0f **File Usage Map** \u2014 where a Commons file is used\n\n> Edit any widget with \u2699. Export/import your board as JSON, or share it via \ud83d\udd17.",
+    "refreshSeconds": 86400
+   }
+  },
+  {
+   "id": "toppages",
+   "widgetType": "topPages",
+   "config": {
+    "lang": "en",
+    "dateMode": "latest",
+    "topN": 10,
+    "filterNoise": true,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "pageviews",
+   "widgetType": "pageviews",
+   "config": {
+    "article": "Main_Page",
+    "project": "en.wikipedia",
+    "displayMode": "stat",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "linkcount",
+   "widgetType": "linkcount",
+   "config": {
+    "domain": "Libretexts.org",
+    "wiki": "en.wikipedia",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "category",
+   "widgetType": "categorySize",
+   "config": {
+    "category": "Images from Wiki Loves Monuments 2024",
+    "wiki": "commons.wikimedia",
+    "sampleCount": 6,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "wikistats",
+   "widgetType": "wikistats",
+   "config": {
+    "table": "wikipedias",
+    "lang": "en",
+    "refreshSeconds": 7200
+   }
+  },
+  {
+   "id": "fileusage",
+   "widgetType": "fileUsage",
+   "config": {
+    "filename": "The Earth seen from Apollo 17.jpg",
+    "topN": 10,
+    "showImage": true,
+    "showCaption": true,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "topwikis",
+   "widgetType": "topWikipedias",
+   "config": {
+    "refreshSeconds": 7200
+   }
+  },
+  {
+   "id": "glam",
+   "widgetType": "glamorgan",
+   "config": {
+    "category": "Featured pictures on Wikimedia Commons",
+    "depth": 0,
+    "year": 2026,
+    "month": 7,
+    "negcats": "",
+    "negdepth": 0,
+    "fileBudget": 300,
+    "topN": 5,
+    "showDetail": true,
+    "refreshSeconds": 7200
+   }
+  },
+  {
+   "id": "excerpt",
+   "widgetType": "excerpt",
+   "config": {
+    "article": "Albert Einstein",
+    "project": "en.wikipedia",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "quality",
+   "widgetType": "quality",
+   "config": {
+    "article": "Albert Einstein",
+    "project": "en.wikipedia",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "assessments",
+   "widgetType": "assessments",
+   "config": {
+    "article": "Albert Einstein",
+    "project": "en.wikipedia",
+    "topN": 8,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "edithistory",
+   "widgetType": "edithistory",
+   "config": {
+    "article": "Albert Einstein",
+    "project": "en.wikipedia",
+    "limit": 10,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "gallery",
+   "widgetType": "gallery",
+   "config": {
+    "article": "Albert Einstein",
+    "project": "en.wikipedia",
+    "displayMode": "grid",
+    "iconSize": "medium",
+    "minSize": 200,
+    "maxItems": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "panorama",
+   "widgetType": "panorama360",
+   "config": {
+    "filename": "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
+    "project": "commons.wikimedia",
+    "autoRotate": false,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "filegallery",
+   "widgetType": "fileGallery",
+   "config": {
+    "files": "File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg",
+    "order": "listed",
+    "displayMode": "grid",
+    "iconSize": "medium",
+    "imageFit": "contain",
+    "maxItems": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "articlelist",
+   "widgetType": "articleList",
+   "config": {
+    "articles": "Ada Lovelace\nAlbert Einstein",
+    "project": "en.wikipedia",
+    "enrich": true,
+    "maxItems": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "sparql",
+   "widgetType": "sparql",
+   "config": {
+    "preset": "multi-institution",
+    "query": "",
+    "endpoint": "wdqs",
+    "renderer": "auto",
+    "maxRows": 100,
+    "refreshSeconds": 1800
+   }
+  },
+  {
+   "id": "wikipage",
+   "widgetType": "wikiPage",
+   "config": {
+    "page": "Help:Introduction",
+    "project": "en.wikipedia",
+    "mobile": false,
+    "fragment": "",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimsnapshot",
+   "widgetType": "cimSnapshot",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "month": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimtrend",
+   "widgetType": "cimTrend",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "wiki": "all-wikis",
+    "months": 6,
+    "month": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimtopfiles",
+   "widgetType": "cimTopFiles",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "wiki": "all-wikis",
+    "month": 0,
+    "topN": 10,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimfiletraffic",
+   "widgetType": "cimFileTraffic",
+   "config": {
+    "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
+    "wiki": "all-wikis",
+    "months": 12,
+    "month": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimtopwikis",
+   "widgetType": "cimTopWikis",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "month": 0,
+    "topN": 10,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimtoppages",
+   "widgetType": "cimTopPages",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "wiki": "all-wikis",
+    "month": 0,
+    "topN": 10,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimtopeditors",
+   "widgetType": "cimTopEditors",
+   "config": {
+    "category": "Files from the Biodiversity Heritage Library",
+    "scope": "deep",
+    "editType": "all-edit-types",
+    "month": 0,
+    "topN": 10,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimleaderboard",
+   "widgetType": "cimLeaderboard",
+   "config": {
+    "scope": "deep",
+    "wiki": "all-wikis",
+    "month": 0,
+    "highlight": "Wiki Loves Monuments 2024",
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "cimspotlight",
+   "widgetType": "cimFileSpotlight",
+   "config": {
+    "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
+    "wiki": "all-wikis",
+    "month": 0,
+    "refreshSeconds": 3600
+   }
+  },
+  {
+   "id": "wayback",
+   "widgetType": "waybackGallery",
+   "config": {
+    "url": "wikipedia.org",
+    "dates": "2005-01-01\n2010-01-01\n2015-01-01\n2020-01-01\n2025-01-01",
+    "toleranceDays": 30,
+    "refreshSeconds": 3600
+   }
+  }
+ ],
+ "layout": [
+  {
+   "i": "markdown",
+   "x": 0,
+   "y": 0,
+   "w": 12,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "pageviews",
+   "x": 0,
+   "y": 4,
+   "w": 3,
+   "h": 4,
+   "minW": 2,
+   "minH": 3
+  },
+  {
+   "i": "linkcount",
+   "x": 3,
+   "y": 4,
+   "w": 3,
+   "h": 3,
+   "minW": 2,
+   "minH": 2
+  },
+  {
+   "i": "category",
+   "x": 6,
+   "y": 4,
+   "w": 3,
+   "h": 4,
+   "minW": 2,
+   "minH": 3
+  },
+  {
+   "i": "fileusage",
+   "x": 9,
+   "y": 4,
+   "w": 3,
+   "h": 5,
+   "minW": 2,
+   "minH": 4
+  },
+  {
+   "i": "toppages",
+   "x": 0,
+   "y": 8,
+   "w": 4,
+   "h": 5,
+   "minW": 3,
+   "minH": 4
+  },
+  {
+   "i": "wikistats",
+   "x": 4,
+   "y": 8,
+   "w": 3,
+   "h": 3,
+   "minW": 2,
+   "minH": 2
+  },
+  {
+   "i": "topwikis",
+   "x": 7,
+   "y": 8,
+   "w": 5,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "glam",
+   "x": 0,
+   "y": 13,
+   "w": 12,
+   "h": 6,
+   "minW": 3,
+   "minH": 4
+  },
+  {
+   "i": "excerpt",
+   "x": 0,
+   "y": 19,
+   "w": 6,
+   "h": 5,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "quality",
+   "x": 6,
+   "y": 19,
+   "w": 3,
+   "h": 6,
+   "minW": 2,
+   "minH": 4
+  },
+  {
+   "i": "assessments",
+   "x": 9,
+   "y": 19,
+   "w": 3,
+   "h": 6,
+   "minW": 2,
+   "minH": 4
+  },
+  {
+   "i": "edithistory",
+   "x": 0,
+   "y": 24,
+   "w": 12,
+   "h": 5,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "gallery",
+   "x": 0,
+   "y": 29,
+   "w": 12,
+   "h": 7,
+   "minW": 3,
+   "minH": 4
+  },
+  {
+   "i": "panorama",
+   "x": 0,
+   "y": 36,
+   "w": 6,
+   "h": 4,
+   "minW": 3,
+   "minH": 2
+  },
+  {
+   "i": "filegallery",
+   "x": 6,
+   "y": 36,
+   "w": 6,
+   "h": 5,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "articlelist",
+   "x": 0,
+   "y": 40,
+   "w": 6,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "sparql",
+   "x": 6,
+   "y": 40,
+   "w": 6,
+   "h": 5,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "wikipage",
+   "x": 0,
+   "y": 45,
+   "w": 12,
+   "h": 6,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "cimsnapshot",
+   "x": 0,
+   "y": 51,
+   "w": 4,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "cimtrend",
+   "x": 4,
+   "y": 51,
+   "w": 4,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "cimtopfiles",
+   "x": 8,
+   "y": 51,
+   "w": 4,
+   "h": 6,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "cimfiletraffic",
+   "x": 0,
+   "y": 57,
+   "w": 6,
+   "h": 5,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "cimtopwikis",
+   "x": 0,
+   "y": 58,
+   "w": 3,
+   "h": 4,
+   "minW": 2,
+   "minH": 3
+  },
+  {
+   "i": "cimtoppages",
+   "x": 3,
+   "y": 58,
+   "w": 3,
+   "h": 4,
+   "minW": 2,
+   "minH": 3
+  },
+  {
+   "i": "cimtopeditors",
+   "x": 6,
+   "y": 58,
+   "w": 3,
+   "h": 4,
+   "minW": 2,
+   "minH": 3
+  },
+  {
+   "i": "cimleaderboard",
+   "x": 9,
+   "y": 58,
+   "w": 3,
+   "h": 6,
+   "minW": 2,
+   "minH": 4
+  },
+  {
+   "i": "cimspotlight",
+   "x": 0,
+   "y": 62,
+   "w": 6,
+   "h": 4,
+   "minW": 3,
+   "minH": 3
+  },
+  {
+   "i": "wayback",
+   "x": 0,
+   "y": 70,
+   "w": 12,
+   "h": 8,
+   "minW": 4,
+   "minH": 5,
+   "moved": false,
+   "static": false
+  }
+ ]
 }

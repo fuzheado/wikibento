@@ -29,6 +29,7 @@ import {
  fetchCimLeaderboard,
  fetchCimFileSpotlight,
  fetchCimFileTraffic,
+ fetchWaybackGallery,
 } from './dataSources';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
@@ -1201,6 +1202,36 @@ export const WIDGET_TYPES = {
       equirectangular: data.equirectangular,
       mime: data.mime,
       autoRotate: config.autoRotate,
-    }),
+ }), },
+  waybackGallery: {
+    id: 'waybackGallery',
+
+    timeScope: 'range',    name: 'Wayback Snapshot Gallery',
+    icon: '🕰️',
+    description: 'Screenshot tiles of a website across history — one Wayback capture per requested date',
+    labelFromConfig: (c) => (c.url || '').replace(/^https?:\/\//i, '').replace(/\/+$/, ''),
+    defaults: {
+      url: 'wikipedia.org',
+      dates: '2005-01-01\n2010-01-01\n2015-01-01\n2020-01-01\n2025-01-01',
+      toleranceDays: 30,
+      refreshSeconds: 3600,
+    },
+    renderer: 'WaybackGalleryCard',
+    dataSource: 'Wayback Machine availability API + replay iframes',
+    configFields: [
+      { key: 'url', label: 'Website', type: 'text', placeholder: 'example.org' },
+      { key: 'dates', label: 'Dates (one per line)', type: 'textarea', rows: 6, placeholder: '2010-06-15' },
+      { key: 'toleranceDays', label: 'Tolerance (days)', type: 'number', placeholder: '30' },
+    ],
+    fetch: (config) => fetchWaybackGallery(config.url, config.dates, config.toleranceDays),
+    transform: (data, config) => {
+      const dates = String(config.dates || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      return {
+        title: data.url,
+        subtitle: `${data.rows.length} captures · ${dates[0] || '—'} → ${dates[dates.length - 1] || '—'}`,
+        rows: data.rows,
+        toleranceDays: parseInt(config.toleranceDays) || 30,
+      };
+    },
   },
 };

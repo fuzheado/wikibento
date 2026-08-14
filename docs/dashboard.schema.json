@@ -28,7 +28,7 @@
         "id": { "type": "string", "minLength": 1 },
         "widgetType": {
           "type": "string",
-          "enum": ["pageviews", "linkcount", "categorySize", "wikistats", "fileUsage", "topWikipedias", "glamorgan", "markdown", "topPages", "excerpt", "edithistory", "quality", "assessments", "gallery", "panorama360", "fileGallery", "articleList", "sparql", "wikiPage", "cimSnapshot", "cimTrend", "cimTopFiles", "cimTopWikis", "cimTopPages", "cimTopEditors", "cimLeaderboard", "cimFileSpotlight", "cimFileTraffic"]
+          "enum": ["pageviews", "linkcount", "categorySize", "wikistats", "fileUsage", "topWikipedias", "glamorgan", "markdown", "topPages", "excerpt", "edithistory", "quality", "assessments", "gallery", "panorama360", "fileGallery", "articleList", "sparql", "wikiPage", "cimSnapshot", "cimTrend", "cimTopFiles", "cimTopWikis", "cimTopPages", "cimTopEditors", "cimLeaderboard", "cimFileSpotlight", "cimFileTraffic", "waybackGallery"]
         },
         "config": {
           "type": "object",

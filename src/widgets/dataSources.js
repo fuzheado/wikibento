@@ -1500,3 +1500,107 @@ async function fetchCimTrafficWithHeal(file, wiki, start, end) {
     return fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(s2.year, s2.month)}/${cimDate(end.year, end.month)}`);
   }
 }
+
+/** 20. Wayback Snapshot Gallery — closest capture per requested date.
+ *  Fast path: the Wayback availability API (accepts a `timestamp` param,
+ *  CORS-enabled ACAO:*). It is however FLAKY from browsers — some
+ *  (url, date) lookups deterministically fail CORS or return empty
+ *  `archived_snapshots: {}` while a capture exists (verified 2026-08-14:
+ *  wikipedia.org@20150615 CORS-fails in-browser / returns {} with a
+ *  `memento-location` header proving the capture; the same request later
+ *  succeeds). So when availability throws or reports nothing, we fall
+ *  back to the authoritative CDX index via the Toolforge same-origin
+ *  /api/proxy (CDX itself sends no CORS). Replay pages frame cleanly:
+ *  web.archive.org sends no X-Frame-Options / frame-ancestors (verified
+ *  2026-08-14), so the card embeds `id_` (toolbar-less) captures in
+ *  scaled iframes as screenshot tiles. */
+const waybackCache = createTtlCache(10 * 60 * 1000);
+
+/** Nearest capture within ±tol days of `date` via CDX (through the proxy). */
+async function waybackCdxNearest(clean, date, tol) {
+  const day = 86400000;
+  const from = new Date(new Date(date).getTime() - tol * day).toISOString().slice(0, 10).replace(/-/g, '');
+  const to = new Date(new Date(date).getTime() + tol * day).toISOString().slice(0, 10).replace(/-/g, '');
+  const cdx = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(clean)}&from=${from}&to=${to}&output=json&fl=timestamp,original,statuscode&collapse=timestamp:6&filter=statuscode:200&limit=200`;
+  const proxy = `/api/proxy?url=${encodeURIComponent(cdx)}`;
+  const text = await fetchTextWithRetry(proxy, { timeoutMs: 20000, retries: 1 });
+  let parsed = null;
+  try { parsed = JSON.parse(text); } catch { return null; }
+  const rows = Array.isArray(parsed?.body) ? parsed.body : null;
+  if (!rows || rows.length < 2) return null;
+  const cols = rows[0];
+  const iTs = cols.indexOf('timestamp');
+  const iOrig = cols.indexOf('original');
+  const iSt = cols.indexOf('statuscode');
+  // pick the row nearest the requested date
+  let best = null;
+  for (let r = 1; r < rows.length; r++) {
+    const capTs = String(rows[r][iTs] || '');
+    if (!/^\d{14}$/.test(capTs)) continue;
+    const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - new Date(date)) / day));
+    if (!best || d < best.diffDays) best = { capTs, original: rows[r][iOrig], status: rows[r][iSt], diffDays: d };
+  }
+  return best;
+}
+
+export async function fetchWaybackGallery(url, dates, toleranceDays = 30) {
+  const clean = String(url || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  if (!clean) throw new Error('Enter a website URL');
+  const list = String(dates || '')
+    .split('\n').map((d) => d.trim())
+    .filter((d) => /^\d{4}[-/]?\d{2}[-/]?\d{2}$/.test(d))
+    .slice(0, 24); // cap the request fan-out
+  if (!list.length) throw new Error('Enter dates (YYYY-MM-DD, one per line)');
+  const tol = Math.max(parseInt(toleranceDays) || 30, 1);
+
+  const rows = await Promise.all(list.map(async (date) => {
+    const ts = date.replace(/[-/]/g, '');
+    const api = `https://archive.org/wayback/available?url=${encodeURIComponent(clean)}&timestamp=${ts}`;
+    let closest = null;
+    try {
+      const text = await waybackCache.get(api, () => fetchTextWithRetry(api, { timeoutMs: 15000, retries: 1 }));
+      let data = {};
+      try { data = JSON.parse(text); } catch { /* not JSON — treat as no capture */ }
+      closest = data?.archived_snapshots?.closest;
+    } catch { /* CORS/network — fall through to CDX */ }
+    if (!closest || !closest.available) {
+      // availability said no (or threw): CDX is authoritative — try it.
+      try {
+        const viaCdx = await waybackCdxNearest(clean, date, tol);
+        if (viaCdx) {
+          const { capTs, original, status, diffDays } = viaCdx;
+          return {
+            date,
+            available: true,
+            withinTolerance: diffDays <= tol,
+            diffDays,
+            timestamp: capTs,
+            captureDate: `${capTs.slice(0, 4)}-${capTs.slice(4, 6)}-${capTs.slice(6, 8)}`,
+            status,
+            snapshotUrl: `https://web.archive.org/web/${capTs}/${original || clean}`,
+            replayUrl: `https://web.archive.org/web/${capTs}id_/${clean}`,
+            viaCdx: true,
+          };
+        }
+      } catch { /* proxy unavailable (e.g. plain static host) — graceful tile */ }
+      return { date, available: false, lookupFailed: true };
+    }
+    const capTs = String(closest.timestamp);
+    const captureDate = `${capTs.slice(0, 4)}-${capTs.slice(4, 6)}-${capTs.slice(6, 8)}`;
+    const diffDays = Math.round(Math.abs((new Date(captureDate) - new Date(date)) / 86400000));
+    const snapshotUrl = String(closest.url).replace(/^http:\/\//i, 'https://');
+    return {
+      date,
+      available: true,
+      withinTolerance: diffDays <= tol,
+      diffDays,
+      timestamp: capTs,
+      captureDate,
+      status: closest.status,
+      snapshotUrl,
+      replayUrl: `https://web.archive.org/web/${capTs}id_/${clean}`,
+    };
+  }));
+
+  return { url: clean, rows };
+}

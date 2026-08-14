@@ -327,6 +327,7 @@ function WidgetContent({ type, data }) {
     case 'CimTopFilesCard': return <CimTopFilesCard data={data} />;
 
     case 'FileTrafficCard': return <FileTrafficCard data={data} />;
+    case 'WaybackGalleryCard': return <WaybackGalleryCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -1037,6 +1038,58 @@ function FileTrafficCard({ data }) {
           </svg>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Wayback Snapshot Gallery — screenshot tiles of a website at chosen
+ *  dates. Each tile embeds the closest capture (id_ = toolbar-less
+ *  replay) in a fixed 1280x960 iframe scaled down to tile size — the
+ *  classic screenshot-thumbnail technique. Tiles are display-only
+ *  (pointer-events off); the caption links open the full snapshot. */
+function WaybackGalleryCard({ data }) {
+  const rows = data.rows || [];
+  return (
+    <div className="wayback-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="wayback-grid">
+        {rows.length === 0 && <div className="widget-empty">No captures found</div>}
+        {rows.map((r, i) => (
+          <div key={i} className="wayback-tile">
+            {r.available && r.withinTolerance ? (
+              <div className="wayback-shot">
+                <iframe
+                  src={r.replayUrl}
+                  title={`${data.title} ${r.captureDate}`}
+                  loading="lazy"
+                  tabIndex="-1"
+                  aria-hidden="true"
+                />
+              </div>
+            ) : (
+              <div className="wayback-missing">
+                {r.lookupFailed
+                  ? 'lookup failed — retries on refresh'
+                  : r.available
+                    ? `no capture within ±${data.toleranceDays || 30} days`
+                    : 'no captures on record'}
+              </div>
+            )}
+            <div className="wayback-cap">
+              <a href={r.snapshotUrl || r.replayUrl} target="_blank" rel="noopener noreferrer">
+                {r.captureDate || r.date}
+              </a>
+              {r.available && !r.withinTolerance && (
+                <span className="wayback-off"> · nearest {r.diffDays}d away</span>
+              )}
+              {r.available && r.status && r.status !== '200' && (
+                <span className="wayback-off"> · HTTP {r.status}</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

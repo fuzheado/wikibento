@@ -79,6 +79,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **CIM File Traffic** | 📉 | CIM `pageviews-per-media-file-monthly` | Interactive monthly traffic chart for one file — labeled axes, −/+ zoom (3/6/12/24 months), self-heals CIM's intermittent 500s on specific ranges |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
+| **Wayback Snapshot Gallery** | 🕰️ | Wayback availability API + CDX fallback via /api/proxy | Screenshot tiles of a website at chosen dates — closest capture per date (within tolerance), iframe-embedded, click-through to the live snapshot |
 
 ## Features
 

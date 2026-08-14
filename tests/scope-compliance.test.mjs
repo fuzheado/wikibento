@@ -37,6 +37,7 @@ const FIXTURES = {
   cimLeaderboard: { rows: [] },
   cimFileSpotlight: { file: 'X.jpg', wikis: 1, pages: 1, views: 1, trend: [] },
   cimFileTraffic: { file: 'X.jpg', rows: [] },
+  waybackGallery: { url: 'example.org', rows: [] },
 };
 
 test('1. every widget declares timeScope', () => {
