@@ -638,3 +638,73 @@ missing fields.
 
 **Status:** open. Source: SightGlass API analysis 2026-08-14 (job
 TBJkShssuDUjMqWM).
+
+## ISSUE-24 · Wiki Edu widgets: campaign overview + course stats — **open**
+
+**What:** integrate Wiki Education's public data into widgets — the
+course dashboard (dashboard.wikiedu.org) and the Impact topic tool
+(impact.wikiedu.org). Analyzed 2026-08-14 from three surfaces: the
+Impact home, a course overview
+(`/courses/American_University/COMM420_(Spring_2016)/overview`), and
+the Explore catalog.
+
+**Why:** Wiki Edu runs hundreds of classroom programs whose outputs are
+Wikipedia contributions — a natural "Edit-a-thon Live / Campaign
+Tracker" starter-pack data source (ROADMAP). Prior notes in
+WIDGET-IDEAS.md cover the campaign JSON; the course-level surface is
+newly verified here and is the richer half.
+
+**API facts (verified 2026-08-14):**
+- **CORS: dashboard.wikiedu.org sends `Access-Control-Allow-Origin: *`
+  (emitted when an Origin header is present — real browser fetches
+  work directly; earlier "no CORS" readings were header-only probes
+  without Origin).** All endpoints below are public JSON, no auth:
+  - `campaigns/{slug}.json` → `{campaign: {title, slug, description,
+    courses_count, user_count, new_article_count_human, word_count_human,
+    references_count_human, view_sum_human, …}}` (human-formatted stats
+    e.g. "254K", "17.4M" — quick-win StatCard material).
+  - `courses/{school}/{course}/articles.json` → per-article
+    `{character_sum, references_count, view_count, new_article,
+    tracked, user_ids, mw_page_id, url}` (83 KB for COMM420 — RankingCard
+    material: top articles by views, new-article flags).
+  - `courses/{school}/{course}/users.json` → per-student
+    `{character_sum_ms/us/draft, references_count, role, …}`
+    (10.9 KB — student contribution leaderboard).
+  - `courses/{school}/{course}/uploads.json` → `{uploaded_at,
+    usage_count, url, thumburl, …}` (34.7 KB — **thumburl already
+    present**, gallery material).
+  - `courses/{school}/{course}/timeline.json` (weeks/blocks) and
+    `assignments.json` (student↔article links) — minor.
+  - 404s: `courses/{school}/{course}.json`, `…/overview.json`,
+    `students.json`, `revisions.json`, `explore.json`; root
+    `campaigns.json` returns `{campaigns: []}` without filter params
+    (Explore's surface needs bundle archaeology — defer).
+- **impact.wikiedu.org has NO CORS even with Origin** — needs the
+  Toolforge `/api/proxy` (hatnote/SightGlass precedent); topic
+  metadata rich (`/api/topics/{id}`: articles_count 436, user_count
+  116,712, timepoints_count 25, embedded Wikidata query link —
+  WIDGET-IDEAS "Topic Overview" note stands, proxy-gated).
+
+**Proposed fix (two widgets):**
+1. **Wiki Edu Campaign** (quick win, S): input = campaign slug;
+   StatCard/GLAMCard of the human-formatted headline stats
+   (courses/users/articles/words/references/views) + link to the
+   campaign page. CORS-OK, no proxy.
+2. **Wiki Edu Course** (M): input = school/course slug pair (or full
+   course URL — parse it); render: top articles by `view_count`
+   (RankingCard, `new_article` badge, link via `url`), student
+   contribution rows from users.json (characters/references), and an
+   uploads filmstrip using the existing `thumburl` values
+   (GalleryGridCard pattern). All three fetches in parallel
+   (Promise.all), shared TTL cache.
+
+Registry entries declare `timeScope: 'point'` (or 'range' for
+time-bounded course terms — check) + ISSUE-21 provenance caveats
+("course period from Wiki Edu"). Update WIDGET-IDEAS.md with the
+verified course endpoints and the corrected CORS note.
+
+**Deferred:** Explore catalog widget (param discovery needed); Impact
+topic widgets (proxy-gated; revisit when /api/proxy is generalized
+server-side trimming).
+
+**Status:** open. Source: WikiEdu API analysis 2026-08-14.
