@@ -42,7 +42,10 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
             <div key={def.id} className="add-widget-item" onClick={() => handleAdd(def.id)}>
               <span className="add-widget-icon">{def.icon}</span>
               <div>
-                <div className="add-widget-name">{def.name}</div>
+                <div className="add-widget-name">
+                  {def.name}
+                  {def.experimental && <span className="add-widget-badge" title="Experimental — depends on third-party service health">alpha</span>}
+                </div>
                 <div className="add-widget-desc">{def.description}</div>
               </div>
               <span className="add-widget-add">+</span>

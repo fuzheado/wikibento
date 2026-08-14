@@ -1208,7 +1208,8 @@ export const WIDGET_TYPES = {
 
     timeScope: 'range',    name: 'Wayback Snapshot Gallery',
     icon: '🕰️',
-    description: 'Screenshot tiles of a website across history — one Wayback capture per requested date',
+    experimental: true,
+    description: 'Screenshot tiles of a website across history — one Wayback capture per requested date. Experimental: depends on the Wayback Machine backend health; failed lookups retry on refresh',
     labelFromConfig: (c) => (c.url || '').replace(/^https?:\/\//i, '').replace(/\/+$/, ''),
     defaults: {
       url: 'wikipedia.org',

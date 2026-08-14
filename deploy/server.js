@@ -222,6 +222,34 @@ const server = createServer(async (req, res) => {
         for (const miss of misses) {
           if (!miss.available && !cdxRan) miss.lookupFailed = true;
         }
+        // Pass 3: per-miss timemap JSON queries (replay-cluster backend —
+        // healthy even when the CDX index 503s; same columnar shape:
+        // [urlkey, timestamp, original, mimetype, statuscode, digest, length]).
+        for (const miss of misses) {
+          if (miss.available) continue;
+          const from = new Date(new Date(miss.date).getTime() - tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
+          const to = new Date(new Date(miss.date).getTime() + tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
+          try {
+            const tm = `https://web.archive.org/web/timemap/json?url=${encodeURIComponent(clean)}&from=${from}&to=${to}`;
+            const r = await fetch(tm, { headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) wayback-gallery' } });
+            const text = await r.text();
+            if (r.ok) {
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed) && parsed.length >= 2) {
+                const targetMs = new Date(miss.date).getTime();
+                let best = null;
+                for (let row = 1; row < parsed.length; row++) {
+                  const capTs = String(parsed[row][1] || '');
+                  const st = String(parsed[row][4] || '');
+                  if (!/^\d{14}$/.test(capTs) || st !== '200') continue;
+                  const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - targetMs) / day));
+                  if (!best || d < best.diffDays) best = { capTs, original: parsed[row][2], status: st, diffDays: d };
+                }
+                if (best) Object.assign(miss, rowFor(miss.date, best.capTs, best.status, 'timemap', best.original));
+              }
+            }
+          } catch { /* timemap down too — miss stays unavailable */ }
+        }
         const payload = { url: clean, rows, batch: true };
         if (rows.some((r) => r.available)) waybackCacheSet(cacheKey, payload, 10 * 60 * 1000);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });

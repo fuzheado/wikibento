@@ -1346,3 +1346,19 @@ body {
   color: var(--danger);
   margin-bottom: 6px;
 }
+
+/* ── Experimental (alpha) widget badge ──────────────────── */
+
+.add-widget-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(224, 85, 106, 0.15);
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: 1px;
+}
