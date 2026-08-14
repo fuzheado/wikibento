@@ -1228,8 +1228,8 @@ export const WIDGET_TYPES = {
     transform: (data, config) => {
       const dates = String(config.dates || '').split('\n').map((s) => s.trim()).filter(Boolean);
       return {
-        title: data.url,
-        subtitle: `${data.rows.length} captures · ${dates[0] || '—'} → ${dates[dates.length - 1] || '—'}`,
+        title: 'Wayback Machine history',
+        subtitle: `${data.url} · ${dates[0] || '—'} → ${dates[dates.length - 1] || '—'} · ${data.rows.length} captures`,
         rows: data.rows,
         toleranceDays: parseInt(config.toleranceDays) || 30,
       };
