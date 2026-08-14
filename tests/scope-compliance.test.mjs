@@ -68,6 +68,18 @@ test('2. scoped widgets display the resolved scope in their subtitle', () => {
   }
 });
 
+test('3b. freshness constitution — every live widget has refreshSeconds', () => {
+  // Constitution #2: any widget with `fetch` (a live query) MUST declare a
+  // refresh interval (WidgetFrame stamps the last-run time on every fetch
+  // widget's render data as _fetchedAt, displayed as the ⏱ footer).
+  for (const [id, def] of Object.entries(WIDGET_TYPES)) {
+    if (!def.fetch) continue; // static widgets (markdown, wikiPage) — exempt
+    const rs = def.defaults?.refreshSeconds;
+    assert.ok(rs > 0, `widget "${id}" fetches live data but declares no refreshSeconds in defaults`);
+    assert.ok(rs >= 30, `widget "${id}": refreshSeconds ${rs} below the 30 s API-etiquette floor`);
+  }
+});
+
 test('3. point-in-time widgets are declared but exempt', () => {
   const points = Object.entries(WIDGET_TYPES).filter(([, d]) => d.timeScope === 'point');
   for (const [id] of points) {

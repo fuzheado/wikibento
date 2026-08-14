@@ -1,3 +1,27 @@
+# The Freshness Constitution (read before adding any widget)
+
+Any widget that performs a **live query** (has a `fetch`) MUST let the viewer
+see how stale or fresh its data is. `WidgetFrame` stamps every fetch widget's
+render data with `_fetchedAt` (the time the query last ran) and renders an
+unobtrusive footer on every live widget:
+
+```
+⏱ updated 2:34:05 PM · auto-refresh 1h
+```
+
+The stamp updates on every load — initial fetch, manual ↻, config change, and
+auto-refresh — so viewers can always judge freshness. Static widgets (no
+`fetch`: Text/Markdown, Wiki Page) are exempt by definition — they have no
+query to be stale.
+
+- **Rule:** a widget with `fetch` MUST declare `refreshSeconds` in `defaults`
+  (≥ 30 s — the API-etiquette floor). Enforced by the constitution test
+  (`tests/scope-compliance.test.mjs`, run by `npm test` → `npm run build`).
+- **Caveats:** when a shared TTL cache serves a hit (Wikistats, SPARQL, CIM),
+  the stamp shows when the widget last ran — the underlying data may be up to
+  the cache TTL older. The stamp is "when this widget last refreshed", not
+  "when the upstream data was produced".
+
 # The Temporal-Scope Constitution (read before adding any widget)
 
 Every widget whose data has a temporal scope MUST display the **resolved**

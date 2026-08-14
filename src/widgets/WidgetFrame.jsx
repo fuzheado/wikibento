@@ -39,6 +39,8 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     try {
       const data = await def.fetch(widget.config);
       const transformed = def.transform(data, widget.config);
+
+      transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
       setState({ loading: false, error: null, data: transformed });
     } catch (e) {
       setState({ loading: false, error: e.message, data: null });
@@ -143,10 +145,17 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
           </div>
         )}
         {state.data && !state.loading && (
-          <WidgetContent type={renderer} data={state.data} />
-        )}
+  <>
+    <WidgetContent type={renderer} data={state.data} />
+    {def?.fetch && (
+      <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
+        ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {(() => { const s = widget.config.refreshSeconds || 3600; return s >= 3600 ? `${s / 3600}h` : `${s / 60}m`; })()}
       </div>
-    </div>
+    )}
+  </>
+)}
+ </div>
+ </div>
   );
 }
 
