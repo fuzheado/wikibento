@@ -123,8 +123,9 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'dates must be YYYY-MM-DD' }));
         return;
       }
+      const force = url.searchParams.get('force') === '1';
       const cacheKey = `${clean}|${dates.join(',')}|${tolerance}`;
-      const hit = waybackCacheGet(cacheKey);
+      const hit = force ? null : waybackCacheGet(cacheKey);
       if (hit) {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify(hit));

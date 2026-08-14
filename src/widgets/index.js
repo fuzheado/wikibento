@@ -1224,7 +1224,7 @@ export const WIDGET_TYPES = {
       { key: 'dates', label: 'Dates (one per line)', type: 'textarea', rows: 6, placeholder: '2010-06-15' },
       { key: 'toleranceDays', label: 'Tolerance (days)', type: 'number', placeholder: '30' },
     ],
-    fetch: (config) => fetchWaybackGallery(config.url, config.dates, config.toleranceDays),
+    fetch: (config, opts) => fetchWaybackGallery(config.url, config.dates, config.toleranceDays, opts),
     transform: (data, config) => {
       const dates = String(config.dates || '').split('\n').map((s) => s.trim()).filter(Boolean);
       return {

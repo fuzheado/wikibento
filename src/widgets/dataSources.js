@@ -1554,7 +1554,7 @@ async function waybackCdxNearest(clean, date, tol) {
   return null;
 }
 
-export async function fetchWaybackGallery(url, dates, toleranceDays = 30) {
+export async function fetchWaybackGallery(url, dates, toleranceDays = 30, opts = {}) {
   const clean = String(url || '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   if (!clean) throw new Error('Enter a website URL');
   const list = String(dates || '')
@@ -1571,14 +1571,14 @@ export async function fetchWaybackGallery(url, dates, toleranceDays = 30) {
   // failed board after one success.
   const lsKey = `wikibento-wayback:${clean}|${list.join(',')}|${tol}`;
   const cached = readWaybackCache(lsKey);
-  const isFresh = cached && Date.now() - cached.ts < 60 * 60 * 1000;
+  const isFresh = !opts.force && cached && Date.now() - cached.ts < 60 * 60 * 1000;
   if (isFresh) return cached.payload;
 
   try {
     // Primary: ONE server-side batch lookup (authoritative CDX, no CORS,
     // nearest-per-date computed server-side). Same-origin, so it works on
     // the Toolforge deployment; 404s on plain static hosts → fallback.
-    const batchUrl = `/api/wayback-gallery?url=${encodeURIComponent(clean)}&dates=${encodeURIComponent(list.join(','))}&tolerance=${tol}`;
+    const batchUrl = `/api/wayback-gallery?url=${encodeURIComponent(clean)}&dates=${encodeURIComponent(list.join(','))}&tolerance=${tol}${opts.force ? '&force=1' : ''}`;
     const batchText = await fetchTextWithRetry(batchUrl, { timeoutMs: 25000, retries: 1 });
     const batch = JSON.parse(batchText);
     if (batch && Array.isArray(batch.rows)) {
@@ -1600,7 +1600,9 @@ export async function fetchWaybackGallery(url, dates, toleranceDays = 30) {
     const api = `https://archive.org/wayback/available?url=${encodeURIComponent(clean)}&timestamp=${ts}`;
     let closest = null;
     try {
-      const text = await waybackCache.get(api, () => fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 }));
+      const text = opts.force
+        ? await fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 })
+        : await waybackCache.get(api, () => fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 }));
       let data = {};
       try { data = JSON.parse(text); } catch { /* not JSON — treat as no capture */ }
       closest = data?.archived_snapshots?.closest;

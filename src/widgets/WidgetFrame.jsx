@@ -110,7 +110,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
   };
 
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force) => {
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
       // Static widget (no fetch): render straight from config.
       setState({
@@ -124,7 +124,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     }
     setState(s => ({ ...s, loading: true, error: null }));
     try {
-      const data = await def.fetch(widget.config);
+      const data = await def.fetch(widget.config, { force }); // force = bust TTL/SWR caches (manual ↻ / Apply)
       const transformed = def.transform(data, widget.config);
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
@@ -134,9 +134,20 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     }
   }, [widget.widgetType, widget.config]);
 
-  // Initial load
+  // Initial load — immediate on mount; DEBOUNCED (600 ms) on config
+  // changes so typing in the ⚙ panel doesn't fire a fetch per keystroke
+  // (the Wayback Gallery would otherwise speculatively hit three
+  // backends per character). Manual ↻ and Apply & Reload call load()
+  // directly and stay immediate.
+  const firstRun = useRef(true);
   useEffect(() => {
-    load();
+    if (firstRun.current) {
+      firstRun.current = false;
+      load();
+      return;
+    }
+    const t = setTimeout(() => load(), 600);
+    return () => clearTimeout(t);
   }, [load]);
 
   // Auto-refresh (static widgets have nothing to refresh)
@@ -168,7 +179,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
             onClick={() => { setShowConfig(!showConfig); setShowInfo(false); }}
             title="Configure"
           >⚙</button>
-          <button className="widget-btn" onClick={load} title="Refresh">↻</button>
+          <button className="widget-btn" onClick={() => load(true)} title="Refresh">↻</button>
           <button
             className="widget-btn widget-btn-remove"
             onClick={() => onRemove(widget.id)}
@@ -222,7 +233,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
               )}
             </div>
           ))}
-          <button className="widget-btn widget-btn-apply" onClick={() => { setShowConfig(false); load(); }}>
+          <button className="widget-btn widget-btn-apply" onClick={() => { setShowConfig(false); load(true); }}>
             Apply & Reload
           </button>
         </div>
