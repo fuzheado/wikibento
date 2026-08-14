@@ -440,3 +440,32 @@ root `.slim` class + CSS reveal rules + grid lock + persistence
 (localStorage `wikibento-slim` + `?slim=1`).
 
 **Status:** open (design). Source: user request 2026-08-14.
+
+## ISSUE-19 · CIM File Spotlight: show the file's thumbnail (size-customizable) — **open**
+
+**What:** `cimFileSpotlight` renders stats + sparkline but never the image
+itself. Reported live: Queen Mother Pendant Mask — Iyoba
+(MET DP231460, all-wikis) — "Add a thumbnail of the image, perhaps
+customizable for size — thumb, medium, full width?"
+
+**Why:** a single-file spotlight widget is the natural place for the
+visual — the file IS the subject; `fetchCimFileSpotlight` only calls
+`media-file-metrics-snapshot` + `pageviews-per-media-file-monthly` (no
+`imageinfo`), so no thumb URL exists in the data.
+
+**Proposed fix:**
+- Fetch one `imageinfo` for the file (the `attachThumbs` pattern from
+  `cimTopFiles` — space-normalized `File:` title gotcha applies;
+  `iiurlwidth` for a ~800px display copy). One extra call, TTL-cached.
+- New `thumbSize` config: `thumb` (~120px) / `medium` (~300px) /
+  `full` (~800px, CSS-constrained responsive width, `object-fit:
+  contain`); default `medium`. Note the Commons thumb-width constraint
+  (up to 4096px via iiurlwidth; beyond that use the original URL) —
+  display width is CSS-controlled either way.
+- Render the image at the top of `CimSnapshotCard` (new
+  `.spotlight-image` block; click-through link to the Commons file
+  page; reuse `.card-image`/`sample-thumb` styling family); caption
+  shows the display filename.
+- Keep the stats + sparkline below the image.
+
+**Status:** open. Source: user report 2026-08-14.
