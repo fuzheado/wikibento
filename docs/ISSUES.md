@@ -4,7 +4,7 @@ Tracked issues and needed fixes, as noted during development. Format:
 `ISSUE-NN · title` → what/why, reproduction, proposed fix, status.
 Status: `open` · `in progress` · `done (commit)`. New issues: append, bump NN.
 
-## ISSUE-01 · CIM Global Leaderboard: double rank numerals — **done (commit pending)**
+## ISSUE-01 · CIM Global Leaderboard: double rank numerals — **done (163c46f)**
 
 **What:** the top-100 leaderboard shows the row index AND the CIM rank as
 separate columns ("1. 1 UNESCO 6,608,106,799").
@@ -20,9 +20,9 @@ colClasses `['cim-name', 'cim-num']`). The highlight feature reads
 a `hideRowIndex` flag on RankingCard — heavier, only needed if some widget
 wants both.)
 
-**Fixed 2026-08-14:** rank column dropped — rows render as `1. UNESCO 6,608,106,799`.
+**Fixed 2026-08-14 (163c46f):** rank column dropped — rows render as `1. UNESCO 6,608,106,799`.
 
-## ISSUE-02 · CIM Global Leaderboard: clickable category names — **done (commit pending)**
+## ISSUE-02 · CIM Global Leaderboard: clickable category names — **done (163c46f)**
 
 **What:** category names in the leaderboard are plain text; they should link
 to the Commons category in a new tab.
@@ -37,7 +37,7 @@ The `cimLeaderboard` transform then emits
 for the name column. (Same mechanism would later benefit CIM Top Pages /
 Top Wikis.)
 
-**Fixed 2026-08-14:** `RankingCard` renders `{text, href}` cells as links
+**Fixed 2026-08-14 (163c46f):** `RankingCard` renders `{text, href}` cells as links
 (`.ranking-link` styling); the leaderboard links every category to its
 Commons page — verified live (100 links, e.g. UNESCO →
 commons.wikimedia.org/wiki/Category:UNESCO).

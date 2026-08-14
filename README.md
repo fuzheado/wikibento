@@ -189,7 +189,7 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-08-13)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-08-14)
 
 - ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
   imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
@@ -217,6 +217,8 @@ wikibento/
 - ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
 - ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
 - ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
+- ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
+- ✅ **CIM File Traffic (2026-08-14):** 📉 interactive chart — labeled axes (compact Y ticks `254K`/`1.2M`, month X labels, "views"/"month" titles), −/+ zoom slices 3/6/12/24 months client-side, header shows the displayed range; self-heals the CIM 500-on-12-month-window bug (verified: exact window `20250801/20260801` 500s from browsers while curl 200s; 11/13/30-month windows fine) by retrying with the earliest month dropped
 - ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too)
 - ✅ All 26 data-driven widget types render live data in the browser; the 27th (Text/Markdown) and 28th (Wiki Page — a static iframe) are static — no fetch, renders from config
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 28 widgets
