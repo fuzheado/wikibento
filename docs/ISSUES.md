@@ -708,3 +708,67 @@ topic widgets (proxy-gated; revisit when /api/proxy is generalized
 server-side trimming).
 
 **Status:** open. Source: WikiEdu API analysis 2026-08-14.
+
+## ISSUE-25 · Internet Archive widget family: item, views, search, collection, wayback — **open**
+
+**What:** integrate the Internet Archive's public APIs as display widgets.
+Researched 2026-08-14 (official developer portal
+archive.org/developers + live probes; IA/Wikimedia ties: Wayback is
+Wikipedia's citation archive — dead-link triage; IA scans donated to
+Commons/Wikisource).
+
+**Why:** IA holds ~1T web pages (Oct 2025 milestone) + millions of texts/
+media with per-item engagement stats — a pageviews-style surface for a
+GLAM/archive bento, plus the Wayback availability check is genuinely
+useful next to any Wikipedia citation work. All core endpoints are
+public and most are browser-fetchable.
+
+**Verified API surface (2026-08-14):**
+- ✅ **CORS `Access-Control-Allow-Origin: *`** (browser-fetchable):
+  - `archive.org/metadata/{id}` → item metadata + `files[]` list +
+    `item_size`; partial reads (`/metadata/{id}/files?start&count`).
+  - `archive.org/advancedsearch.php?q=…&fl[]=…&rows&sort&output=json` →
+    `{response: {numFound, docs[]}}` (fields: identifier, title, year,
+    downloads, collection…).
+  - `archive.org/services/search/v1/scrape?q=…&fields=…&count=N` —
+    newer API; ⚠️ `count` min 100 (client slices; 400 otherwise).
+  - `archive.org/wayback/available?url=…` → `{archived_snapshots:
+    {closest: {available, timestamp, status, url}}}`.
+  - **`be-api.us.archive.org/views/v1/short/{id}`** → per-item
+    engagement `{all_time, last_30day, last_7day}` ("views" = play/read/
+    download, one per item/user/IP/day; updated daily); time series via
+    `views/v1/detail/item/{id}/{start}/{end}` (200 verified).
+  - `archive.org/services/img/{id}` → 302 to a real thumbnail — usable
+    directly as an `<img src>` (no JSON).
+- ❌ **No CORS** (need the Toolforge `/api/proxy` — hatnote/SightGlass
+  precedent): `web.archive.org/cdx/search/cdx` (capture index),
+  `web.archive.org/web/timemap/link/{url}` (memento timeline).
+- `archive.org/stats` (aggregate ops dashboard) → 302, not a data API.
+
+**Proposed fix (widget family, in priority order):**
+1. **IA Item** (📦, S): identifier → metadata summary (title, creator,
+   year, description, collection, item_size, file count) + views stats
+   (all_time/30d/7d) + thumbnail (`services/img`) + link to details
+   page. Two fetches (metadata + views), CORS-OK, StatCard-style.
+2. **IA Item Views Over Time** (📈, S): views detail series → TrendCard
+   (inherits ISSUE-12 axis fix) — the IA analogue of pageviews.
+3. **IA Search** (🔍, S–M): query → results list (identifier/title/
+   year/downloads) clickable to details; optional `services/img`
+   thumbs (Article List pattern).
+4. **IA Collection** (🗂️, M): collection id → top items by downloads
+   (`advancedsearch q=collection:X sort=downloads desc`) + collection
+   metadata — GLAM-style; natural fit for Wikimedia-adjacent
+   collections (donated scans).
+5. **Wayback Availability** (🕰️, S): URL → closest snapshot
+   (available/timestamp/status/replay link) — dead-link triage for
+   Wikipedia citations; optional **coverage mode** (first/last
+   capture, count, capture timeline via CDX — proxy-gated, M).
+
+Registry: `timeScope` 'point'/'range' per widget; ISSUE-21 provenance
+caveats ("views = IA engagement, updated daily; search = top N by
+downloads"). Shared TTL cache for the search/views endpoints.
+
+**Deferred:** IA S3 API, changes feed (auth-gated); Archive-It partner
+APIs (auth); Scholar/Fatcat (separate catalog).
+
+**Status:** open. Source: IA API research 2026-08-14.
