@@ -501,3 +501,84 @@ URL", localStorage → "from previous session", none → "starter
 widgets".
 
 **Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-21 · Provenance constitution (meta): every display explains its own data — **open** (design)
+
+**What:** pattern analysis of the filed issues (2026-08-14): five of nine
+user-filed issues ask the same question in different words — "what am I
+looking at?" — ISSUE-12 (chart scale), 14 (is this a sample?), 15 (where
+did these images come from?), 19 (show me the subject), 20 (where did
+this board come from). Propose a **third constitution** — after freshness
+(⏱ footer) and temporal scope (subtitle) — requiring every data display
+to make its provenance visible.
+
+**Why:** the constitution architecture is proven (tests/scope-
+compliance.test.mjs runs via `npm test`, wired into `npm run build` — a
+non-compliant widget blocks deployment). A provenance rule would have
+prevented 5 of the 9 user filings; without it, the pattern keeps being
+rediscovered per-widget (cf. ISSUE-17 — the GLAM widget already solved
+the wiki-column width).
+
+**The constitution (proposed rules, enforced by a new
+`tests/provenance-compliance.test.mjs`):**
+
+1. **Subject visible** — every widget's header/title states what it is
+   analyzing (already true via asset-aware titles; the rule formalizes
+   it).
+2. **Scale/scope visible** — any chart MUST render labeled axes or an
+   explicit min/max (fixes 12); the resolved temporal scope stays in the
+   subtitle (existing constitution).
+3. **Caveats visible** — samples are labeled "Random sample of N"
+   (14); filters stated ("captioned, ≥200px" — 15); caps stated
+   (5,000+ pattern already exists for external links); **data vintage vs
+   fetch time** — TTL-cached sources (CIM/Wikistats/SPARQL) should show
+   "data: 2026-07 · fetched 2:34 PM" rather than only the fetch time
+   (interpolated from 20 + the freshness constitution's documented
+   caveat).
+4. **Subject visual** — widgets about a single artifact (cimFileSpotlight
+   19, excerpt, panorama) show the artifact's image when one exists.
+5. **Session provenance** — the app-level ⓘ/About gains a Session
+   section: raw `?config=` value, expanded URL, source kind, fetch time,
+   widget count (fixes 20).
+
+**Registry form:** each entry declares `provenance: { caveats: [...],
+showsSubjectImage: bool }` or similar; the test walks the registry +
+fixture transforms (same pattern as scope-compliance) and fails on
+missing declarations or unlabeled sample/cap data.
+
+**Status:** open (design). Source: pattern analysis of ISSUE-12..20, 2026-08-14.
+
+## ISSUE-22 · Actionability audit (meta): every datum links to its source — **open** (design)
+
+**What:** widgets are posters, not portals. Following the link precedents
+(ISSUE-02 leaderboard → 07 editors → 08 pages, all done), remaining
+gaps: 16 (revision → diff), 06 (top file → its top pages drill-down),
+10 (GLAMorous handoff). Propose a **per-widget link-coverage audit** so
+"data as portals" is a checklist, not a rediscovery.
+
+**Why:** the README tagline is "insights **and action**" — the action
+half is underbuilt. Each link fix so far was filed independently after a
+user hit the missing affordance; a matrix prevents future gaps (e.g.
+the wiki column in cimTopPages/leaderboard could link to its wiki's
+main page — a candidate not yet filed).
+
+**The audit matrix (docs/ACTIONABILITY.md, widget-by-widget checklist):**
+
+- Article-based widgets (pageviews, excerpt, quality, assessments,
+  edithistory, gallery, articleList): title → article page; revisions →
+  diff (16); users → contributions (edithistory already does).
+- File-based (fileUsage, gallery, fileGallery, cimTopFiles,
+  cimFileSpotlight, panorama): file → Commons file page (mostly done;
+  verify coverage incl. the spotlight thumb link from 19).
+- Category-based (categorySize, glamorgan, all CIM): category → Commons
+  category page (leaderboard done in 02; check the rest).
+- Table rows (CIM): pages/users done (07/08); wiki column → wiki main
+  page (candidate); top-files drill-down (06).
+- Tool handoffs: GLAMorous deep-link (10); future PetScan/PagePile
+  sources get the same treatment.
+
+**Proposed form:** no build gate (links are best-effort affordances, not
+constitution-grade) — a documented matrix + per-widget fixes, filed as
+small issues as the audit proceeds.
+
+**Status:** open (design). Source: pattern analysis of ISSUE-12..20, 2026-08-14.
