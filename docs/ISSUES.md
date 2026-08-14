@@ -582,3 +582,59 @@ constitution-grade) — a documented matrix + per-widget fixes, filed as
 small issues as the audit proceeds.
 
 **Status:** open (design). Source: pattern analysis of ISSUE-12..20, 2026-08-14.
+
+## ISSUE-23 · SightGlass widget family: job result + metadata gaps — **open**
+
+**What:** integrate [SightGlass](https://sightglass.toolforge.org)
+(WikiPortraits tool, Kevin Payravi — gitlab.wikimedia.org/repos/
+wikiportraits/sightglass; job-based Commons category pageview-impact
+scanner on mediacounts data, same family as CIM) as a display widget.
+Analyzed 2026-08-14 from a saved job result (NASA Air & Space Museum
+scan, 6,947 files).
+
+**Why:** SightGlass offers what the CIM family can't — (1)
+**metadata-completeness signals**: per-file `author`/`license` fields
+reveal gap buckets (the NASA scan: license: 0 on 6,946/6,947 files,
+author missing on ~900) → an actionable GLAM audit sorted by view
+count, genuinely new content for WikiBento; (2) **any category, any
+date range, referer/agent filters** — CIM is allow-list + monthly;
+SightGlass computes on demand → natural CIM fallback for unregistered
+categories (ROADMAP "CIM-first GLAM mode" item — note there, not here).
+
+**API facts (verified):** `GET /api/jobs/{id}` → `{type:
+'category-stats', status, progress, total, parameters: {category,
+start, end, granularity, referer, agent, depth}, isSaved,
+expiresInDays}`; `GET /api/jobs/{id}/result` → `{category,
+fileCount, filesProcessed, filesWithErrors, totalViews,
+averageViewsPerFile, startDate, endDate, timeline:
+[{timestamp, requests}], files: [{filename, totalViews, author,
+license, taken, uploaded, usage}], authors[], licenses[],
+categoryTree}` — 1.26 MB for 6,947 files; job run ~15 min (async);
+result API public, **job creation requires /login**; **NO CORS headers**.
+Sparse fields: `usage` on 61/6,947, `taken` on 2,988/6,947 — handle
+missing fields.
+
+**Proposed fix (two display modes, one data source):**
+- New widget family `sightglass` (input = job ID or full job URL — the
+  "list source" input vocabulary):
+  - **Job Result mode**: summary stats (files · total views · avg/file ·
+    range) + monthly timeline chart (FileTraffic/TrendCard pattern —
+    inherits ISSUE-12's axis fix) + top-N files with thumbnails
+    (`attachThumbs` imageinfo pattern) + status/progress banner for
+    pending jobs + "saved result" freshness stamp.
+  - **Metadata Gaps mode**: "N files (X% of views) lack author
+    metadata · M lack license" + most-viewed gap files as a fix-it
+    list linking to their Commons pages.
+- Transport: fetch via the Toolforge same-origin `/api/proxy` (hatnote
+  precedent; sightglass sends no CORS) — consider a server-side trim
+  (`?top=N&fields=…` proxy extension) and/or a shared TTL cache
+  (Wikistats 195 KB CSV precedent) for the 1.26 MB payload.
+- Handoff: a small "Create a scan" deep-link to
+  `https://sightglass.toolforge.org/query` (login-gated; same pattern
+  as ISSUE-10's GLAMorous link).
+- Registry entry declares `timeScope: 'range'` (constitution) and
+  provenance caveats (ISSUE-21: "sample = top N of the scan; scan
+  period from the job").
+
+**Status:** open. Source: SightGlass API analysis 2026-08-14 (job
+TBJkShssuDUjMqWM).
