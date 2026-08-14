@@ -255,7 +255,11 @@ function RankingCard({ data }) {
           <div key={i} className="ranking-row">
             <span className="rank-num">{i + 1}.</span>
             {row.map((cell, j) => (
-              <span key={j} className={colClass(j)} title={String(cell)}>{cell}</span>
+              <span key={j} className={colClass(j)} title={typeof cell === 'object' ? cell.text : String(cell)}>
+                {typeof cell === 'object' && cell.href ? (
+                  <a className="ranking-link" href={cell.href} target="_blank" rel="noopener noreferrer">{cell.text}</a>
+                ) : (typeof cell === 'object' ? cell.text : cell)}
+              </span>
             ))}
           </div>
         ))}

@@ -1182,3 +1182,6 @@ body {
 .file-traffic-axis { fill: var(--text-secondary); font-size: 9px; }
 .file-traffic-axis-title { fill: var(--text-secondary); font-size: 9px; }
 .file-traffic-point { fill: var(--accent); }
+/* clickable ranking cells (ISSUE-02) */
+.ranking-link { color: var(--accent); text-decoration: none; }
+.ranking-link:hover { text-decoration: underline; }

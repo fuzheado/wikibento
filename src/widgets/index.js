@@ -920,9 +920,12 @@ export const WIDGET_TYPES = {
         hl
           ? `${mo} · #${hl.rank} of top 100 · ${hl.category.replace(/_/g, ' ')} (${hl.views.toLocaleString()} views)`
           : highlight ? `${mo} · ${highlight} not in the top 100 · precomputed (CIM)` : `${mo} · top 100 · precomputed (CIM)`,
-        ['Rank', 'Category', 'Views'],
-        data.rows.map((r) => [String(r.rank), r.category.replace(/_/g, ' '), r.views.toLocaleString()]),
-        ['cim-rank', 'cim-name', 'cim-num'],
+        ['Category', 'Views'],
+        data.rows.map((r) => [
+          { text: r.category.replace(/_/g, ' '), href: `https://commons.wikimedia.org/wiki/Category:${r.category}` },
+          r.views.toLocaleString(),
+        ]),
+        ['cim-name', 'cim-num'],
       );
     },
   },
