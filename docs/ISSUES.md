@@ -364,3 +364,79 @@ tab). The transform must pass the underscore-form article title and
 project (verify `fetchEditHistory` output has both).
 
 **Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-17 · CIM Top Pages: wiki column too wide — **open**
+
+**What:** the first column (wiki prefix, e.g. "en.wikipedia") renders at
+the same `flex: 3` width as the page-title column — short content,
+wasted space. Reported live: `cimTopPages` (Images_from_
+Metropolitan_Museum_of_Art, deep, all-wikis).
+
+**Why:** the transform emits `colClasses: ['cim-name', 'cim-name',
+'cim-num']` and `.cim-name { flex: 3 }` is shared by the wiki and page
+columns (App.css). The GLAM widget already solved the same problem for
+its wiki column (shorthand + 108px nowrap + full hostname on hover).
+
+**Proposed fix:** new `.cim-wiki` class — fixed width (~84–108px),
+`nowrap` + ellipsis, full hostname in the `title` tooltip (same pattern
+as the GLAM wiki-column fix); transform colClasses become
+`['cim-wiki', 'cim-name', 'cim-num']`. No data changes.
+
+**Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-18 · Slim / presentation mode: hide widget chrome — **open** (design)
+
+**What:** a mode where widget title bars (and other decoration) are hidden
+so the dashboard reads as a streamlined full web app rather than a
+widget framework. Reported: user request 2026-08-14; matches ROADMAP
+Phase 2 "lean display mode (decorations hidden by default, hover/tap to
+reveal)".
+
+**Why:** demo/PR value (the screenshot becomes "a real dashboard", not a
+builder — supports the spike-alert/shareable strategy), focus for
+viewers (data, not chrome), and kiosk/embed potential (an iframe on a
+wiki page or GLAM site with minimal chrome). Drawbacks: hidden controls
+hurt discoverability for new users; hover patterns are desktop-only;
+and the grid must be locked while headers are hidden (drag handle
+lives in the header).
+
+**Approaches considered:**
+
+- **A. Persistent top-level toggle (Edit/View or slim switch).** Pro:
+  explicit, discoverable, predictable, keyboard-accessible; state can
+  persist. Con: one more toolbar control; chrome stays on until toggled;
+  doesn't help touch if the toggle itself is the only path.
+- **B. Hover-reveal title bars** (headers hidden; hover a widget → its
+  header fades in). Pro: zero chrome at rest; mouse movement is a
+  natural affordance. Con: desktop-only (touch has no hover — tap would
+  need to both reveal and interact); accidental reveals while sweeping
+  the mouse across the board (flicker); keyboard users need a
+  focus-within path; drag handle unavailable at rest (grid must lock).
+- **C. Two explicit modes — View vs Edit** (Grafana/Kibana-style). Pro:
+  robust on touch, accessible, predictable; view mode = grid locked
+  (`isDraggable`/`isResizable` false), headers + ⏱ footers hidden,
+  toolbar collapses to essentials; edit mode = today's behavior. Con:
+  mode switch is a small mental overhead; still a control on screen.
+- **D. Slim headers** (icon + title only; action buttons hidden until
+  hover). Pro: keeps context + drag handle. Con: still chrome; partial
+  win vs the goal.
+- **E. Hybrid (recommended): C + B.** A top-level "Slim" toggle
+  (toolbar button, `localStorage` persisted, `?slim=1` URL param for
+  shareable presentation links, Escape exits) + per-widget hover/
+  focus-within reveal of the header in slim mode (CSS-only:
+  `.slim .widget-header { display: none }` /
+  `.slim .widget-frame:hover .widget-header, .slim .widget-frame:focus-within .widget-header { display: flex }`).
+  Grid locked in slim mode; toolbar shrinks (keep ⓘ About, Share,
+  Export; hide +Add/Import/Example/Reset).
+
+**Open decisions:** whether the ⏱ freshness footer (freshness
+constitution) hides in slim mode — proposal: yes, as an intentional
+opt-out (viewers of a presentation link don't need it; the header's ⏱
+reappears on hover) or keep a one-line footer; whether subtitles with
+the temporal scope stay (proposal: yes — they're content-adjacent).
+
+**Proposed fix (if approved):** implement E above — toolbar toggle +
+root `.slim` class + CSS reveal rules + grid lock + persistence
+(localStorage `wikibento-slim` + `?slim=1`).
+
+**Status:** open (design). Source: user request 2026-08-14.
