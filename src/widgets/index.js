@@ -69,6 +69,28 @@ const CIM_CATEGORY_FIELD = { key: 'category', label: 'Commons category', type: '
 const CIM_MONTH_FIELD = { key: 'month', label: 'Month (default: last complete month)', type: 'number', placeholder: '7' };
 const cimRanking = (title, subtitle, columns, rows, colClasses) => ({ title, subtitle, columns, rows, colClasses });
 
+// Commons profile links for an editor name ([User] | [Talk] | [Contrib]).
+const editorLinks = (user) => {
+  const enc = encodeURIComponent(user.replace(/ /g, '_'));
+  return {
+    text: user,
+    links: [
+      { label: 'User', href: `https://commons.wikimedia.org/wiki/User:${enc}` },
+      { label: 'Talk', href: `https://commons.wikimedia.org/wiki/User_talk:${enc}` },
+      { label: 'Contrib', href: `https://commons.wikimedia.org/wiki/Special:Contributions/${enc}` },
+    ],
+  };
+};
+
+// Resolve a CIM page-wiki host prefix (e.g. 'en.wikipedia', 'commons.wikimedia')
+// to a browsable page URL, or null when the prefix is unknown.
+const pageHref = (wiki, page) => {
+  const host = /^[a-z0-9-]+\./.test(wiki)
+    ? `${wiki}.org`
+    : { wikidata: 'wikidata.org', species: 'species.wikimedia.org', meta: 'meta.wikimedia.org', commons: 'commons.wikimedia.org', incubator: 'incubator.wikimedia.org', mediawiki: 'www.mediawiki.org' }[wiki];
+  return host ? `https://${host}/wiki/${encodeURIComponent(page.replace(/ /g, '_'))}` : null;
+};
+
 // Wiki Page widget: en/de/fr + Commons (the shared PROJECT_OPTIONS stays
 // article-focused — commons.wikimedia breaks the other article widgets).
 const WIKI_PAGE_PROJECTS = [
@@ -867,7 +889,7 @@ export const WIDGET_TYPES = {
       data.category.replace(/_/g, ' '),
       `${fmtMonth(sc.year, sc.month)} · pages using the files · ${config.scope} · precomputed (CIM)`,
       ['Wiki', 'Page', 'Views'],
-      data.rows.map((r) => [r.wiki, r.page.replace(/_/g, ' '), r.views.toLocaleString()]),
+      data.rows.map((r) => { const href = pageHref(r.wiki, r.page); const p = r.page.replace(/_/g, ' '); return [r.wiki, href ? { text: p, href } : p, r.views.toLocaleString()]; }),
       ['cim-name', 'cim-name', 'cim-num'],
  ); } },
 
@@ -889,7 +911,7 @@ export const WIDGET_TYPES = {
       data.category.replace(/_/g, ' '),
       `${fmtMonth(sc.year, sc.month)} · top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
       ['Editor', 'Edits'],
-      data.rows.map((r) => [r.user, r.edits.toLocaleString()]),
+      data.rows.map((r) => [editorLinks(r.user), r.edits.toLocaleString()]),
       ['cim-name', 'cim-num'],
  ); } },
 

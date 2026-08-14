@@ -1246,6 +1246,25 @@ body {
 /* clickable ranking cells (ISSUE-02) */
 .ranking-link { color: var(--accent); text-decoration: none; }
 .ranking-link:hover { text-decoration: underline; }
+
+/* Multi-link cells (e.g. CIM Top Editors: [User]|[Talk]|[Contrib]) */
+.ranking-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.ranking-multi-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ranking-multi-links {
+  display: flex;
+  gap: 5px;
+  font-size: 10px;
+  opacity: 0.85;
+}
 /* ── Freshness stamp (constitution #2) ───────────────────── */
 .widget-body { position: relative; }
 .widget-fetched { position: absolute; bottom: 2px; right: 8px; font-size: 9px; color: var(--text-secondary); opacity: 0.8; background: var(--bg); padding: 0 4px; border-radius: 3px; pointer-events: none; z-index: 2; white-space: nowrap; }

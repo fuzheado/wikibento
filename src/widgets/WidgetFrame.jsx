@@ -408,9 +408,18 @@ function RankingCard({ data }) {
             <span className="rank-num">{i + 1}.</span>
             {row.map((cell, j) => (
               <span key={j} className={colClass(j)} title={typeof cell === 'object' ? cell.text : String(cell)}>
-                {typeof cell === 'object' && cell.href ? (
+                {typeof cell === 'object' && cell.links ? (
+                  <span className="ranking-multi">
+                    <span className="ranking-multi-name">{cell.text}</span>
+                    <span className="ranking-multi-links">
+                      {cell.links.map((l, k) => (
+                        <a key={k} className="ranking-link" href={l.href} target="_blank" rel="noopener noreferrer">[{l.label}]</a>
+                      ))}
+                    </span>
+                  </span>
+                ) : (typeof cell === 'object' && cell.href ? (
                   <a className="ranking-link" href={cell.href} target="_blank" rel="noopener noreferrer">{cell.text}</a>
-                ) : (typeof cell === 'object' ? cell.text : cell)}
+                ) : (typeof cell === 'object' ? cell.text : cell))}
               </span>
             ))}
           </div>
