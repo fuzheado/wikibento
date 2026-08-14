@@ -7,7 +7,7 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey }) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -134,21 +134,15 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     }
   }, [widget.widgetType, widget.config]);
 
-  // Initial load — immediate on mount; DEBOUNCED (600 ms) on config
-  // changes so typing in the ⚙ panel doesn't fire a fetch per keystroke
-  // (the Wayback Gallery would otherwise speculatively hit three
-  // backends per character). Manual ↻ and Apply & Reload call load()
-  // directly and stay immediate.
-  const firstRun = useRef(true);
+  // Load on mount, on widget-type change, or when the app signals a full
+  // reload (reloadKey bumped by import / example / reset). Config edits
+  // do NOT auto-reload — the ⚙ panel is a draft surface; Apply & Reload
+  // (or ↻) commits. No speculative fetches while typing ("C", "Ca",
+  // "Cat" must not each hit the APIs).
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false;
-      load();
-      return;
-    }
-    const t = setTimeout(() => load(), 600);
-    return () => clearTimeout(t);
-  }, [load]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadKey, widget.widgetType]);
 
   // Auto-refresh (static widgets have nothing to refresh)
   useEffect(() => {

@@ -47,13 +47,16 @@ App  (state: widgets[], layout[], panel visibility)
 
 ## Widget Lifecycle (WidgetFrame)
 
-1. On mount (and whenever `config` changes): `load()` runs
-   `def.fetch(config)` → `def.transform(data, config)` → `state.data`.
+1. On mount, on widget-type change, or when the app bumps `reloadKey`
+   (import / example / reset): `load()` runs `def.fetch(config)` →
+   `def.transform(data, config)` → `state.data`. **Config edits do NOT
+   auto-reload** — the ⚙ panel is a draft surface, and only Apply &
+   Reload (or ↻) commits, so typing never fires speculative fetches.
 2. `state` is `{ loading, error, data }`; loading spinner / error + Retry button are
    handled centrally — widget renderers never see network errors.
-3. Auto-refresh: `setInterval(load, refreshSeconds * 1000)`; the interval is torn down
-   and recreated whenever `load` changes identity (i.e. on config change), which also
-   triggers an immediate re-fetch — so **editing config auto-refreshes**.
+3. Auto-refresh: `setInterval(load, refreshSeconds * 1000)`; the interval
+   is recreated when `load` changes identity (config change), but ticks
+   never fire on keystrokes.
 4. The card renderer is `def.getRenderer?.(config) || def.renderer` — a widget can
    swap renderers per config (e.g. pageviews stat ↔ trend display mode).
 

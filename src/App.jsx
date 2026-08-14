@@ -51,6 +51,7 @@ export default function App() {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset)
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
@@ -171,6 +172,7 @@ export default function App() {
     localStorage.removeItem(STORAGE_KEY);
     setWidgets(DEFAULT_WIDGETS);
     setLayout(DEFAULT_LAYOUT);
+    setReloadKey((k) => k + 1);
   }, []);
 
   /** Replace the whole dashboard (example load / successful import). */
@@ -178,6 +180,7 @@ export default function App() {
     setWidgets(dashboard.widgets);
     setLayout(dashboard.layout);
     persist(dashboard.widgets, dashboard.layout);
+    setReloadKey((k) => k + 1);
   }, [persist]);
 
   const handleLoadExample = useCallback(() => {
@@ -219,10 +222,11 @@ export default function App() {
         label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
       >
         <WidgetFrame
-          widget={w}
-          onRemove={handleRemoveWidget}
-          onUpdateConfig={handleUpdateConfig}
-        />
+  widget={w}
+  onRemove={handleRemoveWidget}
+  onUpdateConfig={handleUpdateConfig}
+  reloadKey={reloadKey}
+/>
       </ErrorBoundary>
     </div>
   ));
