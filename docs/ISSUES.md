@@ -469,3 +469,35 @@ visual — the file IS the subject; `fetchCimFileSpotlight` only calls
 - Keep the stats + sparkline below the image.
 
 **Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-20 · Session info: reveal the loaded config's source URL (incl. w.wiki expansion) — **open**
+
+**What:** loading via `?config=https://w.wiki/TT2g` gives no UI indication
+of what the short link expanded to or where the JSON lives. Reported:
+"I'm not sure what is the exact URL the JSON data is from… I should be
+able to see that this w.wiki shortcut has expanded into a full URL and I
+can find it at that URL" — session-level info, debug or user-friendly.
+
+**Why:** `fetchRemoteConfig` (src/lib/share.js) resolves w.wiki → target
+via `/api/resolve` but **discards the resolved URL** (returns text only);
+App.jsx keeps only `bootError` for the whole session provenance. The
+toolbar ⓘ (About) explains the tool, not the current session — the
+per-widget ⓘ (ISSUE-03) has no app-level counterpart.
+
+**Proposed fix:**
+- `share.js`: return `{ text, resolvedUrl }` from `fetchRemoteConfig` so
+the expanded URL is available to the UI.
+- App.jsx: track session provenance — `{ rawParam, resolvedUrl,
+sourceKind: 'url' | 'hash' | 'localStorage' | 'defaults', fetchedAt,
+widgetCount, validationWarnings, bootError }`.
+- Extend the existing app-level ⓘ About modal with a **Session**
+section (one affordance, no new chrome): raw `?config=` value, the
+expanded full URL (link + copy button — it's browseable directly since
+a `.json` wiki page serves its JSON), fetch time, widget count,
+validation warnings; plus a **Copy debug info** button emitting JSON
+(same pattern as the per-widget ⓘ).
+- Also state the source kind: `#/d/<base64>` hash → "config embedded in
+URL", localStorage → "from previous session", none → "starter
+widgets".
+
+**Status:** open. Source: user report 2026-08-14.
