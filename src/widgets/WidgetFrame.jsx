@@ -1053,6 +1053,9 @@ function WaybackGalleryCard({ data }) {
     <div className="wayback-card">
       {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
       {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      {data.stale && (
+        <div className="wayback-stale">⚠ showing cached snapshots — live lookup unavailable, retrying on refresh</div>
+      )}
       <div className="wayback-grid">
         {rows.length === 0 && <div className="widget-empty">No captures found</div>}
         {rows.map((r, i) => (

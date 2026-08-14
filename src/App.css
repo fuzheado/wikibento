@@ -1340,3 +1340,9 @@ body {
 .wayback-cap a { color: var(--accent); text-decoration: none; }
 .wayback-cap a:hover { text-decoration: underline; }
 .wayback-off { color: var(--text-secondary); }
+
+.wayback-stale {
+  font-size: 11px;
+  color: var(--danger);
+  margin-bottom: 6px;
+}
