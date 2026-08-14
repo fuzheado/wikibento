@@ -231,6 +231,8 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
+**Tracked bugs & fixes: `docs/ISSUES.md`** — ISSUE-01 (leaderboard double rank numerals), ISSUE-02 (clickable category names), ISSUE-03 (ⓘ info button on every widget).
+
 - **OPEN BUG — iOS Safari "Load failed" on Wikistats + pageviews widgets**
   (see **docs/BUG-REPORT-ios-safari-fetch.md**): Safari-only network-layer
   failures to `wikimedia.org` + `wikistats.wmcloud.org`, both networks, not
