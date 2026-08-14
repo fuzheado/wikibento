@@ -256,6 +256,67 @@ body {
   font-size: 12px;
 }
 
+/* ── Widget Info (ⓘ) ───────────────────────────────────── */
+
+.widget-info {
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.15);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.widget-info-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.widget-info-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.widget-info-slug {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.widget-info-desc {
+  margin: 0;
+  line-height: 1.4;
+  color: var(--text);
+}
+.widget-info-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.widget-info-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  min-width: 78px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.widget-info-error {
+  color: var(--danger);
+  word-break: break-word;
+}
+.widget-info-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+.widget-info-actions .widget-btn-apply {
+  margin-top: 0;
+}
+
 /* ── Widget Body ────────────────────────────────────────── */
 
 .widget-body {

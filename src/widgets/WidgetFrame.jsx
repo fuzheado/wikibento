@@ -10,6 +10,8 @@ import '../vendor/pannellum.css';
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [copied, setCopied] = useState(false);
   const intervalRef = useRef(null);
   const def = WIDGET_TYPES[widget.widgetType];
 
@@ -20,8 +22,93 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
       ? widget.config._title
       : def?.labelFromConfig?.(widget.config) || def?.name || widget.widgetType;
 
+  // Header tooltip carries the internal slug too — the canonical identifier
+  // used in the registry, dashboard.json widgetType, and bug reports.
+  const headerTooltip = def
+    ? `${def.name} (${def.id}) · ${headerTitle}`
+    : headerTitle;
+
   // Renderer can depend on config (e.g. pageviews stat vs trend display mode).
   const renderer = def?.getRenderer?.(widget.config) || def?.renderer || 'StatCard';
+
+  const fmtRefresh = (secs) => {
+    const s = secs || 3600;
+    return s >= 3600 ? `${s / 3600}h` : `${s / 60}m`;
+  };
+
+  // Escape closes the info panel (same pattern as SharePanel).
+  useEffect(() => {
+    if (!showInfo) return;
+    const onKey = (e) => { if (e.key === 'Escape') setShowInfo(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showInfo]);
+
+  // Copy a self-contained debug report for bug reports: the widget's
+  // internal slug, its resolved renderer, the live config, freshness, and
+  // the last error (if any) — everything an agent needs to reproduce.
+  const debugInfo = () => JSON.stringify({
+    widgetType: widget.widgetType,
+    name: def?.name ?? null,
+    icon: def?.icon ?? null,
+    renderer,
+    timeScope: def?.timeScope ?? null,
+    config: widget.config,
+    fetchedAt: state.data?._fetchedAt ?? null,
+    error: state.error ?? null,
+  }, null, 2);
+
+  const copyDebug = async () => {
+    const text = debugInfo();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Legacy fallback for non-secure contexts.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  // Compact "what is this widget analyzing right now" summary, auto-built
+  // from the registry configFields labels + live config values.
+  const configSummary = () => {
+    const parts = [];
+    for (const f of def?.configFields || []) {
+      const v = widget.config[f.key];
+      if (v === undefined || v === null || v === '') continue;
+      if (f.type === 'preset') {
+        const p = (f.presets || []).find((x) => x.id === v);
+        parts.push(`${f.label}: ${p ? p.label : v}`);
+      } else if (f.type === 'select') {
+        const o = (f.options || []).find((x) => x.value === v);
+        parts.push(`${f.label}: ${o ? o.label : v}`);
+      } else if (f.type === 'boolean') {
+        parts.push(`${f.label}: ${v ? 'on' : 'off'}`);
+      } else if (f.type === 'textarea') {
+        const s = String(v);
+        parts.push(`${f.label}: ${s.length > 48 ? s.slice(0, 48) + '…' : s}`);
+      } else {
+        parts.push(`${f.label}: ${v}`);
+      }
+    }
+    return parts;
+  };
+
+  const TIME_SCOPE_LABELS = {
+    month: 'Monthly data',
+    range: 'Date range',
+    day: 'Single day',
+    point: 'Point-in-time',
+  };
+
 
   const load = useCallback(async () => {
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
@@ -67,13 +154,18 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
   return (
     <div className="widget-frame">
       <div className="widget-header">
-        <span className="widget-title" title={headerTitle}>
+        <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
         </span>
         <div className="widget-actions">
           <button
             className="widget-btn"
-            onClick={() => setShowConfig(!showConfig)}
+            onClick={() => { setShowInfo(!showInfo); setShowConfig(false); }}
+            title="About this widget"
+          >ⓘ</button>
+          <button
+            className="widget-btn"
+            onClick={() => { setShowConfig(!showConfig); setShowInfo(false); }}
             title="Configure"
           >⚙</button>
           <button className="widget-btn" onClick={load} title="Refresh">↻</button>
@@ -136,6 +228,57 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
         </div>
       )}
 
+      {showInfo && (
+        <div className="widget-info">
+          <div className="widget-info-head">
+            <span className="widget-info-name">{def?.icon} {def?.name || widget.widgetType}</span>
+            <code className="widget-info-slug">{def?.id || widget.widgetType}</code>
+          </div>
+          {def?.description && <p className="widget-info-desc">{def.description}</p>}
+          {def?.dataSource && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Data</span>
+              <span>{def.dataSource}</span>
+            </div>
+          )}
+          {configSummary().length > 0 && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Analyzing</span>
+              <span>{configSummary().join(' · ')}</span>
+            </div>
+          )}
+          {def?.timeScope && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Time scope</span>
+              <span>{TIME_SCOPE_LABELS[def.timeScope] || def.timeScope}</span>
+            </div>
+          )}
+          {def?.fetch && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Auto-refresh</span>
+              <span>every {fmtRefresh(widget.config.refreshSeconds)}</span>
+            </div>
+          )}
+          {state.data?._fetchedAt && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Last updated</span>
+              <span>{new Date(state.data._fetchedAt).toLocaleString()}</span>
+            </div>
+          )}
+          {state.error && (
+            <div className="widget-info-row widget-info-error">
+              <span className="widget-info-label">Last error</span>
+              <span>{state.error}</span>
+            </div>
+          )}
+          <div className="widget-info-actions">
+            <button className="widget-btn widget-btn-apply" onClick={copyDebug}>
+              {copied ? '✓ Copied' : 'Copy debug info'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="widget-body">
         {state.loading && <div className="widget-loading">Loading…</div>}
         {state.error && (
@@ -149,7 +292,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig }) {
     <WidgetContent type={renderer} data={state.data} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
-        ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {(() => { const s = widget.config.refreshSeconds || 3600; return s >= 3600 ? `${s / 3600}h` : `${s / 60}m`; })()}
+        ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(widget.config.refreshSeconds)}
       </div>
     )}
   </>
