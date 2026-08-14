@@ -106,8 +106,9 @@ present); Copy debug info button (clipboard JSON, "✓ Copied" feedback,
 legacy fallback). Header tooltip gains `Name (slug) · asset`. No schema or
 dashboard-format changes.
 
-**Fixed 2026-08-14 (see commit):** ⓘ panel implemented in WidgetFrame.jsx
+**Fixed 2026-08-14 (a41e7d4):** ⓘ panel implemented in WidgetFrame.jsx
 (showInfo state + WidgetInfo panel), .widget-info styles in App.css, header
 tooltip now `Name (slug) · asset`. Verified live: panel opens on data-driven
 and static widgets alike, slug + description + config summary render,
-Copy debug info emits valid JSON.
+Copy debug info emits valid JSON, Escape closes, ⚙/ⓘ mutually exclusive,
+Last error row shows on fetch failure.
