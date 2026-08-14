@@ -266,3 +266,101 @@ periodically), add a datalist/autocomplete to `CIM_CATEGORY_FIELD`
 seen in the source TSV).
 
 **Status:** open (medium). Source: tiago.bio.br comparison, 2026-08-14.
+
+## ISSUE-12 · CIM Views Over Time (TrendCard): no Y-axis scale or labels — **open**
+
+**What:** the trend chart renders an unlabeled SVG line with only start/end
+date labels below — no Y axis, no min/max values, no scale context.
+Reported live: `cimTrend` (Images_from_Metropolitan_Museum_of_Art, deep,
+all-wikis, 18 months) — the viewer can't tell whether the line is 1M or
+100M views.
+
+**Why:** `TrendCard` (WidgetFrame.jsx) computes `min`/`max`/`range` but
+never renders them; `FileTrafficCard` already has the labeled-axes pattern
+(compact Y ticks `254K`/`1.2M`, month X labels, "views"/"month" titles) to
+copy.
+
+**Proposed fix:** add Y-axis ticks (5 ticks, compact K/M/B formatting) +
+X month labels to `TrendCard`, reusing the FileTrafficCard axis code
+(`.file-traffic-axis` styles); optionally include the resolved min/max in
+the subtitle. Affects every TrendCard user (cimTrend, pageviews trend
+mode, SPARQL line renderer) — beneficial across the board.
+
+**Status:** open. Source: user report 2026-08-14 (URL
+`?config=https://w.wiki/TT2g`).
+
+## ISSUE-13 · CIM Category Snapshot: card too tall / mostly blank — **open** (UX)
+
+**What:** `cimSnapshot` renders 4 compact numbers + tiny sparkline; at
+common grid heights the card is mostly empty and hard to shrink short
+(user: "make this widget shorter given that most of the content is blank").
+
+**Why:** no `defaultLayout` constraint for cimSnapshot (only panorama360
+has one — registry pattern `defaultLayout: { w, h, minW, minH }`); the
+card content is ~2–3 rows tall but the grid item stays taller, and
+`.glam-stats` doesn't center in the body.
+
+**Proposed fix:** add `defaultLayout: { w: 4, h: 3, minH: 2 }` so the
+widget starts compact and can shrink to 2 rows (react-grid-layout clamps
+by drag, as verified for panorama); consider vertically centering
+`.glam-stats` so short heights look intentional. Revisit other short
+content cards (StatCard widgets) for the same minH treatment.
+
+**Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-14 · Category Size: random-sample label + in-card refresh — **open** (UX)
+
+**What:** with `sampleCount > 0` the card shows a photo strip with no
+indication the images are a **random sample**; the only refresh is the
+header ↻. Reported live: `categorySize` (Images from Metropolitan Museum
+of Art, sampleCount 20) — "it should show in the box that the images in
+the grid are a random sample, and perhaps have a refresh button within
+the widget".
+
+**Why:** users may read the sample as exhaustive/curated; the "fresh per
+refresh" behavior (new random picks each load — README-verified) is
+invisible. The transform already passes `sample: data.sample`; the strip
+renders in StatCard with no caption.
+
+**Proposed fix:** (a) render a small caption above/below the strip —
+"Random sample of N photos (↻ for a new sample)" from
+`data.sample.length`; (b) add an in-card refresh button — requires an
+`onRefresh` prop threaded from WidgetFrame through WidgetContent to
+StatCard (call `load()`; the ⓘ/⚙/↻ header stays as-is).
+
+**Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-15 · Article Gallery: explain the images are the article's — **open** (UX)
+
+**What:** the gallery grid gives no context that the images are the ones
+**used in the article** (Parsoid significant media). Reported live:
+`gallery` (Metropolitan Museum of Art) — "it should have a brief
+explanation that these images are ones used in the article".
+
+**Why:** the subtitle only says "N images · M filtered (tiny/uncaptioned)"
+— provenance ("from the article") and selection rule (captioned,
+≥ minSize) aren't communicated.
+
+**Proposed fix:** extend the transform's subtitle (or add a caption line):
+"Significant images used in this article (captioned, ≥200px)" —
+title/subtitle already exist in the GalleryGridCard header; optionally
+link the title to the article page. Update the ⓘ description to match.
+
+**Status:** open. Source: user report 2026-08-14.
+
+## ISSUE-16 · Edit History: click a revision to open its diff — **open**
+
+**What:** edit rows show user/time/comment/byte-delta but aren't clickable
+— no way to reach a diff from the widget. Reported live: `edithistory`
+(Metropolitan Museum of Art, limit 10).
+
+**Why:** the point of a revision list is diff drill-down; each row already
+has `revid`, and the transform has the article title + project.
+
+**Proposed fix:** make each row (or a "diff" affordance on the row) an
+`<a>` to `https://{project}.org/w/index.php?title={article}&diff=prev&oldid={revid}`
+with `target="_blank"` (keep the row styling; the diff opens in a new
+tab). The transform must pass the underscore-form article title and
+project (verify `fetchEditHistory` output has both).
+
+**Status:** open. Source: user report 2026-08-14.
