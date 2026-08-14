@@ -1516,31 +1516,42 @@ async function fetchCimTrafficWithHeal(file, wiki, start, end) {
  *  scaled iframes as screenshot tiles. */
 const waybackCache = createTtlCache(10 * 60 * 1000);
 
-/** Nearest capture within ±tol days of `date` via CDX (through the proxy). */
+/** Nearest capture within ±tol days of `date` via CDX (through the proxy).
+ *  The proxy wraps upstream as {status, body} where body is a JSON STRING.
+ *  Upstream 5xx (CDX is prone to 503s) or non-JSON → one retry with backoff. */
 async function waybackCdxNearest(clean, date, tol) {
   const day = 86400000;
   const from = new Date(new Date(date).getTime() - tol * day).toISOString().slice(0, 10).replace(/-/g, '');
   const to = new Date(new Date(date).getTime() + tol * day).toISOString().slice(0, 10).replace(/-/g, '');
   const cdx = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(clean)}&from=${from}&to=${to}&output=json&fl=timestamp,original,statuscode&collapse=timestamp:6&filter=statuscode:200&limit=200`;
   const proxy = `/api/proxy?url=${encodeURIComponent(cdx)}`;
-  const text = await fetchTextWithRetry(proxy, { timeoutMs: 20000, retries: 1 });
-  let parsed = null;
-  try { parsed = JSON.parse(text); } catch { return null; }
-  const rows = Array.isArray(parsed?.body) ? parsed.body : null;
-  if (!rows || rows.length < 2) return null;
-  const cols = rows[0];
-  const iTs = cols.indexOf('timestamp');
-  const iOrig = cols.indexOf('original');
-  const iSt = cols.indexOf('statuscode');
-  // pick the row nearest the requested date
-  let best = null;
-  for (let r = 1; r < rows.length; r++) {
-    const capTs = String(rows[r][iTs] || '');
-    if (!/^\d{14}$/.test(capTs)) continue;
-    const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - new Date(date)) / day));
-    if (!best || d < best.diffDays) best = { capTs, original: rows[r][iOrig], status: rows[r][iSt], diffDays: d };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const text = await fetchTextWithRetry(proxy, { timeoutMs: 20000, retries: 1 });
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch { /* not JSON */ }
+      let rows = null;
+      try { rows = typeof parsed?.body === 'string' ? JSON.parse(parsed.body) : parsed?.body; } catch { /* not a JSON body */ }
+      if (rows && Array.isArray(rows) && rows.length >= 2) {
+        const cols = rows[0];
+        const iTs = cols.indexOf('timestamp');
+        const iOrig = cols.indexOf('original');
+        const iSt = cols.indexOf('statuscode');
+        let best = null;
+        for (let r = 1; r < rows.length; r++) {
+          const capTs = String(rows[r][iTs] || '');
+          if (!/^\d{14}$/.test(capTs)) continue;
+          const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - new Date(date)) / day));
+          if (!best || d < best.diffDays) best = { capTs, original: rows[r][iOrig], status: rows[r][iSt], diffDays: d };
+        }
+        if (best) return best;
+        return null; // window queried fine but no captures
+      }
+      // wrapped upstream failure (e.g. {"status":503}) or empty — retry once
+    } catch { /* network/proxy error — retry once */ }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 1200));
   }
-  return best;
+  return null;
 }
 
 export async function fetchWaybackGallery(url, dates, toleranceDays = 30) {
