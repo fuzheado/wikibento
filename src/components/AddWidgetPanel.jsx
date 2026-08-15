@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { WIDGET_TYPES } from '../widgets';
 
 /** Catalog organization (ISSUE-32): two discovery views (flat list /
@@ -67,6 +67,10 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
   });
   const [activeCat, setActiveCat] = useState('Articles');
   const [recent, setRecent] = useState(readRecent);
+  // Dragging: the overlay flex-centers the panel; a translate offset
+  // repositions it so the dashboard underneath stays visible.
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragBaseRef = useRef({ x: 0, y: 0 });
 
   const types = Object.values(WIDGET_TYPES);
   const searchActive = search.trim().length > 0;
@@ -82,6 +86,28 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
   const filtered = types.filter((def) => matches(def) && (typeFilter === 'all' || typeOf(def) === typeFilter));
   const recentTypes = recent.map((id) => WIDGET_TYPES[id]).filter(Boolean);
   const countIn = (cat) => (cat.recent ? recentTypes.length : types.filter((d) => d.category === cat.id).length);
+
+  const handleHeaderPointerDown = (e) => {
+    if (e.target.closest('button, input, select, textarea')) return; // controls stay clickable
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const base = { ...dragBaseRef.current };
+    const clamp = (v, limit) => Math.max(-limit, Math.min(limit, v));
+    const onMove = (ev) => {
+      setOffset({
+        x: clamp(base.x + (ev.clientX - startX), window.innerWidth / 2 - 120),
+        y: clamp(base.y + (ev.clientY - startY), window.innerHeight / 2 - 80),
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('panel-dragging');
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    document.body.classList.add('panel-dragging');
+  };
 
   const handleAdd = (def) => {
     const id = `${def.id}-${Date.now()}`;
@@ -131,8 +157,8 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
 
   return (
     <div className="add-widget-overlay" onClick={onClose}>
-      <div className="add-widget-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="add-widget-header">
+      <div className="add-widget-panel" onClick={(e) => e.stopPropagation()} style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
+        <div className="add-widget-header" onPointerDown={handleHeaderPointerDown} title="Drag to move">
           <h3>Add Widget</h3>
           <div className="add-widget-view-toggle" role="group" aria-label="Catalog view">
             <button className={view === 'flat' ? 'active' : ''} onClick={() => setViewAndPersist('flat')} title="Flat list of all widgets">☰ List</button>

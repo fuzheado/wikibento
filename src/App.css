@@ -1415,7 +1415,7 @@ body {
   border-top: 1px solid var(--border);
 }
 .add-widget-rail {
-  width: 172px;
+  width: 216px;
   flex-shrink: 0;
   overflow-y: auto;
   padding: 8px 6px;
@@ -1484,3 +1484,14 @@ body {
   background: rgba(201, 162, 39, 0.15);
   color: #c9a227;
 }
+
+
+/* Draggable Add Widget panel (drag via the header) */
+.add-widget-header {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.add-widget-header:active { cursor: grabbing; }
+.add-widget-panel { will-change: transform; }
+body.panel-dragging { cursor: grabbing; user-select: none; }
