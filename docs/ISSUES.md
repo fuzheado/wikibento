@@ -384,7 +384,7 @@ as the GLAM wiki-column fix); transform colClasses become
 
 **Status:** open. Source: user report 2026-08-14.
 
-## ISSUE-18 · Slim / presentation mode: hide widget chrome — **open** (design)
+## ISSUE-18 · Slim / presentation mode: hide widget chrome — **done (3c94ab8)**
 
 **What:** a mode where widget title bars (and other decoration) are hidden
 so the dashboard reads as a streamlined full web app rather than a
@@ -569,7 +569,24 @@ at 0.35 opacity (touch has no hover, so never go below ~0.3).
 - ROADMAP Phase 2: mark the "lean display mode" item as done once
   shipped.
 
-**Status:** open (spec'd, awaiting implementation). Source: user
+**Fixed 2026-08-15 (3c94ab8):** implemented per spec — `kiosk` state in
+App.jsx (boot reads `?kiosk=1` once, never persisted), `.app.kiosk` root
+class + CSS-only hiding (`.app-header`, `.widget-header`, `.widget-fetched`,
+`.boot-banner`; card border softened via `.grid-item` — the spec's
+`.widget-frame` rule was a no-op since the frame has no border, verified),
+grid locked (`isDraggable`/`isResizable` off) + `[4,4]` margins, ⛶ Present
+toolbar button (browser fullscreen only on this user-gesture path),
+floating ✕ Exit pill (also strips `?kiosk=1` from the URL so a refresh
+after Exit lands in normal mode — closes the spec's checklist item that
+would otherwise fail on kiosk URLs), Esc exits. Kiosk density padding
+(8px) excludes markdown cards via `:not(:has(.markdown-card))` so they
+keep their flush body. Verified live on the full 29-widget catalog: drag
+inert (real mouse events, transform unchanged), 0 headers/footers visible,
+no widget error states, zoom buttons interactive, mobile stack + tappable
+pill at 0.35 opacity, Escape/Exit/refresh cycles per checklist. README
+Features bullet + ROADMAP lean-display item marked done.
+
+**Status:** done. Source: user
 request 2026-08-14; spec 2026-08-15.
 
 ## ISSUE-19 · CIM File Spotlight: show the file's thumbnail (size-customizable) — **open**

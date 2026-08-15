@@ -89,6 +89,11 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   desktops keep the full drag-and-drop grid
 - **Drag & drop** — grab a widget's title bar to reposition it (12-column grid, vertical compaction)
 - **Resize** — drag the bottom-right corner of any widget
+- **Presentation / kiosk mode** — ⛶ Present hides all editing chrome (title
+  bars, ⏱ footers, toolbar, card borders) and locks the grid for a clean data
+  wall — or load any dashboard directly in kiosk with `?kiosk=1` (shareable
+  presentation link); Esc or the floating ✕ Exit returns, and browser
+  fullscreen engages on the Present click
 - **Add Widget panel** — searchable catalog; click to add
 - **Asset-aware titles** — every box headline and title bar shows *what it's
   analyzing* (article, category, file, domain), updating live when you change it

@@ -103,12 +103,14 @@ Housekeeping found during the code audit. Safe for a first PR.
   autocomplete, live previews, or the URL-extractor power widget's probes —
   debounce input ~250–300 ms (wait-for-pause) and cancel stale requests with
   `AbortController` before issuing new ones.
-- **Lean display mode — hidden decorations by default** (2026-08-13 note) — a
-  "view mode" where widget title bars, ⚙/↻/✕ buttons, and borders are hidden;
-  they appear on hover (or when any widget is being edited) so the dashboard
-  reads as a clean data wall rather than an editing surface. Global toggle in
-  the toolbar; per-widget config unchanged; ensure touch devices get a
-  tap-to-reveal fallback (hover doesn't exist there).
+- **Lean display mode — hidden decorations by default** — **done 2026-08-15**
+  (kiosk/presentation mode, ISSUE-18): ⛶ Present toggle + `?kiosk=1` URL
+  param hide all widget chrome (title bars, ⚙/↻/✕, ⏱ footers, borders) and
+  lock the grid; Esc or a floating ✕ Exit returns; browser fullscreen on the
+  Present click (never on boot), nothing persisted — the URL param wins at
+  boot, and ✕ Exit strips it so a refresh lands in normal mode. Per-widget
+  hover/tap reveal was consciously NOT built: hidden headers are
+  all-or-nothing by design, and the exit door is always visible
 - **Responsive multi-breakpoint grid** — done 2026-08-12 in simplified form:
   <768px collapses to a single-column stack (Grafana-style); future option is
   react-grid-layout `Responsive` with intermediate breakpoints (md/sm)
