@@ -948,3 +948,48 @@ machinery with a different fetch. `timeScope: 'point'`; provenance
 caveat "output of Quarry run {id}, as last executed".
 
 **Status:** open (probe pending). Source: Quarry analysis 2026-08-14.
+
+## ISSUE-32 · Add Widget catalog redesign: category two-pane + flat toggle — **open**
+
+**What:** the Add Widget panel is a long linear list of 29 widgets, hard
+to navigate. Redesign around **multiple discovery modes** with a
+view toggle: a categorized **two-pane view** (category rail + items
+pane) and the existing **flat list** view, plus type glyphs, an
+intensity flag (warn before/while using heavy widgets), a type
+filter, and a recently-used section.
+
+**Why:** discoverability scales with structure — 29 rows is a wall;
+7 categories is an outline. The registry `category` field is already a
+ROADMAP Phase 2 item; the intensity flag answers "why is this slow?"
+before adding AND while loading (and in the ⓘ panel after). Search
+already exists (local name/description filter) — it becomes the third
+discovery path, overriding both views when typing.
+
+**Design (agreed 2026-08-15):**
+- **Toggle** in the panel header (`☰ List | ▤ Categories`), persisted in
+  localStorage (`wikibento-addview`); default `categories` for new
+  users, honor the saved preference for returners.
+- **Two-pane view**: left rail = category nav (icon + label + count),
+  right = the selected category's items; first category selected by
+  default; arrow-key navigation on the rail.
+- **Flat view**: today's list, enhanced with type glyphs + intensity
+  badges + a Recent section at top.
+- **Search overrides both**: typing collapses any view into flat
+  filtered results (name/description/dataSource match, highlighted);
+  clearing restores the view.
+- **Type filter** row (all / stat / trend / table / media / query /
+  embed — derived from `renderer`), works in both views.
+- **Intensity flag** (registry `intensity: low|medium|high`): catalog
+  badge (⚡/🐢), an "Intensity" row in the ⓘ panel, and a contextual
+  **loading message** for high widgets ("Walking the category tree —
+  may take 10–30 s"). Honest classification: CIM widgets are
+  precomputed (low); high = glamorgan, sparql, waybackGallery;
+  medium = categorySize w/ sample, gallery, fileGallery, articleList,
+  topPages expanded.
+- **Recent section** (last-added widget types, localStorage, cap 6):
+  top of flat view + a "Recent" pseudo-category at the top of the rail.
+
+**Registry contract:** additive only — `category`, `intensity`,
+optional `loadingHint`; no schema or dashboard-format changes.
+
+**Status:** open. Source: design session 2026-08-15.
