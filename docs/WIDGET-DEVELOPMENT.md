@@ -127,8 +127,8 @@ myWidget: {
 - **EditHistoryCard** (Edit History) — `{ title, project, rows: [{revid, timestamp, user, comment, delta}] }`
 - **QualityCard** (Article Quality) — `{ title, grade?, probabilities?, score?, revid, model }`
 - **AssessmentsCard** (WikiProject Assessment) — `{ title, rows: [{project, class, importance}], total }`
-- **GalleryGridCard** (Article Gallery, grid) — `{ title, subtitle, rows: [{title, caption, thumbUrl, fileUrl}], size }`
-- **GalleryListCard** (Article Gallery, list) — same contract, rows render thumb-left/caption-right
+- **GalleryGridCard** (Article Gallery, grid) — `{ title, subtitle, rows: [{title, caption, thumbUrl, fileUrl}], size }` — **shared with `fileGallery`** (same card, different fetcher)
+- **GalleryListCard** (Article Gallery, list) — same contract, rows render thumb-left/caption-right — also shared with `fileGallery`
 - **ArticleListCard** (Article List) — `{ title, subtitle, rows: [{title, pageUrl, thumbUrl?, extract?}] }` — clickable rows, optional thumb + 3-line intro. The same row contract works for any pasted-list widget.
 - **CimSnapshotCard** (CIM Snapshot / File Spotlight) — `{ title, subtitle?, stats: [{label, value, sub}], trend?: [{date, views}] }` — reuses the GlamCard stat-tile markup, optional monthly-view sparkline.
 - **FileTrafficCard** (CIM File Traffic) — `{ title, subtitle, rows: [{date, views}] }` — SVG line chart with labeled X/Y axes and −/+ zoom (client-side slice of the fetched window); the card header shows the displayed range.
@@ -137,6 +137,18 @@ myWidget: {
 
 Need a new shape? Add a renderer component to `WidgetFrame.jsx` and extend the
 `WidgetContent` switch — keep it dumb (it only receives the transformed `data`).
+
+### Sharing renderers across widgets
+
+Cards are shared **by name** — several registry entries can dispatch to the
+same card, each with its own `fetch`/`transform`. Precedent: `gallery` and
+`fileGallery` both render `GalleryGridCard`/`GalleryListCard` via their
+`getRenderer`. If your widget's data is a set of media, emit the canonical
+image-row contract (`rows: [{ title, thumbUrl, fileUrl, caption }]`) and you
+get the grid/list for free. For a new display mode (slideshow / ticker —
+ISSUE-33/34/37), add the card ONCE plus one `WidgetContent` case, then each
+widget opts in via `getRenderer(config)`. The fetcher is the only
+per-widget piece; the transform carries provenance wording (subtitle).
 
 ### 4. Optional: add a default starter widget
 

@@ -1423,4 +1423,8 @@ it); fileGallery's batched imageinfo conforms.
 5. Per-widget transforms keep source-specific provenance subtitles
    (ISSUE-21): "N files · random sample of n" vs "32 images · filtered".
 
-**Status:** open (design). Source: architecture analysis 2026-08-15.
+**Status:** open (design) — docs updated 2026-08-15: ARCHITECTURE.md gains a
+"Shared Renderers" section + canonical image-row contract row;
+WIDGET-DEVELOPMENT.md gains a "Sharing renderers across widgets" section
+and marks GalleryGridCard/ListCard as shared with fileGallery. Source:
+architecture analysis 2026-08-15.

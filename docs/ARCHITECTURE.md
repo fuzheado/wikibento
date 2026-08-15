@@ -20,10 +20,13 @@ App  (state: widgets[], layout[], panel visibility)
 │           │   ├── title (icon + _title)
 │           │   └── ⚙ config · ↻ refresh · ✕ remove
 │           ├── .widget-config      ← rendered from def.configFields
-│           └── WidgetContent  (dispatch on def.renderer)
+│           └── WidgetContent  (dispatch on def.renderer — ~19 named cards,
+│                                shared across widgets; full list in
+│                                WIDGET-DEVELOPMENT.md)
 │               ├── StatCard        ← big number + detail + sparkline
 │               ├── RankingCard     ← header + numbered rows
-│               └── TrendCard       ← SVG polyline chart
+│               ├── TrendCard       ← SVG polyline chart
+│               └── GalleryGridCard ← shared by gallery + fileGallery (same card)
 ├── AddWidgetPanel  (modal catalog, search filter)
 ├── SharePanel  (QR code + copyable link modal)
 └── .empty-state
@@ -84,6 +87,7 @@ The **transform contract** is the only thing renderers understand:
 | `RankingCard` | `{ title, subtitle?, columns: [h1, h2], rows: [[c1, c2], ...], image?: {url, description}, caption?, fileTitle? }` |
 | `TrendCard` | `{ chartData: [{date, views}], chartKey, chartLabel }` |
 | `GlamCard` | `{ title, subtitle?, stats: [{label, value, sub?}] ×4, filmstrip?: [{title, views, thumbUrl}], detail?: {title, rows: [{wiki, page, views}]} }` |
+| `GalleryGridCard` / `GalleryListCard` | `{ title, subtitle, rows: [{title, thumbUrl, fileUrl, caption}], size?, fit? }` — the **canonical image-row contract**; shared by `gallery` + `fileGallery` (see Shared Renderers) |
 
 Optional media fields: `sample` renders a thumbnail strip (links to Commons file pages);
 `image` renders a preview above the table (link to the Commons page via `fileTitle`);
@@ -92,6 +96,26 @@ flags (e.g. `showImage`, `showCaption`, `sampleCount`) belong in the widget's
 `defaults` + `configFields`; the transform decides what to pass through.
 
 This keeps data sources, presentation, and configuration fully decoupled.
+
+## Shared Renderers
+
+Cards are **named components** (the `WidgetContent` switch in
+`WidgetFrame.jsx`), not per-widget classes — any number of registry
+entries can dispatch to the SAME card. The entry contributes its own
+`fetch` + `transform`; the card renders whatever contract it receives.
+
+- `gallery` and `fileGallery` already share `GalleryGridCard` /
+  `GalleryListCard` — both transforms emit the same image-row contract.
+- Mode switching WITHIN one widget uses `getRenderer(config)` (pageviews
+  stat ↔ trend; gallery grid ↔ list).
+- The **image-row contract** is the canonical shape for any widget that
+  presents a set of media: `rows: [{ title, thumbUrl, fileUrl, caption }]`.
+  A new source (category random sample, PagePile list, SPARQL results)
+  just produces conforming rows and reuses the cards.
+- Planned (ISSUE-33/34/37/38): `GallerySlideshowCard` + `GalleryTickerCard`
+  written once, shared by `gallery`, `fileGallery`, and `categorySize`
+  (random-sample visual modes). Fetchers stay per-widget — only their
+  output converges.
 
 ## Data Flow Diagram
 
