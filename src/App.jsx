@@ -41,6 +41,11 @@ const DEFAULT_LAYOUT = [
   { i: 'top-wikipedias', x: 0, y: 4, w: 4, h: 4, minW: 3, minH: 3 },
 ];
 
+// ISSUE-18: enter browser fullscreen when the ⛶ Present button is clicked.
+// Attempted ONLY on the click path (browser requires a user gesture; the
+// ?kiosk=1 boot path must NOT attempt it).
+const FULLSCREEN_ON_PRESENT = true;
+
 export default function App() {
   const [widgets, setWidgets] = useState([]);
   const [layout, setLayout] = useState([]);
@@ -52,6 +57,8 @@ export default function App() {
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset)
+  // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
+  const [kiosk, setKiosk] = useState(false);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
@@ -76,6 +83,10 @@ export default function App() {
   // which takes priority over defaults.
   useEffect(() => {
     let cancelled = false;
+    // Kiosk boot: a ?kiosk=1 link stays kiosk across refreshes because the
+    // param stays in the URL. Deliberately NOT persisted to localStorage —
+    // a user who tries kiosk once must not silently land back in it.
+    if (new URLSearchParams(window.location.search).get('kiosk') === '1') setKiosk(true);
     const apply = (widgets, layout) => {
       setWidgets(widgets);
       setLayout(layout);
@@ -120,6 +131,36 @@ export default function App() {
     boot();
     return () => { cancelled = true; };
   }, []);
+
+  // Kiosk enter/exit (ISSUE-18). Fullscreen is attempted only here, on the
+  // Present click path.
+  const enterKiosk = useCallback(() => {
+    setKiosk(true);
+    if (FULLSCREEN_ON_PRESENT && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
+  const exitKiosk = useCallback(() => {
+    setKiosk(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // Strip ?kiosk=1 so a refresh after the Exit pill lands in normal mode
+    // (ISSUE-18 checklist). Escape keeps the param — a kiosk link stays a
+    // kiosk link unless the presenter deliberately leaves.
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('kiosk')) {
+      url.searchParams.delete('kiosk');
+      window.history.replaceState(null, '', url.toString());
+    }
+  }, []);
+
+  // Escape exits kiosk mode (only while it is active).
+  useEffect(() => {
+    if (!kiosk) return;
+    const onKey = (e) => { if (e.key === 'Escape') exitKiosk(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [kiosk, exitKiosk]);
 
   // Persist to localStorage on changes
   const persist = useCallback((newWidgets, newLayout) => {
@@ -242,7 +283,7 @@ export default function App() {
   });
 
   return (
-    <div className="app">
+    <div className={`app ${kiosk ? 'kiosk' : ''}`}>
       <header className="app-header">
         <div className="app-brand">
           <h1>📊 WikiBento</h1>
@@ -270,6 +311,9 @@ export default function App() {
           <button className="btn" onClick={() => setShowAbout(true)} title="About WikiBento">
             ⓘ
           </button>
+          <button className="btn" onClick={enterKiosk} title="Presentation mode — hides editing controls · Esc to exit">
+            ⛶ Present
+          </button>
           <button className="btn" onClick={() => setShowDiagnostics(true)} title="Network self-test (debugging)">
             🧪
           </button>
@@ -296,7 +340,9 @@ export default function App() {
             onLayoutChange={handleLayoutChange}
             dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
             compactType="vertical"
-            margin={[12, 12]}
+            isDraggable={!kiosk}
+            isResizable={!kiosk}
+            margin={kiosk ? [4, 4] : [12, 12]}
             containerPadding={[0, 0]}
           >
             {widgetItems}
@@ -338,6 +384,12 @@ export default function App() {
 
       {showDiagnostics && (
         <DiagnosticsPanel onClose={() => setShowDiagnostics(false)} />
+      )}
+
+      {kiosk && (
+        <button className="kiosk-exit" onClick={exitKiosk} title="Exit presentation mode (Esc)">
+          ✕ Exit
+        </button>
       )}
     </div>
   );
