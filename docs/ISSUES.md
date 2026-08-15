@@ -772,3 +772,53 @@ downloads"). Shared TTL cache for the search/views endpoints.
 APIs (auth); Scholar/Fatcat (separate catalog).
 
 **Status:** open. Source: IA API research 2026-08-14.
+
+## ISSUE-26 · Hashtag Stats widget — edit-a-thon / campaign tracking — **open**
+
+**What:** integrate the Wikimedia Hashtags tool
+(hashtags.wmcloud.org — WikipediaLibrary/hashtags, Django backend) as
+a widget: given a hashtag (WPWP, 1lib1ref, #WikiForHumanRights…),
+show who edited, on which wikis, and the daily edit activity. This is
+the natural data source for the ROADMAP "Edit-a-thon Live" /
+"Campaign Tracker" starter packs — hashtags are the de-facto campaign
+tracking mechanism.
+
+**Why:** campaigns track themselves via edit-summary hashtags; a widget
+would surface an edit-a-thon's live pulse (top editors, top wikis,
+edits/day) in the same board as its pageviews/gallery impact. The API
+is public and open source; the shape maps directly onto existing
+renderers.
+
+**API facts (verified 2026-08-14):**
+- `api/top_user_stats/?query=X` → `{usernames[], edits_per_user[]}`
+  (top-10 editors; WPWP: Muhammad Abul-Futooh 76,288 edits). ✅ 200.
+- `api/top_project_stats/?query=X` → `{projects[],
+  edits_per_project[]}` (top-10 wikis; WLM2024: commons.wikimedia.org
+  691). ⚠️ 502 on huge hashtags (WPWP) — backend flakiness.
+- `api/time_stats/?query=X` → `{edits_array[], time_array[]}` (daily
+  edit counts; WLM2024: 58 days). ✅ 200.
+- `json/?query=X` and `csv/?query=X` — full edit exports; time out on
+  huge hashtags (WPWP: connection reset) — NOT widget material.
+- All endpoints accept optional `project`, `startdate`, `enddate`
+  (YYYY-MM-DD) params (per /docs/).
+- ⚠️ **NO CORS headers on any endpoint** (verified with Origin header)
+  → fetch via the Toolforge `/api/proxy` (hatnote/SightGlass precedent)
+  or the batch-endpoint pattern; `x-frame-options: DENY` on HTML pages
+  (irrelevant for JSON).
+
+**Proposed fix — one widget, three modes** (id `hashtagStats`, 🏷️):
+input = hashtag (+ optional date range); fetch the three stats
+endpoints in parallel via `/api/proxy` with a shared TTL cache
+(10 min — the backend is single-node and flaky under heavy hashtags,
+so cache hard and degrade gracefully to "stats unavailable — try a
+smaller range" on 502/timeout). Render modes: **Top Editors**
+(RankingCard — usernames → Special:Contributions links per ISSUE-22),
+**Top Projects** (RankingCard — wiki → main page links), **Edits over
+time** (TrendCard line — inherits ISSUE-12's axis fix).
+
+Registry: `timeScope: 'range'` when dates are given, else 'point'
+(lifetime) — constitution; ISSUE-21 provenance caveat ("edits with
+the hashtag in the summary, per the Hashtags tool; backend may be
+unavailable for very large hashtags").
+
+**Status:** open. Source: Hashtags tool API analysis 2026-08-14.
