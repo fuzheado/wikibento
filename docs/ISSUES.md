@@ -822,3 +822,129 @@ the hashtag in the summary, per the Hashtags tool; backend may be
 unavailable for very large hashtags").
 
 **Status:** open. Source: Hashtags tool API analysis 2026-08-14.
+
+## ISSUE-27 · XTools widget family: Article Statistics + Editor Stats — **open**
+
+**What:** frame XTools' per-article / per-user stats as two widgets.
+The canonical "maintained tool computes, we frame" play — XTools is
+mature, and **CORS is origin-reflecting** (verified 2026-08-14: echoes
+`Origin: https://wikibento.toolforge.org`) → **no proxy needed**,
+direct browser fetch (same pattern as Lift Wing).
+
+**API facts (verified 2026-08-14):**
+- `https://xtools.wmcloud.org/api/page/articleinfo/{proj}/{page}` →
+  `{watchers, pageviews, revisions, editors, anon_edits, minor_edits,
+  creator, created_at, modified_at, secs_since_last_edit, assessment:
+  {value, color, category, badge}, …}` — Einstein: watchers 4,070,
+  pageviews 281,134, revisions 19,132, editors 6,353, assessment GA.
+- `https://xtools.wmcloud.org/api/user/simple_editcount/{proj}/{user}` →
+  `{live_edit_count, deleted_edit_count, user_groups,
+  global_user_groups, creation_count, user_id}` — Fuzheado: live
+  52,849 / deleted 1,582.
+
+**Proposed fix (two widgets):**
+1. **Article Statistics** (📊, S): article + project → StatCard/GLAMCard
+   of watchers · revisions · editors · anon/minor edits · creator +
+   assessment badge (link to the article; `secs_since_last_edit` as a
+   freshness-adjacent detail). Subsumes part of the Article Vitals
+   family with richer data (no other widget shows watchers or
+   assessment).
+2. **Editor Stats** (👤, S): user + project → live/deleted edit counts,
+   groups, creation count; link to XTools page + contributions.
+   Subsumes the WIDGET-IDEAS Tier-5 "contribution counter" with better
+   data.
+
+Both: `timeScope: 'point'`; ISSUE-21 provenance caveat ("per XTools,
+updated live").
+
+**Status:** open. Source: XTools API verification 2026-08-14.
+
+## ISSUE-28 · Movement health widget family — **open**
+
+**What:** the movement-level numbers — total traffic, active editors,
+new registrations — which no current widget covers (everything today is
+per-article or per-category). This is the working group's "prime
+directive" question (the traffic/participation decline) as a widget.
+
+**API facts (verified 2026-08-14, all CORS `*`):**
+- `wikimedia.org/api/rest_v1/metrics/pageviews/aggregate/{proj}/all-access/all-agents/monthly/{from}/{to}`
+  → monthly total views (enwiki latest month: 9.59B).
+- `…/metrics/editors/aggregate/{proj}/all-editor-types/content/all-activity-levels/monthly/{from}/{to}`
+  → active editors per month (200 ✓).
+- `…/metrics/registered-users/new/{proj}/monthly/{from}/{to}` → new
+  registrations per month (200 ✓).
+
+**Proposed fix:** ONE widget (id `movementHealth`, 🌍) with a metric
+select (Total pageviews / Active editors / New registrations) +
+language select, rendering the monthly series on a TrendCard (inherits
+ISSUE-12's axis fix). One generic time-series fetcher sharing the
+`scope.js` helpers; 2–36 month range. Declare `timeScope: 'range'`
+(resolved dates in subtitle per the constitution).
+
+**Status:** open. Source: REST Metrics verification 2026-08-14.
+
+## ISSUE-29 · Lift Wing edit quality widget (goodfaith/damaging) — **open**
+
+**What:** score revisions with the edit-quality ML models — the same
+Lift Wing service already framed for ORES article quality.
+
+**API facts (verified 2026-08-14):** `POST
+https://api.wikimedia.org/service/lw/inference/v1/models/{model}:predict`
+with `{rev_id}` — `enwiki-goodfaith` ✅ 200, `enwiki-damaging` ✅ 200
+(origin-reflecting CORS, same as the quality widget). ⚠️
+`enwiki-revertrisk` 404 under that name — the vandalism-dashboard
+aspiration (revert-risk + recent-changes feed) stays in
+WIDGET-IDEAS until the model name is found.
+
+**Proposed fix (verified core only):** widget (id `editQuality`, 🛡️) —
+article + revision picker (or the article's N most recent revisions via
+`prop=revisions`) → per-revision goodfaith/damaging probability bars
+(GRADE_COLORS-style rendering, QualityCard pattern); link each
+revision to its diff. `timeScope: 'point'`; provenance caveat "ML
+prediction, per Lift Wing".
+
+**Status:** open. Source: Lift Wing probe 2026-08-14.
+
+## ISSUE-30 · Earwig Copyvio check widget — **open** (low priority)
+
+**What:** a "does this article contain copied text" card using Earwig's
+copyvio detector.
+
+**API facts (verified 2026-08-14):** `GET
+https://copyvios.toolforge.org/api.json?action=search&project=wikipedia&lang=en&title={title}`
+→ CORS `*` ✓; `{status: ok, meta: {time, queries, cached}, page,
+best, sources}` (60 KB; the `best` field carries the top match).
+⚠️ **Backend is slow: meta.time = 30.0s on an uncached check** — the
+widget needs a 45s+ timeout and patience UX (loading note: "checking
+against the web…").
+
+**Proposed fix:** widget (id `copyvio`, 🔎): title + project → best
+match percent + source + link to the full Earwig report; retry/
+spinner states for the slow path; cache results (same title+project
+within TTL) to avoid re-triggering the 30s computation.
+`timeScope: 'point'`; provenance caveat "live check, slow — may take
+30s".
+
+**Status:** open (low priority — deprioritized per review; backend
+latency is the constraint). Source: Earwig probe 2026-08-14.
+
+## ISSUE-31 · Quarry saved-query power widget — **open**
+
+**What:** the SQL analogue of the 🧠 SPARQL widget — display the output
+of a saved Quarry query (run output JSON) as stat/bar/table. Rounds
+out the power-widget story (SPARQL + SQL + PetScan + URL-extractor).
+
+**API facts (per analysis 2026-08-14, one probe pending):**
+`https://quarry.wmcloud.org/run/{run_id}/output/{n}/json` → saved run
+outputs are public JSON snapshots (refreshed when the query is
+re-run — not live SQL); ⚠️ no CORS → via the Toolforge `/api/proxy`
+(SightGlass/hatnote precedent). Needs one probe: confirm a known run
+id + the exact output path + JSON shape.
+
+**Proposed fix:** widget (id `quarry`, 🧮): run id input → proxy fetch →
+render with the SPARQL auto-detecting renderer logic (big number /
+bars / table from the result shape). Reuse `fetchSparql`'s renderer
+machinery with a different fetch. `timeScope: 'point'`; provenance
+caveat "output of Quarry run {id}, as last executed".
+
+**Status:** open (probe pending). Source: Quarry analysis 2026-08-14.

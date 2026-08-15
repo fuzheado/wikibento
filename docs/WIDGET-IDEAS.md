@@ -375,3 +375,32 @@ Copy the format above: **title, links, what it shows, verified feasibility
 and CORS status — that's what makes an idea actionable later. When an idea is
 scheduled, move it into [ROADMAP.md](ROADMAP.md) with the same detail and leave
 a pointer here.
+
+## CheckWiki — Maintenance Scorecard (project + per-page)
+
+- **Links:** [Project view](https://checkwiki.toolforge.org/cgi-bin/checkwiki.cgi?project=enwiki&view=project) · [WikiProject page](https://en.wikipedia.org/wiki/Wikipedia:WikiProject_Check_Wikipedia)
+- **What it shows:** lint/error backlog per wiki (the project view server-renders **all/high/middle/low priority error counts** — enwiki 2026-08-14: 314,882 total · 9,016 high · 16,227 middle · 289,639 low) and a per-page issue list (view=page — JS shell, data endpoint not yet probed).
+- **Feasibility (verified 2026-08-14):** ✅ CORS `*` on the CGI; ✅ the project view's four headline counts are parseable from server-rendered HTML **today** (a "maintenance backlog" StatCard per wiki: total/high/mid/low + last-scan date "2026-07-01"). ⚠️ Per-page scorecard needs one probe of the table's JS data URL; `format=json` does not exist.
+- **Effort:** S (backlog StatCard) / M (per-page scorecard after probe)
+- **Notes:** error counts update every 15 min; the per-page check is the more valuable half for editors ("fix this article's lint") — pair with the WikiProject widget family (Tier 6).
+
+## Dead-link / Reference-rot Detector
+
+- **What it shows:** % of an article's external links that are dead (404/unreachable), with the offenders list — maintenance gold for citations.
+- **Feasibility (noted 2026-08-14):** the infrastructure is largely proven — the Wayback batch endpoint + CDX probing built for the Wayback Snapshot Gallery widget (server-side, `/api/wayback-gallery` + `/api/proxy`) is directly reusable. Shape: extract external links (MediaWiki API `prop=extlinks`) → probe each via CDX (batched, server-side) → dead % + per-link status. Needs one design pass (sample size, tolerance, batching per docs/SCALABILITY.md).
+- **Effort:** M (mostly assembling proven parts)
+- **Notes:** promote to ISSUES when the widget queue shortens; the reference-rot angle (citations specifically) ties into `wikipedia-citations` skill territory.
+
+## Cross-wiki Coverage Gap
+
+- **What it shows:** "what does en have that fr lacks" — per-language prose-size / section coverage comparison for a topic, ranked by gap.
+- **Feasibility (noted 2026-08-14):** computation-heavy — langlinks (`prop=langlinks`) + per-lang prose size (`prop=extracts`/`exintro` or REST) + section diff across N languages, then ranking. No single maintained tool computes it. Design question: topic seed (article? Wikidata item? category?).
+- **Effort:** M–L
+- **Notes:** aspirational; would pair with the SPARQL widget (the Wikidata-query side already exists there).
+
+## Edit-spike / "Happening Now"
+
+- **What it shows:** real-time edit velocity — edits per minute vs. a baseline, flagging spikes (ties to the Wikimania "Happening Now" work and the ROADMAP spike-alert hero feature).
+- **Feasibility (noted 2026-08-14):** EventStreams SSE is the natural feed (`wikimedia-eventstreams` skill), but WikiBento is a polling dashboard — needs an SSE client in a widget or a polling stats endpoint (e.g. recentchanges counts per minute); baseline computation is the design question. Revert-risk ML (ISSUE-29's missing model) would make this a vandalism dashboard.
+- **Effort:** M
+- **Notes:** the pageview-spike variant is already the ROADMAP hero; this is the edit-side companion. Keep aspirational until the spike-alert ships.
