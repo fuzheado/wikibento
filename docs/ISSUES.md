@@ -1386,3 +1386,41 @@ sample. Two clocks: animation (free/fast) + re-sample (cheap/slow).
   land with ISSUE-33/34's cards — implement together.
 
 **Status:** open (design). Source: user request 2026-08-15.
+
+## ISSUE-38 · Shared visual-mode renderers across gallery/categorySize (architecture note) — **open**
+
+**What:** ISSUE-33/34 (Article Gallery slideshow/ticker) and ISSUE-37
+(Category Size visual modes) describe the SAME display modes (grid /
+slideshow / ticker) fed by different sources. Architecture decision: build
+the renderers ONCE as shared components; widgets stay thin glue.
+
+**Verified sharing precedent (2026-08-15):** `gallery` and `fileGallery`
+ALREADY share `GalleryGridCard`/`GalleryListCard` — both entries dispatch
+via `getRenderer` (src/widgets/index.js:640-641, 689-690) and WidgetFrame
+resolves renderer NAMES to components in one switch (WidgetFrame.jsx:334-336).
+The pattern: fetchers per-widget, renderers shared, registry entry = config
+vocabulary + getRenderer + transform.
+
+**Contract (canonical image row):** `rows[]` of `{title, thumbUrl, fileUrl,
+caption}`. Sources: `fetchArticleGallery` (REST /page/media-list) conforms;
+`fetchRandomCategoryImages` (dataSources.js:485) needs the one-line
+`fileUrl` addition (`iiprop: 'url|size'` already fetches it; the map drops
+it); fileGallery's batched imageinfo conforms.
+
+**Implementation plan (binds ISSUE-33/34/37 — do as one slice):**
+1. Build `GallerySlideshowCard` + `GalleryTickerCard` once in
+   WidgetFrame.jsx (+ 2 switch cases) — all animation logic (interval
+   advance, pause-on-hover, prefers-reduced-motion, CSS marquee) in one
+   place; CSS in the shared `.gallery-*` family.
+2. Each widget declares its modes: `gallery` (article), `fileGallery`
+   (pasted list), `categorySize` (random sample, displayMode
+   metrics|gallery|slideshow|ticker, sampleCount cap 24→60).
+3. Share the visual-mode config FIELD DEFINITIONS via a constant
+   (e.g. `VISUAL_MODE_FIELDS`) spread into each entry's configFields —
+   declarations stay per-widget, definitions aren't copy-pasted.
+4. Do NOT build a mega-component — name-dispatch is the abstraction;
+   keeps the registry declarative (`renderer: 'GalleryTickerCard'`).
+5. Per-widget transforms keep source-specific provenance subtitles
+   (ISSUE-21): "N files · random sample of n" vs "32 images · filtered".
+
+**Status:** open (design). Source: architecture analysis 2026-08-15.
