@@ -1297,3 +1297,43 @@ URL (possible follow-on); link targets have the same trust model as
 existing `?config=` loading (validation rejects bad JSON).
 
 **Status:** open (design). Source: user request 2026-08-15.
+
+## ISSUE-36 · Multi-Bento packaging: manifest (index) vs inline suite — **open** (design)
+
+**What:** can several Bento sessions live in a single JSON file, and should
+they? User question 2026-08-15 — prompted by ISSUE-35 (Bento-to-Bento
+navigation): packaging multiple boards for starter packs, kiosk rotation,
+and distribution.
+
+**Paradigm analysis (2026-08-15):** the model is "one URL → one validated
+JSON → one Bento". Bundling does NOT break validation/loading if done as an
+additive top-level `type` (v1 dashboards keep working; `validateDashboard`
+untouched; `version: 1` was reserved for future migrations). It DOES break
+the identity layer: session provenance (ISSUE-20), the single
+`wikibento-layout` localStorage key, and Share links all become two-level
+(`suite URL + board id`); `#/d/` hash embedding can't carry multi-board
+files (~1,500-char cap). Two shapes with very different costs:
+
+- **Manifest (recommended):** `{ version: 1, type: 'bento-manifest',
+  bentos: [{ id, label, config: <url> }] }` — boards stay separate files;
+  the manifest is an index. Each board still loads via the existing
+  validated path (one extra hop). Serves: ISSUE-35 nav card as an auto-fill
+  data source (`?suite=<url>`), kiosk rotation playlist, starter packs as
+  one shareable on-wiki page (Action API parse path already handles it —
+  same pattern as Commons:WikiPortraits/Bento-demo.json). Paradigm intact:
+  every board remains addressable, validated, individually editable.
+- **Inline suite (deferred):** `{ version: 1, type: 'bento-suite',
+  bentos: [{ id, label, widgets, layout }] }` — true bundling. Real format
+  change: per-board validation (current philosophy is all-or-nothing —
+  needs a deliberate exception so one bad board doesn't kill the pack),
+  two-level provenance/layout-storage, `bento=<id>` selector param.
+  Pays ONLY for kiosk rotation with zero fetches and offline/single-artifact
+  distribution. Hurts independent editing (one page = edit bottleneck),
+  board reuse (no include mechanism — manifests exist precisely for that),
+  and blast radius.
+
+**Proposed fix:** ship the manifest first (~40-line validator + `type`
+discriminator + nav-card `?suite=` source + kiosk playlist); spec the
+inline suite as a follow-on only if single-fetch/offline demand appears.
+
+**Status:** open (design). Source: user question 2026-08-15.
