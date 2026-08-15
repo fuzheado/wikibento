@@ -1244,3 +1244,56 @@ fetch property: pure renderer over the already-fetched `rows[]`.
   shows data age, animation is client-side only.
 
 **Status:** open. Source: user request 2026-08-15.
+
+## ISSUE-35 · Bento-to-Bento navigation: link card + lightweight in-app loading — **open** (design)
+
+**What:** navigate from one Bento (dashboard config) to another by clicking
+a link — interlinked boards like website pages, instead of one gigantic
+dashboard. User request 2026-08-15: "click on something and link to another
+WikiBento session… interlinked pages almost like going from page to page."
+Two parts: (1) a **Bento Links card** (static widget) rendering labeled
+links to other configs; (2) **lightweight loading** of the target Bento
+without a full page reload.
+
+**Why:** starter packs (ROADMAP strategy: 7 JSON bentos — GLAM Footprint,
+Newsroom Pulse, Edit-a-thon Live…) become one navigable suite rather than
+separate links; kiosk mode (ISSUE-18) gets board-to-board rotation for
+exhibition/presentation; boards stay focused instead of accumulating 29
+widget types into one wall. Cost is near-zero: the URL is ALREADY the
+source of truth for a Bento (`?config=` + `#/d/`, read at boot), and
+`applyDashboard` (App.jsx:220) already swaps widgets/layout in place.
+
+**Feasibility analysis (2026-08-15):** the machinery is ~90% present —
+config loading (fetch → validate → apply) exists and is URL-driven
+(`readConfigParam`/`readHashConfig`, src/lib/share.js:38-48); the static
+widget pattern exists (markdown: `transform(null, config)`, no fetch);
+`applyDashboard` is used by Import/Example today. Missing piece: a
+URL-change listener + pushState click handler (a ~30-line mini-router).
+
+**Proposed fix — two approaches:**
+- **A. Full reload:** nav card renders plain `<a href="…/?config=…">` —
+  works today with zero new machinery; cost: page reload, boot splash,
+  all widgets re-fetch (TTL caches mitigate); plain links drop `?kiosk=1`
+  unless the author adds it.
+- **B. Lightweight SPA (recommended):** refactor the boot effect's load
+  logic into a reusable `loadDashboardFromUrl()`; nav card click →
+  `history.pushState(target)` + load (no reload, no splash — just
+  `applyDashboard` after validated fetch); `popstate` listener makes
+  browser back/forward walk Bento history like real pages (hash links
+  fire `hashchange` natively; `?config=` pushState needs the manual
+  load + popstate only). Render REAL `<a>` tags with a JS click handler
+  so a handler failure falls back to Approach A (progressive
+  enhancement); ctrl/cmd-click new-tab keeps working.
+- **Bento Links card** (id `bentoLinks`, 🔗, static, category Content &
+  Embeds, `timeScope: 'point'`): textarea of link rows (one per line,
+  `Label|URL` or `Label|config-param`), rendered as labeled buttons;
+  reuses the static pattern. In kiosk mode, compose the target URL
+  preserving `?kiosk=1`.
+
+**Caveats (accepted):** boards re-fetch their widgets on arrival (shared
+TTL caches make repeat visits cheap); `wikibento-layout` localStorage is a
+single key — per-board layout restore would need storage keyed by config
+URL (possible follow-on); link targets have the same trust model as
+existing `?config=` loading (validation rejects bad JSON).
+
+**Status:** open (design). Source: user request 2026-08-15.
