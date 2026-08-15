@@ -1153,3 +1153,94 @@ section (localStorage `wikibento-recent-widgets`, cap 6). WidgetFrame:
 contextual loading hint for high-intensity widgets + ⓘ Intensity row.
 Verified live: 7 rails, counts 6/10/5/3/1/1/3, 29 flat, search
 override, persistence, recent tracking.
+
+## ISSUE-33 · Article Gallery: slideshow mode (one large image at a time) — **open**
+
+**What:** a new `displayMode` for the `gallery` widget that shows ONE image
+at a time at large size with its caption, auto-advancing on a configurable
+delay (3 s / 5 s / 10 s / custom), cycling through all the article's images
+so the card reads as live. User request 2026-08-15: "it shows the image and
+caption in pretty large size… cycles through each of the images so it looks
+like it's live."
+
+**Why:** "active content" — the current grid (and list) render a static
+archive of the article's images; a slideshow cycles attention through the
+whole set and suits demo/PR boards, GLAM halls, and the kiosk direction
+(ISSUE-18). Crucially the data is ALREADY fetched: `GalleryGridCard` gets
+`rows[]` of `{title, thumbUrl, fileUrl, caption}` — a slideshow is a pure
+renderer change, zero new API calls, freshness/temporal constitutions
+untouched (`timeScope: 'point'` stays; ⏱ footer = data age, the animation
+is client-side).
+
+**Proposed fix (additive):**
+- Registry (`src/widgets/index.js` `gallery` entry): `displayMode` options
+  gain `'slideshow'`; `getRenderer` dispatches to a new
+  `GallerySlideshowCard` (same `config.displayMode` switch as
+  grid/list). New config fields: `slideDelay` (select: 3 s / 5 s / 10 s
+  / custom number, default 5 s), `loop` (bool, default true). No schema
+  change needed — config is `additionalProperties: true`
+  (docs/dashboard.schema.json), consistent with `maxItems`, `minSize`.
+- Card: large image (reuse `object-fit` from `imageFit`, letterboxed by
+  default), caption below (existing `.gallery-caption` family), "N / M"
+  counter + progress dots, click-through to the Commons file page
+  (`fileUrl`, existing link pattern), prev/next arrows on hover,
+  pause-on-hover.
+- Implementation notes: `setInterval`-driven `current` index advanced in
+  a `useEffect` keyed on `[rows, slideDelay, loop]` (reset timer on config
+  change, clear on unmount); **respect `prefers-reduced-motion`** — render
+  the first image statically, no auto-advance; a11y: alt from caption,
+  `role="group"` + `aria-roledescription="slideshow"`, `aria-live` off
+  (captions changing every few seconds would be screen-reader noise);
+  empty rows → existing "No captioned images found" state.
+- Layout note: a large-image mode wants a taller card — per-widget
+  `defaultLayout` minH is global, not per-mode; either bump the widget's
+  minH (costs grid space in grid/list modes) or accept user-driven resize.
+  Decide during implementation; a `minH` bump is the simple option.
+- Optional follow-on (NOT in scope): `fileGallery` shares both renderers
+  via its own `getRenderer` — the slideshow can slot in there the same way
+  later if wanted.
+
+**Status:** open. Source: user request 2026-08-15.
+
+## ISSUE-34 · Article Gallery: ticker mode (scrolling horizontal strip) — **open**
+
+**What:** a `displayMode` where the article's images stream past in a
+horizontal ticker — a strip of image + caption tiles scrolling at a
+configured rate, wrapping seamlessly back to the front. Customizable:
+how many images are in the stream, scroll speed, and whether it loops.
+User request 2026-08-15: "a scrolling horizontal strip of the images with
+their captions going by at a certain rate, and then it loops back again to
+the front."
+
+**Why:** stream-style consumption — a wall of moving images reads as live
+activity (edit-a-thon walls, GLAM lobby displays, kiosk boards); it is the
+"many at once" complement to ISSUE-33's "one at a time". Same zero-new-
+fetch property: pure renderer over the already-fetched `rows[]`.
+
+**Proposed fix (additive):**
+- Registry: `displayMode` gains `'ticker'`; new `GalleryTickerCard`
+  dispatched from `getRenderer`. Config fields: `tickerSpeed` (select
+  slow/medium/fast, or a px/s number), `tickerItems` (max tiles rendered
+  into the strip — note `maxItems` already caps the fetch pool; decide
+  whether tickerItems caps the DISPLAYED pool or the strip is
+  viewport-driven with fixed tile width ~220 px), `loop` (bool, default
+  true). Additive config → no schema change.
+- Seamless loop via the classic CSS marquee: render the row content
+  TWICE (duplicated tiles), `@keyframes ticker { to { transform:
+  translateX(-50%) } }`, `animation-duration` derived from the speed
+  config — the duplicate-content trick gives an infinite gap-free loop
+  with zero JS timing drift and no reflow at the wrap point.
+- Controls: pause on hover (`animation-play-state: paused`); `loop:
+  false` → `animation-iteration-count: 1` + `fill-mode: forwards` (strip
+  ends at the last tile); **`prefers-reduced-motion` → static strip, no
+  animation**; touch: tap pauses.
+- Tiles reuse the `.gallery-item` / `.gallery-thumb` / `.gallery-caption`
+  styling family (caption under each tile, click opens `fileUrl` in a new
+  tab — existing pattern). Strip container `overflow: hidden` for narrow
+  cards; `imageFit` 'cover' reads better in a ticker than 'contain'
+  (letterboxed tiles look gappy) — consider forcing `cover` per-tile in
+  ticker mode regardless of `imageFit`.
+- Same constitution story as ISSUE-33: `timeScope: 'point'`, ⏱ footer
+  shows data age, animation is client-side only.
+
+**Status:** open. Source: user request 2026-08-15.
