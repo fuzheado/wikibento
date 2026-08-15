@@ -435,11 +435,142 @@ opt-out (viewers of a presentation link don't need it; the header's ⏱
 reappears on hover) or keep a one-line footer; whether subtitles with
 the temporal scope stay (proposal: yes — they're content-adjacent).
 
-**Proposed fix (if approved):** implement E above — toolbar toggle +
-root `.slim` class + CSS reveal rules + grid lock + persistence
-(localStorage `wikibento-slim` + `?slim=1`).
+**Approved design (2026-08-15):** implement E — a top-level
+"Present" toggle + `?kiosk=1` URL param, root `.kiosk` class, CSS-only
+chrome hiding, grid lock, no persistence (deliberate: kiosk is entered
+on purpose; URL param wins at boot). Full spec below.
 
-**Status:** open (design). Source: user request 2026-08-14.
+## Implementation spec (2026-08-15 — highest detail)
+
+**Files:** `src/App.jsx`, `src/App.css`. No server, schema, or registry
+changes. Effort: ~1–2 h incl. testing.
+
+### 1. State & boot (`src/App.jsx`)
+
+```jsx
+const [kiosk, setKiosk] = useState(false);
+```
+
+- **Boot** (inside the existing URL-boot effect): read the param once —
+  `new URLSearchParams(window.location.search).get('kiosk') === '1'` →
+  `setKiosk(true)`. A `?kiosk=1` link stays kiosk across refreshes
+  because the param stays in the URL.
+- **NOT persisted to localStorage** — a user who tries kiosk once must
+  not silently land back in it next visit.
+- **Escape exits** (only when kiosk is active):
+
+```jsx
+useEffect(() => {
+  if (!kiosk) return;
+  const onKey = (e) => { if (e.key === 'Escape') setKiosk(false); };
+  window.addEventListener('keydown', onKey);
+  return () => window.removeEventListener('keydown', onKey);
+}, [kiosk]);
+```
+
+### 2. Render changes (`src/App.jsx`)
+
+- Root div (line ~245): `<div className={`app ${kiosk ? 'kiosk' : ''}`}>`
+- **Toolbar button** (in `.app-actions`, after the ⓘ About button):
+
+```jsx
+<button className="btn" onClick={() => setKiosk(true)} title="Presentation mode — hides editing controls · Esc to exit">
+  ⛶ Present
+</button>
+```
+
+- **Exit pill** (rendered when kiosk; place right before the closing
+  `</div>` of `.app`):
+
+```jsx
+{kiosk && (
+  <button className="kiosk-exit" onClick={() => setKiosk(false)} title="Exit presentation mode (Esc)">
+    ✕ Exit
+  </button>
+)}
+```
+
+- **Grid lock + tighter margins** (GridLayout, line ~290; current props:
+  `rowHeight={80}`, `margin={[12, 12]}`):
+
+```jsx
+<GridLayout
+  // ...existing props...
+  isDraggable={!kiosk}
+  isResizable={!kiosk}
+  margin={kiosk ? [4, 4] : [12, 12]}
+>
+```
+
+- **Optional fullscreen** (flag `FULLSCREEN_ON_PRESENT`): only inside
+  the Present *click handler* (browser requires a user gesture; the
+  `?kiosk=1` boot path must NOT attempt it): `if (kiosk &&
+  document.documentElement.requestFullscreen)` →
+  `requestFullscreen().catch(() => {})`; on exit,
+  `if (document.fullscreenElement) document.exitFullscreen().catch(() => {})`.
+
+### 3. CSS (`src/App.css`)
+
+```css
+/* ── Kiosk / presentation mode (ISSUE-18) ──────────────── */
+.kiosk .app-header { display: none; }        /* hide brand + all toolbar buttons */
+.kiosk .widget-header { display: none; }     /* title bar: icon, title, ⓘ⚙↻✕ */
+.kiosk .widget-fetched { display: none; }    /* ⏱ freshness footer (intentional opt-out) */
+.kiosk .widget-frame { border-color: transparent; }  /* soften card chrome */
+.kiosk .grid-item { box-shadow: none; }      /* if grid-item has a shadow */
+.kiosk .widget-body { padding: 8px; }        /* a touch more density */
+.kiosk .boot-banner { display: none; }       /* hide transient banners */
+
+.kiosk-exit {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 1000;
+  opacity: 0.35;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.kiosk-exit:hover { opacity: 1; }
+```
+
+Notes: `.widget-fetched` is `position: absolute` inside the body —
+hiding it is safe. Hiding `.app-header` collapses it out of flow, so
+the grid moves up and gets the full viewport (the point of kiosk).
+Mobile: the single-column stack is untouched; the pill stays tappable
+at 0.35 opacity (touch has no hover, so never go below ~0.3).
+
+### 4. Behavior checklist (test before calling it done)
+
+- Enter via ⛶ Present: headers/footers/toolbar gone; **drag attempt
+  does nothing** (grid locked); margins tight; Escape exits; pill
+  exits.
+- Enter via `?kiosk=1`: same on load; refresh stays kiosk.
+- Widget content still interactive: panorama drag-pan, file-traffic
+  −/+ zoom, gallery links (new tab), wikiPage iframe links, SPARQL
+  renderer override — no regressions from hidden headers.
+- Auto-refresh still runs (⏱ hidden is fine — confirm via a 30 s
+  refreshSeconds widget's data changing, no console errors).
+- Mobile viewport: single-column stack renders; pill visible/tappable.
+- After ✕ Exit + refresh → normal mode (no persistence).
+- Share/Export/Add are unreachable in kiosk by design — the Exit pill
+  is the door back.
+
+### 5. Docs
+
+- README Features: one bullet ("⛶ Presentation / kiosk mode — hide all
+  editing chrome via the Present button or `?kiosk=1`; Esc or the
+  floating ✕ Exit returns").
+- ROADMAP Phase 2: mark the "lean display mode" item as done once
+  shipped.
+
+**Status:** open (spec'd, awaiting implementation). Source: user
+request 2026-08-14; spec 2026-08-15.
 
 ## ISSUE-19 · CIM File Spotlight: show the file's thumbnail (size-customizable) — **open**
 
