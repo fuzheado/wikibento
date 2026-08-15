@@ -1337,3 +1337,52 @@ discriminator + nav-card `?suite=` source + kiosk playlist); spec the
 inline suite as a follow-on only if single-fetch/offline demand appears.
 
 **Status:** open (design). Source: user question 2026-08-15.
+
+## ISSUE-37 · Category Size: visual display modes (gallery / slideshow / ticker of random images) — **open** (design)
+
+**What:** given any Commons category, show a grid of `n` images randomly
+sampled from the category, refreshing every `s` seconds (user-specified,
+rate-limit-safe) — plus slideshow and filmstrip-ticker modes, mirroring the
+Article Gallery request (ISSUE-33/34). User request 2026-08-15, with the
+explicit question: new widget or a mode of the existing `categorySize`
+widget (metrics display optional/off, purely visual)?
+
+**Analysis (2026-08-15): EXTEND `categorySize` — do not create a new
+widget.** Reasons: (1) the fetch is identical — `fetchRandomCategoryImages`
+(src/widgets/dataSources.js:485) already returns n random category images
+with thumbs in ONE request via `generator=search&gsrsort=random` +
+inline `imageinfo` (re-randomizes per refresh); (2) the config surface is
+identical — `category` + `wiki` + `sampleCount` + `refreshSeconds` are
+already the widget's fields; (3) the `gallery` registry entry is the exact
+precedent (`displayMode` → `getRenderer` dispatch, grid/list today);
+(4) convergence: ISSUE-33/34's slideshow/ticker cards render `rows[]` of
+`{title, thumbUrl, fileUrl, caption}` — the category sample already
+produces `{title, url}`; adding `fileUrl` is one line (`iiprop: 'url|size'`
+already fetches the original URL, the map just drops it), so the SAME
+cards render both features with zero new renderer code. A new widget would
+duplicate fetch/config/catalog and confuse the catalog.
+
+**Rate-limit analysis ("safe s"):** the constitution already enforces
+`refreshSeconds ≥ 30` (schema minimum + validator + freshness test) —
+users cannot set below 30 s → worst case ~2 requests/min per widget
+(categoryinfo + random query), ~120/h, trivially inside API etiquette
+(batched ✓, paced ✓, UA ✓). Architecture keeps the "live" look client-side:
+animation (slideshow/ticker) runs on a 1–5 s clock with ZERO API calls;
+the API is hit only at the slow refreshSeconds cadence for a fresh random
+sample. Two clocks: animation (free/fast) + re-sample (cheap/slow).
+
+**Proposed fix:**
+- `categorySize` gains `displayMode`: `metrics` (default — current
+  StatCard + sample), `gallery` (grid of n — reuse GalleryGridCard +
+  `imageFit`), `slideshow` (ISSUE-33 card: `slideDelay`, `loop`),
+  `ticker` (ISSUE-34 card: `tickerSpeed`, `tickerItems`, `loop`).
+- Raise `sampleCount` cap 24 → ~60 (one request handles it).
+- Visual modes keep the count subtitle as provenance (ISSUE-21): "N files ·
+  random sample of n" — categoryinfo is in the same fetch, zero extra cost.
+- Add `fileUrl` to the sample rows (one line) so ISSUE-33/34 cards link
+  through to the Commons file pages (click-through per ISSUE-22).
+- `timeScope: 'point'` unchanged; ⏱ footer shows sample age honestly.
+- Grid mode can ship immediately (GalleryGridCard exists); slideshow/ticker
+  land with ISSUE-33/34's cards — implement together.
+
+**Status:** open (design). Source: user request 2026-08-15.
