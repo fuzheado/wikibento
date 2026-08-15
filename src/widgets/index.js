@@ -115,6 +115,7 @@ const NOISE_RE = [
 export const WIDGET_TYPES = {
   pageviews: {
     id: 'pageviews',
+    category: 'Articles', intensity: 'low',
 
     timeScope: 'range',    name: 'Article Pageviews',
     icon: '📊',
@@ -166,6 +167,7 @@ export const WIDGET_TYPES = {
 
   linkcount: {
     id: 'linkcount',
+    category: 'Rankings & Platforms', intensity: 'low',
 
     timeScope: 'point',    name: 'External Link Count',
     icon: '🔗',
@@ -206,6 +208,7 @@ export const WIDGET_TYPES = {
 
   categorySize: {
     id: 'categorySize',
+    category: 'Categories & GLAM', intensity: 'medium',
 
     timeScope: 'point',    name: 'Category Size',
     icon: '📁',
@@ -239,6 +242,7 @@ export const WIDGET_TYPES = {
 
   wikistats: {
     id: 'wikistats',
+    category: 'Rankings & Platforms', intensity: 'low',
 
     timeScope: 'point',    name: 'Wiki Stats',
     icon: '🌐',
@@ -281,6 +285,7 @@ export const WIDGET_TYPES = {
 
   fileUsage: {
     id: 'fileUsage',
+    category: 'Files & Media', intensity: 'low',
 
     timeScope: 'point',    name: 'File Usage Map',
     icon: '🖼️',
@@ -315,6 +320,7 @@ export const WIDGET_TYPES = {
 
   glamorgan: {
     id: 'glamorgan',
+    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree — may take 10–30 s',
 
     timeScope: 'month',    name: 'GLAM Category Usage',
     icon: '📈',
@@ -362,6 +368,7 @@ export const WIDGET_TYPES = {
 
   topWikipedias: {
     id: 'topWikipedias',
+    category: 'Rankings & Platforms', intensity: 'low',
 
     timeScope: 'point',    name: 'Top 10 Wikipedias',
     icon: '🏆',
@@ -383,6 +390,7 @@ export const WIDGET_TYPES = {
 
   topPages: {
     id: 'topPages',
+    category: 'Rankings & Platforms', intensity: 'medium',
 
     timeScope: 'day',    name: 'Top Wikipedia Articles',
     icon: '🔥',
@@ -474,6 +482,7 @@ export const WIDGET_TYPES = {
 
   markdown: {
     id: 'markdown',
+    category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Text / Markdown',
     icon: '📝',
@@ -495,6 +504,7 @@ export const WIDGET_TYPES = {
 
   excerpt: {
     id: 'excerpt',
+    category: 'Articles', intensity: 'low',
 
     timeScope: 'point',    name: 'Article Excerpt',
     icon: '📄',
@@ -523,6 +533,7 @@ export const WIDGET_TYPES = {
 
   edithistory: {
     id: 'edithistory',
+    category: 'Articles', intensity: 'low',
 
     timeScope: 'point',    name: 'Edit History',
     icon: '🕓',
@@ -551,6 +562,7 @@ export const WIDGET_TYPES = {
 
   quality: {
     id: 'quality',
+    category: 'Articles', intensity: 'low',
 
     timeScope: 'point',    name: 'Article Quality (ORES)',
     icon: '🏅',
@@ -580,6 +592,7 @@ export const WIDGET_TYPES = {
 
   assessments: {
     id: 'assessments',
+    category: 'Articles', intensity: 'low',
 
     timeScope: 'point',    name: 'WikiProject Assessment',
     icon: '🧭',
@@ -608,6 +621,7 @@ export const WIDGET_TYPES = {
 
   gallery: {
     id: 'gallery',
+    category: 'Articles', intensity: 'medium',
 
     timeScope: 'point',    name: 'Article Gallery',
     icon: '🖼️',
@@ -657,6 +671,7 @@ export const WIDGET_TYPES = {
 
   fileGallery: {
     id: 'fileGallery',
+    category: 'Files & Media', intensity: 'medium',
 
     timeScope: 'point',    name: 'Commons File Gallery',
     icon: '🗂️',
@@ -731,6 +746,7 @@ export const WIDGET_TYPES = {
 
   articleList: {
     id: 'articleList',
+    category: 'Content & Embeds', intensity: 'medium',
 
     timeScope: 'point',    name: 'Article List',
     icon: '📋',
@@ -761,6 +777,7 @@ export const WIDGET_TYPES = {
 
   cimSnapshot: {
     id: 'cimSnapshot',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Category Snapshot',
     icon: '🎯',
@@ -792,6 +809,7 @@ export const WIDGET_TYPES = {
 
   cimTrend: {
     id: 'cimTrend',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'range',    name: 'CIM Views Over Time',
     icon: '📈',
@@ -824,6 +842,7 @@ export const WIDGET_TYPES = {
 
   cimTopFiles: {
     id: 'cimTopFiles',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Top Files',
     icon: '🖼️',
@@ -852,6 +871,7 @@ export const WIDGET_TYPES = {
 
   cimTopWikis: {
     id: 'cimTopWikis',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Top Wikis',
     icon: '🌍',
@@ -874,6 +894,7 @@ export const WIDGET_TYPES = {
 
   cimTopPages: {
     id: 'cimTopPages',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Top Pages',
     icon: '📄',
@@ -896,6 +917,7 @@ export const WIDGET_TYPES = {
 
   cimTopEditors: {
     id: 'cimTopEditors',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Top Editors',
     icon: '✍️',
@@ -918,6 +940,7 @@ export const WIDGET_TYPES = {
 
   cimLeaderboard: {
     id: 'cimLeaderboard',
+    category: 'Rankings & Platforms', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM Global Leaderboard',
     icon: '🏆',
@@ -955,6 +978,7 @@ export const WIDGET_TYPES = {
 
   cimFileSpotlight: {
     id: 'cimFileSpotlight',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'month',    name: 'CIM File Spotlight',
     icon: '🔦',
@@ -986,6 +1010,7 @@ export const WIDGET_TYPES = {
 
   cimFileTraffic: {
     id: 'cimFileTraffic',
+    category: 'Categories & GLAM', intensity: 'low',
 
     timeScope: 'range',    name: 'CIM File Traffic',
     icon: '📉',
@@ -1015,6 +1040,7 @@ export const WIDGET_TYPES = {
 
   wikiPage: {
     id: 'wikiPage',
+    category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Wiki Page',
     icon: '📄',
@@ -1064,6 +1090,7 @@ export const WIDGET_TYPES = {
 
   sparql: {
     id: 'sparql',
+    category: 'Queries & Power', intensity: 'high', loadingHint: 'Querying SPARQL — may take up to 60 s',
 
     timeScope: 'point',    name: 'SPARQL Query',
     icon: '🧠',
@@ -1170,6 +1197,7 @@ export const WIDGET_TYPES = {
 
   panorama360: {
     id: 'panorama360',
+    category: 'Files & Media', intensity: 'low',
 
     timeScope: 'point',    name: '360° Panorama Viewer',
     icon: '🌐',
@@ -1205,6 +1233,7 @@ export const WIDGET_TYPES = {
  }), },
   waybackGallery: {
     id: 'waybackGallery',
+    category: 'Web & History', intensity: 'high', loadingHint: 'Looking up Wayback captures — may take a few seconds',
 
     timeScope: 'range',    name: 'Wayback Snapshot Gallery',
     icon: '🕰️',

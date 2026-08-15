@@ -949,7 +949,7 @@ caveat "output of Quarry run {id}, as last executed".
 
 **Status:** open (probe pending). Source: Quarry analysis 2026-08-14.
 
-## ISSUE-32 · Add Widget catalog redesign: category two-pane + flat toggle — **open**
+## ISSUE-32 · Add Widget catalog redesign: category two-pane + flat toggle — **done**
 
 **What:** the Add Widget panel is a long linear list of 29 widgets, hard
 to navigate. Redesign around **multiple discovery modes** with a
@@ -992,4 +992,16 @@ discovery path, overriding both views when typing.
 **Registry contract:** additive only — `category`, `intensity`,
 optional `loadingHint`; no schema or dashboard-format changes.
 
-**Status:** open. Source: design session 2026-08-15.
+**Status:** done (see commit). Implemented 2026-08-15: registry
+`category` + `intensity` (+`loadingHint` for glamorgan/sparql/
+waybackGallery) on all 29 widgets; AddWidgetPanel rebuilt with the
+☰ List | ▤ Categories toggle (localStorage `wikibento-addview`,
+default categories), two-pane rail (icon/label/count, Recent
+pseudo-category), search overriding both views (name/description/
+dataSource/category), type filter chips (stat/trend/table/media/
+query/embed from renderer), type glyphs, intensity badges (`slow`
+danger / `medium` amber, reusing the alpha badge style), Recent
+section (localStorage `wikibento-recent-widgets`, cap 6). WidgetFrame:
+contextual loading hint for high-intensity widgets + ⓘ Intensity row.
+Verified live: 7 rails, counts 6/10/5/3/1/1/3, 29 flat, search
+override, persistence, recent tracking.

@@ -1362,3 +1362,125 @@ body {
   letter-spacing: 0.05em;
   vertical-align: 1px;
 }
+
+/* ── Add Widget catalog: two-pane + toggle + filters (ISSUE-32) ── */
+
+.add-widget-view-toggle {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+.add-widget-view-toggle button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.add-widget-view-toggle button.active {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+.add-widget-view-toggle button:hover { color: var(--text); }
+
+.add-widget-typefilter {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 16px 8px;
+}
+.add-widget-typefilter button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.add-widget-typefilter button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(74,158,255,0.1);
+}
+
+.add-widget-panes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+}
+.add-widget-rail {
+  width: 172px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 8px 6px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.add-widget-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+}
+.add-widget-cat:hover { background: var(--surface-hover); color: var(--text); }
+.add-widget-cat.active {
+  background: rgba(74,158,255,0.12);
+  color: var(--text);
+}
+.add-widget-cat-icon { font-size: 15px; }
+.add-widget-cat-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-widget-cat-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.07);
+  border-radius: 999px;
+  padding: 0 7px;
+}
+.add-widget-cat.active .add-widget-cat-count { color: var(--accent); }
+
+.add-widget-pane {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.add-widget-section {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  padding: 10px 12px 4px;
+}
+
+.add-widget-type {
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* intensity badges (reuses .add-widget-badge base from ISSUE-03 work) */
+.add-widget-badge.intensity-high {
+  background: rgba(224, 85, 106, 0.18);
+  color: var(--danger);
+}
+.add-widget-badge.intensity-medium {
+  background: rgba(201, 162, 39, 0.15);
+  color: #c9a227;
+}

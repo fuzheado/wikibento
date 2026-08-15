@@ -258,6 +258,12 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
               <span>{TIME_SCOPE_LABELS[def.timeScope] || def.timeScope}</span>
             </div>
           )}
+          {def?.intensity && def.intensity !== 'low' && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Intensity</span>
+              <span>{def.intensity === 'high' ? 'high — live scan/query, may take 10–60 s' : 'medium — extra fetches, may add a few seconds'}</span>
+            </div>
+          )}
           {def?.fetch && (
             <div className="widget-info-row">
               <span className="widget-info-label">Auto-refresh</span>
@@ -285,7 +291,13 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
       )}
 
       <div className="widget-body">
-        {state.loading && <div className="widget-loading">Loading…</div>}
+        {state.loading && (
+        <div className="widget-loading">
+          {def?.intensity === 'high'
+            ? (def?.loadingHint || 'Running a live scan — may take 10–60 s…')
+            : 'Loading…'}
+        </div>
+      )}
         {state.error && (
           <div className="widget-error">
             <span>⚠ {state.error}</span>
