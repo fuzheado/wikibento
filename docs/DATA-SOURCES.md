@@ -430,3 +430,54 @@ describe it in the docs above, done.
 - **Missing files:** counted and surfaced in the subtitle ("3 files · 1 not found · 2 video, 1 audio") — never fatal.
 - **Jukebox behavior:** all client-side — `onended` → next; loop-playlist wraps the end to the start (single-file + loop = native `loop`); Fisher–Yates shuffle per playlist change; autoplay respects browser policy via a ▶ Start pill (one click unlocks subsequent autoplay — `playing` hides the pill).
 - **Rate limits:** ONE batched call per refresh (refreshSeconds ≥ 30 per the constitution); playback streams from upload.wikimedia.org (their CDN).
+
+## 23. LLM inference — LiftWing open-weight models (Wikimedia-hosted, free)
+
+**Facility record (2026-08-16):** Wikimedia's LiftWing platform hosts two
+open-weight Qwen chat models **free for any Wikimedia project or tool**, no
+API key, no cost. Documented at
+wikitech.wikimedia.org/wiki/Machine_Learning/LiftWing/Large_Language_Models/Wikimania_2026.
+
+- **Models:** `llm-qwen36-27b` (Qwen3.6-27B, 32K context — largest available)
+  and `llm-qwen3-14b` (Qwen3-14B, 16K). Multilingual, instruction-tuned.
+- **Endpoint (OpenAI-compatible chat completions):**
+  `https://api.wikimedia.org/service/lw/inference/v1/models/llm-<model>/openai/v1/chat/completions`
+  — any OpenAI client works by pointing `base_url` at it; streaming supported.
+- **Supports:** chat/text generation, streaming, `response_format:
+  {"type": "json_object"}` (vLLM-enforced valid JSON — verified live
+  2026-08-16), up to 32K context. **Does NOT support:** tool/function
+  calling, RAG, web search, vision.
+- **Rate limits:** anonymous = **100 requests/hour shared across all models,
+  per client** (HTTP 429 over). Running from **Toolforge = effectively
+  unlimited** (no request needed). The 429 body may be plain text; honor
+  Retry-After.
+- **CORS: none** on the endpoint (verified) → browsers cannot call it
+  directly; **any tool use must relay server-side** (the `/api/ask` pattern,
+  same as `/api/proxy`).
+- **Privacy:** the API persists nothing — prompts and responses are **not
+  logged, retained, or used for training**. Prompts stay inside Wikimedia
+  infrastructure. (LiftWing Studio is different: it saves chats by default.)
+- **Outputs:** may include a `<think>…</think>` reasoning wrapper — strip it
+  before use. Training cutoff is fixed; no live knowledge — supply context
+  in the prompt for anything time-sensitive.
+- **Verified use (2026-08-16):** the ISSUE-44 "Ask" widget advisor — a
+  30-widget capability manifest is ~531 prompt tokens (full manifest with
+  configFields ≈ 5–8K, fits 32K); `json_object` mode returns clean contract
+  JSON on realistic intents with correct widget ids and pre-filled configs.
+  ⚠️ **The model can hallucinate widget ids** (`video_player` for
+  `mediaPlayer`) — always validate model output against the manifest.
+- **⚠️ Caveat — experimental test service, no long-term guarantee:** this is
+  a pilot with **no SLA**; it may be slow or unavailable, and models or
+  endpoints can change or be **removed without notice**. Never make a
+  feature *depend* on it: pair every use with a local/offline fallback
+  (e.g. the local smart-search tier in ISSUE-44). Treat it as a bonus
+  facility, not a dependency.
+
+**Other future uses at our fingertips (same endpoint, same rules):** the Ask
+advisor (ISSUE-44); natural-language → SPARQL query generation (pre-filled
+configs); widget description / config-help text generation; dashboard title
+and subtitle summarization; drafting Markdown content for the Text/Markdown
+widget; text classification and summarization helpers for GLAM workflows;
+multilingual dashboard text (the models are multilingual). Anything that is
+"structured text in, structured text out" over a constrained domain is the
+right paradigm — coding benchmarks are not.

@@ -1823,3 +1823,5 @@ LiftWing LLM endpoints):**
 precedents verified 2026-08-16 (Grafana/Kibana/Power BI/Tableau docs);
 LiftWing LLM endpoints live-tested 2026-08-16 (wikitech
 Machine_Learning/LiftWing/Large_Language_Models/Wikimania_2026).
+**Facility record + caveat (experimental, no SLA, may be removed):**
+docs/DATA-SOURCES.md §23.
