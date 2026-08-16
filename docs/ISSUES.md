@@ -595,6 +595,9 @@ refresh after leaving lands in normal mode; kiosk and lean are mutually
 exclusive (kiosk wins at boot). Fixed during verification: the
 param-strip used the return of `URLSearchParams.delete()` (undefined,
 not boolean) — restored `.has()`-first semantics; kiosk regression
+green. **DEPLOYED to Toolforge 2026-08-16** (bundle index-DkcrAAk0.js) —
+verified live: `?config=/dashboard.json&lean=1` → 30 widgets chrome-free,
+no fullscreen, resize/Esc/pill lifecycle green; `?kiosk=1` regression
 green. See README Features + ROADMAP lean-display item.
 
 **Status:** done. Source: user
