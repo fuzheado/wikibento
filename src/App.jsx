@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import GridLayout from 'react-grid-layout';
 import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
@@ -208,6 +208,27 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     persist(newWidgets, newLayout);
   }, [widgets, layout, persist]);
 
+const lastAutoH = useRef({});
+// Content-based auto-fit (gallery-family widgets): the widget reports its
+// natural pixel height after a successful load; fit the grid row height —
+// but ONLY while the user hasn't resized it manually (h still equals the
+// registry default or our last auto-applied value). Persists the fit.
+const handleAutoHeight = useCallback((id, px) => {
+  const item = layout.find((l) => l.i === id);
+  if (!item) return;
+  const wt = widgets.find((w) => w.id === id)?.widgetType;
+  const defaultH = WIDGET_TYPES[wt]?.defaultLayout?.h ?? 3;
+  const last = lastAutoH.current[id];
+  if (item.h !== defaultH && item.h !== last) return; // user-managed size
+  const m = kiosk || lean ? 4 : 12;
+  const rows = Math.max(3, Math.min(14, Math.round(px / (80 + m))));
+  if (rows === item.h) return;
+  lastAutoH.current[id] = rows;
+  const newLayout = layout.map((l) => (l.i === id ? { ...l, h: rows } : l));
+  setLayout(newLayout);
+  persist(widgets, newLayout);
+}, [layout, widgets, kiosk, lean, persist]);
+
   const handleRemoveWidget = useCallback((id) => {
     const newWidgets = widgets.filter(w => w.id !== id);
     const newLayout = layout.filter(l => l.i !== id);
@@ -282,6 +303,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   onRemove={handleRemoveWidget}
   onUpdateConfig={handleUpdateConfig}
   reloadKey={reloadKey}
+ onAutoHeight={handleAutoHeight}
 />
       </ErrorBoundary>
     </div>
@@ -352,20 +374,17 @@ const [showAskPanel, setShowAskPanel] = useState(false);
         {isMobile ? (
           <div className="mobile-stack">{mobileItems}</div>
         ) : (
-          <GridLayout
-            className="layout"
-            layout={layout}
-            cols={12}
-            rowHeight={80}
-            width={gridWidth}
-            onLayoutChange={handleLayoutChange}
-            dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
-            compactType="vertical"
-            isDraggable={!(kiosk || lean)}
-            isResizable={!(kiosk || lean)}
-            margin={(kiosk || lean) ? [4, 4] : [12, 12]}
-            containerPadding={[0, 0]}
-          >
+ <GridLayout
+ className="layout"
+ layout={layout}
+ width={gridWidth}
+ gridConfig={{ cols: 12, rowHeight: 80, margin: (kiosk || lean) ? [4, 4] : [12, 12], containerPadding: [0, 0] }}
+ onLayoutChange={handleLayoutChange}
+ dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
+ compactType="vertical"
+ isDraggable={!(kiosk || lean)}
+ isResizable={!(kiosk || lean)}
+ >
             {widgetItems}
           </GridLayout>
         )}

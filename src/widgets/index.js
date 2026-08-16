@@ -627,6 +627,20 @@ export const WIDGET_TYPES = {
     timeScope: 'point',    name: 'Article Gallery',
     icon: '🖼️',
     description: 'Significant images in an article with captions (grid or list)',
+  // Content-based auto-fit: tall enough to show the fetched images.
+  // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
+  autoHeight: (view, config) => {
+    const n = view?.rows?.length;
+    if (!n) return null;
+    const mode = config?.displayMode || 'grid';
+    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66);
+    const size = config?.iconSize || 'medium';
+    const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
+    const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
+    const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
+    return 64 + rows * (tilePx + 46);
+  },
+  defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
     defaults: {
       article: 'Albert Einstein',
@@ -677,6 +691,20 @@ export const WIDGET_TYPES = {
     timeScope: 'point',    name: 'Commons File Gallery',
     icon: '🗂️',
     description: 'Gallery of any Commons files you list — grid or list, ordered or random',
+  // Content-based auto-fit: tall enough to show the fetched images.
+  // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
+  autoHeight: (view, config) => {
+    const n = view?.rows?.length;
+    if (!n) return null;
+    const mode = config?.displayMode || 'grid';
+    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66);
+    const size = config?.iconSize || 'medium';
+    const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
+    const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
+    const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
+    return 64 + rows * (tilePx + 46);
+  },
+  defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
     labelFromConfig: (c) => `${(c.files || '').split('\n').filter(Boolean).length} files`,
     defaults: {
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
@@ -848,6 +876,7 @@ export const WIDGET_TYPES = {
     timeScope: 'month',    name: 'CIM Top Files',
     icon: '🖼️',
     description: 'Most-viewed files in a CIM category — thumbnails + views',
+  defaultLayout: { w: 12, h: 8, minW: 4, minH: 3 },
     labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
     defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
     renderer: 'CimTopFilesCard',
@@ -1293,6 +1322,7 @@ export const WIDGET_TYPES = {
     icon: '🕰️',
     experimental: true,
     description: 'Screenshot tiles of a website across history — one Wayback capture per requested date. Experimental: depends on the Wayback Machine backend health; failed lookups retry on refresh',
+  defaultLayout: { w: 12, h: 8, minW: 4, minH: 3 },
     labelFromConfig: (c) => (c.url || '').replace(/^https?:\/\//i, '').replace(/\/+$/, ''),
     defaults: {
       url: 'wikipedia.org',

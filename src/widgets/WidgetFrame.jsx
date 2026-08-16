@@ -7,12 +7,16 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight }) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
   const intervalRef = useRef(null);
+  // Latest onAutoHeight via ref — load()'s closure must not go stale as the
+  // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
+  const onAutoHeightRef = useRef(onAutoHeight);
+  onAutoHeightRef.current = onAutoHeight;
   const def = WIDGET_TYPES[widget.widgetType];
 
   // Header shows the analyzed asset (from config, live) unless the user
@@ -129,6 +133,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
       setState({ loading: false, error: null, data: transformed });
+  // Content-based auto-fit: registry entries may declare autoHeight(view, config)
+  // → px; the app fits the grid row height once (unless the user resized manually).
+  const autoPx = def.autoHeight ? def.autoHeight(transformed, widget.config) : null;
+  if (autoPx && onAutoHeightRef.current) onAutoHeightRef.current(widget.id, autoPx);
     } catch (e) {
       setState({ loading: false, error: e.message, data: null });
     }
