@@ -262,5 +262,29 @@ Atkinson never had.
 
 ---
 
+## 10. The Wayfinding Question: Why Structure Wins for Visitors
+
+The strongest objection to the canvas thesis deserves a direct answer:
+**the infinite canvas puzzles its visitors** — where to start, where to go
+next, how to navigate, even with arrows on screen. The bounded grid
+assumes a known reading order: upper-left, then down. This is not a
+taste; it is the finding of the spatial-hypertext literature (VIKI,
+Marshall & Shipman, 1993–99): spatial layout is *emergent structure* —
+meaning **for its maker**. The author who placed things knows why they
+are there; the visitor must infer it. The zoomable-interface tradition
+(Pad/Pad++, SIGGRAPH '93) adds the tax: navigation itself consumes
+attention, and spatial memory only helps *after* the first visit.
+
+Bob Stein's counter-thesis (Tapestries) is real and right — for the
+maker: tabs and scrolling obscure "a sense of the whole"; a canvas
+restores it. The resolution: **canvas for the author, structure for the
+visitor.** WikiBento is the *bounded canvas* — free arrangement within
+a finite, ordered, readable board; and where a canvas answers "where do
+I go next?" with "keep looking," the Bento answers with **a stack**:
+Bento-to-Bento navigation makes "next" a known unit, and lists are how
+people navigate. (The full research — the paradigms catalog, the
+CD-ROM-era postmortems, mTropolis and Voyager — is in
+[PARADIGMS.md](PARADIGMS.md).)
+
 *Author: Andrew Lih (User:Fuzheado) · 2026-08-16. Written by conversation
 with a coding agent — which is itself the point of this document.*

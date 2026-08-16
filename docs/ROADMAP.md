@@ -107,7 +107,7 @@ Housekeeping found during the code audit. Safe for a first PR.
   debounce input ~250–300 ms (wait-for-pause) and cancel stale requests with
   `AbortController` before issuing new ones.
 - **Lean display mode — hidden decorations by default** — **done 2026-08-15**
-  (kiosk/presentation mode, ISSUE-18): ⛶ Present toggle + `?kiosk=1` URL
+  (kiosk/presentation mode, ISSUE-18); ▣ Lean mode added 2026-08-16 (same chrome-free state without fullscreen — resizable browser, `?lean=1`): ⛶ Present toggle + `?kiosk=1` URL
   param hide all widget chrome (title bars, ⚙/↻/✕, ⏱ footers, borders) and
   lock the grid; Esc or a floating ✕ Exit returns; browser fullscreen on the
   Present click (never on boot), nothing persisted — the URL param wins at

@@ -95,6 +95,9 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   wall — or load any dashboard directly in kiosk with `?kiosk=1` (shareable
   presentation link); Esc or the floating ✕ Exit returns, and browser
   fullscreen engages on the Present click
+- **Lean mode** — ▣ Lean (or `?lean=1`) gives the same chrome-free,
+  grid-locked presentation as kiosk **without fullscreen**: the browser
+  stays resizable, so the board reads as a compact app at any window size
 - **Add Widget panel** — searchable catalog; click to add
 - **Asset-aware titles** — every box headline and title bar shows *what it's
   analyzing* (article, category, file, domain), updating live when you change it
@@ -269,6 +272,7 @@ wikibento/
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — component tree, data flow, widget registry pattern, known issues
 - [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — why this project exists: the HyperCard lineage and the malleable-canvas thesis
+- [docs/PARADIGMS.md](docs/PARADIGMS.md) — research companion: presentation paradigms (cards, timelines, canvases, tile grids), the wayfinding question, and the CD-ROM multimedia era's rise and fall
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings

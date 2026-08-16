@@ -586,6 +586,17 @@ no widget error states, zoom buttons interactive, mobile stack + tappable
 pill at 0.35 opacity, Escape/Exit/refresh cycles per checklist. README
 Features bullet + ROADMAP lean-display item marked done.
 
+**Extended 2026-08-16 (3bfad47):** ▣ **Lean mode** — the same
+chrome-free, grid-locked presentation WITHOUT fullscreen (`?lean=1` URL
+param + toolbar button; `.kiosk` CSS rules shared with `.lean`). The
+browser stays resizable at any size, so the board reads as a compact
+app (iPad-style). Esc exits; ✕ Exit strips `?lean` (or `?kiosk`) so a
+refresh after leaving lands in normal mode; kiosk and lean are mutually
+exclusive (kiosk wins at boot). Fixed during verification: the
+param-strip used the return of `URLSearchParams.delete()` (undefined,
+not boolean) — restored `.has()`-first semantics; kiosk regression
+green. See README Features + ROADMAP lean-display item.
+
 **Status:** done. Source: user
 request 2026-08-14; spec 2026-08-15.
 
