@@ -99,6 +99,11 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   grid-locked presentation as kiosk **without fullscreen**: the browser
   stays resizable, so the board reads as a compact app at any window size
 - **Add Widget panel** — searchable catalog; click to add
+- **✨ Ask (ML advisor)** — type what you want in plain language ("random
+  sampling of images from a category") and get widget recommendations with
+  pre-filled settings, ready to add; powered by Wikimedia's free LiftWing
+  LLM via a same-origin relay (prompts not stored), with an offline
+  keyword fallback when the ML service is unavailable
 - **Asset-aware titles** — every box headline and title bar shows *what it's
   analyzing* (article, category, file, domain), updating live when you change it
 - **Per-widget config** — ⚙️ gear → edit article, domain, wiki, category, etc., with live re-fetch

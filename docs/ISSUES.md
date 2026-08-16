@@ -1847,9 +1847,13 @@ LiftWing LLM endpoints):**
   smart-search tier + error states are the graceful degradation.
 - **CORS: absent** → relay-only architecture (see Transport).
 
-**Status:** open (brainstorm → design). Source: user direction 2026-08-16;
-precedents verified 2026-08-16 (Grafana/Kibana/Power BI/Tableau docs);
-LiftWing LLM endpoints live-tested 2026-08-16 (wikitech
-Machine_Learning/LiftWing/Large_Language_Models/Wikimania_2026).
+**Status:** Phase 1 (manifest + local smart search + /api/ask ML tier + Ask
+panel) **DONE and DEPLOYED 2026-08-16** (commit 5378088, verified live).
+Phases 2-4 open: multi-widget board assembly, refinement loop, and
+(long-term) intent → new widget via registry editing.
+Source: user direction 2026-08-16; precedents verified 2026-08-16
+(Grafana/Kibana/Power BI/Tableau docs); LiftWing LLM endpoints live-tested
+2026-08-16 (wikitech Machine_Learning/LiftWing/Large_Language_Models/
+Wikimania_2026).
 **Facility record + caveat (experimental, no SLA, may be removed):**
 docs/DATA-SOURCES.md §23.
