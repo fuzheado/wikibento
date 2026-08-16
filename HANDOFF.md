@@ -38,6 +38,16 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   pill (browser policy), missing-file counts. **DEPLOYED** (commit
   c9f7bbc, bundle index-DdJRNUuD.js → current index-DkcrAAk0.js,
   verified live 2026-08-16).
+- ✅ **Gallery defaults + grid density fix (2026-08-16):** Article Gallery /
+  Commons File Gallery now add at **w:12 full width** and **auto-fit their
+  height to the image count** (registry `autoHeight` → WidgetFrame
+  `onAutoHeight` → App fits rows, clamp 3–14, stops once the user resizes).
+  cimTopFiles + waybackGallery share the full-width default. **Root-cause
+  find:** react-grid-layout 2.2.4 moved `cols/rowHeight/margin/
+  containerPadding` into the `gridConfig` prop (same silent-API drift as
+  dragConfig) — the app's rowHeight={80} was ignored and the grid rendered
+  with RGL's 150px-row defaults all along. Fixed via `gridConfig`; board
+  now renders at the intended density. Commit ee70ce4, verified live.
 - ✅ **Docs (2026-08-15/16):** docs/PHILOSOPHY.md (the HyperCard
   lineage + origin story + wayfinding question) and docs/PARADIGMS.md
   (presentation paradigms, CD-ROM era, contemporaries incl. Knight Lab
