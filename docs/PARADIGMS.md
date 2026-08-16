@@ -205,3 +205,124 @@ to CD-ROM (networked distribution) — the two failed halves, joined.
 - The CD-ROM era — Salon (1995) *[No Room at the Bin](https://www.salon.com/1995/12/16/media_236/)*; Rosenzweig (1994) *[So, What's Next for Clio?](https://rrchnm.org/essays/so-whats-next-for-clio-cd-rom-and-historians/)*; Cybercultural — *[Multimedia Gulch in 1994](https://tagteam.harvard.edu/hub_feeds/4673/feed_items/16254679)*
 - The widget-grid lineage — [iGoogle retirement](https://igoogledeveloper.blogspot.com/2013/11/saying-goodbye-to-igoogle.html); [Netvibes launch](https://techcrunch.com/2005/09/16/netvibes-personal-homepage/); [Opera Speed Dial](https://press.opera.com/2007/03/28/whats-on-your-speed-dial/)
 - *The New Media Reader* (Wardrip-Fruin & Montfort, MIT Press) — Bush, Nelson, Engelbart, Kay et al.
+
+---
+
+## 5. The Contemporaries (2015–2026): Are We Alone?
+
+Research question (2026-08-16): is anyone else pursuing a composable
+presentation layer for multimedia assets in the HyperCard / Apple Media
+Tool / QuarkImmedia tradition? **Answer: not alone in category — but the
+category splits into two worlds, and the specific configuration appears
+unoccupied.**
+
+### World A — proprietary vertical storytelling suites (alive, commercial)
+
+| Project | What it is | The wedge |
+|---|---|---|
+| **ArcGIS StoryMaps** | Narrative + images/video + interactive maps into scrollable stories; used by museums, heritage sites, journalism | The GIS industry — a focused buyer with budgets |
+| **Shorthand** | Magazine-style scrollytelling for cultural organizations (English Heritage, Sydney Opera House, Cambridge Museums) | Editorial/marketing teams |
+| **Flourish** | Data-viz-led stories (charts, maps, animated slides) | Journalism/data desks |
+| **Microsoft Sway** | Lightweight media narratives with auto-layout | Office users |
+| **Adobe Express / Spark** | Compose graphics/pages/videos | Marketing, education |
+
+These are the *commercial* continuation of the presentation-layer idea —
+but they are template-driven, closed, platform-locked, and none of them
+compose **live, networked, data-driven content** (theirs is upload-then-
+arrange). None exposes a config-as-data artifact.
+
+### World B — open/community projects (alive, mostly small)
+
+| Project | What it is | Relation to us |
+|---|---|---|
+| **Cardstack** | Open-source "cards for the web" — a Card is a reusable mini-app (schema+data+UI+behavior), serialized as JSON, assembled by end users. Explicitly billed as the networked HyperCard idea | The closest philosophical sibling; app-builder oriented, not media-presentation oriented |
+| **Tapestries** (Bob Stein @ Internet Archive) | Infinite-canvas multimedia authoring, open format (v7, Zod-validated) | The canvas complement (see PHILOSOPHY §10) |
+| **H5P** | "Create rich interactive content" — drag-and-drop interactive media for education, runs in any LMS | Alive, education wedge; template-library model |
+| **Explorable Explanations** (Nicky Case et al.) | A movement of hand-crafted interactive essays (play-and-learn media composition) | The authoring spirit; each piece is bespoke code, no composition layer for non-programmers |
+| **Popcorn Maker** (Mozilla, 2012–15; adopted by the Internet Archive) | Drag-and-drop remix of web video with photos/maps/links — *the* web-native HyperCard moment | Dead as a product, preserved by the Archive — our closest dead ancestor |
+| **Obsidian Canvas / JSON Canvas** | Open-format cards on an infinite canvas | The canvas lineage, notes-focused |
+| **Lively4 / Webstrates** (Hasso-Plattner; Aarhus) | Research environments: live-programmable, persistent web documents — HyperCard's research lineage | Academic, not products |
+
+### The Wikimedia-adjacent world (where we actually live)
+
+The GLAM tool ecosystem (WikiShootMe map-of-photos, GLAM Visual Tool,
+BaGLAMa metrics, Map the GLAM) is **single-purpose analysis**, not
+composition: none of them lets a curator *assemble* galleries, metrics,
+maps, video, and narrative into a board. The WMF's own GLAM Dashboard
+tool was discontinued. **No one occupies the niche WikiBento holds: an
+open, browser-native, config-as-data composition layer over the
+Wikimedia APIs — cards + stacks + links, with observability — that any
+institution or individual can instantiate from a URL.** The category is
+crowded; the specific configuration (networked, open, data-driven,
+no-runtime-dependency, anchored in an existing content ecosystem) is not.
+
+### Who to correspond with
+
+- **The Tapestries team @ Internet Archive** (Bob Stein — already known)
+- **Cardstack** (docs.cardstack.com — open-source cards community)
+- **H5P / Joubel** (education authoring)
+- **Nicky Case + explorabl.es** (the interactive-composition movement)
+- **The Internet Archive** re: Popcorn Maker adoption (they preserved it)
+- **Dynamicland** (Bret Victor — "Hypercard in the World")
+- **hypercard.org** (xCards and other living successors)
+- **GLAM-Wiki community** (WikiShootMe, GLAM Visual Tool maintainers —
+  natural collaborators and users)
+
+## 6. The Mortality Question: Why Do These Die?
+
+Storify's arc is the canonical case: launched 2010, an award-winning
+compose-and-weave tool for social media, acquired by Livefyre (2013)
+then Adobe (2016), **shut down May 2018** — its users directed to
+"Storify 2," absorbed into Adobe's Experience Manager. The demand was
+real (it was *the* journalism tool for embedding social narratives);
+the product was killed by acquisition, not by its users.
+
+The pattern, across every death in this document:
+
+1. **The acquisition kill** — Storify→Adobe, mTropolis→Quark, iGoogle→
+   Google, HyperCard/Media Tool→Apple, Director/Flash→Adobe. The tool
+   becomes a feature of a suite, then a footnote.
+2. **The priority pivot** — Popcorn Maker and the whole Mozilla Webmaker
+   suite died of a foundation re-prioritization (mobile pivot), not
+   disuse; the Internet Archive had to adopt it to preserve it.
+3. **The "everyone" market** — tools aimed at "everyone" (iGoogle,
+   Popcorn Maker, Storify in its later life) lack a paying wedge;
+   tools aimed at a profession survive (StoryMaps=GIS, Grafana=devops,
+   H5P=LMS, Canva=marketing, Retool=internal tools).
+4. **The economics of creative tools** (Gartner/Forrester/CB Insights/
+   RevenueCat, 2025–26): demand is not the problem — churn is. Nearly
+   30% of annual subscriptions cancel in month one; graphics/design
+   apps show the weakest retention. No-code commoditizes creation, so
+   advantage shifts to distribution and workflow ownership. Survivors
+   own a *recurring, high-stakes workflow* with a focused buyer.
+5. **Platform dependency** — Flash, Director, HyperCard, Shockwave:
+   proprietary runtimes are single-company points of failure. Every one
+   of them died exactly that way.
+
+**The verdict on the direction itself:** the composition instinct is not
+a failed experiment — it is a constant. It was reborn in every decade:
+Popcorn Maker → Google Web Stories → TikTok/Instagram template
+composers → ArcGIS StoryMaps → Tapestries. What fails is not the
+paradigm but its *housing*: proprietary runtimes, acquisition math,
+and markets without a wedge. The web won over CD-ROM not because
+multimedia was wrong but because distribution won; the survivors all
+found the same answer — **anchor in an ecosystem that already has the
+content and the users.**
+
+Which is the strategic lesson for WikiBento, and it is reassuring:
+the architecture already answers the mortality question.
+
+- **No proprietary runtime** — the browser, plain HTML/CSS/JS; no
+  plugin, no player company.
+- **Config-as-data** — the artifact is JSON: portable, hostable on any
+  wiki or host, importable/exportable; it cannot be locked in.
+- **Anchored in an existing ecosystem** — Wikimedia already holds the
+  content (no chicken-and-egg content problem that killed would-be
+  Storifys) and the community; Toolforge hosts at zero cost; there is
+  no company to acquire and kill it.
+- **A focused wedge** — GLAM institutions, educators, presenters,
+  event walls, and the Wikimedia community's own observability needs.
+
+The tools of yesterday died of their housing, not their idea. The idea
+is what we are building — in a form that cannot be unshipped by a
+corporate decision.
