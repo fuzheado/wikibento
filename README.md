@@ -283,6 +283,8 @@ wikibento/
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — component tree, data flow, widget registry pattern, known issues
 - [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — why this project exists: the HyperCard lineage and the malleable-canvas thesis
 - [docs/PARADIGMS.md](docs/PARADIGMS.md) — research companion: presentation paradigms (cards, timelines, canvases, tile grids), the wayfinding question, and the CD-ROM multimedia era's rise and fall
+- [docs/TOOL-LANDSCAPE-SYNTHESIS.md](docs/TOOL-LANDSCAPE-SYNTHESIS.md) — research synthesis: ~40 dashboard/gallery/curation/dataflow tools surveyed (Freeboard, Are.na, Observable, oEmbed, ToolFlow…) and what each teaches WikiBento
+- [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings
