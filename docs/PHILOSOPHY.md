@@ -1,0 +1,184 @@
+# WikiBento and the HyperCard Lineage
+
+*Why this project exists — the philosophical case. Companion to
+[ARCHITECTURE.md](ARCHITECTURE.md) (the *why* vs. the *how*).*
+
+---
+
+## The Claim
+
+WikiBento carries on the tradition of Apple's HyperCard (1987) — putting the
+power to compose interactive media experiences in the hands of individuals —
+and its **malleable canvas** is the correct evolution of that paradigm. The
+refinement that makes this true: **the card metaphor was never the problem;
+the screen-locked card was.** HyperCard's card was fixed at 512×342 because
+it *was* the Mac's screen. WikiBento keeps the card as the composable unit
+(the widget) and fixes everything that killed HyperCard: the card becomes
+fluid and responsive, the stack becomes a URL, and the links go through
+cyberspace.
+
+---
+
+## 1. What HyperCard Was
+
+Apple shipped HyperCard free with every Mac in 1987. Its promise was captured
+in the slogan of the time: **"programming for the rest of us."** Bill Atkinson
+called it a "software erector set" — an attempt to bridge "the priesthood of
+programmers and the Macintosh mouse clickers."
+
+Five concepts (per Atkinson's own account):
+
+| Concept | Meaning |
+|---|---|
+| **Cards** | Screens: text, graphics, buttons, fields. On the nine-inch Mac, 512×342 pixels |
+| **Stacks** | Ordered collections of cards — essentially apps |
+| **Objects** | The UI layer: buttons, fields, backgrounds |
+| **HyperTalk** | Scripting that read like English: *"if field 'Password' is 'open sesame' then go to card 'Secret'"* |
+| **Hyperlinks** | Navigation from any button to any other card or stack |
+
+HyperCard's revolution was *authoring*: non-programmers could build a
+database, an interactive story, a museum exhibit, a BBS front end — without
+anything that looked like code. It was the last time a mass-market platform
+gave end users that kind of compositional power for two decades.
+
+## 2. The Four Failure Modes
+
+The autopsy matters because each failure has a name and a fix:
+
+1. **Box-centric, not network-centric.** Atkinson's own confession (WIRED,
+   2002): *"I grew up in a box-centric culture at Apple. If I'd grown up in a
+   network-centric culture, like Sun, HyperCard might have been the first Web
+   browser."* Stacks were local files. They could never reach each other
+   through the Net.
+2. **The card = the screen.** Fixed 512×342. A card could not be composed,
+   scaled, reflowed, or recontextualized. The unit of composition was the
+   physical display, so the paradigm could not survive displays of different
+   sizes and aspect ratios.
+3. **No product identity.** Apple never decided what HyperCard was — tool,
+   toy, database, language? (Tim Oren's 2004 eulogy; Daring Fireball's "stacks
+   smell funny.") Jobs axed it in the 1997 streamlining.
+4. **No successor.** The web took the *link* and the *network* but dropped the
+   *authoring*. The "rest of us" became consumers of pages instead of
+   composers of experiences — and have spent thirty years lamenting it.
+
+## 3. Where the Paradigm Went
+
+The thread did not die; it split, and each fragment went somewhere:
+
+- **The wiki is HyperCard's direct descendant.** Ward Cunningham built
+  HyperCard stacks at Tektronix in the late 1980s, then adapted the
+  card-and-link model into WikiWikiWeb (1995) — including the detail that
+  HyperCard's links to *not-yet-existing* cards carried straight into the
+  wiki's red-link-to-new-page. **Wikipedia is the largest HyperCard stack
+  ever built.** WikiBento is an interface *to* that stack — the lineage
+  becomes recursive.
+- **The card survived as the widget.** As a unit of content + behavior, the
+  card became the dominant UI atom of the last decade: iOS widgets, feed
+  cards, dashboard panels (Grafana, Kibana — react-grid-layout's own
+  provenance), design-system components. The classic critiques (Nielsen's
+  "card sharks vs. holy scrollers"; Dave Rupert's card-UI pitfalls) apply to
+  cards as *page substitutes* — not cards as *composable atoms*.
+- **The canvas is the current revival.** Obsidian Canvas (now **JSON Canvas**
+  — an open, MIT-licensed spec), Miro, Apple Freeform: cards liberated onto a
+  malleable plane. Bret Victor — the tradition's loudest mourner — named his
+  Dynamicland spatial-computing project, explicitly, **"Hypercard in the
+  World,"** and his 2013 talk *The Future of Programming* is the canonical
+  grief document: *"that's the world that we lost."*
+- **The AI era arrived.** Roger Wong (2025): *"Why We Still Need a HyperCard
+  for the AI Era"* — vibecoding is HyperCard's promise returning, minus the
+  control. TidBITS (2026-08-14): *"Decades After HyperCard, AI Is
+  Democratizing Development Again."* Notion's Ivan Zhao: computing should be
+  "LEGO-like," "like reading and writing." The successor conversation is
+  live, right now.
+
+## 4. The Mapping
+
+| HyperCard | WikiBento |
+|---|---|
+| **Card** (512×342, screen-locked) | **Widget** — the same unit of content + behavior + config, but fluid: draggable, resizable, reflowing; collapses to a single-column stack on phones; kiosk mode is "run the stack" presentation |
+| **Stack** (a local file) | **Bento** — a config: a JSON document with URL identity |
+| **Hyperlinks** (card-to-card, same machine) | Bento-to-Bento navigation (ISSUE-35), every datum linking to its source (the actionability audit), `w.wiki` share links — **stacks linked through cyberspace: Atkinson's exact missed opportunity, done** |
+| **HyperTalk** (English-like scripting) | **Config-as-data** — declarative registry entries, presets, SPARQL queries, config fields that *are* the program; and the modern form: conversation — "make me a jukebox widget" is HyperTalk by other means |
+| **Objects** (buttons, fields, backgrounds) | The registry + WidgetFrame chrome + the grid — the shared object layer |
+| **Network** (the missing sixth) | Configs live **on-wiki** (Commons pages), loadable by URL from anywhere — the stack that *is* a URL |
+
+## 5. Why the Malleable Canvas Is the Right Evolution
+
+Not *instead of* the card — *because of* it. The canvas answers the question
+"was the card metaphor the right one?" cleanly:
+
+> **The card was the right unit; the screen was the wrong container.**
+
+A card that must equal the screen cannot survive a world of phones, tablets,
+ultrawides, and projectors. A card that is a *composable atom on an
+addressable plane* can: it scales, reflows, stacks, hides its chrome in
+presentation mode, and — because the whole board is a URL — it can be shared,
+embedded, versioned, and navigated. HyperCard's canvas was a local file;
+WikiBento's canvas is an address on the network. That is the difference
+between a tool and a medium.
+
+WikiBento's specific synthesis — the part we believe is genuinely new — is
+the combination of:
+
+1. **The widget as card** (content + behavior + configuration),
+2. **the grid as malleable canvas** (responsive, drag-and-drop, kiosk),
+3. **the Bento as networked stack** (URL identity, on-wiki hosting),
+4. **Bento-to-Bento links as hyperlinks** (ISSUE-35/36 — the stack that
+   should have been networked), and
+5. **config-as-data as HyperTalk** (declarative, shareable, AI-directable
+   authoring).
+
+## 6. The Honest Gaps
+
+If WikiBento is "producing it now," three additions would make the claim
+airtight:
+
+1. **Parameterized links** — the HyperTalk `go to card X with context`
+   equivalent: `?config=A&bento=overview&article=Albert_Einstein` — a widget
+   that opens *another Bento pre-configured with this card's subject*.
+   Navigation becomes message-passing between cards — the actual scripting
+   revival. (Filed as ISSUE-40.)
+2. **A widget-action layer** — "on click → go to X" as per-widget config, the
+   way a HyperCard button had a script. The SPARQL widget is proto-HyperTalk;
+   a first-class *action* field would be the real thing.
+3. **End-user extensibility** — composition is for everyone, but new widget
+   types are developer territory. The bridge is AI-directed registry editing:
+   natural language → working widget, over a declarative substrate.
+
+And one scoping note: HyperCard was a *creation* tool — you drew content in
+place. WikiBento is a *curation* tool — it composes existing content from the
+knowledge base. For "a display port into a knowledge base," that is not a
+deficit; it is the correct specialization. The empowered user is the curator,
+not the programmer.
+
+## 7. Resources — People Thinking About the Successor
+
+- **Bill Atkinson** — WIRED 2002, [*HyperCard: What Could Have Been*](https://www.wired.com/2002/08/hypercard-what-could-have-been/) — the box-centric confession
+- **Bret Victor** — [*The Future of Programming*](https://worrydream.com/dbx/) (2013); [*Hypercard in the World*](https://dynamicland.org/2016/Hypercard_in_the_World/) (Dynamicland)
+- **Roger Wong** (2025) — [*Why We Still Need a HyperCard for the AI Era*](https://rogerwong.me/2025/09/why-we-still-need-a-hypercard-for-the-ai-era)
+- **TidBITS** (2026-08-14) — [*Decades After HyperCard, AI Is Democratizing Development Again*](https://tidbits.com/2026/08/14/decades-after-hypercard-ai-is-democratizing-development-again/)
+- **Ars Technica** (2019) — [*30-plus years of HyperCard, the missing link to the Web*](https://arstechnica.com/gadgets/2019/05/25-years-of-hypercard-the-missing-link-to-the-web/)
+- **BBC Future** (2019) — [*The forgotten software that inspired our modern world*](https://www.bbc.com/future/article/20190722-the-apple-software-that-inspired-the-internet)
+- **The skeptics** — Daring Fireball, [*Why HyperCard Failed*](https://daringfireball.net/2002/08/why_hypercard_failed) (2002); Nielsen Norman Group, [*Two Basic Hypertext Presentation Models*](https://www.nngroup.com/articles/two-basic-hypertext-presentation-models/); Dave Rupert, [*Pitfalls of Card UIs*](https://daverupert.com/2018/04/pitfalls-of-card-uis/) (2018)
+- **The living descendants** — [hypercard.org](https://hypercard.org/) (community; interviews with people still building successors: xCards, jsCard); Obsidian's [JSON Canvas](https://jsoncanvas.org/) open format; the [History of wikis](https://en.wikipedia.org/wiki/History_of_wikis) lineage (HyperCard → WikiWikiWeb → Wikipedia)
+
+## 8. The Verdict
+
+The successor to HyperCard is not the canvas *replacing* the card — it is the
+**card liberated from the screen, given a network identity, and made
+addressable.** That is precisely what WikiBento does: the widget (card) on a
+malleable grid (canvas), URL-identified Bentos (networked stacks),
+Bento-to-Bento links (hyperlinks), and config-as-data authoring (HyperTalk by
+other means).
+
+And the strongest evidence that "we are producing it now" is sitting in this
+project's own history: on 2026-08-16, a user described a video jukebox widget
+in prose; an agent built it, tested it, and deployed it to production the same
+day. That loop — *natural language → working, networked, shareable
+composition* — is the HyperCard promise, delivered by the one technology
+Atkinson never had.
+
+---
+
+*Author: Andrew Lih (User:Fuzheado) · 2026-08-16. Written by conversation
+with a coding agent — which is itself the point of this document.*

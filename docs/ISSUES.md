@@ -1489,3 +1489,38 @@ reorder, autoplay unlock, kiosk-compatible. **DEPLOYED to Toolforge
 
 **Status:** done. Source: user request 2026-08-15; API probe
 verified.
+
+## ISSUE-40 · Parameterized Bento links (the HyperTalk "go to card" revival) — **open** (design)
+
+**What:** the HyperCard-completing capability for Bento-to-Bento navigation
+(ISSUE-35): a link that opens another Bento **pre-configured with context**
+from the originating card — `?config=A&bento=overview&article=Albert_Einstein`
+or `#/d/<base64>&bento=…&article=…`. From docs/PHILOSOPHY.md §6 (the
+HyperCard lineage analysis, 2026-08-16): "navigation becomes
+message-passing between cards — the actual scripting revival."
+
+**Why:** today, Bento-to-Bento links (ISSUE-35) are static — they load a
+board, not a board *about something*. HyperCard's `go to card X` could
+carry state; without the equivalent, the canvas remains a poster wall
+rather than a working hypermedia system. With parameters, a "Bento Links"
+card can say "here's this article's quality" → opens a board focused on
+that article; a GLAM overview board can deep-link every category tile to a
+category-focused board.
+
+**Proposed fix (additive, no format break):**
+- A `bento` param (board selector for manifest files, ISSUE-36) + free-form
+  context params (`article=`, `category=`, `filename=`, …).
+- Boot (and the ISSUE-35 SPA loader) parse the param set; each widget whose
+  config key matches a provided param gets it **overlaid onto its config**
+  at load time (`widget.config[key] ??= contextParam`) — then fetches
+  normally. No schema change; unknown context params are ignored.
+- The Bento Links card (ISSUE-35) gains an optional per-link "context"
+  field (`Label|URL|article=Einstein`), and any widget's ⓘ panel could
+  offer "Open this subject in a new Bento" — the ISSUE-22 actionability
+  audit's deep-link form.
+- Provenance: the ⓘ Session section (ISSUE-20) must show the context
+  params that were applied, so "why is this board about Einstein" is
+  answerable.
+
+**Status:** open (design). Source: HyperCard lineage analysis
+2026-08-16 (docs/PHILOSOPHY.md).
