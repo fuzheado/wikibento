@@ -35,6 +35,12 @@ findings and the decisions they inform.*
    client-side design (named outputs + `dependsOn` + dependent-only recompute).
    MODULARITY-AND-DATAFLOW.md stages the path (variables → declarative wiring →
    visual DAG) and draws the line: **no Airflow/Dagster; no backend.**
+5. **OpenDoc (1993–97) is the missing precedent between HyperCard and the web** —
+   Apple/IBM/WordPerfect's compound-document framework whose **parts** are
+   functionally our widgets, whose "no main application, only the document" model
+   is the Bento thesis, and whose PartBank component warehouse anticipated the
+   registry recommendation by twenty years. It died of the 1997 platform kill, not
+   of design — see §4.
 5. **Concrete new widgets fall out of the research:** `urlEmbed` (oEmbed),
    Category Tree + SPARQL sunburst/treemap modes, masonry + license surfacing for
    galleries, and ToolFlow-style operation widgets (Filter/Join) fed by list
@@ -50,6 +56,8 @@ findings and the decisions they inform.*
 | **Gallery & moodboards** | Pinterest, Are.na, Padlet, Raindrop, Polyvore, Muxtape, Pocket | **Thrived** (Pinterest 553M MAU). Best data model: Are.na's blocks + first-class connections. Licensing kills curation tools (Muxtape/RIAA) — Commons **pre-cleared licensing is a structural advantage** |
 | **Narrative & curation** | Storify, Scoop.it, Flipboard | Storify validated "drag → annotate → linear timeline → embed" and died of acqui-hire + native-embed commoditization. Narrative should be a **distinct product surface**, not muddled into wiring |
 | **Mashup & dataflow** | Yahoo Pipes, IFTTT, Zapier, Node-RED, Observable | Pipes (the ancestor of visual wiring) died of neglect; Node-RED survived via open source + IoT niche. **Observable's reactive named cells are the only clean client-side dataflow model** |
+
+| **Component documents** | OpenDoc (1993–97), Cyberdog, OLE/COM (the rival), KParts (descendant) | **Parts = widgets, validated by history's only parts-based office/web suite**; the document (not the app) is the product — the Bento thesis. Died of the 1997 platform kill, not design — deep dive in §4 |
 
 Five precedents worth deep study: **Freeboard** (architecture), **Are.na** (data
 model), **Observable** (reactivity), **oEmbed** (the frame-any-URL standard),
@@ -109,7 +117,100 @@ list sources and, eventually, a widget that consumes a ToolFlow workflow's outpu
 
 ---
 
-## 4. What this means for WikiBento — recommendations
+## 4. OpenDoc & Cyberdog — the component-document precedent (1993–1997)
+
+*Added 2026-08-16 at the suggestion of the project owner: OpenDoc is the missing
+link between HyperCard's cards and the web — history's only mass attempt at a
+parts-based office/web suite. Sources: [Wikipedia](https://en.wikipedia.org/wiki/OpenDoc),
+the archived [OpenDoc Components catalog](https://web.archive.org/web/19970413045906/http://opendoc.apple.com/odcomponents.html)
+(April 1997), and contemporary reporting (WIRED 1997-03, MacTech 1997-03).*
+
+### What it was
+
+OpenDoc (announced 1993 by Apple with IBM and WordPerfect; shipped 1995–97) was a
+compound-document framework: instead of applications owning documents, a
+document was a **container of parts** — self-contained components (a word
+processor part, a spreadsheet part, a chart part, a 3D part, a spelling
+checker) — each rendered and edited **in place** by its own **part editor**.
+"No main application, only the document." Technically it ran on IBM's
+SOM/DSOM object model (CORBA-based, cross-language, distributed), was adopted
+by the OMG in 1996, and was widely conceded — even by Microsoft's partners —
+to be technically superior to Microsoft's rival OLE/COM, which it was built
+to oppose. **Cyberdog** (shipped May 1996) was Apple's internet suite — a
+browser, mail, and news reader — assembled entirely from OpenDoc parts; the
+only web browser ever built on a component architecture.
+
+The ecosystem artifacts are the eerily familiar part: Apple's own 1995
+document predicted "on-line component warehouses" for distributing parts;
+**PartBank** (by Kantara) shipped as a searchable "one stop shop" database of
+OpenDoc components; **Component 100 / C100** was a community of component
+developers; the catalog shows the parts market (Digital Harbor's WAV
+"work processor", Nisus Writer, BBEdit Lite, Adrenaline Numbers & Charts,
+SoftLinc's LEXI spelling/thesaurus part, Corda's C-Graph/C-Table/C-TextBox
+Live Objects, SimCalc's math-education parts, theta group's LiveAccess
+database front-ends). IBM shipped Person Pak and Table Pak parts for OS/2.
+
+### The mapping — parts are widgets
+
+| OpenDoc | WikiBento |
+|---|---|
+| **Part** (self-contained component) | **Widget** — the same unit of content + behavior + config; the user's point exactly |
+| **Part editor** (in-place WYSIWYG editing) | Renderer + ⚙ config panel — in-place configuration without leaving the board |
+| **Compound document** (document-centered, no main app) | **Bento** — board-centered; the grid is a container, not an application |
+| **Container apps** (Dock'Em, WAV) | The Bento grid + kiosk/lean presentation modes |
+| **SOM/DSOM interface contract** | Registry contract: the constitutions + `validateDashboard()` today, `assertContract()` per MODULARITY-AND-DATAFLOW Appendix A |
+| **PartBank / C100 component warehouses** | The third-party widget registry recommendation (§5 D.10) — anticipated in 1996 |
+| **Live Objects** (Corda, LiveAccess) | Live data-connector widgets — our fetchers with auto-refresh |
+| **Cyberdog** (parts-based app suite) | The cautionary tale: do not build "apps" on the widget substrate (§5 C.9) |
+
+### Lessons for WikiBento
+
+1. **The document-centered model is the Bento thesis, validated.** OpenDoc's
+   "no main application, only the document" is exactly "the board is the
+   product, not the app" — and it was a deliberate, widely praised design
+   choice. The grid must stay a container; the composition is the product.
+2. **The contract makes the market.** OpenDoc parts interoperated through a
+   formal cross-vendor object contract (SOM/CORBA), and that contract is what
+   made a parts *market* possible (PartBank, C100). Our constitutions and
+   `validateDashboard()` are the seed of the same thing; MODULARITY-AND-
+   DATAFLOW's `assertContract()` (registration-time conformance) is the
+   grown-up version. A third-party widget ecosystem requires enforced
+   interface contracts, not advisory conventions.
+3. **The standards trap.** OpenDoc was technically superior (rivals conceded
+   it), cross-platform (Mac, OS/2, Windows planned), and OMG-adopted — and
+   lost to OLE because Microsoft owned the dominant platform and bundled.
+   **Distribution beat design.** The counter-lesson for us: our "contract"
+   substrate (JSON + HTTP + the browser) is owned by no one, and our
+   "bundling" is the URL + on-wiki hosting + Toolforge. Never let the widget
+   contract depend on a proprietary runtime or a single vendor's platform.
+4. **The platform kill, again.** Apple discontinued OpenDoc in March 1997;
+   Jobs at WWDC 1997 called it "dead" and said he favored "putting a bullet in
+   the head of OpenDoc." Cyberdog was collateral damage. This is PARADIGMS §6's
+   "the platform kills" pattern applied to a component framework — and the
+   same 1997 streamlining that killed HyperCard's momentum. A proprietary
+   runtime is always one corporate decision from death.
+5. **Parts survive their housing.** OpenDoc's physics-education parts were
+   rewritten as Java applets/JavaBeans after the kill (notably E-Slate); the
+   parts idea resurfaced as KParts (KDE) and eventually web components. Same
+   story as mTropolis → the paradigm outlives the platform — which is the
+   argument for keeping our parts on an open substrate.
+6. **Even a parts-built app suite died.** Cyberdog shows that building whole
+   applications (browser, mail, news) on a component base does not save the
+   base — and that the component model is a *composition* tool, not an *app*
+   framework. We stay a composition layer; orchestration and "apps" remain
+   the line we do not cross (ToolFlow §3, MODULARITY-AND-DATAFLOW §Part 2).
+7. **In-place editing was the killer feature.** OpenDoc's promise was WYSIWYG
+   in-place part editing — never leave the document to edit what's in it.
+   Our ⚙ config panel is the same instinct; lean/kiosk modes are the
+   edit/view split done cleanly (Freeboard lesson 4). The more a widget can be
+   *edited* in place — config, pasted lists, SPARQL queries — the closer we
+   are to the OpenDoc dream.
+8. **The ecosystem must be seeded.** "Few components were released compared to
+   ActiveX" was the autopsy line; even a great framework stalls without a
+   parts market. Starter packs, shared on-wiki Bentos, and (eventually) a
+   registry are our ecosystem seeding — the 1996 PartBank previews the play.
+
+## 5. What this means for WikiBento — recommendations
 
 ### A. Widgets worth adding (Tier 1 — cheap, additive)
 
@@ -185,11 +286,11 @@ list sources and, eventually, a widget that consumes a ToolFlow workflow's outpu
 
 ---
 
-## 5. The meta-lesson — why they died, and why we are immune
+## 6. The meta-lesson — why they died, and why we are immune
 
 | Death cause | Victims | WikiBento's immunity |
 |---|---|---|
-| **Proprietary host / platform lock-in** | iGoogle, Pageflakes, Yahoo Pipes, Storify, Pocket | No backend + JSON-in-URL = fully portable; configs live on-wiki |
+| **Proprietary host / platform lock-in** | iGoogle, Pageflakes, Yahoo Pipes, Storify, Pocket, **OpenDoc/Cyberdog** (killed with Apple's 1997 streamlining) | No backend + JSON-in-URL = fully portable; configs live on-wiki |
 | **Acqui-hire into oblivion** | Polyvore, Storify (→Adobe), Scoop.it's Goojet | Open source — cannot be "acquired away" |
 | **Legal / licensing** | Muxtape (RIAA) | Commons is **pre-cleared** — legal safety inherited |
 | **No business model / parent neglect** | Yahoo Pipes, WidgetBox | Wikimedia-aligned, non-commercial |
@@ -203,7 +304,7 @@ data set.
 
 ---
 
-## 6. Uncertainty flags (from TOOL-LANDSCAPE — do not cite as fact)
+## 7. Uncertainty flags (from TOOL-LANDSCAPE — do not cite as fact)
 
 - **"Storify users migrated to Wakelet"** — no surviving primary source; the
   EOL FAQ only says "export content locally." Plausible but unverified.
@@ -212,10 +313,18 @@ data set.
 - **Yahoo Pipes exact shutdown date** — Wikipedia internally inconsistent
   (30 June 2015 vs. Sept 2015).
 - **Paper.li and Huginn current statuses** — unverified.
+- **OpenDoc provenance notes (from §4, added 2026-08-16):** the mock-funeral
+  story sometimes attached to OpenDoc belongs to **Mac OS 9 at WWDC 2002** —
+  OpenDoc's actual end was the March 1997 discontinuation, followed by Jobs'
+  WWDC 1997 closing Q&A (May 13) calling it "dead" and favoring "putting a
+  bullet in the head of OpenDoc." The "technically superior to OLE" claim is
+  contemporary vendor testimony (Novell et al. via Wikipedia's cited sources),
+  not a neutral benchmark. Cyberdog shipped May 1996 as the first OpenDoc
+  product.
 
 ---
 
-## 7. Open questions / decisions to make
+## 8. Open questions / decisions to make
 
 1. **`urlEmbed` vs. the Arbitrary URL Extractor** — the oEmbed route (standard,
    half effort, robust) argues for retiring the scraper idea in ROADMAP Phase 1,
