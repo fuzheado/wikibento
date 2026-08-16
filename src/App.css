@@ -636,7 +636,8 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  width: 480px;
+  width: 560px;
+  max-width: calc(100vw - 32px);
   max-height: 70vh;
   display: flex;
   flex-direction: column;
@@ -689,6 +690,13 @@ body {
 
 .add-widget-icon { font-size: 24px; flex-shrink: 0; }
 
+/* name + description take all remaining row width; min-width: 0 lets the
+   description wrap instead of pushing the type keyword / add button */
+.add-widget-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .add-widget-name {
   font-size: 14px;
   font-weight: 600;
@@ -700,11 +708,21 @@ body {
 }
 
 .add-widget-add {
-  margin-left: auto;
-  font-size: 20px;
-  color: var(--accent);
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
   font-weight: 700;
+  color: var(--accent);
+  background: rgba(74, 158, 255, 0.12);
+  border-radius: 50%;
+  transition: background .15s, transform .1s;
 }
+.add-widget-item:hover .add-widget-add { background: rgba(74, 158, 255, 0.22); }
+.add-widget-item:active .add-widget-add { transform: scale(0.9); }
 
 .add-widget-empty {
   text-align: center;
@@ -1468,11 +1486,11 @@ body {
   padding: 10px 12px 4px;
 }
 
-.add-widget-type {
-  font-size: 12px;
+/* type family keyword — small neutral pill inline with the name, so the
+   description row keeps the full width (was a fixed column at row end) */
+.add-widget-type-badge {
+  background: rgba(255, 255, 255, 0.07);
   color: var(--text-secondary);
-  flex-shrink: 0;
-  opacity: 0.7;
 }
 
 /* intensity badges (reuses .add-widget-badge base from ISSUE-03 work) */

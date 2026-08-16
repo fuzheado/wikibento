@@ -121,25 +121,28 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* best-effort */ }
   };
 
-  const item = (def) => (
-    <div key={def.id} className="add-widget-item" onClick={() => handleAdd(def)}>
-      <span className="add-widget-icon">{def.icon}</span>
-      <div>
-        <div className="add-widget-name">
-          {def.name}
-          {def.experimental && <span className="add-widget-badge" title="Experimental — depends on third-party service health">alpha</span>}
-          {INTENSITY_BADGE[def.intensity] && (
-            <span className={`add-widget-badge ${INTENSITY_BADGE[def.intensity].cls}`} title={INTENSITY_BADGE[def.intensity].title}>
-              {INTENSITY_BADGE[def.intensity].label}
-            </span>
-          )}
+  const item = (def) => {
+    const typeLabel = TYPE_FILTERS.find((f) => f.id === typeOf(def))?.label.split(' ')[1];
+    return (
+      <div key={def.id} className="add-widget-item" onClick={() => handleAdd(def)}>
+        <span className="add-widget-icon">{def.icon}</span>
+        <div className="add-widget-info">
+          <div className="add-widget-name">
+            {def.name}
+            {typeLabel && <span className="add-widget-badge add-widget-type-badge" title={`${typeLabel} widget type`}>{typeLabel}</span>}
+            {def.experimental && <span className="add-widget-badge" title="Experimental — depends on third-party service health">alpha</span>}
+            {INTENSITY_BADGE[def.intensity] && (
+              <span className={`add-widget-badge ${INTENSITY_BADGE[def.intensity].cls}`} title={INTENSITY_BADGE[def.intensity].title}>
+                {INTENSITY_BADGE[def.intensity].label}
+              </span>
+            )}
+          </div>
+          <div className="add-widget-desc">{def.description}</div>
         </div>
-        <div className="add-widget-desc">{def.description}</div>
+        <span className="add-widget-add" title="Add to dashboard" aria-label={`Add ${def.name}`}>+</span>
       </div>
-      <span className="add-widget-type" title={`${typeOf(def)} widget`}>{TYPE_FILTERS.find((f) => f.id === typeOf(def))?.label.split(' ')[1] || ''}</span>
-      <span className="add-widget-add">+</span>
-    </div>
-  );
+    );
+  };
 
   const flatList = (list, withRecent) => (
     <div className="add-widget-list">
