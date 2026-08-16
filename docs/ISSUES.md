@@ -1524,3 +1524,60 @@ category-focused board.
 
 **Status:** open (design). Source: HyperCard lineage analysis
 2026-08-16 (docs/PHILOSOPHY.md).
+
+## ISSUE-41 · Board templating: Bento-level parameters that ripple through widgets — **open** (design)
+
+**What:** one institution Bento (Met: category metrics, photo gallery, CIM
+trend, top files…) becomes a Smithsonian or Cleveland Bento by changing a
+single value. Board-level template variables referenced by widget configs,
+with a menu/control to switch the value and have the change ripple through
+every widget. User direction 2026-08-16: "pull down a menu and select a new
+institution, and that change ripples through all the widgets… part of our
+major architecture."
+
+**Why:** it is the declarative scripting layer of the config-as-data thesis
+(PHILOSOPHY.md — HyperTalk by other means): board params = HyperCard
+*fields*; widget configs = the *scripts* that read them. It multiplies the
+value of every existing widget (one GLAM Bento × N institutions instead of
+N Bentos), powers the starter-pack strategy (templates + instantiations),
+and makes the map family (WIDGET-IDEAS.md Mapping) — "photo map of
+{{category}}" — instantly re-aimable. This is the missing third of the
+parameter story, unifying with ISSUE-40 (URL context params) and ISSUE-36
+(manifests instantiate templates with per-entry param values).
+
+**Design (additive, no format break):**
+- **Config v1 gains an optional top-level `params` block:**
+  `{ "version": 1, "params": { "institution": "Metropolitan Museum of Art", "year": 2024 }, "widgets": [...], "layout": [...] }`.
+- **Placeholders:** widget config values may contain `{{name}}` (any
+  string field: article, category, filename, domain…). Resolution happens
+  ONCE, before `validateDashboard` runs — the validator sees resolved
+  values (so select enums and number fields validate correctly); unknown
+  names are left literal and warn. Markdown/static widgets resolve too —
+  a collision between markdown text and a declared param is the author's
+  escape hatch: don't declare the name.
+- **Ripple:** params live in App state; changing one re-resolves every
+  widget config and bumps `reloadKey` (existing mechanism) → all affected
+  widgets re-fetch. A widget with a hard-coded value (no placeholder) is
+  deliberately exempt — the freeze/override escape hatch.
+- **Three entry points, one system:**
+  1. `params` block (authored in the JSON),
+  2. a **Board Controls card** (new static widget, id `boardControls` —
+     renders a select per param, like a config panel on the board itself;
+     the HyperCard "field"),
+  3. URL context params (ISSUE-40: `?config=…&institution=Smithsonian` —
+     overlaid at boot, same resolution path).
+- **Manifest synergy (ISSUE-36):** a manifest entry can carry param
+  overrides per board — one template Bento instantiated for Met /
+  Smithsonian / Cleveland from a single file.
+- **Provenance (ISSUE-20/21):** the ⓘ Session section shows the params
+  applied + their source (authored / control / URL); per-widget ⓘ shows
+  resolved values — "this board is a template instantiated with
+  institution=Smithsonian" must be answerable.
+- **Constitutions unaffected:** resolution is pre-fetch; freshness ⏱ and
+  temporal scope operate on resolved configs as today.
+- **Effort:** S–M core (a `resolveParams(config, params)` helper + App
+  state + the Board Controls card); no schema break (params is additive;
+  placeholders are plain strings to every existing validator path).
+
+**Status:** open (design). Source: user direction 2026-08-16 (major
+architecture); unifies ISSUE-36 + ISSUE-40.

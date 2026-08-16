@@ -344,6 +344,19 @@ or OSMF standard tiles (UA + attribution) are safe basemap defaults.
 | **Wikivoyage POI map** | Wikivoyage listings (lat/long via Module:Listing or pre-built exports at wikivoyage.github.io) | M | Destination map with See/Do/Eat/Buy categories and colors |
 | **Article-country map** | Lift Wing `article-country` model (ML) + coordinates | M | ML meets maps: articles classified by predicted country, plotted — e.g. "coverage map" of an event or campaign |
 
+**Extensions (2026-08-16 — "Google Earth alternative" direction):**
+- **3D globe** — a WebGL globe (three.js + OSM/Earth texture, ~200–400 KB lazy-loaded like Pannellum) with pins; the literal "Google Earth alternative" moment. Honest sizing: the heaviest widget yet; best as a kiosk/hero card with its own lazy chunk. Effort L. Cesium is the full-featured path (MB-scale — probably too heavy for now); three.js globe is the right v1.
+- **Route / itinerary map** — a polyline through stops (Wikivoyage itineraries: "dots on a map, a line that connects them" — literally). Pairs with the Itinerary Explorer idea above; Wikivoyage itineraries + `prop=coordinates` on stop articles, or the geoshape service. Effort M.
+- **Category heatmap / density** — geolocated files in a category as a density layer (leaflet.heat or point-grid) — "where was WLM photographed?" (the observability pillar: the shape of the data, spatially). Effort S–M on top of the photo-map widget.
+- **Time-animated map** — a date slider over the photo-map (capture timestamps via `prop=coordinates|imageinfo` extmetadata DateTimeOriginal): watch an event's coverage grow month by month. Effort M.
+- **Panorama pins** — map pins that OPEN the 360° viewer widget (existing `panorama360`) for that location: "stand inside the place you clicked." Map→panorama cross-widget wiring; needs the ISSUE-41 param/action layer (pin click sets a board param the panorama reads). Effort M.
+- **Map + gallery split** — click a pin → the gallery/spotlight card beside it shows that file (or the category's files at that spot). The split-screen experience; same wiring as above.
+- **Marker clustering** — huge categories need `leaflet.markercluster` (or a grid-based fake) before the photo-map is usable at WLM scale (10k+ pins). Effort S (a ~10 KB plugin) — a prerequisite for the photo-map widget, not an option.
+- **Wikivoyage listings → map** (from the table above) gains the templating synergy: `{{city}}` as the listing source — one destination-map widget instantiated per city (see ISSUE-41).
+
+**Templating synergy (ISSUE-41):** the map family is the *best* demonstration of board parameters — a "Commons photo map of {{category}}" widget on an institution Bento re-maps instantly when the board param changes (Met → Smithsonian → Cleveland). Maps make the ripple visible.
+
+
 ## 360° Panorama Viewer widgets (2026-08-13 analysis — proven live)
 
 > The user direction: embed a 360° viewer in a widget — "that shouldn't be
