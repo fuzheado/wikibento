@@ -45,10 +45,11 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   mapping extensions, sister-project widgets (Wikivoyage/Wiktionary/
   Wikisource), and the Knight Lab + GLAM Wiki Dashboard evaluations;
   ROADMAP Phase 2 rows (board templating, map family); ISSUES.md
-  now tracks ISSUE-18..41 (kiosk/lean done, media player done;
+  now tracks ISSUE-18..44 (kiosk/lean done, media player done;
   slideshow/ticker (33/34), categorySize modes (37), Bento navigation
   (35), manifests (36), shared renderers (38), parameterized links
-  (40), board templating (41) — open design).
+  (40), board templating (41), five content primitives (42),
+  model3D widget (43), "Ask" NL widget advisor (44) — open design).
 
 - ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (28 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List + 🧠 SPARQL Query + 📄 Wiki Page + 8 CIM widgets)
 - ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **DEPLOYED to Toolforge 2026-08-13** (commit bfbce6e, bundle index-BJjaG_ta.js) — verified live: multi-institution bars (Met 72,433), /api/resolve OK.
@@ -327,6 +328,13 @@ containment), index.html no-cache.*
 4. ~~QR code share~~ — **done 2026-08-12**: Share panel with client-side QR (see README)
 5. ~~Shared fetch cache (Wikistats)~~ — **done 2026-08-12**: 5-min TTL cache +
    in-flight coalescing + 15 s timeout + retry (see README)
+6. **Five content primitives (ISSUE-42)** — one canonical widget per content
+   type (page/image/audio/video/3D), 1-or-n items + per-family display modes;
+   **model3D widget (ISSUE-43)** — STL viewer, CORS + thumbnails verified
+   (three.js lazy asset, Pannellum pattern)
+7. **"Ask" NL widget advisor (ISSUE-44)** — intent-first catalog: user types
+   what they want → LLM (registry-focused) returns widget options with
+   pre-filled configs; phased: smart search → Ask panel → board assembly
 
 ## Identity & Attribution
 

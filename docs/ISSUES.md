@@ -1595,3 +1595,200 @@ parameter story, unifying with ISSUE-40 (URL context params) and ISSUE-36
 
 **Status:** open (design). Source: user direction 2026-08-16 (major
 architecture); unifies ISSUE-36 + ISSUE-40.
+
+## ISSUE-42 · Five content primitives: 1-or-n widgets + per-family display modes — **open** (design)
+
+**What:** the five basic content types — **wiki page, image, audio, video, 3D model** —
+each get ONE canonical basic widget that handles **1..n** items from a list (manual
+or generated), with a family-appropriate display-mode selector. User direction
+2026-08-16: "the basic widget can handle showing 1, 2… or an arbitrary n of them
+given a manual list (or other generated list) of identifiers — be it en:Foo or a
+File: specifying a Commons item."
+
+**Why:** consistency (one mental model: *give it a list, pick a display*), the
+list-source vocabulary (WIDGET-IDEAS §List Sources) applies to all five, and the
+catalog stays 5 primitives × modes instead of proliferating widget types.
+Supported by the research: Freeboard's datasource/widget split (one source, many
+renderings), Are.na's blocks, OpenDoc's parts (TOOL-LANDSCAPE-SYNTHESIS §4), and
+ISSUE-38's shared-renderer architecture.
+
+**The audit (2026-08-16):**
+
+| Primitive | Single (1) | Many (n) | Modes today | Verdict |
+|---|---|---|---|---|
+| Wiki page | `wikiPage` (iframe, mobile, section anchor) | `articleList` (rows) | single: iframe; many: list only | ✅ covered; **pager mode missing** |
+| Image | ❌ no plain single-image widget | `gallery` (article), `fileGallery` (manual list), `cimTopFiles` | grid/list (shared `GalleryGridCard`/`GalleryListCard`); slideshow/ticker = ISSUE-33/34 | ⚠️ single mode missing |
+| Audio | `mediaPlayer` single | `mediaPlayer` jukebox | player (correct for audio) | ✅ |
+| Video | `mediaPlayer` single | `mediaPlayer` jukebox + quality | player; optional video-thumb grid later | ✅ |
+| 3D model | ❌ nothing | ❌ nothing | — | ❌ the gap (ISSUE-43) |
+
+**Design:**
+1. **Arity and modes are CONFIG, not widget types** — the registry pattern (config
+   vocabulary + `getRenderer` dispatch + shared renderer components). No
+   mega-widget; name-dispatch is the abstraction (ISSUE-38).
+2. **Per-family mode vocabularies** (a single universal `displayMode` enum is
+   wrong — players are not tiles):
+   - *Display family* (image, 3D): `single / list / grid / slideshow / ticker`
+   - *Player family* (audio, video): `single / playlist` (jukebox); later optional video-thumb grid
+   - *Page*: `single iframe / pager (prev–next) / list`
+3. **Canonical row contracts per family** (extends ISSUE-38's image row
+   `{title, thumbUrl, fileUrl, caption}`):
+   - image: `{title, thumbUrl, fileUrl, caption}`
+   - page: `{title, url, project}`
+   - audio/video: `{title, fileUrl, type: audio|video, thumbUrl?}`
+   - 3D: `{title, fileUrl, thumbUrl?}` (thumb = `w/thumb.php?f=…&w=…`, see ISSUE-43)
+4. **Unified item vocabulary** — a shared `items` config field (one per line;
+   `File:` prefix normalization per gotcha #12) with a future "list source" slot
+   for generated lists (PagePile/PSID/SPARQL output/ToolFlow/category members —
+   the direction ToolFlow validated). Manual and generated lists become two
+   fillers of the same field; every primitive inherits both.
+5. **Provenance stays per-source** (ISSUE-21): subtitles survive unification
+   ("3 files · 1 not found" vs "32 images · filtered").
+6. **Catalog:** a **Primitives** section pointing at the five canonical widgets
+   (no duplicates) — conceptual clarity without widget duplication.
+
+**Status:** open (design). Source: user direction 2026-08-16; builds on ISSUE-33/34/37/38.
+
+## ISSUE-43 · 3D Model widget (`model3D`) — the missing fifth primitive — **open** (design)
+
+**What:** display Commons STL models — a single interactive viewer, or a list/grid
+of models. The gap in the five-primitive audit (ISSUE-42).
+
+**Verified feasibility (2026-08-16, curl-tested):**
+- **Raw STL fetch works with CORS:** `upload.wikimedia.org` serves
+  File:Stanford_Bunny.stl (5.6 MB binary, `Content-Type: application/sla`) with
+  `Access-Control-Allow-Origin: *` → browser `fetch()` + three.js `STLLoader`
+  parses it, **zero backend**. `api.wikimedia.org/core/v1/commons/file/…` also
+  CORS-enabled.
+- **Thumbnails:** thumbor's standard thumb path 400s for STL, but
+  `https://commons.wikimedia.org/w/thumb.php?f=Stanford_Bunny.stl&w=400` returns
+  a real rendered PNG (verified 400×300, model rendered). No CORS needed for
+  `<img>`. ⚠️ **Gotcha: use `w/thumb.php`, NOT the `upload.wikimedia.org/thumb/`
+  pattern.**
+- **In-ecosystem precedent:** MediaWiki's own Extension:3D renders a three.js
+  viewer on Commons file pages.
+- **Scope: STL only** (binary + ASCII) — Commons policy accepts only STL for 3D
+  (no glTF/GLB).
+
+**Interaction dynamics — why 3D differs from image/video (the design crux):**
+
+| Aspect | Image / video | 3D model |
+|---|---|---|
+| Camera | fixed, or playback timeline | **user-controlled**: orbit/pan/zoom (OrbitControls); touch: 1-finger rotate, 2-finger pinch-zoom/pan |
+| Loading | thumbnails / streaming | **full-file fetch, MBs** (Bunny 5.6 MB; some models 10–50 MB) → progress UI, size cap, byte size in subtitle |
+| Render | 2D paint | **WebGL**: context loss handling, devicePixelRatio, resize via ResizeObserver (panorama precedent) |
+| Appearance | inherent to the file | **STL has no colors/textures** → material + lighting choices: shaded neutral material (Commons-viewer style), smooth/flat shading toggle, wireframe overlay, background |
+| Orientation | n/a | model-bounds fitting (normalize), **reset view**, auto-rotate (kiosk-friendly), optional ground grid |
+| Semantics | caption | units are **undefined** in STL — scale is arbitrary; don't promise dimensions |
+
+**Config fields (draft):**
+- `files` — textarea, one `File:` per line (1..n; the ISSUE-42 items vocabulary)
+- `displayMode` — `viewer` (default) / `grid` / `list`
+- `autoRotate` (bool, default true — demo/kiosk-friendly; pauses on pointer down)
+- `shading` — `smooth | flat` (computed normals; default smooth)
+- `wireframe` (bool, default false)
+- `showStats` (bool, default false — vertices/triangles + file size in subtitle)
+- `maxBytes` (cap, default 25 MB → friendly error + link to the Commons file page)
+- Constitutions: `timeScope: 'point'`, `refreshSeconds ≥ 30` (file fetch); ⏱
+  footer = fetch time (static model — no upstream data age)
+
+**Viewer interaction spec:** drag = orbit; wheel/pinch = zoom; right-drag or
+shift-drag = pan; double-click = reset view; auto-rotate toggle; fullscreen
+button; loading progress with MB counter; **WebGL-unavailable fallback** (message
++ link to the Commons file page); >2M-triangle models → warn (STL parse +
+render hitch; suggest the file page for huge models).
+
+**defaultLayout:** w4 h3, min 3×2 (the panorama precedent — registry
+`defaultLayout`).
+
+**Renderer structure:** vendored three.js **subset** (core + STLLoader +
+OrbitControls) as a separate lazy asset — the Pannellum pattern
+(`src/vendor/pannellum.js` + `pannellumLoader.js`; separate dist chunk). three.js
+min is ~600 KB — tree-shake or use a prebuilt module build; **must not** grow the
+main bundle. Parse in a Web Worker for large files (STLLoader is synchronous —
+worker or progress overlay, decide at implementation). Dispose geometries on
+unmount/config change (panorama precedent).
+
+**Grid/list modes:** `thumbUrl = https://commons.wikimedia.org/w/thumb.php?f=<urlencoded>&w=400`;
+click → viewer (in-widget swap to that model, or enlarge); missing thumb →
+generic 3D-cube glyph + title fallback.
+
+**Known-good test assets:** File:Stanford_Bunny.stl (verified end-to-end);
+confirm a second large model during implementation.
+
+**Status:** open (design). Source: user direction 2026-08-16 + primitive audit
+(ISSUE-42) + CORS/thumb verification 2026-08-16.
+
+## ISSUE-44 · "Ask" — natural-language widget advisor (intent-first catalog) — **open** (brainstorm → design)
+
+**What:** an intent-first interface that upgrades (not replaces) the
+browse-the-catalog flow: the user types what they want ("show a random sampling
+of images from a category"), and an LLM focused on WikiBento's capabilities
+returns a **menu of concrete options** — widget recommendations with pre-filled
+configs, ready to add. User direction 2026-08-16: "in the age of artificial
+intelligence, [browse-and-trial-error] is old fashioned… type in what they want
+to do, and an LLM that is very, very much focused on the capabilities of
+WikiBento… could provide a menu of options… a very low friction way of turning
+idea into implementation."
+
+**Why:** the catalog model assumes the user knows the taxonomy; intent-first
+inverts it — the user knows *what they want*, not *which widget*. It is also the
+productized continuation of PHILOSOPHY §9's closing evidence (prose → working
+jukebox widget in a day) and PHILOSOPHY §7 gap 3 (AI-directed registry editing).
+
+**Precedents (verified 2026-08-16) — the mechanism exists; the configuration is open:**
+- **Grafana Assistant** (Grafana Cloud) — NL → dashboards/panels; "describe what
+  you want and the dashboard renders live beside the conversation"
+- **Kibana AI Chat** (GA in Elastic 9.5) — NL → ES|QL-backed dashboards,
+  "prompt to dashboard in under a minute"
+- **Power BI Copilot** — create report pages from NL prompts
+- **Tableau Agent / Einstein Copilot for Tableau** — NL visual analysis
+- **Databox AI analyst** (from TOOL-LANDSCAPE research): "an AI 'generate a
+  widget config' assistant is feasible for WikiBento"
+- General pattern: app-builder copilots (v0, Retool AI); the AI era as
+  "HyperCard's promise returning" (PHILOSOPHY §8: Wong 2025, TidBITS 2026-08-14)
+
+**What is NOT done anywhere (our opening):** an intent → recommendation →
+**instantiation** loop for the *Wikimedia data space* over an open config-as-data
+substrate — the recommended widget arrives pre-configured on the board (not a
+screenshot or a suggestion), and the same loop can later assemble multi-widget
+boards from one sentence.
+
+**Design sketch:**
+1. **Capability manifest** — serialize the registry (id, name, description,
+   dataSource, category, type, configFields, modes) as a machine-readable
+   prompt context (build-time JSON export or runtime; the registry is already
+   declarative — this is nearly free).
+2. **Prompt contract** — system prompt: "You are the WikiBento widget advisor.
+   Recommend widget(s) for the user's intent. Return JSON:
+   `[{widgetType, config, displayMode, reason}]`" + few-shot examples (the two
+   user examples: random category sampling → categorySize / fileGallery;
+   "how often is an image used in a category" → fileUsage / GLAM / CIM family).
+3. **UI** — an "Ask" panel (chat-style) alongside the Add Widget catalog;
+   recommendations render as cards with a config preview + "Add to board";
+   follow-ups refine ("make it a slideshow"). Output must pass
+   `validateDashboard()` before display — **never offer an invalid config**
+   (a constitution for the assistant).
+4. **Two tiers** — (a) local intent/keyword matching over the manifest
+   (works offline, no key; upgrades the existing AddWidgetPanel search —
+   cheap and immediately useful); (b) LLM tier for genuine NL + composition
+   (multi-widget boards).
+5. **Transport** — BYO-key client-side LLM call (privacy: prompts carry
+   subjects; no server retention; Toolforge zero-cost) vs tool-side `/api/ask`
+   relay with a tool key + quota (the `/api/proxy` pattern). BYO-key first;
+   decide at implementation.
+6. **Evaluation as a constitution** — an intent→widget test suite (N sample
+   intents → expected widget ids) keeps the assistant honest as the catalog
+   grows; same enforcement spirit as the freshness/scope constitutions.
+
+**Phased scope:**
+1. Manifest export + "smart search" upgrade of AddWidgetPanel (intent box,
+   local matching) — S
+2. LLM recommendation tier (Ask panel; single-widget recommendations with
+   pre-filled configs) — M
+3. Multi-widget board assembly ("a GLAM overview for the Met") + refinement
+   loop — M/L
+4. (Long-term, PHILOSOPHY §7 gap 3) intent → NEW widget via registry editing — XL
+
+**Status:** open (brainstorm → design). Source: user direction 2026-08-16;
+precedents verified 2026-08-16 (Grafana/Kibana/Power BI/Tableau docs).
