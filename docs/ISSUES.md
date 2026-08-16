@@ -1796,6 +1796,34 @@ boards from one sentence.
    loop — M/L
 4. (Long-term, PHILOSOPHY §7 gap 3) intent → NEW widget via registry editing — XL
 
+**Abuse prevention & access control for the `/api/ask` relay (design, 2026-08-16):**
+the upstream is free and keyless — the threat is not cost but (a) others
+embedding the relay as their free LLM backend, (b) hammering degrading the
+service, (c) prompt-injection to use it as a general LLM. Layered defense:
+1. **Narrow function, not a proxy** — contract is `POST /api/ask {prompt}`;
+   the server owns the system prompt (manifest embedded server-side), fixes
+   model + params (max_tokens cap), strips `<think>`, validates widget ids.
+   No arbitrary system prompts / model choice / message arrays → useless as
+   a general LLM API (the structural defense).
+2. **Origin/Referer allowlist** — wikibento.toolforge.org + localhost (soft
+   gate; spoofable, not a boundary).
+3. **Per-IP rate limits + global cap** — in-memory sliding windows (single
+   k8s pod): ~5 req/min + ~100 req/day per IP (429 + Retry-After); global
+   tripwire ~1,000 req/h → 503 "Ask is busy".
+4. **Session handshake** — `GET /api/ask/session` → short-lived token
+   `HMAC(serverSecret, ip+expiry)` (30 min, IP-bound); Ask must present it.
+   A static secret in the SPA bundle is NOT secret — this is a *control*
+   token (per-session limits, expiry, revocation via secret rotation, kill
+   switch `ASK_ENABLED`), not a privacy boundary.
+5. **Request caps** — prompt ≤ ~1,000 chars, output ≤ ~600 tokens.
+6. **Cache** — hash(prompt + manifestVersion), 10-min TTL.
+7. **Observability (privacy-respecting)** — hashed-IP buckets, prompt
+   *length*, outcome; 24-h in-memory retention; **never log prompt content**.
+8. **Injection hygiene** — user text only in the `user` message, never
+   concatenated into the system prompt; server-side id validation.
+9. **Escalation ladder** — if abused: require Wikimedia OAuth for Ask, or
+   drop to local-only smart search.
+
 **Verified feasibility (2026-08-16, live curl tests against the Wikimania 2026
 LiftWing LLM endpoints):**
 - **Endpoints:** OpenAI-compatible chat completions, no key:
