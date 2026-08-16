@@ -78,6 +78,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **CIM File Spotlight** | 🔦 | CIM `media-file-metrics-snapshot` + `pageviews-per-media-file-monthly` | One file: wikis/pages using it + monthly view trend |
 | **CIM File Traffic** | 📉 | CIM `pageviews-per-media-file-monthly` | Interactive monthly traffic chart for one file — labeled axes, −/+ zoom (3/6/12/24 months), self-heals CIM's intermittent 500s on specific ranges |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
+| **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) | Native HTML5 playback of Commons video or audio — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 | **Wayback Snapshot Gallery** ⚠️alpha | 🕰️ | Wayback availability + CDX/timemap (server batch) | Screenshot tiles of a website at chosen dates — closest capture per date (within tolerance), iframe-embedded; experimental — depends on Wayback backend health, failed lookups retry on refresh |
 
@@ -203,6 +204,17 @@ wikibento/
   map SVGs have no caption); grid mode (small/medium/large) + list mode
   (thumb left, caption right); min-size filter (200px) for tiny icons;
   utm-stripped thumb URLs; example dashboard includes the gallery
+- ✅ **Video / Media Player (2026-08-16):** 🎬 native HTML5 playback of
+  Commons video/audio — no player library (unlike the vendored Pannellum).
+  One file or a jukebox playlist: batched `videoinfo` derivatives (one call
+  per ≤4,500-char batch), VP9 WebM transcode per height-based quality
+  (auto = largest ≤1080p, original as fallback), per-track video/audio
+  auto-detect (mixed playlists render `<video>`/`<audio>` per track),
+  next/prev + position, loop-playlist wrap, Fisher-Yates shuffle,
+  autoplay with a browser-policy-aware ▶ Start pill (one click unlocks
+  subsequent autoplay), kiosk-compatible; missing files counted in the
+  subtitle — verified live: FA-18 refueling clip (480p VP9), EN-Abbe
+  spoken article (audio), Leica 1927 (1080p)
 - ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
   lazy-loaded as a separate 56 KB asset) renders real Commons
   equirectangular files — Imiloa grounds 12740×6370 verified live in the

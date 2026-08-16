@@ -507,6 +507,71 @@ async function fetchRandomCategoryImages(category, limit) {
     }));
 }
 
+/** Media player (jukebox, ISSUE-39) — batched videoinfo for a playlist of
+ *  Commons files. One call per ≤4,500-char batch; works for video AND audio
+ *  (audio: derivatives may list an mp3 transcode, duration comes from the
+ *  same viprop). Strips ?utm_source query junk from URLs. */
+export async function fetchMediaPlaylist(filesText) {
+  const files = (filesText || '').split('\n')
+    .map((s) => s.trim().replace(/^File:\s*/i, ''))
+    .filter(Boolean)
+    .map((s) => `File:${s.replace(/_/g, ' ')}`);
+  if (!files.length) throw new Error('Enter at least one Commons file');
+  const rows = [];
+  const MAX_ENCODED = 4500;
+  let chunk = [];
+  let chunkLen = 0;
+  const flush = async () => {
+    if (!chunk.length) return;
+    const params = new URLSearchParams({
+      action: 'query',
+      prop: 'videoinfo',
+      titles: chunk.join('|'),
+      viprop: 'derivatives|url|size|duration',
+      format: 'json',
+      origin: '*',
+    });
+    const d = await fetchJSON(`https://commons.wikimedia.org/w/api.php?${params}`);
+    const byTitle = {};
+    for (const p of Object.values(d?.query?.pages || {})) {
+      const vi = p.videoinfo?.[0] || {};
+      byTitle[p.title] = {
+        derivatives: (vi.derivatives || []).map((dv) => ({
+          type: dv.type || '',
+          width: dv.width || 0,
+          height: dv.height || 0,
+          src: (dv.src || '').split('?')[0],
+        })),
+        originalUrl: (vi.url || '').split('?')[0],
+        duration: vi.duration || 0,
+        size: vi.size || 0,
+        missing: !!p.missing,
+      };
+    }
+    for (const t of chunk) {
+      const info = byTitle[t];
+      const isVideo = (info?.derivatives || []).some((dv) => dv.type.startsWith('video/'))
+        || /\.(webm|ogv)$/i.test(t);
+      rows.push({
+        title: t.replace(/^File:\s*/i, '').replace(/_/g, ' '),
+        fileUrl: `https://commons.wikimedia.org/wiki/${t.replace(/ /g, '_')}`,
+        mediaType: isVideo ? 'video' : 'audio',
+        ...(info || { missing: true, derivatives: [], originalUrl: '', duration: 0, size: 0 }),
+      });
+    }
+    chunk = [];
+    chunkLen = 0;
+  };
+  for (const f of files) {
+    const len = encodeURIComponent(f).length + 1;
+    if (chunk.length && chunkLen + len > MAX_ENCODED) await flush();
+    chunk.push(f);
+    chunkLen += len;
+  }
+  await flush();
+  return { rows, missing: rows.filter((r) => r.missing).length };
+}
+
 export async function fetchCategorySize(category, wiki = 'commons.wikimedia', sampleCount = 0) {
   const clean = cleanCategoryName(category);
   const params = new URLSearchParams({

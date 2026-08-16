@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { loadPannellum } from '../lib/pannellumLoader';
@@ -333,6 +333,7 @@ function WidgetContent({ type, data }) {
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} />;
     case 'GalleryListCard': return <GalleryListCard data={data} />;
+case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} />;
 
     case 'SparqlCard': return <SparqlCard data={data} />;
@@ -778,6 +779,131 @@ function GalleryListCard({ data }) {
             </div>
           </a>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Choose the playback URL for a track: best transcoded VP9 WebM for the
+ *  requested quality (auto = largest ≤1080p), else the original file.
+ *  Derivatives include the original (non-/transcoded/ path) — excluded here. */
+function pickPlayUrl(row, quality) {
+  // Quality is HEIGHT-based ("480p" = 640x480): compare against dv.height.
+  const webm = (row.derivatives || [])
+    .filter((d) => d.type.startsWith('video/webm') && d.src.includes('/transcoded/') && d.height)
+    .sort((a, b) => a.height - b.height);
+  const target = quality !== 'auto' ? parseInt(quality, 10) || 0 : 0;
+  if (target) {
+    const under = webm.filter((d) => d.height <= target);
+    if (under.length) return under[under.length - 1].src;
+    if (webm.length) return webm[0].src;
+  } else {
+    const capped = webm.filter((d) => d.height <= 1080);
+    if (capped.length) return capped[capped.length - 1].src;
+    if (webm.length) return webm[webm.length - 1].src;
+  }
+  return row.originalUrl || '';
+}
+
+/** Media player — video/audio embed + jukebox playlist (ISSUE-39). */
+function MediaPlayerCard({ data }) {
+  const rows = data.rows || [];
+  const forcedType = data.mediaType || 'auto';
+  const quality = data.quality || 'auto';
+  const loopPlaylist = !!data.loopPlaylist;
+  const shuffle = !!data.shuffle;
+  const autoplay = !!data.autoplay;
+  const [index, setIndex] = useState(0);
+  const [showStart, setShowStart] = useState(false);
+  const mediaRef = useRef(null);
+
+  // Play order — original order, or one Fisher-Yates shuffle per playlist change.
+  const order = useMemo(() => {
+    const idx = rows.map((_, i) => i);
+    if (shuffle && idx.length > 1) {
+      for (let i = idx.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [idx[i], idx[j]] = [idx[j], idx[i]];
+      }
+    }
+    return idx;
+  }, [rows, shuffle]);
+
+  // New fetch / config → back to the top; show the Start pill when autoplay
+  // is requested but the browser hasn't granted a user gesture yet.
+  useEffect(() => {
+    setIndex(0);
+    setShowStart(autoplay && rows.length > 0);
+  }, [rows, autoplay]);
+
+  const current = rows[order[index]];
+  const isLast = order.length > 0 && index >= order.length - 1;
+  const isAudio = current?.mediaType === 'audio' && forcedType !== 'video';
+  const single = rows.length === 1;
+
+  const playNext = useCallback(() => {
+    setIndex((i) => (i >= order.length - 1 ? (loopPlaylist ? 0 : i) : i + 1));
+  }, [order.length, loopPlaylist]);
+
+  const playPrev = useCallback(() => {
+    setIndex((i) => (i > 0 ? i - 1 : (loopPlaylist && order.length > 1 ? order.length - 1 : 0)));
+  }, [loopPlaylist, order.length]);
+
+  if (!current) {
+    return (
+      <div className="media-card">
+        <div className="ranking-title">{data.title}</div>
+        <div className="ranking-subtitle">{data.subtitle}</div>
+        <div className="widget-empty">No playable files found</div>
+      </div>
+    );
+  }
+
+  const playUrl = pickPlayUrl(current, quality);
+  const fmtDur = (s) => (s ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '–');
+  const mediaProps = {
+    ref: mediaRef,
+    key: playUrl,
+    controls: true,
+    preload: 'metadata',
+    src: playUrl,
+    autoPlay: autoplay,
+    onEnded: playNext,
+    onPlaying: () => setShowStart(false),
+    loop: single && loopPlaylist,
+  };
+
+  return (
+    <div className="media-card">
+      <div className="ranking-title" title={data.title}>{data.title}</div>
+      <div className="ranking-subtitle">{data.subtitle}</div>
+      <div className="media-stage">
+        {isAudio
+          ? <audio {...mediaProps} className="media-audio" />
+          : <video {...mediaProps} className="media-video" />}
+        {showStart && (
+          <button
+            className="media-start"
+            onClick={() => { setShowStart(false); mediaRef.current?.play().catch(() => {}); }}
+          >
+            ▶ Start
+          </button>
+        )}
+      </div>
+      <div className="media-meta">
+        <a className="media-title" href={current.fileUrl} target="_blank" rel="noopener noreferrer" title={current.title}>
+          {current.title}
+        </a>
+        <span className="media-duration">{fmtDur(current.duration)}</span>
+      </div>
+      <div className="media-controls">
+        <button className="media-btn" onClick={playPrev} title="Previous track" disabled={order.length < 2}>⏮</button>
+        <button className="media-btn" onClick={playNext} title={isLast && !loopPlaylist ? 'End of playlist' : 'Next track'} disabled={isLast && !loopPlaylist}>⏭</button>
+        <span className="media-pos">{index + 1} / {order.length}</span>
+        <span className="media-badges">
+          {shuffle && <span className="media-badge" title="Shuffle on">🔀</span>}
+          {loopPlaylist && <span className="media-badge" title="Loop playlist on">🔁</span>}
+        </span>
       </div>
     </div>
   );

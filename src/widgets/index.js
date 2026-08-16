@@ -7,6 +7,7 @@ import {
   fetchPageviews,
   fetchExternalLinks,
   fetchCategorySize,
+ fetchMediaPlaylist,
   fetchWikistats,
   fetchFileUsage,
   fetchGlamStats,
@@ -1231,6 +1232,59 @@ export const WIDGET_TYPES = {
       mime: data.mime,
       autoRotate: config.autoRotate,
  }), },
+  mediaPlayer: {
+    id: 'mediaPlayer',
+    category: 'Files & Media', intensity: 'low',
+
+    timeScope: 'point',    name: 'Video / Media Player',
+    icon: '🎬',
+    description: 'Play Commons video or audio — one file or a whole playlist (jukebox: next/prev, loop, shuffle)',
+    labelFromConfig: (c) => {
+      const list = (c.files || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      return list.length > 1 ? `${list.length} files` : (list[0] || '').replace(/^File:\s*/i, '');
+    },
+    defaults: {
+      files: 'File:FA-18 Automated Aerial Refueling.ogv\nFile:EN-Abbe.ogg',
+      mediaType: 'auto',   // 'auto' | 'video' | 'audio'
+      quality: 'auto',     // 'auto' | '240' | '480' | '720' | '1080'
+      loopPlaylist: false,
+      shuffle: false,
+      autoplay: false,
+      refreshSeconds: 3600,
+    },
+    renderer: 'MediaPlayerCard',
+    dataSource: 'Commons API videoinfo (batched)',
+    defaultLayout: { w: 4, h: 4, minW: 3, minH: 3 },
+    configFields: [
+      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 6, placeholder: 'File:Example.webm\nFile:Spoken article.ogg' },
+      { key: 'mediaType', label: 'Media type', type: 'select', options: [
+        { value: 'auto', label: 'Auto-detect (per file)' },
+        { value: 'video', label: 'Video only' },
+        { value: 'audio', label: 'Audio only' },
+      ]},
+      { key: 'quality', label: 'Video quality', type: 'select', options: [
+        { value: 'auto', label: 'Auto (best ≤1080p)' },
+        { value: '240', label: '240p' },
+        { value: '480', label: '480p' },
+        { value: '720', label: '720p' },
+        { value: '1080', label: '1080p' },
+      ]},
+      { key: 'loopPlaylist', label: 'Loop playlist', type: 'boolean' },
+      { key: 'shuffle', label: 'Shuffle order', type: 'boolean' },
+      { key: 'autoplay', label: 'Autoplay (browsers need one click first)', type: 'boolean' },
+    ],
+    fetch: (config) => fetchMediaPlaylist(config.files),
+    transform: (data, config) => ({
+      title: 'Media player',
+      subtitle: `${data.rows.length} file${data.rows.length === 1 ? '' : 's'} · ${data.missing ? `${data.missing} not found · ` : ''}${data.rows.filter((r) => r.mediaType === 'video').length} video, ${data.rows.filter((r) => r.mediaType === 'audio').length} audio`,
+      rows: data.rows,
+      mediaType: config.mediaType || 'auto',
+      quality: config.quality || 'auto',
+      loopPlaylist: !!config.loopPlaylist,
+      shuffle: !!config.shuffle,
+      autoplay: !!config.autoplay,
+    }),
+  },
   waybackGallery: {
     id: 'waybackGallery',
     category: 'Web & History', intensity: 'high', loadingHint: 'Looking up Wayback captures — may take a few seconds',
