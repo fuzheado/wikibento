@@ -17,9 +17,55 @@ it *was* the Mac's screen. WikiBento keeps the card as the composable unit
 fluid and responsive, the stack becomes a URL, and the links go through
 cyberspace.
 
----
+## 1. The Origin: A Presentation Layer for Wikimedia's Media
 
-## 1. What HyperCard Was
+WikiBento began with a simple observation: **the Wikimedia movement's media
+assets — images, galleries, video, audio — were only ever experienced in the
+context of encyclopedia articles.** And in that context, they are
+deliberately, even proudly, suppressed.
+
+Wikipedia is a text-first medium by policy. The encyclopedia community
+maintains an intentional pullback on visual innovation:
+
+- **WP:NOTGALLERY** — an article should not consist of a gallery; Wikipedia
+  "is not an image repository" and the collection of images is explicitly
+  not the project's purpose.
+- **MOS:IMAGES / image-use culture** — guidance on restraint: images must
+  earn their place, illustrations are secondary to prose, and the
+  encyclopedia's ideal page is a text document with a few carefully chosen
+  supporting images.
+
+This conservatism is not a failure — it is the correct discipline for an
+encyclopedia. A reference work optimizes for verifiability, prose density,
+and download weight; an article that became a gallery would stop being an
+article. But the consequence is that the *experience* of Wikimedia's media —
+a million photographs from Wiki Loves Monuments, the world's largest
+collection of freely licensed video, panoramas, spoken articles — is
+permanently under-realized. The assets exist; the *presentation* does not.
+
+WikiBento is the space where the media is the subject, not the decoration.
+It was conceived as **a rich and exciting presentation layer for Wikimedia
+assets**: a canvas you can fill with life and interaction — galleries that
+cycle, slideshows that play, videos that roll as jukeboxes, panoramas you
+can stand inside, statistics that tell stories. Not a document about the
+content, but a *room* built from the content.
+
+This is the other half of the HyperCard thesis. The encyclopedia represents
+the "holy scroller" tradition — the document model, text-first, media as
+illustration. HyperCard's card-and-stack tradition — the experience model,
+media as the fabric of the page — was never allowed to flourish inside
+Wikipedia's walls. It needed a separate space. The Bento is that space: the
+curator's gallery, the DJ's deck, the museum wall — built from the same
+assets the encyclopedia can only footnote.
+
+Every widget in the catalog is a *way of experiencing* an asset class:
+pageviews turn numbers into a story, the gallery turns an article into a
+wall, the 360° viewer turns a file into a place, the jukebox turns a
+playlist into motion, CIM turns a category into an impact narrative. The
+"active content" direction — slideshow, ticker, jukebox, kiosk — is the
+original instinct surfacing by name: **fill it with life.**
+
+## 2. What HyperCard Was
 
 Apple shipped HyperCard free with every Mac in 1987. Its promise was captured
 in the slogan of the time: **"programming for the rest of us."** Bill Atkinson
@@ -41,7 +87,7 @@ database, an interactive story, a museum exhibit, a BBS front end — without
 anything that looked like code. It was the last time a mass-market platform
 gave end users that kind of compositional power for two decades.
 
-## 2. The Four Failure Modes
+## 3. The Four Failure Modes
 
 The autopsy matters because each failure has a name and a fix:
 
@@ -61,7 +107,7 @@ The autopsy matters because each failure has a name and a fix:
    *authoring*. The "rest of us" became consumers of pages instead of
    composers of experiences — and have spent thirty years lamenting it.
 
-## 3. Where the Paradigm Went
+## 4. Where the Paradigm Went
 
 The thread did not die; it split, and each fragment went somewhere:
 
@@ -91,7 +137,7 @@ The thread did not die; it split, and each fragment went somewhere:
   "LEGO-like," "like reading and writing." The successor conversation is
   live, right now.
 
-## 4. The Mapping
+## 5. The Mapping
 
 | HyperCard | WikiBento |
 |---|---|
@@ -102,7 +148,7 @@ The thread did not die; it split, and each fragment went somewhere:
 | **Objects** (buttons, fields, backgrounds) | The registry + WidgetFrame chrome + the grid — the shared object layer |
 | **Network** (the missing sixth) | Configs live **on-wiki** (Commons pages), loadable by URL from anywhere — the stack that *is* a URL |
 
-## 5. Why the Malleable Canvas Is the Right Evolution
+## 6. Why the Malleable Canvas Is the Right Evolution
 
 Not *instead of* the card — *because of* it. The canvas answers the question
 "was the card metaphor the right one?" cleanly:
@@ -128,7 +174,11 @@ the combination of:
 5. **config-as-data as HyperTalk** (declarative, shareable, AI-directable
    authoring).
 
-## 6. The Honest Gaps
+And the origin story from §1 completes the picture: this synthesis exists
+*to give Wikimedia's media a home* — the encyclopedia disciplines the
+document; the Bento liberates the experience.
+
+## 7. The Honest Gaps
 
 If WikiBento is "producing it now," three additions would make the claim
 airtight:
@@ -149,9 +199,9 @@ And one scoping note: HyperCard was a *creation* tool — you drew content in
 place. WikiBento is a *curation* tool — it composes existing content from the
 knowledge base. For "a display port into a knowledge base," that is not a
 deficit; it is the correct specialization. The empowered user is the curator,
-not the programmer.
+not the programmer — the museum director, not the artist.
 
-## 7. Resources — People Thinking About the Successor
+## 8. Resources — People Thinking About the Successor
 
 - **Bill Atkinson** — WIRED 2002, [*HyperCard: What Could Have Been*](https://www.wired.com/2002/08/hypercard-what-could-have-been/) — the box-centric confession
 - **Bret Victor** — [*The Future of Programming*](https://worrydream.com/dbx/) (2013); [*Hypercard in the World*](https://dynamicland.org/2016/Hypercard_in_the_World/) (Dynamicland)
@@ -162,16 +212,19 @@ not the programmer.
 - **The skeptics** — Daring Fireball, [*Why HyperCard Failed*](https://daringfireball.net/2002/08/why_hypercard_failed) (2002); Nielsen Norman Group, [*Two Basic Hypertext Presentation Models*](https://www.nngroup.com/articles/two-basic-hypertext-presentation-models/); Dave Rupert, [*Pitfalls of Card UIs*](https://daverupert.com/2018/04/pitfalls-of-card-uis/) (2018)
 - **The living descendants** — [hypercard.org](https://hypercard.org/) (community; interviews with people still building successors: xCards, jsCard); Obsidian's [JSON Canvas](https://jsoncanvas.org/) open format; the [History of wikis](https://en.wikipedia.org/wiki/History_of_wikis) lineage (HyperCard → WikiWikiWeb → Wikipedia)
 
-## 8. The Verdict
+## 9. The Verdict
 
 The successor to HyperCard is not the canvas *replacing* the card — it is the
 **card liberated from the screen, given a network identity, and made
 addressable.** That is precisely what WikiBento does: the widget (card) on a
 malleable grid (canvas), URL-identified Bentos (networked stacks),
 Bento-to-Bento links (hyperlinks), and config-as-data authoring (HyperTalk by
-other means).
+other means). And it does it for a reason: **to give the Wikimedia movement's
+under-shown media a rich, living presentation layer** — the gallery the
+encyclopedia can never be, built from the same assets the encyclopedia can
+only footnote.
 
-And the strongest evidence that "we are producing it now" is sitting in this
+The strongest evidence that "we are producing it now" is sitting in this
 project's own history: on 2026-08-16, a user described a video jukebox widget
 in prose; an agent built it, tested it, and deployed it to production the same
 day. That loop — *natural language → working, networked, shareable
