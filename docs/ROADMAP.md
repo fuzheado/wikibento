@@ -80,6 +80,9 @@ Housekeeping found during the code audit. Safe for a first PR.
       self-contained `#/d/<base64url>` link; `?config=<url>` loads a hosted
       dashboard.json (wiki pages fetched via the Action API, CORS-enabled hosts
       direct). URL > localStorage > defaults priority; error banner + fallback
+- **Board templating / parameters** (ISSUE-41, 2026-08-16 direction) — board-level `params` with `{{name}}` placeholders in widget configs; a Board Controls card + URL params (ISSUE-40) set values; changes ripple through all widgets (re-resolve + reloadKey). One GLAM Bento x N institutions; manifests (ISSUE-36) instantiate templates. The declarative scripting layer — config-as-data becomes parameterized
+- **Map widget family** (WIDGET-IDEAS.md Mapping, 2026-08-13 + 2026-08-16) — Leaflet engine: Commons category photo map (marker clustering first!), geoshapes, Overpass nearby-POI, Wikivoyage POI map, route/itinerary polyline, category heatmap; 3D globe as the kiosk hero (three.js, lazy chunk). The best demonstration of ISSUE-41 params: a photo map of the board's category
+
 - **Widget duplication** ("duplicate this widget") and **copy/paste configs**
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
