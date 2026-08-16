@@ -404,3 +404,77 @@ a pointer here.
 - **Feasibility (noted 2026-08-14):** EventStreams SSE is the natural feed (`wikimedia-eventstreams` skill), but WikiBento is a polling dashboard — needs an SSE client in a widget or a polling stats endpoint (e.g. recentchanges counts per minute); baseline computation is the design question. Revert-risk ML (ISSUE-29's missing model) would make this a vandalism dashboard.
 - **Effort:** M
 - **Notes:** the pageview-spike variant is already the ROADMAP hero; this is the edit-side companion. Keep aspirational until the spike-alert ships.
+
+## Sister-Project Widgets: Wikivoyage, Wiktionary, Wikisource (2026-08-16 analysis)
+
+The PHILOSOPHY.md origin story extends to the sister projects: each is
+text-first by reasoned discipline (Wikivoyage caps images for mobile
+travelers; Wikisource is scans+text; Wiktionary is words), each has an
+under-realized experiential layer — and each runs the same Action API
+(`origin=*` works on every `*.wikivoyage.org` / `*.wiktionary.org` /
+`*.wikisource.org`). Widget ideas below, tied to existing WikiBento
+patterns (gallery/jukebox/ranking/StatCard, the wikiPage iframe, the
+media player).
+
+### Wikivoyage: Destination Visual Guide
+- **What it shows:** a city/country article as a visual board — pagebanner image, top listings per section (See/Do/Eat/Sleep — the structured vCard POIs), each linking to its listing/coordinates. The image-policy workaround: the *presentation* carries the imagery the article deliberately restrains.
+- **Feasibility:** ✅ Action API `parse` on `en.wikivoyage.org` with `origin=*` (same CORS pattern as every existing widget). Banner images resolve via Commons (`pagebanner` param → `{{Pagebanner|File:...}}`). Listings: parse wikitext `{{Listing}}` templates client-side (we already ship a markdown parser; a listing parser is the same shape) — or start with the rendered HTML (`parse&prop=text`) and extract the vCard blocks.
+- **Effort:** M (listing parser is the new piece).
+- **Notes:** baturin's `wikivoyage-listings` exports (CSV/GPX/KML per language) are a server-side alternative — CORS to probe; the proxy pattern exists if needed.
+
+### Wikivoyage: Itinerary Explorer
+- **What it shows:** an itinerary article as a day-by-day timeline — "destination guides are dots on a map; an itinerary is the line that connects them." Route stops with their article images, day markers, total distance/legs; click through to each stop's article. Pair with the Kartographer idea below for the map.
+- **Feasibility:** ✅ itineraries are normal articles (`{{subst:Itinerary skeleton}}`; status: Outlineitinerary → Staritinerary; `{{PartOfItinerary}}`). Structure: `===Day N===` headers + prose + embedded links — parse wikitext via Action API (`origin=*`), extract day sections + first link/image per day. Examples: Hajj, London South Bank Walk, The Wire Tour.
+- **Effort:** S–M.
+- **Notes:** the user's "new thing called itineraries" — they're an established article type, but *presentation* of them is genuinely unmade territory.
+
+### Wikivoyage: GeoCrumbs / Region Breadcrumb widget
+- **What it shows:** the geographical chain for any destination — continent → country → region → city — as a navigable path (each crumb links onward). "Where in the world is this?"
+- **Feasibility:** ✅ the `{{IsPartOf}}` chain is walked with a simple API loop (the wikivoyage skill has the exact function); GeoCrumbs is the same chain the wiki itself renders.
+- **Effort:** S. First-class candidate for a starter pack.
+
+### Wikivoyage: Travel-readiness Observatory
+- **What it shows:** observability for the travel wiki itself — the status distribution (stub/outline/usable/guide/star) across a country or region's destination articles: "which cities in Japan are Guide-grade?" via `hastemplate:"Template:Guidecity"`-style CirrusSearch or PetScan.
+- **Feasibility:** ✅ CirrusSearch works on en.wikivoyage.org (`origin=*`); PetScan supports it too. The PHILOSOPHY "shape of the data" pillar applied to travel coverage.
+- **Effort:** S–M (RankingCard/table renderer).
+
+### Wikivoyage: Phrasebook card
+- **What it shows:** the useful phrases for a language from a Phrasebook article — a small table/cards ("Hello", "Thank you", "How much?") with the local script + transliteration, plus audio pronunciations where they exist (the jukebox player can play them!).
+- **Feasibility:** ✅ phrasebook articles are normal pages; phrase rows use `{{phrase|English|Phrase|transliteration|note}}` templates — parse via Action API.
+- **Effort:** S–M.
+
+### Wiktionary: Word Card + Pronunciation
+- **What it shows:** a word's entry as a card — definitions for a chosen language section, IPA, and its audio pronunciations played in-widget (audio files live on Commons; the mediaPlayer widget already plays exactly these).
+- **Feasibility:** ✅ Action API `parse` on `*.wiktionary.org` (`origin=*`); `{{audio|en|file.ogg}}` templates resolve to Commons files; entry structure is `==Language==` sections + `----` dividers (parseable). Definition extraction is the only new parsing.
+- **Effort:** S–M.
+- **Notes:** "Word of the day" dashboards become trivial (pick a word per refresh — or a rotation widget).
+
+### Wiktionary: Translation Table grid
+- **What it shows:** "how to say X in 20 languages" — the `{{trans-top}}/{{trans-mid}}/{{trans-bottom}}` + `{{t|lang|word}}` family rendered as a language grid. The dictionary's translation web as a visual.
+- **Feasibility:** ✅ template parse via Action API; the skill ships the exact extraction logic.
+- **Effort:** M (parsing), renderer = table/grid.
+
+### Wiktionary: Lexeme lookup (L-entities)
+- **What it shows:** a Wikidata lexeme (L-id) — lemma, language, forms, senses — the structured-data layer under the dictionary.
+- **Feasibility:** ⚠️ `wbgetentities` on wikidata.org with `origin=*` (same as the SPARQL widget's host) — probe the exact shape; renderer = table/cards. Power-widget territory (linguistics).
+- **Effort:** M.
+
+### Wikisource: Proofread Progress (Observability!)
+- **What it shows:** how complete a work is — the quality distribution across its pages (Without text / Problematic / Proofread / Validated) for any `Index:` page: "The book is 62% validated." The purest expression of the observability pillar: understanding the shape of the data.
+- **Feasibility:** ✅ the proofread status API (`action=query&prop=proofreadinfo`) or per-page quality via the ProofreadPage module on `*.wikisource.org` (`origin=*`); the wikisource skill ships the checker pattern.
+- **Effort:** S–M (StatCard + distribution bar).
+
+### Wikisource: Author Shelf / Works Browser
+- **What it shows:** an author's shelf — Author: page → works list (via `list=embeddedin`) → a grid of works (covers/links, year, status) that opens each in the wikiPage iframe. A library wall for a writer.
+- **Feasibility:** ✅ `embeddedin` is a plain Action API call (`origin=*`); author pages use the `{{author}}` template with birth/death years.
+- **Effort:** S (grid renderer exists — reuse the gallery/list patterns).
+
+### Wikisource: Page Scan + Text viewer
+- **What it shows:** a `Page:` page as scan-and-text: the scanned image beside its OCR/proofread text layer — reading an old book visually, page by page. The wikiPage iframe already embeds the wiki's own viewer; a dedicated widget could show scan+text side by side with prev/next page.
+- **Feasibility:** ✅ Page: pages expose the image (Commons) + text layer via API; the wikisource skill has the extraction scripts. CORS fine.
+- **Effort:** M (prev/next page navigation is new interaction).
+
+### Cross-cutting notes
+- **The media player (ISSUE-39) is the pronunciation player** — Wiktionary audio is Commons audio; a "Word + Say it" card composes existing widgets.
+- **Kartographer maps** (see the Mapping idea below) are Wikivoyage's native map layer — an iframe/embed or a maplink-resolving widget pairs with the Itinerary Explorer.
+- **Observability is the throughline**: Travel-readiness (Wikivoyage), Proofread Progress (Wikisource), and the existing CIM family are all "shape of the data" sensors — a sister-project starter pack could ship these three first.

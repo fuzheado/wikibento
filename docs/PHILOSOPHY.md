@@ -43,12 +43,39 @@ a million photographs from Wiki Loves Monuments, the world's largest
 collection of freely licensed video, panoramas, spoken articles — is
 permanently under-realized. The assets exist; the *presentation* does not.
 
+The same is true of the sister projects, each text-first by its own
+reasoned discipline: Wikivoyage deliberately caps imagery (a traveler
+loading a city page on a mobile connection shouldn't be inundated with
+images — a good reason), yet travel is the most visual of subjects;
+Wikisource is a library of scans + text, experienced page by proofread
+page; Wiktionary is a dictionary of words whose pronunciations, audios,
+and translation webs are richer than any printed dictionary. Every one of
+them is the same story: a text-first project with an under-realized
+experiential layer. The Bento pattern — a presentation layer that composes
+the assets the text project can only footnote — applies to all of them
+(the concrete widget ideas live in WIDGET-IDEAS.md).
+
 WikiBento is the space where the media is the subject, not the decoration.
 It was conceived as **a rich and exciting presentation layer for Wikimedia
 assets**: a canvas you can fill with life and interaction — galleries that
 cycle, slideshows that play, videos that roll as jukeboxes, panoramas you
 can stand inside, statistics that tell stories. Not a document about the
 content, but a *room* built from the content.
+
+**Observability — the second pillar.** WikiBento is not only a showcase for
+the thousands or millions of files institutions have uploaded (the
+Smithsonian, the Metropolitan Museum of Art, DPLA); it is an instrument
+for **understanding the shape of the data** — what exists, what is being
+used, what is possible. The widgets are sensors as much as windows:
+pageviews show what the world looks at, CIM shows how collections
+propagate across wikis, usage maps show where files travel, quality and
+assessment widgets show how content matures. The Wikimedia sphere's only
+widely known public product was the individual article — a window, not an
+observatory. There was no way to build products that let people grasp the
+full breadth and depth of a museum's holdings, a sector of paintings or
+statues, a century of photographs. WikiBento is the missing
+observatory-and-stage: it surfaces interesting content *and* lets people
+understand the collections.
 
 This is the other half of the HyperCard thesis. The encyclopedia represents
 the "holy scroller" tradition — the document model, text-first, media as
@@ -61,7 +88,9 @@ assets the encyclopedia can only footnote.
 Every widget in the catalog is a *way of experiencing* an asset class:
 pageviews turn numbers into a story, the gallery turns an article into a
 wall, the 360° viewer turns a file into a place, the jukebox turns a
-playlist into motion, CIM turns a category into an impact narrative. The
+playlist into motion, CIM turns a category into an impact narrative — and
+each is simultaneously an *instrument of observation*: a sensor on what
+exists, what is used, what is possible. The
 "active content" direction — slideshow, ticker, jukebox, kiosk — is the
 original instinct surfacing by name: **fill it with life.**
 
