@@ -491,3 +491,91 @@ media player).
 - **The media player (ISSUE-39) is the pronunciation player** — Wiktionary audio is Commons audio; a "Word + Say it" card composes existing widgets.
 - **Kartographer maps** (see the Mapping idea below) are Wikivoyage's native map layer — an iframe/embed or a maplink-resolving widget pairs with the Itinerary Explorer.
 - **Observability is the throughline**: Travel-readiness (Wikivoyage), Proofread Progress (Wikisource), and the existing CIM family are all "shape of the data" sensors — a sister-project starter pack could ship these three first.
+
+## Knight Lab tools (TimelineJS + StoryMapJS) — evaluation (2026-08-16)
+
+**User direction:** past projects, popular in content visualization, but
+on old stacks — worth consideration? **Verdict: worth adopting as
+*concepts/formats*, not as embedded tools.**
+
+### TimelineJS (timeline.knightlab.com) — verified facts
+- Open source (**MPL 2.0**); two authoring paths: Google Sheets (the
+  famous beginner path) or **pure JSON** (its own timeline schema);
+  iframe-embeddable by design (`…/timeline3/latest/embed/index.html?source=<json-url>`);
+  media sources include Wikipedia/YouTube/Flickr/Vimeo/SoundCloud;
+  slides = date + headline + text + media; groups = parallel rows.
+- Status: TimelineJS3, maintenance mode on the Knight Lab CDN (the
+  user's "old stacks" memory is correct — last major work ~2017-21;
+  support forums still active). MPL makes forking/embedding legal.
+
+### StoryMapJS (storymap.knightlab.com) — verified facts
+- Map + narrative slides (points on a map, each opening a slide);
+  Google Sheets/JSON driven; iframe embed; MPL; older and less
+  maintained than TimelineJS (Flash-era heritage, fragile).
+
+### What WikiBento should take
+1. **A hand-rolled TimelineCard renderer** (the project's no-chart-
+   library philosophy — we already hand-rolled the sparkline and
+   TrendCard). The data is already in hand: **edit history** (recent
+   revisions), **CIM monthly series**, **GLAM upload/views trends**,
+   **pageviews ranges** — all date-shaped. A `timeline` display mode or
+   a SPARQL **timeline renderer** (date-typed query → timeline, like the
+   planned map renderer) makes the Knight Lab *format* ours without
+   their stack.
+2. **The spreadsheet-authoring insight** — Knight Lab's magic was
+   "anyone can author in a Google Sheet." WikiBento's equivalent is
+   config-as-data: the same JSON that drives the board can drive a
+   timeline (authoring = editing the config; the ⚙ panel or a future
+   Board Controls card).
+3. **NOT recommended: iframe-framing TimelineJS/StoryMapJS as widgets.**
+   Old CDN dependency, heavyweight iframe, and the concepts are
+   implementable in ~150 lines of SVG — the wikiPage pattern only wins
+   when the framed page is maintained for us (Wiki pages, Wayback).
+
+## GLAM Wiki Dashboard (glamwikidashboard.wmcloud.org) — evaluation (2026-08-16)
+
+**User direction:** coarse-grained stats per GLAM institution — useful
+for framing WikiBento? **Verdict: yes — as a data source, a starter-pack
+source, and a template model. All facts verified live today.**
+
+### What it is (verified)
+- **Live community tool** (repo: github.com/yonathan06/cassandra-GLAM-
+  tools — the WMF's discontinued GLAM Dashboard's community successor).
+  Directory of **100+ institutions** mapped to their Commons categories
+  (Metropolitan Museum of Art, Cleveland Museum of Art, DPLA, BHL,
+  Auckland War Memorial Museum…).
+- Per-institution pages: **daily views chart** (mediacounts dumps —
+  their docs: "the most precise statistic released by Wikimedia
+  servers"; day/week/month/quarter/year selectors, log axis, subcategory
+  drill-down, annotations), **category network**, **usage**, **user
+  contributions**, **recommender** (suggestions), report download.
+- **Open JSON API** (probed live): `/api/{slug}/views/stats` →
+  `{"total": 182863}`; `/api/{slug}/views/sidebar` → per-file
+  `{img_name, tot, av, median}` (top files with mediacounts stats).
+- ⚠️ **NO CORS headers** (verified with an Origin header — no
+  Access-Control-Allow-Origin) → direct browser fetch blocked; needs
+  the same-origin `/api/proxy` (hatnote/SightGlass precedent) or the
+  batch-endpoint pattern.
+
+### What WikiBento should take
+1. **Daily GLAM views widget** (complements CIM's monthly view): fetch
+  `/api/{slug}/views/stats` + `/views/sidebar` via `/api/proxy` →
+  StatCard total + top-files RankingCard (tot/avg/median). The
+  mediacounts family — same data as the SightGlass widgets (ISSUE-23),
+  but through a simpler open API. Effort S–M (proxy round-trip only).
+2. **The institution directory as a starter-pack / templating source**
+  (ISSUE-41!): "pick an institution → instantiate the GLAM Bento with
+  its category" — the directory is the registry the manifest (ISSUE-36)
+  can point at. A "GLAM institutions" widget or manifest entry could
+  list the 100+ mapped categories.
+3. **Template model**: their per-institution pages are one-purpose
+  Bentos (views + network + usage + contributions) — a natural
+  comparison/design reference for the GLAM starter pack.
+4. **Recommender + annotations** → future actionability (ISSUE-22)
+  ideas ("files in this category that need descriptions").
+
+### Cross-cutting note
+The GLAM Wiki Dashboard + SightGlass (ISSUE-23) + CIM all read the same
+underlying mediacounts family at different granularities. A unified
+"GLAM data layer" abstraction (daily via this API, monthly via CIM,
+job-based via SightGlass) would let widgets share one vocabulary.
