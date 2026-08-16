@@ -90,6 +90,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   desktops keep the full drag-and-drop grid
 - **Drag & drop** — grab a widget's title bar to reposition it (12-column grid, vertical compaction)
 - **Resize** — drag the bottom-right corner of any widget
+- **Content-fit galleries** — Article Gallery / Commons File Gallery default to **full window width** and **auto-fit their height to the image count** after loading (clamp 3–14 rows); once you resize one manually, your size sticks
 - **Presentation / kiosk mode** — ⛶ Present hides all editing chrome (title
   bars, ⏱ footers, toolbar, card borders) and locks the grid for a clean data
   wall — or load any dashboard directly in kiosk with `?kiosk=1` (shareable
@@ -161,7 +162,8 @@ npm install
 npm run dev          # dev server at http://localhost:5173
 npm run build        # production build → dist/
 npx vite preview     # serve dist/ at http://localhost:4173
-npm run lint         # oxlint
+npm run lint # oxlint
+npm run smoke # grid-geometry smoke test (catches silently-ignored dependency props)
 ```
 
 ## Project Structure
@@ -223,6 +225,22 @@ wikibento/
   subsequent autoplay), kiosk-compatible; missing files counted in the
   subtitle — verified live: FA-18 refueling clip (480p VP9), EN-Abbe
   spoken article (audio), Leica 1927 (1080p)
+- ✅ **✨ Ask advisor (2026-08-16):** intent-first widget discovery — type
+  what you want, get widget recommendations with pre-filled configs,
+  click to add. Manifest generated from the registry (~3.7K tokens),
+  /api/ask relay to Wikimedia's free LiftWing LLM (llm-qwen36-27b, no key,
+  prompts not stored), server-side config normalization (invalid select
+  values dropped, `commons.org`→`commons.wikimedia` aliases, `Category:`
+  prefixes stripped, `File:` prefixes ensured), offline keyword fallback.
+  Constitutions: tests/ask-validation.test.mjs (11 tests).
+- ✅ **Gallery content-fit + grid density (2026-08-16):** Article Gallery /
+  Commons File Gallery add at full width and auto-fit height to the image
+  count (registry `autoHeight` → WidgetFrame → App row fitting, clamp
+  3–14, stops after manual resize). Root cause of the old small/narrow
+  default: react-grid-layout 2.2.4 silently moved `rowHeight`/`margin`/
+  `cols` into the `gridConfig` prop (same drift as `dragConfig`) — the
+  board rendered at RGL's 150px-row defaults; fixed, and guarded by
+  `npm run smoke` (scripts/smoke-grid.mjs, geometry assertions).
 - ✅ **Kiosk + Lean presentation modes (2026-08-15/16):** ⛶ Present
   (fullscreen, `?kiosk=1`) and ▣ Lean (chrome-free without fullscreen,
   `?lean=1` — resizable browser, iPad-app feel) hide all editing chrome,
@@ -281,7 +299,7 @@ wikibento/
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 422.55 KB JS (124.30 KB gzip) + 45.61 KB CSS (9.24 KB gzip)
+- ✅ Production build: 433.41 KB JS (127.58 KB gzip) + 48.86 KB CSS (9.86 KB gzip)
 
 ## Documentation
 

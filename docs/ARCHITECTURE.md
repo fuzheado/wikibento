@@ -76,6 +76,8 @@ pageviews: {
   configFields: [ ... ],           // drives the gear-panel form
   fetch:   (config) => fetchPageviews(config.article, config.project),
   transform: (data, config) => ({ title, subtitle, value, detail, trend, ... }),
+defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 }, // optional: size when added from the catalog
+autoHeight: (view, config) => px, // optional: content-fit height after load
 }
 ```
 

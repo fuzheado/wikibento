@@ -56,6 +56,8 @@ Every widget is defined by 5 things:
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
 | `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `MediaPlayerCard` \| `ArticleListCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` \| `FileTrafficCard` |
+| `defaultLayout` | registry entry (optional) | Grid size when added from the catalog: `{ w, h, minW, minH, maxW?, maxH? }` — `w: 12` = full width. Gallery-family widgets default to full-width; the 360° viewer constrains its minimum |
+| `autoHeight(view, config)` | registry entry (optional) | Content-based auto-fit: return a pixel height for the loaded content (e.g. rows × tile height); WidgetFrame calls `onAutoHeight` after a successful load, App fits the grid row count (clamp 3–14) — and stops once the user resizes manually. See the `gallery`/`fileGallery` entries |
 
 ## Step-by-Step
 
@@ -156,7 +158,15 @@ per-widget piece; the transform carries provenance wording (subtitle).
 Edit `DEFAULT_WIDGETS` and `DEFAULT_LAYOUT` in `App.jsx` (mind the layout slots:
 12 columns, `w` spans, `minW`/`minH`).
 
-### 5. Document it
+### 5. Regenerate the Ask manifest
+
+`npm run build` runs `scripts/generate-manifest.mjs`, which extracts every
+entry's id/name/description/configFields (incl. select options) into
+`public/manifest.json` — the source of truth for the ✨ Ask advisor's LLM
+prompt and the offline matcher. A new widget appears in Ask automatically
+on the next build; verify it with a prompt that should match it.
+
+### 6. Document it
 
 Add a row to the widget catalog table in `README.md` and a section in
 `docs/DATA-SOURCES.md` (endpoint, params, gotchas).
@@ -169,6 +179,8 @@ Add a row to the widget catalog table in `README.md` and a section in
 - [ ] `refreshSeconds` honored
 - [ ] Empty / error states look right (the frame handles them, but verify the transform's defaults)
 - [ ] `npm run lint` passes; `npm run build` succeeds
+- [ ] `npm run smoke` passes (grid geometry; run after any react-grid-layout upgrade)
+- [ ] Ask manifest regenerated (automatic in `npm run build`) and a sample Ask prompt finds the new widget
 - [ ] Smoke-test in the browser: add from catalog → configure → reload page (persistence)
 
 ## Example: the smallest widget

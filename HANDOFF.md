@@ -38,6 +38,26 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   pill (browser policy), missing-file counts. **DEPLOYED** (commit
   c9f7bbc, bundle index-DdJRNUuD.js → current index-DkcrAAk0.js,
   verified live 2026-08-16).
+- ✅ **✨ Ask advisor (2026-08-16)** — ISSUE-44 Phase 1: intent-first
+  widget discovery. `✨ Ask` toolbar button → conversational panel
+  (user bubble → thinking → recommendation cards with reasons +
+  pre-filled config chips → click to add to board; sample chips,
+  privacy footer). Architecture: `scripts/generate-manifest.mjs`
+  extracts the 30-widget catalog (with REAL select options per field)
+  into `public/manifest.json` (~3.7K tokens, wired into `npm run build`);
+  `deploy/server.js` gains `/api/ask/session` (30-min HMAC token,
+  IP-bound) + `/api/ask` — narrow-function relay to Wikimedia's free
+  LiftWing LLM (`llm-qwen36-27b`, json_object mode, `<think>` strip,
+  id validation, per-IP rate limits + global tripwire, prompt caps,
+  10-min hash cache, 45 s timeout + `llm-qwen3-14b` fallback,
+  privacy-respecting logs). Server-side config normalization against
+  declared fields (unknown keys dropped, invalid selects dropped,
+  `commons.org`→`commons.wikimedia` aliases, `Category:` stripped,
+  `File:` prefixes ensured, displayMode validated) + VALUE RULES /
+  intent-matching prompt. Offline keyword fallback (`src/lib/askLocal.js`,
+  "offline" badge). Constitution: `tests/ask-validation.test.mjs`
+  (11 tests, wired into npm test/build). **DEPLOYED** (commits 5378088 +
+  165c014, verified live incl. the user-reported failure prompts).
 - ✅ **Gallery defaults + grid density fix (2026-08-16):** Article Gallery /
   Commons File Gallery now add at **w:12 full width** and **auto-fit their
   height to the image count** (registry `autoHeight` → WidgetFrame
@@ -302,6 +322,15 @@ responsive mobile stack (order follows grid layout), Wikistats cache + timeout
 view (MW API enrichment), w.wiki /api/resolve, GLAM wiki-column + title fixes,
 Top-100 display fixes (default 10, single counter, wrap titles, card
 containment), index.html no-cache.*
+
+- ✅ **Dependency-drift defense (2026-08-16)** — react-grid-layout pinned
+  exact `2.2.4` (the caret range let the 1.x→2.x config-object renames
+  arrive silently — the cause of BOTH the dragConfig and gridConfig
+  incidents); `npm run smoke` (scripts/smoke-grid.mjs) asserts measured
+  grid geometry against intended formulas (starter h:4 = 356px, gallery
+  w:12 full-width, height == h×80+(h−1)×12) — negative-tested to catch
+  the gridConfig bug; ARCHITECTURE.md gains a Third-Party API Contracts
+  watchlist with the upgrade procedure. Commit bed5af6.
 
 ## Next Steps (see docs/ROADMAP.md for the full plan)
 
