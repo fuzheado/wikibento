@@ -1428,3 +1428,49 @@ it); fileGallery's batched imageinfo conforms.
 WIDGET-DEVELOPMENT.md gains a "Sharing renderers across widgets" section
 and marks GalleryGridCard/ListCard as shared with fileGallery. Source:
 architecture analysis 2026-08-15.
+
+## ISSUE-39 · Media player widget: video/audio embed + jukebox playlist mode — **open** (design)
+
+**What:** a widget that embeds a Commons video (or audio) file with a native
+HTML5 player, plus a **jukebox mode**: a playlist of files (one per line —
+the established list-source pattern) that plays through sequentially with
+loop/shuffle, "now playing" title, and prev/next/play-pause controls. User
+request 2026-08-15.
+
+**Feasibility (verified 2026-08-15, live probe):** `prop=videoinfo&viprop=
+derivatives` returns the original + transcoded derivatives in ONE batched
+call (50 titles/request): e.g. File:FA-18 Automated Aerial Refueling.ogv →
+vp9+opus WebM transcodes at 320×240/640×480, a video/quicktime iOS
+derivative, duration + size. Derivative URLs are direct and hotlinkable
+(`…/transcoded/<hash>/<file>/<file>.480p.webm`). Native `<video>` plays VP9
+WebM in all modern browsers — NO vendored player (unlike pannellum);
+poster via the video keyframe thumb URL scheme. Audio (.ogg/.opus/.flac)
+plays identically via `<audio>` — "jukebox" covers both media types.
+
+**Zero-code path that exists today:** the `wikiPage` widget can embed
+`File:….webm` — Commons file pages render the TimedMediaHandler player
+in-iframe (no X-Frame-Options). Cost: whole file page, not a clean player.
+
+**Proposed fix (one widget, id `mediaPlayer` or `jukebox`, 🎬):**
+- Input: `files` textarea (one File: per line — fileGallery/articleList
+  pattern); single file = plain embed, multiple = jukebox.
+- Fetch: ONE batched `videoinfo` (derivatives|duration|url) per refresh —
+  the playlist's whole metadata in one request; ⏱ footer = data age
+  (two-clock architecture: playback is client-side, no API).
+- Renderer `MediaPlayerCard`: `<video controls>` (or `<audio>` per
+  `mediaType: video|audio|auto`), best DONE VP9 derivative per track
+  (quality config 240/480/720/1080 auto; fall back to original; optional
+  iOS quicktime pick), now-playing title + position "3/12", prev/next,
+  play-pause, playlist loop + shuffle toggles, per-file link to the
+  Commons page (ISSUE-22 actionability).
+- Registry: category Files & Media, `timeScope: 'point'` (static after
+  fetch — derivatives don't change mid-session), refreshSeconds ≥ 30
+  (constitution).
+- Caveats: autoplay-with-sound needs one user gesture (browser policy —
+  fine in kiosk: presenter clicks once); Commons format policy = WebM/OGG
+  only (MP4 blocked, patents) so VP9 WebM is the universal default;
+  transcode status can be IN_PROGRESS/ERROR → pick best DONE, degrade
+  gracefully; provenance subtitle "N files · playlist".
+
+**Status:** open (design). Source: user request 2026-08-15; API probe
+verified.
