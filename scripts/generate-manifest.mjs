@@ -38,6 +38,31 @@ for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\{\s*key:\s*'(\w+)'[\s\S]*?typ
   constFields[m[1]] = { key: m[2], type: m[3] };
 }
 
+// Shared option arrays referenced by select fields (PROJECT_OPTIONS,
+// CIM_SCOPES, …): const name → list of option values.
+const constArrays = {};
+for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\[([\s\S]*?)\n\];/g)) {
+  const values = [...m[2].matchAll(/value:\s*'([^']*)'/g)].map((x) => x[1]);
+  if (values.length) constArrays[m[1]] = values;
+}
+
+// Parse one configFields entry `{ key: ..., type: ..., options: ... }`:
+// brace-depth aware; returns { key, type, options? }.
+const parseField = (src2) => {
+  const key = (src2.match(/key:\s*'(\w+)'/) || [])[1];
+  const type = (src2.match(/type:\s*'(\w+)'/) || [])[1];
+  if (!key) return null;
+  const opts = [];
+  const om = src2.match(/options:\s*\[([\s\S]*?)\]/);
+  if (om) {
+    for (const v of om[1].matchAll(/value:\s*'([^']*)'/g)) opts.push(v[1]);
+  } else {
+    const ref = (src2.match(/options:\s*([A-Z][A-Z0-9_]+)/) || [])[1];
+    if (ref && constArrays[ref]) opts.push(...constArrays[ref]);
+  }
+  return { key, type, ...(opts.length ? { options: opts } : {}) };
+};
+
 const widgets = [];
 const blockRe = /\n {2}(\w+): \{/g;
 let m;
@@ -61,9 +86,21 @@ while ((m = blockRe.exec(src)) !== null) {
   const q = (field) => { const f = block.match(new RegExp(`${field}:\\s*'([^']*)'`)); return f ? f[1] : undefined; };
   const renderer = q('renderer');
   const configFields = [];
-  const cfRe = /\{\s*key:\s*'(\w+)'[\s\S]*?type:\s*'(\w+)'/g;
-  let cf;
-  while ((cf = cfRe.exec(block)) !== null) configFields.push({ key: cf[1], type: cf[2] });
+  const cfRe = /\{\s*key:\s*'(\w+)'/g;
+  let cfm;
+  while ((cfm = cfRe.exec(block)) !== null) {
+    // find this entry's closing brace (depth-aware)
+    let depth = 1;
+    let k = block.indexOf('{', cfm.index);
+    let end = k + 1;
+    for (; end < block.length && depth > 0; end++) {
+      const c = block[end];
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) break; }
+    }
+    const field = parseField(block.slice(cfm.index, end + 1));
+    if (field) configFields.push(field);
+  }
   // Resolve constant references (CIM_CATEGORY_FIELD etc.) inside configFields.
   for (const ref of block.matchAll(/configFields:\s*\[([^\]]*)\]/g)) {
     for (const ident of ref[1].matchAll(/\b([A-Z][A-Z0-9_]+)\b/g)) {
@@ -113,7 +150,7 @@ if (widgets.length < 25) {
 }
 
 const manifest = {
-  version: 1,
+  version: 2,
   generatedAt: new Date().toISOString(),
   widgetCount: widgets.length,
   widgets,

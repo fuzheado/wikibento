@@ -121,7 +121,7 @@ const getManifest = async () => {
   }
   return askManifest;
 };
-const manifestIds = (m) => new Set((m?.widgets || []).map((w) => w.id));
+const manifestIds = (m) => new Map((m?.widgets || []).map((w) => [w.id, w]));
 
 const askCache = new Map();
 const askCacheSet = (k, v) => askCache.set(k, { v, exp: Date.now() + ASK_TTL_MS });
@@ -136,7 +136,7 @@ const ASK_SYSTEM = (m) => `You are the WikiBento widget advisor. WikiBento is a 
 
 CATALOG (JSON array — ids are exact; use them verbatim, never invent ids):\n${JSON.stringify(m.widgets.map((w) => ({ id: w.id, name: w.name, description: w.description, dataSource: w.dataSource, category: w.category, type: w.type, configFields: w.configFields, defaults: w.defaults })))}`;
 
-const ASK_RULES = `\n\nRULES:\n- Use EXACT widget ids from the catalog. Never invent ids.\n- Recommend 1-3 widgets. Prefer the most specific fit; add a second or third alternative only when genuinely useful (e.g. a precomputed vs live source for the same need).\n- For each option: widgetType = exact id; config = pre-filled with the user's subject using REAL names from the request (article/category/file/page titles — never invent subjects the user did not name; when none is given use a placeholder like "Category:Example" or "Main_Page"); mode = a display mode only if one exists for that widget; reason = one plain-language sentence.\n- If nothing fits, return {"options": []}.\n- Reply with JSON only — no prose, no markdown fences, no commentary.\n\nOUTPUT SCHEMA: ${JSON.stringify({ options: [{ widgetType: 'id', config: { key: 'value' }, mode: 'display mode', reason: 'one sentence' }] })}\n\nEXAMPLES:\nUser: show a random sampling of images from a category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'categorySize', config: { category: 'Category:Example' }, reason: 'Category Size shows the category breakdown and samples random photos from it.' }] })}\nUser: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}`;
+const ASK_RULES = `\n\nRULES:\n- Use EXACT widget ids from the catalog. Never invent ids.\n- Recommend 1-3 widgets. Prefer the most specific fit; add a second or third alternative only when genuinely useful (e.g. a precomputed vs live source for the same need).\n- INTENT MATCHING: when the user names a category ("from a category", "category …"), prefer widgets whose input is a category (categorySize, glamorgan, cim*). Do NOT pick file-list widgets (fileGallery, gallery, mediaPlayer) for category inputs — those take individual files. When the user names files or media, pick the file-based widgets instead.\n- For each option: widgetType = exact id; config = pre-filled with the user's subject using REAL names from the request (never invent subjects the user did not name; when none is given use a placeholder like "Example" for a category or "Main_Page" for an article); mode = a display mode only if the widget's displayMode field lists one; reason = one plain-language sentence.\n- If nothing fits, return {"options": []}.\n- Reply with JSON only — no prose, no markdown fences, no commentary.\n\nVALUE RULES (critical — invalid values break the widget):\n- category values: the BARE category title. Never prepend "Category:"; drop quotes.\n- wiki/project/lang values: one of the listed options EXACTLY (e.g. "commons.wikimedia", "en.wikipedia", "de.wikipedia", "fr.wikipedia", "en"). Never "commons.org", never .org suffixes, never full URLs.\n- file values: "File:Name.ext" with the File: prefix (multiple files: one per line, each with the prefix).\n- article/page values: the page title (spaces are fine; do not add prefixes).\n- domain values: bare domain only, no https:// or www. (e.g. "example.org").\n- url values: full https:// URL.\n- number fields (sampleCount, maxRows, maxItems, topN, …): plain numbers, no commas.\n\nOUTPUT SCHEMA: ${JSON.stringify({ options: [{ widgetType: 'id', config: { key: 'value' }, mode: 'display mode', reason: 'one sentence' }] })}\n\nEXAMPLES:\nUser: Show a random sampling of images from Wikimedia Commons category "Featured pictures on Wikimedia Commons"\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'categorySize', config: { category: 'Featured pictures on Wikimedia Commons', wiki: 'commons.wikimedia', sampleCount: 6 }, reason: 'Category Size shows the category breakdown and samples random photos from it.' }] })}\nUser: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}`;
 
 const stripThink = (s) => String(s).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
@@ -163,23 +163,86 @@ async function callLlm(model, system, user) {
 }
 
 // Validate + sanitize the model's options: drop hallucinated ids, cap count,
-// keep only simple config values (strings/numbers/booleans, bounded length).
-function validateOptions(parsed, ids) {
+// and normalize each config value against the widget's declared configFields:
+// unknown keys dropped, select values checked against the real options,
+// number/boolean coerced, and per-key sanity rules (bare category names,
+// File: prefixes, bare domains, https URLs). Near-miss project aliases
+// ("commons.org" → "commons.wikimedia") resolve instead of breaking.
+const PROJECT_ALIASES = {
+  commons: 'commons.wikimedia', 'commons.wikimedia.org': 'commons.wikimedia', 'commons.org': 'commons.wikimedia',
+  en: 'en.wikipedia', 'en.wikipedia.org': 'en.wikipedia',
+  de: 'de.wikipedia', 'de.wikipedia.org': 'de.wikipedia',
+  fr: 'fr.wikipedia', 'fr.wikipedia.org': 'fr.wikipedia',
+};
+const fieldOf = (widgetDef, key) => (widgetDef?.configFields || []).find((f) => f.key === key);
+
+function normalizeConfig(config, widgetDef) {
+  const out = {};
+  for (const [key, raw] of Object.entries(config || {})) {
+    if (key.startsWith('_')) { out[key] = String(raw).slice(0, 200); continue; } // custom props pass through
+    const field = fieldOf(widgetDef, key);
+    if (!field) continue; // unknown key for this widget → drop
+    if (field.type === 'number') {
+      const n = Number(raw);
+      if (Number.isFinite(n)) out[key] = n;
+      continue;
+    }
+    if (field.type === 'boolean') {
+      if (typeof raw === 'boolean') out[key] = raw;
+      else if (raw === 'true' || raw === 'false') out[key] = raw === 'true';
+      continue;
+    }
+    let s = String(raw).trim();
+    if (field.type === 'select') {
+      const opts = field.options || [];
+      if (opts.length) {
+        let hit = opts.find((o) => o.toLowerCase() === s.toLowerCase());
+        if (!hit && key === 'wiki' || !hit && key === 'project' || !hit && key === 'lang') hit = PROJECT_ALIASES[s.toLowerCase()];
+        if (!hit) continue; // invalid option → drop; the widget's own default applies
+        out[key] = hit;
+      } else { out[key] = s.slice(0, 100); }
+      continue;
+    }
+    // text / textarea fields — per-key sanity rules
+    if (key === 'category') {
+      s = s.replace(/^["']|["']$/g, '').replace(/^category\s*:\s*/i, '').trim();
+    } else if (key === 'file' || key === 'filename') {
+      if (!/^file\s*:/i.test(s)) s = `File:${s}`;
+    } else if (key === 'files') {
+      // one per line; ensure each line carries the File: prefix
+      s = s.split(/[\n,]+/).map((l) => l.trim()).filter(Boolean)
+        .map((l) => (/^file\s*:/i.test(l) ? l : `File:${l}`)).join('\n');
+    } else if (key === 'domain') {
+      s = s.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+    } else if (key === 'url') {
+      if (!/^https?:\/\//i.test(s)) continue; // not a URL → drop
+    } else if (key === 'article' || key === 'page') {
+      s = s.replace(/^["']|["']$/g, '').trim();
+    }
+    if (s.length > 200) s = s.slice(0, 200);
+    out[key] = s;
+  }
+  return out;
+}
+
+function validateOptions(parsed, widgetDefs) {
   const out = [];
   for (const o of (Array.isArray(parsed?.options) ? parsed.options : [])) {
     if (out.length >= 5) break;
     const id = String(o?.widgetType || '');
-    if (!ids.has(id)) continue;
-    const config = {};
-    if (o?.config && typeof o.config === 'object' && !Array.isArray(o.config)) {
-      for (const [k, v] of Object.entries(o.config)) {
-        if (['string', 'number', 'boolean'].includes(typeof v) && String(v).length <= 200) config[k] = v;
-      }
+    const def = widgetDefs.get(id);
+    if (!def) continue; // hallucinated ids are dropped
+    let mode;
+    if (typeof o?.mode === 'string' && o.mode) {
+      const modeField = fieldOf(def, 'displayMode');
+      const valid = modeField?.options || [];
+      mode = o.mode.slice(0, 40);
+      if (valid.length && !valid.some((m) => m.toLowerCase() === mode.toLowerCase())) mode = undefined;
     }
     out.push({
       widgetType: id,
-      config,
-      ...(typeof o?.mode === 'string' && o.mode ? { mode: o.mode.slice(0, 40) } : {}),
+      config: normalizeConfig(o?.config, def),
+      ...(mode ? { mode } : {}),
       ...(typeof o?.reason === 'string' && o.reason ? { reason: o.reason.slice(0, 240) } : {}),
     });
   }
@@ -445,7 +508,7 @@ const server = createServer(async (req, res) => {
       if (wait) return json(res, 429, { error: 'Ask rate limit reached — try again in a moment', retryAfterSeconds: wait }, { 'Retry-After': String(wait) });
       const manifest = await getManifest();
       if (!manifest) return json(res, 503, { error: 'Ask is not configured (widget manifest missing)' });
-      const ids = manifestIds(manifest);
+      const defs = manifestIds(manifest);
       const cacheKey = sha(prompt + manifest.version);
       const hit = askCacheGet(cacheKey);
       if (hit) {
@@ -463,7 +526,7 @@ const server = createServer(async (req, res) => {
       }
       let parsed = null;
       try { parsed = JSON.parse(content); } catch { /* non-JSON reply → no valid options */ }
-      const options = validateOptions(parsed, ids);
+      const options = validateOptions(parsed, defs);
       const payload = { options, model: ASK_MODEL, manifestVersion: manifest.version };
       askCacheSet(cacheKey, payload);
       logAsk(ip, prompt, options.length, Date.now() - t0, false);
@@ -499,4 +562,9 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
+// WIKIBENTO_TEST=1 (set by npm test) skips listen so tests can import helpers.
+if (!process.env.WIKIBENTO_TEST) {
+  server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
+}
+
+export { normalizeConfig, validateOptions, manifestIds };

@@ -23,7 +23,7 @@ const tokenize = (s) => (s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) =
 // Curated intent patterns: regex → { widgetType, config hint, reason }.
 // Specific intents first; keyword scoring is the generic fallback.
 const INTENT_PATTERNS = [
-  { re: /random.{0,30}(photo|image|picture)/, w: 'categorySize', config: { category: 'Category:Example' }, reason: 'Category Size shows the category breakdown and samples random photos from it.' },
+  { re: /random.{0,30}(photo|image|picture)/, w: 'categorySize', config: { category: 'Example' }, reason: 'Category Size shows the category breakdown and samples random photos from it.' },
   { re: /(how|often|where).{0,40}(file|image|photo).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage Map shows which wikis and pages use a file.' },
   { re: /(how|often).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage Map shows which wikis and pages use a file.' },
   { re: /(playlist|play|watch|video).{0,30}(video|audio|file)/, w: 'mediaPlayer', reason: 'Media Player plays Commons video/audio — one file or a jukebox playlist.' },
