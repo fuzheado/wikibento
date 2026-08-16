@@ -248,8 +248,10 @@ arrange). None exposes a config-as-data artifact.
 The GLAM tool ecosystem (WikiShootMe map-of-photos, GLAM Visual Tool,
 BaGLAMa metrics, Map the GLAM) is **single-purpose analysis**, not
 composition: none of them lets a curator *assemble* galleries, metrics,
-maps, video, and narrative into a board. The WMF's own GLAM Dashboard
-tool was discontinued. **No one occupies the niche WikiBento holds: an
+maps, video, and narrative into a board. (The WMF's own GLAM Dashboard
+was discontinued — but a community successor, the GLAM Wiki Dashboard at
+glamwikidashboard.wmcloud.org, is alive and rich in mediacounts-based
+stats; evaluated in WIDGET-IDEAS.md.) **No one occupies the niche WikiBento holds: an
 open, browser-native, config-as-data composition layer over the
 Wikimedia APIs — cards + stacks + links, with observability — that any
 institution or individual can instantiate from a URL.** The category is
