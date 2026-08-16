@@ -8,14 +8,15 @@
     "build": "npm run test && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "esbuild tests/scope-compliance.test.mjs --bundle --platform=node --format=esm --outfile=test-bundle.mjs --log-level=error && esbuild tests/ask-validation.test.mjs --bundle --platform=node --format=esm --outfile=ask-test-bundle.mjs --log-level=error && WIKIBENTO_TEST=1 node --test test-bundle.mjs ask-test-bundle.mjs; rm -f test-bundle.mjs ask-test-bundle.mjs"
+    "test": "esbuild tests/scope-compliance.test.mjs --bundle --platform=node --format=esm --outfile=test-bundle.mjs --log-level=error && esbuild tests/ask-validation.test.mjs --bundle --platform=node --format=esm --outfile=ask-test-bundle.mjs --log-level=error && WIKIBENTO_TEST=1 node --test test-bundle.mjs ask-test-bundle.mjs; rm -f test-bundle.mjs ask-test-bundle.mjs",
+    "smoke": "node scripts/smoke-grid.mjs"
   },
   "dependencies": {
     "pannellum": "^2.5.7",
     "qrcode-generator": "^2.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-grid-layout": "^2.2.4",
+    "react-grid-layout": "2.2.4",
     "react-resizable": "^4.0.2"
   },
   "devDependencies": {

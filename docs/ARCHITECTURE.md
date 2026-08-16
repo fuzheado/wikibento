@@ -140,6 +140,35 @@ export/reset ──────────────────────�
 4. **Hand-rolled SVG charts.** The sparkline and TrendCard are ~30 lines of SVG — no
    chart library needed. (`recharts` was removed in the Phase 0 cleanup.)
 5. **localStorage as the database.** Deliberate for v1: zero infra, survives refresh.
+
+## Third-Party API Contracts (dependency-drift watchlist)
+
+react-grid-layout 2.x has **twice silently dropped props** — the board kept
+rendering, just wrong, with no error or warning (2.2.4 regrouped props into
+config objects; old names are ignored, not rejected). The two incidents:
+
+| Incident | Symptom | Fix |
+|---|---|---|
+| `draggableHandle` → `dragConfig` (found 2026-08-13) | panorama mouse-drags moved the widget instead of panning; header-only dragging was silently off for everything | `dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}` |
+| `rowHeight`/`margin`/`cols`/`containerPadding` → `gridConfig` (found 2026-08-16) | grid rendered at RGL's 150px-row defaults; the app's intended 80px density never applied | `gridConfig={{ cols: 12, rowHeight: 80, margin: [12,12], containerPadding: [0,0] }}` |
+
+**The contract we rely on (verify after any RGL upgrade):**
+- `gridConfig` (cols/rowHeight/margin/containerPadding) — **measured** by
+  `npm run smoke` (item height must equal `h×80 + (h−1)×12`).
+- `dragConfig` handle/cancel — header-only dragging (manual check: drag a
+  widget by its title bar; panorama canvas must pan, not drag).
+- `width` prop, `onLayoutChange`, `compactType` — observed working.
+
+**Prevention rules (this class of bug is invisible to unit tests):**
+1. `react-grid-layout` is **pinned exact** (no `^`/`~`) — upgrades are
+   deliberate, and go through `npm run smoke`.
+2. After ANY dependency upgrade: read the changelog, diff the `.d.ts` for
+   the props/APIs we use, then run `npm run smoke` (geometry asserts) +
+   the drag-config manual check above.
+3. When a prop stops taking effect, **measure the rendered result against
+   the intended formula** before assuming the code is wrong — both RGL
+   incidents surfaced only via pixel-vs-formula checks.
+
    On-wiki sync is the natural v2 upgrade (see ROADMAP.md).
 
 ## Known Issues & Limitations
