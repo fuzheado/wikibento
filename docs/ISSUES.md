@@ -1429,7 +1429,7 @@ WIDGET-DEVELOPMENT.md gains a "Sharing renderers across widgets" section
 and marks GalleryGridCard/ListCard as shared with fileGallery. Source:
 architecture analysis 2026-08-15.
 
-## ISSUE-39 · Media player widget: video/audio embed + jukebox playlist mode — **open** (design)
+## ISSUE-39 · Media player widget: video/audio embed + jukebox playlist mode — **done (c9f7bbc)**
 
 **What:** a widget that embeds a Commons video (or audio) file with a native
 HTML5 player, plus a **jukebox mode**: a playlist of files (one per line —
@@ -1472,5 +1472,20 @@ in-iframe (no X-Frame-Options). Cost: whole file page, not a clean player.
   transcode status can be IN_PROGRESS/ERROR → pick best DONE, degrade
   gracefully; provenance subtitle "N files · playlist".
 
-**Status:** open (design). Source: user request 2026-08-15; API probe
+**Fixed 2026-08-16 (c9f7bbc):** widget `mediaPlayer` (🎬, Files & Media)
+implemented per the spec above — `fetchMediaPlaylist` (batched
+`videoinfo`, ≤4,500-char chunks, `?utm_source` stripped, per-track
+video/audio detection, missing-file count) + `MediaPlayerCard` (native
+`<video>`/`<audio>` per track — no player library; `pickPlayUrl` prefers
+transcoded VP9 WebM by height-based quality, auto = largest ≤1080p,
+original as fallback; `onended`→next, loop wrap, Fisher-Yates shuffle,
+▶ Start pill for browser autoplay policy, position + duration + Commons
+links). Config: files list, mediaType auto/video/audio, quality
+auto/240/480/720/1080, loopPlaylist, shuffle, autoplay. Schema enum +
+full-catalog dashboard.json (30 widgets). Verified live: FA-18 480p VP9
+pick, EN-Abbe audio (original Ogg), mixed next/prev, loop wrap, shuffle
+reorder, autoplay unlock, kiosk-compatible. **DEPLOYED to Toolforge
+2026-08-16** (bundle index-DdJRNUuD.js) — see README ✅ bullet.
+
+**Status:** done. Source: user request 2026-08-15; API probe
 verified.
