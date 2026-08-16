@@ -59,6 +59,9 @@ export default function App() {
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset)
   // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
   const [kiosk, setKiosk] = useState(false);
+  // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
+  // browser stays resizable, so the board reads as a compact app.
+  const [lean, setLean] = useState(false);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
@@ -86,7 +89,9 @@ export default function App() {
     // Kiosk boot: a ?kiosk=1 link stays kiosk across refreshes because the
     // param stays in the URL. Deliberately NOT persisted to localStorage —
     // a user who tries kiosk once must not silently land back in it.
-    if (new URLSearchParams(window.location.search).get('kiosk') === '1') setKiosk(true);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('kiosk') === '1') setKiosk(true);
+    else if (params.get('lean') === '1') setLean(true); // ?lean=1 — chrome-free, no fullscreen
     const apply = (widgets, layout) => {
       setWidgets(widgets);
       setLayout(layout);
@@ -132,35 +137,43 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // Kiosk enter/exit (ISSUE-18). Fullscreen is attempted only here, on the
-  // Present click path.
+  // Present-mode enter/exit (kiosk + lean, ISSUE-18). Fullscreen is attempted
+  // only on the kiosk click path (browser requires a user gesture; the
+  // ?kiosk=1 boot path must NOT attempt it). Lean never goes fullscreen.
   const enterKiosk = useCallback(() => {
+    setLean(false);
     setKiosk(true);
     if (FULLSCREEN_ON_PRESENT && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
   }, []);
 
-  const exitKiosk = useCallback(() => {
+  const enterLean = useCallback(() => {
     setKiosk(false);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    // Strip ?kiosk=1 so a refresh after the Exit pill lands in normal mode
-    // (ISSUE-18 checklist). Escape keeps the param — a kiosk link stays a
-    // kiosk link unless the presenter deliberately leaves.
-    const url = new URL(window.location.href);
-    if (url.searchParams.has('kiosk')) {
-      url.searchParams.delete('kiosk');
-      window.history.replaceState(null, '', url.toString());
-    }
+    setLean(true);
   }, []);
 
-  // Escape exits kiosk mode (only while it is active).
+  const exitPresent = useCallback(() => {
+    setKiosk(false);
+    setLean(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    // Strip ?kiosk=1 / ?lean=1 so a refresh after Exit lands in normal mode
+    // (ISSUE-18 checklist). Escape keeps the param — a present link stays a
+    // present link unless the presenter deliberately leaves.
+    const url = new URL(window.location.href);
+    const had = url.searchParams.has('kiosk') || url.searchParams.has('lean');
+    url.searchParams.delete('kiosk');
+    url.searchParams.delete('lean');
+    if (had) window.history.replaceState(null, '', url.toString());
+  }, []);
+
+  // Escape exits present mode (kiosk or lean, only while one is active).
   useEffect(() => {
-    if (!kiosk) return;
-    const onKey = (e) => { if (e.key === 'Escape') exitKiosk(); };
+    if (!kiosk && !lean) return;
+    const onKey = (e) => { if (e.key === 'Escape') exitPresent(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [kiosk, exitKiosk]);
+  }, [kiosk, lean, exitPresent]);
 
   // Persist to localStorage on changes
   const persist = useCallback((newWidgets, newLayout) => {
@@ -283,7 +296,7 @@ export default function App() {
   });
 
   return (
-    <div className={`app ${kiosk ? 'kiosk' : ''}`}>
+    <div className={`app ${kiosk ? 'kiosk' : lean ? 'lean' : ''}`}>
       <header className="app-header">
         <div className="app-brand">
           <h1>📊 WikiBento</h1>
@@ -314,6 +327,9 @@ export default function App() {
           <button className="btn" onClick={enterKiosk} title="Presentation mode — hides editing controls · Esc to exit">
             ⛶ Present
           </button>
+          <button className="btn" onClick={enterLean} title="Lean mode — chrome-free like Present, but no fullscreen (resizable browser) · Esc to exit">
+            ▣ Lean
+          </button>
           <button className="btn" onClick={() => setShowDiagnostics(true)} title="Network self-test (debugging)">
             🧪
           </button>
@@ -340,9 +356,9 @@ export default function App() {
             onLayoutChange={handleLayoutChange}
             dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
             compactType="vertical"
-            isDraggable={!kiosk}
-            isResizable={!kiosk}
-            margin={kiosk ? [4, 4] : [12, 12]}
+            isDraggable={!(kiosk || lean)}
+            isResizable={!(kiosk || lean)}
+            margin={(kiosk || lean) ? [4, 4] : [12, 12]}
             containerPadding={[0, 0]}
           >
             {widgetItems}
@@ -386,8 +402,8 @@ export default function App() {
         <DiagnosticsPanel onClose={() => setShowDiagnostics(false)} />
       )}
 
-      {kiosk && (
-        <button className="kiosk-exit" onClick={exitKiosk} title="Exit presentation mode (Esc)">
+      {(kiosk || lean) && (
+        <button className="kiosk-exit" onClick={exitPresent} title="Exit presentation mode (Esc)">
           ✕ Exit
         </button>
       )}

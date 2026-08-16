@@ -1500,15 +1500,15 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 /* Entered via the ⛶ Present toolbar button or ?kiosk=1 URL param; Esc or
    the floating ✕ Exit pill returns. Grid is locked in App.jsx (isDraggable/
    isResizable off), so the hidden drag handle is unreachable. */
-.kiosk .app-header { display: none; }        /* hide brand + all toolbar buttons */
-.kiosk .widget-header { display: none; }     /* title bar: icon, title, ⓘ⚙↻✕ */
-.kiosk .widget-fetched { display: none; }    /* ⏱ freshness footer (intentional opt-out) */
+.kiosk .app-header, .lean .app-header { display: none; }        /* hide brand + all toolbar buttons */
+.kiosk .widget-header, .lean .widget-header { display: none; }     /* title bar: icon, title, ⓘ⚙↻✕ */
+.kiosk .widget-fetched, .lean .widget-fetched { display: none; }    /* ⏱ freshness footer (intentional opt-out) */
 /* Card chrome: the visible border lives on .grid-item, not .widget-frame
    (spec assumed widget-frame; the actual selector is grid-item). */
-.kiosk .grid-item { border-color: transparent; }
-.kiosk .grid-item:hover { border-color: transparent; } /* no hover reveal either */
-.kiosk .widget-body:not(:has(.markdown-card)) { padding: 8px; } /* a touch more density (markdown cards keep their flush 0-padding body) */
-.kiosk .boot-banner { display: none; }       /* hide transient banners */
+.kiosk .grid-item, .lean .grid-item { border-color: transparent; }
+.kiosk .grid-item:hover, .lean .grid-item:hover { border-color: transparent; } /* no hover reveal either */
+.kiosk .widget-body:not(:has(.markdown-card)), .lean .widget-body:not(:has(.markdown-card)) { padding: 8px; } /* a touch more density (markdown cards keep their flush 0-padding body) */
+.kiosk .boot-banner, .lean .boot-banner { display: none; }       /* hide transient banners */
 
 .kiosk-exit {
   position: fixed;
