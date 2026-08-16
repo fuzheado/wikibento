@@ -1,0 +1,1048 @@
+{
+ "version": 1,
+ "generatedAt": "2026-08-16T04:05:50.039Z",
+ "widgetCount": 30,
+ "widgets": [
+  {
+   "id": "pageviews",
+   "name": "Article Pageviews",
+   "icon": "📊",
+   "description": "30-day pageview count for a Wikipedia article",
+   "dataSource": "pageviews",
+   "category": "Articles",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "displayMode",
+     "type": "select"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "displayMode",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "linkcount",
+   "name": "External Link Count",
+   "icon": "🔗",
+   "description": "Count pages linking to a domain on Wikipedia",
+   "dataSource": "exturlusage",
+   "category": "Rankings & Platforms",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "domain",
+     "type": "text"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "namespace",
+     "type": "select"
+    }
+   ],
+   "defaults": [
+    "domain",
+    "wiki",
+    "namespace",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "categorySize",
+   "name": "Category Size",
+   "icon": "📁",
+   "description": "File/page count for a Commons or Wikipedia category",
+   "dataSource": "categoryinfo",
+   "category": "Categories & GLAM",
+   "type": "stat",
+   "intensity": "medium",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "sampleCount",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category",
+    "wiki",
+    "sampleCount",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "wikistats",
+   "name": "Wiki Stats",
+   "icon": "🌐",
+   "description": "Aggregate stats for a Wikipedia language edition",
+   "dataSource": "wikistats",
+   "category": "Rankings & Platforms",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "lang",
+     "type": "select"
+    },
+    {
+     "key": "table",
+     "type": "select"
+    }
+   ],
+   "defaults": [
+    "table",
+    "lang",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "fileUsage",
+   "name": "File Usage Map",
+   "icon": "🖼️",
+   "description": "How many wikis use a Commons file, with top breakdown",
+   "dataSource": "globalusage",
+   "category": "Files & Media",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "filename",
+     "type": "text"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "showImage",
+     "type": "boolean"
+    },
+    {
+     "key": "showCaption",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "filename",
+    "topN",
+    "showImage",
+    "showCaption",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "glamorgan",
+   "name": "GLAM Category Usage",
+   "icon": "📈",
+   "description": "Impact stats for a Commons category: files, used files, pages, total views (GLAMorgan-style)",
+   "dataSource": "petscan-style walk + pageviews",
+   "category": "Categories & GLAM",
+   "type": "stat",
+   "intensity": "high",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "depth",
+     "type": "number"
+    },
+    {
+     "key": "year",
+     "type": "number"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    },
+    {
+     "key": "negcats",
+     "type": "text"
+    },
+    {
+     "key": "negdepth",
+     "type": "number"
+    },
+    {
+     "key": "fileBudget",
+     "type": "number"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "showDetail",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "category",
+    "depth",
+    "year",
+    "month",
+    "negcats",
+    "negdepth",
+    "fileBudget",
+    "topN",
+    "showDetail",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "topWikipedias",
+   "name": "Top 10 Wikipedias",
+   "icon": "🏆",
+   "description": "Largest Wikipedias by article count",
+   "dataSource": "wikistats",
+   "category": "Rankings & Platforms",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [],
+   "defaults": [
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "topPages",
+   "name": "Top Wikipedia Articles",
+   "icon": "🔥",
+   "description": "Most-visited articles on a Wikipedia language edition (top.hatnote.com)",
+   "dataSource": "top.hatnote.com (via /api/proxy) + WMF pageviews top fallback",
+   "category": "Rankings & Platforms",
+   "type": "table",
+   "intensity": "medium",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "lang",
+     "type": "select"
+    },
+    {
+     "key": "dateMode",
+     "type": "select"
+    },
+    {
+     "key": "year",
+     "type": "number"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    },
+    {
+     "key": "day",
+     "type": "number"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "filterNoise",
+     "type": "boolean"
+    },
+    {
+     "key": "showExpanded",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "lang",
+    "dateMode",
+    "year",
+    "month",
+    "day",
+    "topN",
+    "filterNoise",
+    "showExpanded",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "markdown",
+   "name": "Text / Markdown",
+   "icon": "📝",
+   "description": "Free-form Markdown card — notes, headings, links, explanations",
+   "dataSource": "static (no fetch)",
+   "category": "Content & Embeds",
+   "type": "embed",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "text",
+     "type": "textarea"
+    },
+    {
+     "key": "allowExternalImages",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "text",
+    "allowExternalImages",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "excerpt",
+   "name": "Article Excerpt",
+   "icon": "📄",
+   "description": "First paragraph, description, and thumbnail for an article",
+   "dataSource": "REST /page/summary",
+   "category": "Articles",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "edithistory",
+   "name": "Edit History",
+   "icon": "🕓",
+   "description": "Recent edits to an article, newest first, with byte deltas",
+   "dataSource": "Action API prop=revisions",
+   "category": "Articles",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "limit",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "limit",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "quality",
+   "name": "Article Quality (ORES)",
+   "icon": "🏅",
+   "description": "Predicted quality class for an article (Lift Wing / ORES)",
+   "dataSource": "Lift Wing (api.wikimedia.org)",
+   "category": "Articles",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "assessments",
+   "name": "WikiProject Assessment",
+   "icon": "🧭",
+   "description": "Quality + importance ratings from WikiProject banners",
+   "dataSource": "Action API prop=pageassessments",
+   "category": "Articles",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "topN",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "gallery",
+   "name": "Article Gallery",
+   "icon": "🖼️",
+   "description": "Significant images in an article with captions (grid or list)",
+   "dataSource": "REST /page/media-list + imageinfo",
+   "category": "Articles",
+   "type": "media",
+   "intensity": "medium",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "article",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "displayMode",
+     "type": "select"
+    },
+    {
+     "key": "iconSize",
+     "type": "select"
+    },
+    {
+     "key": "imageFit",
+     "type": "select"
+    },
+    {
+     "key": "minSize",
+     "type": "number"
+    },
+    {
+     "key": "maxItems",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "article",
+    "project",
+    "displayMode",
+    "iconSize",
+    "imageFit",
+    "minSize",
+    "maxItems",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "fileGallery",
+   "name": "Commons File Gallery",
+   "icon": "🗂️",
+   "description": "Gallery of any Commons files you list — grid or list, ordered or random",
+   "dataSource": "Commons API imageinfo (batched)",
+   "category": "Files & Media",
+   "type": "media",
+   "intensity": "medium",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "files",
+     "type": "textarea"
+    },
+    {
+     "key": "order",
+     "type": "select"
+    },
+    {
+     "key": "displayMode",
+     "type": "select"
+    },
+    {
+     "key": "iconSize",
+     "type": "select"
+    },
+    {
+     "key": "imageFit",
+     "type": "select"
+    },
+    {
+     "key": "maxItems",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "files",
+    "order",
+    "displayMode",
+    "iconSize",
+    "imageFit",
+    "maxItems",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "articleList",
+   "name": "Article List",
+   "icon": "📋",
+   "description": "Clickable list of articles — pasted titles, optional thumbnails + intros",
+   "dataSource": "MediaWiki API pageimages|extracts (batched, optional)",
+   "category": "Content & Embeds",
+   "type": "table",
+   "intensity": "medium",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "articles",
+     "type": "textarea"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "enrich",
+     "type": "boolean"
+    },
+    {
+     "key": "maxItems",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "articles",
+    "project",
+    "enrich",
+    "maxItems",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "cimSnapshot",
+   "name": "CIM Category Snapshot",
+   "icon": "🎯",
+   "description": "Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages",
+   "dataSource": "CIM category-metrics-snapshot (precomputed, allow-list)",
+   "category": "Categories & GLAM",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimTrend",
+   "name": "CIM Views Over Time",
+   "icon": "📈",
+   "description": "Monthly pageview trend of pages using a CIM category\\",
+   "dataSource": "CIM pageviews-per-category-monthly",
+   "category": "Categories & GLAM",
+   "type": "trend",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "months",
+     "type": "number"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimTopFiles",
+   "name": "CIM Top Files",
+   "icon": "🖼️",
+   "description": "Most-viewed files in a CIM category — thumbnails + views",
+   "dataSource": "CIM top-viewed-media-files-monthly + imageinfo",
+   "category": "Categories & GLAM",
+   "type": "media",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimTopWikis",
+   "name": "CIM Top Wikis",
+   "icon": "🌍",
+   "description": "Which wikis use a CIM category\\",
+   "dataSource": "CIM top-wikis-per-category-monthly",
+   "category": "Categories & GLAM",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimTopPages",
+   "name": "CIM Top Pages",
+   "icon": "📄",
+   "description": "Pages that use a CIM category\\",
+   "dataSource": "CIM top-pages-per-category-monthly",
+   "category": "Categories & GLAM",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimTopEditors",
+   "name": "CIM Top Editors",
+   "icon": "✍️",
+   "description": "Top contributors to a CIM category, by edit count",
+   "dataSource": "CIM top-editors-monthly",
+   "category": "Categories & GLAM",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "editType",
+     "type": "select"
+    },
+    {
+     "key": "topN",
+     "type": "number"
+    },
+    {
+     "key": "category",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "category"
+   ]
+  },
+  {
+   "id": "cimLeaderboard",
+   "name": "CIM Global Leaderboard",
+   "icon": "🏆",
+   "description": "Top 100 most-viewed categories on Commons (precomputed)",
+   "dataSource": "CIM top-viewed-categories-monthly",
+   "category": "Rankings & Platforms",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "scope",
+     "type": "select"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "highlight",
+     "type": "text"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "scope"
+   ]
+  },
+  {
+   "id": "cimFileSpotlight",
+   "name": "CIM File Spotlight",
+   "icon": "🔦",
+   "description": "One Commons file: wikis/pages using it + monthly view trend",
+   "dataSource": "CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly",
+   "category": "Categories & GLAM",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "filename",
+     "type": "text"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "filename"
+   ]
+  },
+  {
+   "id": "cimFileTraffic",
+   "name": "CIM File Traffic",
+   "icon": "📉",
+   "description": "Monthly pageview traffic for one Commons file — labeled axes, zoom in/out",
+   "dataSource": "CIM pageviews-per-media-file-monthly",
+   "category": "Categories & GLAM",
+   "type": "trend",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "filename",
+     "type": "text"
+    },
+    {
+     "key": "wiki",
+     "type": "select"
+    },
+    {
+     "key": "months",
+     "type": "number"
+    },
+    {
+     "key": "month",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "filename"
+   ]
+  },
+  {
+   "id": "wikiPage",
+   "name": "Wiki Page",
+   "icon": "📄",
+   "description": "Embed any MediaWiki page — desktop or mobile view, links browse inside",
+   "dataSource": "static (iframe to the wiki)",
+   "category": "Content & Embeds",
+   "type": "embed",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "page",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "mobile",
+     "type": "boolean"
+    },
+    {
+     "key": "fragment",
+     "type": "text"
+    }
+   ],
+   "defaults": [
+    "page",
+    "project",
+    "mobile",
+    "fragment",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "sparql",
+   "name": "SPARQL Query",
+   "icon": "🧠",
+   "description": "Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, or trend",
+   "dataSource": "WDQS / QLever SPARQL + Humaniki API",
+   "category": "Queries & Power",
+   "type": "stat",
+   "intensity": "high",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "preset",
+     "type": "preset"
+    },
+    {
+     "key": "query",
+     "type": "textarea"
+    },
+    {
+     "key": "endpoint",
+     "type": "select"
+    },
+    {
+     "key": "renderer",
+     "type": "select"
+    },
+    {
+     "key": "maxRows",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "preset",
+    "query",
+    "endpoint",
+    "renderer",
+    "maxRows",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "panorama360",
+   "name": "360° Panorama Viewer",
+   "icon": "🌐",
+   "description": "Interactive 360° panorama from a Commons equirectangular file",
+   "dataSource": "Commons imageinfo + Pannellum",
+   "category": "Files & Media",
+   "type": "media",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "filename",
+     "type": "text"
+    },
+    {
+     "key": "project",
+     "type": "select"
+    },
+    {
+     "key": "autoRotate",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "filename",
+    "project",
+    "autoRotate",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "mediaPlayer",
+   "name": "Video / Media Player",
+   "icon": "🎬",
+   "description": "Play Commons video or audio — one file or a whole playlist (jukebox: next/prev, loop, shuffle)",
+   "dataSource": "Commons API videoinfo (batched)",
+   "category": "Files & Media",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "files",
+     "type": "textarea"
+    },
+    {
+     "key": "mediaType",
+     "type": "select"
+    },
+    {
+     "key": "quality",
+     "type": "select"
+    },
+    {
+     "key": "loopPlaylist",
+     "type": "boolean"
+    },
+    {
+     "key": "shuffle",
+     "type": "boolean"
+    },
+    {
+     "key": "autoplay",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "files",
+    "mediaType",
+    "quality",
+    "loopPlaylist",
+    "shuffle",
+    "autoplay",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "waybackGallery",
+   "name": "Wayback Snapshot Gallery",
+   "icon": "🕰️",
+   "description": "Screenshot tiles of a website across history — one Wayback capture per requested date. Experimental: depends on the Wayback Machine backend health; failed lookups retry on refresh",
+   "dataSource": "Wayback Machine availability API + replay iframes",
+   "category": "Web & History",
+   "type": "media",
+   "intensity": "high",
+   "experimental": true,
+   "configFields": [
+    {
+     "key": "url",
+     "type": "text"
+    },
+    {
+     "key": "dates",
+     "type": "textarea"
+    },
+    {
+     "key": "toleranceDays",
+     "type": "number"
+    }
+   ],
+   "defaults": [
+    "url",
+    "dates",
+    "toleranceDays",
+    "refreshSeconds"
+   ]
+  }
+ ]
+}

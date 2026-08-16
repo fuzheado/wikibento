@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import GridLayout from 'react-grid-layout';
 import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
+import AskPanel from './components/AskPanel';
 import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
 import DiagnosticsPanel from './components/DiagnosticsPanel';
@@ -50,6 +51,7 @@ export default function App() {
   const [widgets, setWidgets] = useState([]);
   const [layout, setLayout] = useState([]);
   const [showAddPanel, setShowAddPanel] = useState(false);
+const [showAskPanel, setShowAskPanel] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -308,6 +310,9 @@ export default function App() {
           </button>
           <button className="btn btn-primary" onClick={() => setShowAddPanel(true)}>
             + Add Widget
+          <button className="btn btn-ask" onClick={() => setShowAskPanel(true)} title="Describe what you want - get widget suggestions (ML advisor)">
+            ✨ Ask
+          </button>
           </button>
           <button className="btn" onClick={() => setShowImportPanel(true)} title="Import dashboard config from JSON">
             ⬆ Import
@@ -376,6 +381,12 @@ export default function App() {
         <AddWidgetPanel
           onAdd={handleAddWidget}
           onClose={() => setShowAddPanel(false)}
+        />
+      )}
+      {showAskPanel && (
+        <AskPanel
+          onAdd={handleAddWidget}
+          onClose={() => setShowAskPanel(false)}
         />
       )}
 
