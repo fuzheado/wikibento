@@ -268,6 +268,7 @@ wikibento/
 ## Documentation
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — component tree, data flow, widget registry pattern, known issues
+- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — why this project exists: the HyperCard lineage and the malleable-canvas thesis
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings
