@@ -1773,10 +1773,16 @@ boards from one sentence.
    (works offline, no key; upgrades the existing AddWidgetPanel search —
    cheap and immediately useful); (b) LLM tier for genuine NL + composition
    (multi-widget boards).
-5. **Transport** — BYO-key client-side LLM call (privacy: prompts carry
-   subjects; no server retention; Toolforge zero-cost) vs tool-side `/api/ask`
-   relay with a tool key + quota (the `/api/proxy` pattern). BYO-key first;
-   decide at implementation.
+5. **Transport — verified: a Toolforge same-origin relay (`/api/ask`)** — tested
+   2026-08-16 against the live endpoint: `api.wikimedia.org`'s chat-completions
+   route sends **no CORS headers** (browser fetch blocked; confirmed on the
+   response and preflight), so the Ask tier MUST run through the Toolforge
+   server — which is also exactly right for rate limits: anonymous access is
+   **100 req/h per client, shared across models**, while Toolforge-originated
+   traffic is effectively unlimited (the `/api/proxy` pattern). **No API key
+   at all, and the API persists nothing** (no logging, retention, or
+   training) — prompts stay inside Wikimedia infrastructure; better for
+   privacy than any BYO-key plan.
 6. **Evaluation as a constitution** — an intent→widget test suite (N sample
    intents → expected widget ids) keeps the assistant honest as the catalog
    grows; same enforcement spirit as the freshness/scope constitutions.
@@ -1790,5 +1796,30 @@ boards from one sentence.
    loop — M/L
 4. (Long-term, PHILOSOPHY §7 gap 3) intent → NEW widget via registry editing — XL
 
+**Verified feasibility (2026-08-16, live curl tests against the Wikimania 2026
+LiftWing LLM endpoints):**
+- **Endpoints:** OpenAI-compatible chat completions, no key:
+  `https://api.wikimedia.org/service/lw/inference/v1/models/llm-qwen36-27b/openai/v1/chat/completions`
+  (27B, 32K ctx) and `llm-qwen3-14b` (14B, 16K ctx). Streaming supported.
+- **Context math:** a compact 30-widget manifest = 531 prompt tokens; a full
+  manifest with configFields ≈ 5–8K → fits 32K (and even 14B's 16K) with
+  room for system prompt + few-shot + output.
+- **JSON reliability without tool calling: SOLVED — `response_format:
+  {"type": "json_object"}` is supported** (vLLM enforces valid JSON). Two
+  realistic sample intents returned clean contract JSON (no `<think>`, no
+  fences): "random sampling of images from a category" → `categorySize` with
+  pre-filled config + correct reason; "how often is an image used in a
+  category" → 3-option menu (`fileUsage` / `sparql` with a plausible query /
+  `cimFileSpotlight` with an honest caveat).
+- **⚠️ Hallucinated ids happen:** a third test returned `video_player` (not
+  the real `mediaPlayer`) — the relay MUST validate `widgetType` against the
+  manifest and drop/repair unknown ids (re-prompt once or omit with a note).
+- **Latency:** ~2–4 s end-to-end for small responses (shared service, slower
+  under load; streaming mitigates). No SLA — experimental; the local
+  smart-search tier + error states are the graceful degradation.
+- **CORS: absent** → relay-only architecture (see Transport).
+
 **Status:** open (brainstorm → design). Source: user direction 2026-08-16;
-precedents verified 2026-08-16 (Grafana/Kibana/Power BI/Tableau docs).
+precedents verified 2026-08-16 (Grafana/Kibana/Power BI/Tableau docs);
+LiftWing LLM endpoints live-tested 2026-08-16 (wikitech
+Machine_Learning/LiftWing/Large_Language_Models/Wikimania_2026).
