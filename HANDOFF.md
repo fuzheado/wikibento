@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-08-13 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-08-16 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -16,6 +16,39 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **30 widget types total (2026-08-16):** + 🎬 Video/Media Player
+  (ISSUE-39) + 🕰️ Wayback Snapshot Gallery (alpha). Full catalog:
+  `?config=/dashboard.json`.
+- ✅ **Kiosk mode (2026-08-15)** — ⛶ Present + `?kiosk=1`: chrome-free
+  fullscreen presentation, grid locked, Esc/✕ Exit (strips the URL
+  param), fullscreen only on click (user-gesture rule). ISSUE-18.
+  **DEPLOYED** (commit 3c94ab8, verified live 2026-08-15).
+- ✅ **Lean mode (2026-08-16)** — ▣ Lean + `?lean=1`: the same
+  chrome-free, grid-locked state WITHOUT fullscreen — resizable
+  browser, iPad-app feel; shares the `.kiosk` CSS rules; Esc/✕ Exit;
+  kiosk and lean mutually exclusive. **DEPLOYED** (commit 3bfad47,
+  bundle index-DkcrAAk0.js — current production bundle, verified live
+  2026-08-16 incl. kiosk regression).
+- ✅ **Video / Media Player widget (2026-08-16)** — 🎬 ISSUE-39: native
+  HTML5 `<video>`/`<audio>` (no player library) of Commons files —
+  single embed or jukebox playlist; batched `videoinfo` derivatives
+  (≤4,500-char chunks), height-based quality pick (VP9 WebM, auto =
+  largest ≤1080p, original fallback), per-track media-type detection,
+  next/prev/position, loop wrap, Fisher-Yates shuffle, autoplay ▶ Start
+  pill (browser policy), missing-file counts. **DEPLOYED** (commit
+  c9f7bbc, bundle index-DdJRNUuD.js → current index-DkcrAAk0.js,
+  verified live 2026-08-16).
+- ✅ **Docs (2026-08-15/16):** docs/PHILOSOPHY.md (the HyperCard
+  lineage + origin story + wayfinding question) and docs/PARADIGMS.md
+  (presentation paradigms, CD-ROM era, contemporaries incl. Knight Lab
+  + GLAM Wiki Dashboard evaluations) added; WIDGET-IDEAS.md gained the
+  mapping extensions, sister-project widgets (Wikivoyage/Wiktionary/
+  Wikisource), and the Knight Lab + GLAM Wiki Dashboard evaluations;
+  ROADMAP Phase 2 rows (board templating, map family); ISSUES.md
+  now tracks ISSUE-18..41 (kiosk/lean done, media player done;
+  slideshow/ticker (33/34), categorySize modes (37), Bento navigation
+  (35), manifests (36), shared renderers (38), parameterized links
+  (40), board templating (41) — open design).
 
 - ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (28 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List + 🧠 SPARQL Query + 📄 Wiki Page + 8 CIM widgets)
 - ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **DEPLOYED to Toolforge 2026-08-13** (commit bfbce6e, bundle index-BJjaG_ta.js) — verified live: multi-institution bars (Met 72,433), /api/resolve OK.
@@ -27,7 +60,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo initialized and pushed to GitHub (main, current commit c425d4b; last deploy = bfbce6e)
+- ✅ Git repo on GitHub (main). Current production bundle = index-DkcrAAk0.js; latest deploy 2026-08-16 (Lean mode).
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**

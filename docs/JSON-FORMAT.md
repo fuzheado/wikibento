@@ -111,6 +111,15 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |
 | | `renderer` | `auto` \| `stat` \| `bar` \| `line` \| `table` |
 | | `maxRows` | number, integer (row cap) |
+| `waybackGallery` | `url` | string (any website) |
+| | `dates` | string, one YYYY-MM-DD per line (≤24) |
+| | `toleranceDays` | number (default 30; gates "within tolerance" tiles) |
+| `mediaPlayer` | `files` | string, one Commons file per line (video or audio) |
+| | `mediaType` | `auto` \| `video` \| `audio` |
+| | `quality` | `auto` \| `240` \| `480` \| `720` \| `1080` (height-based; auto = largest ≤1080p) |
+| | `loopPlaylist` | boolean (wrap end → start; single file = native loop) |
+| | `shuffle` | boolean (Fisher-Yates per playlist change) |
+| | `autoplay` | boolean (browsers need one click first — ▶ Start pill) |
 
 **Every widget** additionally accepts:
 

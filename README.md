@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈373 KB total (~112 KB
+(the same grid engine used by Grafana and Kibana), ≈468 KB total (~134 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -37,7 +37,7 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 
 (Or use a [w.wiki](https://w.wiki) short link for the same config: `?config=https://w.wiki/TR9R` — expanded automatically via the same-origin `/api/resolve` endpoint.)
 
-A **full-catalog sample** (all 28 widget types, real working assets) is hosted
+A **full-catalog sample** (all 30 widget types, real working assets) is hosted
 with the app itself:
 
 ```
@@ -137,7 +137,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   shows a themed fallback with Try Again instead of killing the dashboard; the
   grid reflows when the window is resized
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 28 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -218,6 +218,14 @@ wikibento/
   subsequent autoplay), kiosk-compatible; missing files counted in the
   subtitle — verified live: FA-18 refueling clip (480p VP9), EN-Abbe
   spoken article (audio), Leica 1927 (1080p)
+- ✅ **Kiosk + Lean presentation modes (2026-08-15/16):** ⛶ Present
+  (fullscreen, `?kiosk=1`) and ▣ Lean (chrome-free without fullscreen,
+  `?lean=1` — resizable browser, iPad-app feel) hide all editing chrome,
+  lock the grid, and tighten margins; Esc or the floating ✕ Exit returns
+  (and strips the URL param so a refresh after leaving lands in normal
+  mode); fullscreen only on the Present click (user-gesture rule),
+  never on boot — verified live on the full 30-widget catalog including
+  the mobile stack
 - ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
   lazy-loaded as a separate 56 KB asset) renders real Commons
   equirectangular files — Imiloa grounds 12740×6370 verified live in the
@@ -241,8 +249,10 @@ wikibento/
 - ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
 - ✅ **CIM File Traffic (2026-08-14):** 📉 interactive chart — labeled axes (compact Y ticks `254K`/`1.2M`, month X labels, "views"/"month" titles), −/+ zoom slices 3/6/12/24 months client-side, header shows the displayed range; self-heals the CIM 500-on-12-month-window bug (verified: exact window `20250801/20260801` 500s from browsers while curl 200s; 11/13/30-month windows fine) by retrying with the earliest month dropped
 - ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too)
-- ✅ All 26 data-driven widget types render live data in the browser; the 27th (Text/Markdown) and 28th (Wiki Page — a static iframe) are static — no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 28 widgets
+- ✅ All 28 data-driven widget types render live data in the browser; the
+  29th (Text/Markdown) and 30th (Wiki Page — a static iframe) are static —
+  no fetch, renders from config
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 30 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com
@@ -266,7 +276,7 @@ wikibento/
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 372.94 KB JS (112.01 KB gzip) + 36.60 KB CSS (7.83 KB gzip)
+- ✅ Production build: 422.55 KB JS (124.30 KB gzip) + 45.61 KB CSS (9.24 KB gzip)
 
 ## Documentation
 
