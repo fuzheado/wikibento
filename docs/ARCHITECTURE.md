@@ -145,6 +145,16 @@ export/reset ──────────────────────�
 
 ## Third-Party API Contracts (dependency-drift watchlist)
 
+**PetScan (`petscan.wmcloud.org`) — planned dependency for ISSUE-46 (GLAM
+tree+usage).** Contract verified 2026-08-17:
+- Params: `lang=commons&project=wikimedia&cats=&depth=&negcats=&negdepth=&ns=6&giu=1&max=&start=0&format=json&doit=1&redirects=0`.
+- Response: `{pages: [{page_title (DB form, underscores), page_namespace: 6, giu: [{wiki (DB name e.g. enwiki), page, ns}]}]}` — `giu` carries EXACT namespace.
+- CORS: `Access-Control-Allow-Origin: *` (verified) — but see the cap quirk.
+- ⚠️ Quick-intersection mode (when `max` is set) **ignores `max`** — returns the ENTIRE tree (239,084 files / 39 MB for WLM 2024, verified 2026-08-12). Never call from the browser for big categories; the app must go through the `/api/petscan` relay (budget + byte cap) or fall back to the self-walk.
+- Verify after any PetScan change: response shape (`pages`/`giu`), the cap behavior, CORS.
+
+**glamtools `pageviews.php` — explicitly NOT a dependency (documented so it stays that way).** Verified 2026-08-17: **no CORS headers** even with an Origin present (same-origin-only for glamtools itself); POST form `{day1, day2, pages: JSON}` → `{results: {"wiki:page": views}, failed}`; unversioned, community-maintained, no SLA. Use the WMF pageviews REST API directly for view counts.
+
 react-grid-layout 2.x has **twice silently dropped props** — the board kept
 rendering, just wrong, with no error or warning (2.2.4 regrouped props into
 config objects; old names are ignored, not rejected). The two incidents:

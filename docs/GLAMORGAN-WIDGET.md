@@ -116,6 +116,68 @@ Wikimedia Commons" (2026-07): 500 files, 21/33 viewed, 235 pages on 58 wikis,
 314,375 total views, 5-image filmstrip, top-file detail (Lion 97,121 views).
 The XBio note below remains true — that category is currently unused.
 
+## Architecture Decision (2026-08-17): Delegate to PetScan via a capped relay — "B now, C when scale demands"
+
+**Trigger:** the ISSUE-45 zero-usage bug (anonymous `titles` cap silently
+killed the self-walk's globalusage lookups for short filenames) plus a
+full source read of glamtools — which exposed that GLAMorgan has **no stats
+backend to invoke**; its "backend" is two services (PetScan for tree+usage,
+a same-origin pageviews proxy) and ~40 lines of browser-side aggregation.
+
+**The three architectures considered:**
+
+| | A. Self-contained client (as shipped) | **B. Delegate tree+usage to PetScan (chosen)** | C. Server-side aggregation + cache |
+|---|---|---|---|
+| Tree | own `categorymembers` walk, ≤1,000 files | **PetScan via `/api/petscan` relay, budget-capped server-side** | PetScan |
+| Usage | `globalusage` API + URL-path ns heuristic, `gulimit=100` | **PetScan `giu` — exact `ns`, no heuristic** | PetScan |
+| Pageviews | WMF API, ≤150 pages, client | WMF API, ≤150 pages, client | WMF API, batched, all pages, cached |
+| Widget-native features (filmstrip, top-N detail, budgets, progress) | native | native | need API surface |
+| Parity with glamtools | heuristic drift possible | **structural** | structural |
+
+**Why B wins now:** numbers match glamtools *by construction* (the
+namespace heuristic, `gulimit` truncation, and the ISSUE-45 bug class all
+disappear — they live in the usage lookup, which PetScan replaces); the
+"why doesn't it match the reference tool" question can't recur; PetScan is
+CORS-open (verified 2026-08-17) but its quick-intersection mode **ignores
+`max`** (39 MB responses — gotcha #3), so the browser must NOT call it
+directly: it goes through a thin stateless relay on our Toolforge server
+(the `/api/proxy` pattern) that enforces a file budget + response-size cap.
+
+**Why not C yet:** C's only wins are cross-user caching and >1K-file
+budgets. The widget is *designed* bounded (500–1,000 files, 150 pages, 2 h
+refresh) to stay polite; at that scale client-side pageviews are fine and
+caching saves little. C becomes the target when: users request budgets
+above ~1K files, popular categories generate repeat-load traffic, or the
+SCALABILITY Phase 1.5 shared-cache layer lands. Revisit triggers below.
+
+**Explicit non-goals:** never depend on glamtools' `pageviews.php` proxy —
+same-origin-only (no CORS, verified 2026-08-17), unversioned, community-
+maintained; the WMF pageviews API is the stable contract for view counts.
+Keep the self-walk as the **fallback** if PetScan is down or over budget
+(graceful degradation — the relay reports its source).
+
+**Relay contract sketch (`/api/petscan`, stateless):**
+`GET /api/petscan?cats=&depth=&negcats=&negdepth=&budget=` →
+`{ source: 'petscan', files: [titles], usage: {title: [{wiki, page, ns}]},
+  capped: bool, truncated: bool }` — server enforces `budget` by truncating
+PetScan's response (it ignores `max`), caps response bytes, timeouts,
+WM UA + pacing. Client keeps: pageviews (WMF API, count-50 batching),
+filmstrip, detail, budgets UI, progress.
+
+**Revisit triggers (check at each roadmap pass):**
+1. Budget requests > ~1,000 files (PetScan relay raises the ceiling to
+   GLAMorgan's 30K; browser pageviews then need server batching → C).
+2. Same categories loaded repeatedly (cross-user TTL cache becomes the
+   clear win — server-side C with 10-min cache, SCALABILITY §cache).
+3. glamtools ships a real stats API (then "frame the tool" directly —
+   original WikiBento philosophy — with the downstream-risk caveat).
+4. PetScan reliability degrades (then the self-walk fallback becomes
+   primary again — A, with ISSUE-45 fix in place).
+
+Tracked as **ISSUE-46** (design done; implementation on branch
+`glam-petscan-relay`). See also ARCHITECTURE.md §Third-Party API Contracts
+for the PetScan / pageviews.php contract records.
+
 ## Implementation
 
 New widget type `glamorgan` ("GLAM Category Usage", renderer `GlamCard`):

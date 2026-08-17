@@ -1930,3 +1930,34 @@ articleList/topPages) were already safe.
 **Verified:** widget now matches GLAMorgan exactly on every metric —
 518/38/38/40/2/110,092. Docs updated: HANDOFF gotcha #4, DATA-SOURCES
 §GLAM + §imageinfo + §videoinfo.
+
+## ISSUE-46 · GLAM widget: delegate tree+usage to PetScan via capped `/api/petscan` relay — **design done 2026-08-17** (branch `glam-petscan-relay`, implementation pending)
+
+**Decision (2026-08-17):** adopt architecture B — replace the self-walk +
+globalusage lookup with PetScan (`giu`, exact `ns`) called through a thin
+stateless relay on our Toolforge server that enforces the file budget
+(PetScan ignores `max` in quick-intersection mode — 39 MB responses) and
+caps response size. Pageviews stay client-side via the WMF API (stable,
+CORS); glamtools' `pageviews.php` is explicitly NOT adopted (same-origin
+only, unversioned). Full analysis + revisit triggers:
+docs/GLAMORGAN-WIDGET.md §Architecture Decision (2026-08-17).
+
+**Why:** ISSUE-45 showed the self-implementation's usage lookup carries a
+bug class (50-title anonymous cap, `gulimit` truncation, ns heuristic) that
+PetScan's exact-ns `giu` eliminates; parity with glamtools becomes
+structural instead of heuristic.
+
+**Scope (branch `glam-petscan-relay`):**
+1. `deploy/server.js`: `/api/petscan` — stateless GET relay, budget +
+   response-size caps, timeout, WM UA, pacing; reports `{source, files,
+   usage, capped, truncated}`.
+2. `src/widgets/dataSources.js`: `fetchGlamStats` uses the relay (usage from
+   `giu` ns-0, exact); keep filmstrip/detail/budgets/progress client-side.
+3. Fallback: PetScan down/over-budget → current self-walk (ISSUE-45 fix
+   stays in place as the degraded path).
+4. Verify: XBio depth-1 2026-07 matches glamtools exactly (518/38/38/40/2/
+   110,092) via both paths; tests + docs.
+
+**Revisit triggers (→ full server aggregation C):** budgets > ~1K files,
+repeat-load cache wins, glamtools ships a real stats API, or PetScan
+reliability changes.

@@ -66,6 +66,15 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 ## Phase 1.5 — Efficiency at Scale
 
+- [ ] **GLAM via PetScan relay (ISSUE-46)** — replace the self-walk +
+      globalusage lookup with PetScan (`giu`, exact `ns`) through a capped
+      stateless `/api/petscan` relay; pageviews stay client-side (WMF API);
+      self-walk remains the fallback. Design + revisit triggers:
+      docs/GLAMORGAN-WIDGET.md §Architecture Decision (2026-08-17); branch
+      `glam-petscan-relay`. **Upgrade path to full server aggregation (C):**
+      when budgets exceed ~1K files or repeat-load caching wins, the relay
+      grows a TTL cache and batch pageviews server-side — SCALABILITY §cache.
+
 - [ ] **Batch query planning + shared fetch layer** — multi-title Action API queries
       (50 titles/request) so hundreds of categories/files cost ~1 call per 50; TTL
       fetch cache with in-flight coalescing; concurrency cap + refresh jitter;

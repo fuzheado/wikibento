@@ -68,6 +68,18 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   dragConfig) — the app's rowHeight={80} was ignored and the grid rendered
   with RGL's 150px-row defaults all along. Fixed via `gridConfig`; board
   now renders at the intended density. Commit ee70ce4, verified live.
+- ✅ **GLAM architecture decision: PetScan relay (ISSUE-46, 2026-08-17)** —
+  after the ISSUE-45 zero-usage bug, a source read of glamtools showed
+  GLAMorgan has NO stats backend (PetScan + same-origin pageviews proxy +
+  ~40 lines of browser aggregation). Decision: **B now** — delegate
+  tree+usage to PetScan (`giu` exact-ns) via a capped stateless
+  `/api/petscan` relay; pageviews stay client-side (WMF API); never adopt
+  glamtools' proxy (same-origin-only, unversioned — verified no CORS
+  2026-08-17); full server aggregation (C) only when budgets >~1K files or
+  repeat-load caching wins. Design + revisit triggers:
+  docs/GLAMORGAN-WIDGET.md §Architecture Decision; contracts recorded in
+  ARCHITECTURE.md watchlist; ROADMAP Phase 1.5. **Branch:
+  `glam-petscan-relay`** (docs only so far — implementation pending).
 - ✅ **Ask payload contract documented + intent→widget benchmark suite
   (2026-08-16):** ISSUE-44 gains the "Payload contract (as shipped)"
   section — the exact trim map (8 fields per widget: id/name/description/
