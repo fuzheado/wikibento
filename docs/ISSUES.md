@@ -1829,9 +1829,15 @@ LiftWing LLM endpoints):**
 - **Endpoints:** OpenAI-compatible chat completions, no key:
   `https://api.wikimedia.org/service/lw/inference/v1/models/llm-qwen36-27b/openai/v1/chat/completions`
   (27B, 32K ctx) and `llm-qwen3-14b` (14B, 16K ctx). Streaming supported.
-- **Context math:** a compact 30-widget manifest = 531 prompt tokens; a full
-  manifest with configFields ≈ 5–8K → fits 32K (and even 14B's 16K) with
-  room for system prompt + few-shot + output.
+- **Context math:** the 30-widget manifest sent to the model (trimmed
+  catalog with configFields, see "Payload contract" below) measures 15,764
+  chars ≈ 4.1–5.3K tokens; the full system prompt (catalog + rules +
+  examples) is 18,549 chars ≈ 4.5–6K tokens — fits 32K (qwen36-27b) with
+  ~26K headroom; the 16K fallback (qwen3-14b) has room for one more ~2×
+  enrichment but not unbounded growth (keep the enriched system ≤ ~13K,
+  or ship a compact catalog variant on fallback). (A bare
+  id/name/description-only variant measures 531 tokens — design-time
+  estimate only, never shipped.)
 - **JSON reliability without tool calling: SOLVED — `response_format:
   {"type": "json_object"}` is supported** (vLLM enforces valid JSON). Two
   realistic sample intents returned clean contract JSON (no `<think>`, no
@@ -1847,8 +1853,47 @@ LiftWing LLM endpoints):**
   smart-search tier + error states are the graceful degradation.
 - **CORS: absent** → relay-only architecture (see Transport).
 
+**Payload contract (as shipped, 2026-08-16):** the exact prompt the relay
+sends is server-owned in `deploy/server.js` (`ASK_SYSTEM` + `ASK_RULES`) and
+never reconstructed client-side.
+1. **Trim mapping** — `scripts/generate-manifest.mjs` extracts every widget
+   from `src/widgets/index.js`; the LLM sees ONLY 8 fields per widget:
+   `{id, name, description, dataSource, category, type, configFields,
+   defaults}`. Dropped: `icon`, `intensity`, `experimental` (and the
+   manifest-level `version`/`generatedAt`). `configFields` carries REAL
+   select options so the model can only pick valid values.
+2. **System prompt layout** — preamble (role) → `CATALOG` (the trimmed JSON
+   array) → `RULES` (exact ids, 1–3 options, intent matching
+   category-inputs vs file-inputs, never invent subjects) → `VALUE RULES`
+   (Category: stripped / File: prefixed / bare domains / https URLs / plain
+   numbers) → `OUTPUT SCHEMA` → 2 few-shot `EXAMPLES`.
+3. **User message** — the raw prompt only, ≤ 1,000 chars; never
+   concatenated into the system prompt (injection hygiene).
+4. **Params** — `response_format: {type: "json_object"}`, `temperature 0.3`,
+   `max_tokens 700`, 45 s timeout, model `llm-qwen36-27b` (fallback
+   `llm-qwen3-14b`); `<think>…</think>` stripped before parse.
+5. **Cache** — `sha(prompt + manifest.version)` key, 10-min TTL.
+6. **Sanitizer** — model output must survive `validateOptions()` →
+   `normalizeConfig()` (tests/ask-validation.test.mjs) before it reaches
+   the UI; hallucinated ids and invalid values are dropped.
+
+**Intent→widget benchmark suite (constitution, design item 6 — implemented
+2026-08-16):** `tests/intent-fixtures.mjs` holds the ground-truth catalog of
+human prompts → expected `{widgetType, config}`; `tests/intent-benchmark-
+test.mjs` (wired into `npm test`) hard-asserts fixture schema validity and
+scores the LOCAL tier (askLocal) with a rising floor; `scripts/benchmark-
+ask.mjs` scores the live LLM tier against the same fixtures (exact top-1 /
+top-3 widget match, config-key presence, subject-token containment). The
+fixtures double as the few-shot pool for prompt enrichment. **Fixture
+interviewer (2026-08-16):** `scripts/interview-fixtures.mjs` — interactive
+widget-card → phrase → subject → validated-append flow (and `--add` for
+agents); `--list` shows coverage. Full how-to, scoring semantics, ground
+rules, and findings: docs/INTENT-BENCHMARK.md.
+
 **Status:** Phase 1 (manifest + local smart search + /api/ask ML tier + Ask
-panel) **DONE and DEPLOYED 2026-08-16** (commit 5378088, verified live).
+panel) **DONE and DEPLOYED 2026-08-16** (commit 5378088, verified live);
+intent→widget benchmark suite added 2026-08-16 (fixtures + offline
+scorecard + live scorer).
 Phases 2-4 open: multi-widget board assembly, refinement loop, and
 (long-term) intent → new widget via registry editing.
 Source: user direction 2026-08-16; precedents verified 2026-08-16

@@ -68,6 +68,43 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   dragConfig) — the app's rowHeight={80} was ignored and the grid rendered
   with RGL's 150px-row defaults all along. Fixed via `gridConfig`; board
   now renders at the intended density. Commit ee70ce4, verified live.
+- ✅ **Ask payload contract documented + intent→widget benchmark suite
+  (2026-08-16):** ISSUE-44 gains the "Payload contract (as shipped)"
+  section — the exact trim map (8 fields per widget: id/name/description/
+  dataSource/category/type/configFields/defaults; icon/intensity/
+  experimental dropped), prompt layout (preamble → CATALOG → RULES →
+  VALUE RULES → OUTPUT SCHEMA → 2 few-shots), params (json_object,
+  temp 0.3, 700 max tokens, 45 s timeout), cache key, sanitizer chain.
+  Corrected the stale "531 prompt tokens" figures in ISSUES.md +
+  DATA-SOURCES.md: the shipped catalog is 15,764 chars ≈ 4.1–5.3K tokens;
+  full system prompt 17.5K chars ≈ 4.5–6K of 32K ctx (fallback 16K → keep
+  enriched system ≤ ~13K). **Benchmark suite (ISSUE-44 design item 6,
+  "evaluation as a constitution"):** `tests/intent-fixtures.mjs` — 15
+  ground-truth intents (draft v1, review pending) covering every widget
+  family + confusable pairs (fileUsage vs cimFileSpotlight, glamorgan vs
+  cimSnapshot); `tests/intent-benchmark.test.mjs` wired into `npm test`
+  (hard schema asserts + local-tier top-3 floor); `scripts/benchmark-
+  ask.mjs` — live LLM scorer against the exact ASK_SYSTEM+ASK_RULES
+  prompt (direct LiftWing call, same sanitizer, --gate/--out/--model
+  options). askLocal gains a manifest override param + 3 new intent
+  patterns. **Baseline: LLM tier 15/15 top-1, keys 100%, subject 100%;
+  local tier 15/15 top-3 (100% top-1 after pattern fixes) — the bench
+  caught 3 real local-matcher bugs** (missing wikistats + wayback
+  patterns; linkcount losing to topPages on a keyword false-friend).
+  **Category-span delineation probed live (5 variants): the model extracts
+  full category names exactly whether quoted, unquoted w/ em-dash, or
+  unquoted with NO boundary — fixtures stay in the realistic unquoted form
+  and glam-category-impact was hardened to the no-boundary wording
+  ("…and how many files…"); re-verified 100% live + offline. Benchmark
+  script gains --fixtures and matchedOption in --out (extracted configs
+  saved for span diagnostics). **Fixture interviewer tool
+  (scripts/interview-fixtures.mjs)**: interactive widget-card → phrase →
+  subject → validated-append flow (needs a real terminal; piped stdin
+  hangs on Node 26 readline — use --add for automation); --list shows
+  coverage (15/30), --add is the agent path; entries validated by the
+  same assertFixtureSchema before writing. Full how-to, scoring
+  semantics, and ground rules in docs/INTENT-BENCHMARK.md (linked from
+  README + ISSUE-44).
 - ✅ **Docs (2026-08-15/16):** docs/PHILOSOPHY.md (the HyperCard
   lineage + origin story + wayfinding question) and docs/PARADIGMS.md
   (presentation paradigms, CD-ROM era, contemporaries incl. Knight Lab

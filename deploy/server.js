@@ -567,4 +567,4 @@ if (!process.env.WIKIBENTO_TEST) {
   server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
 }
 
-export { normalizeConfig, validateOptions, manifestIds };
+export { normalizeConfig, validateOptions, manifestIds, ASK_SYSTEM, ASK_RULES };

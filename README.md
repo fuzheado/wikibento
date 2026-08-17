@@ -310,6 +310,7 @@ wikibento/
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
+- [docs/INTENT-BENCHMARK.md](docs/INTENT-BENCHMARK.md) — the Ask advisor's intent→widget ground-truth catalog, the offline + live benchmark suites, and the fixture **interviewer tool** (`scripts/interview-fixtures.mjs` — interview mode for adding test cases without hand-editing JSON)
 - [docs/GLAMORGAN-WIDGET.md](docs/GLAMORGAN-WIDGET.md) — the GLAM widget design review + Commons Impact Metrics findings
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — local dev + Toolforge node20 deployment (SSH as `alih@`, `sudo -niu tools.wikibento`), full deploy procedure
 - [docs/ROADMAP.md](docs/ROADMAP.md) — v2 ideas, quick wins, and known limitations

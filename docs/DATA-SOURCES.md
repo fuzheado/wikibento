@@ -460,12 +460,14 @@ wikitech.wikimedia.org/wiki/Machine_Learning/LiftWing/Large_Language_Models/Wiki
 - **Outputs:** may include a `<think>…</think>` reasoning wrapper — strip it
   before use. Training cutoff is fixed; no live knowledge — supply context
   in the prompt for anything time-sensitive.
-- **Verified use (2026-08-16):** the ISSUE-44 "Ask" widget advisor — a
-  30-widget capability manifest is ~531 prompt tokens (full manifest with
-  configFields ≈ 5–8K, fits 32K); `json_object` mode returns clean contract
-  JSON on realistic intents with correct widget ids and pre-filled configs.
-  ⚠️ **The model can hallucinate widget ids** (`video_player` for
-  `mediaPlayer`) — always validate model output against the manifest.
+- **Verified use (2026-08-16):** the ISSUE-44 "Ask" widget advisor — the
+  trimmed 30-widget catalog sent in the system prompt is 15,764 chars
+  (≈ 4.1–5.3K tokens; full system prompt with rules ≈ 4.5–6K, fits 32K with
+  ~26K headroom — see ISSUE-44 "Payload contract" for the exact trim
+  map); `json_object` mode returns clean contract JSON on realistic intents
+  with correct widget ids and pre-filled configs. ⚠️ **The model can
+  hallucinate widget ids** (`video_player` for `mediaPlayer`) — always
+  validate model output against the manifest.
 - **⚠️ Caveat — experimental test service, no long-term guarantee:** this is
   a pilot with **no SLA**; it may be slow or unavailable, and models or
   endpoints can change or be **removed without notice**. Never make a
