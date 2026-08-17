@@ -249,6 +249,126 @@ function validateOptions(parsed, widgetDefs) {
   return out;
 }
 
+// ── /api/petscan: capped PetScan relay for the GLAM widget (ISSUE-46) ──
+// GLAMorgan's tree engine: PetScan resolves a Commons category tree with
+// depth/negcats AND returns per-file global image usage with EXACT ns
+// (giu=1) — eliminating the widget's namespace heuristic and usage-lookup
+// bug class. PetScan is CORS-open but quick-intersection mode IGNORES `max`
+// (39 MB responses for big trees), so the browser must not call it directly:
+// this stateless relay fetches server-side, caps the response, truncates to
+// the widget's file budget, and normalizes PetScan's DB-form output to the
+// shape the client already consumes (File:-prefixed titles with spaces,
+// wiki domain names). Truncation (byte cap hit) is reported so the client
+// falls back to its bounded self-walk.
+
+const PETSCAN_URL = 'https://petscan.wmcloud.org/';
+const PETSCAN_MAX_BYTES = 25 * 1024 * 1024; // quick-intersection can exceed this (39 MB trees)
+const PETSCAN_TIMEOUT_MS = 60000;
+const PETSCAN_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) petscan-relay';
+
+// PetScan DB-name → Wikimedia domain (relay normalizes so the client's
+// wikiToProject keeps working unchanged). Returns the input when unknown.
+const WIKI_DB_TO_DOMAIN = [
+  [/^commonswiki$/, 'commons.wikimedia.org'],
+  [/^specieswiki$/, 'species.wikimedia.org'],
+  [/^metawiki$/, 'meta.wikimedia.org'],
+  [/^wikidatawiki$/, 'www.wikidata.org'],
+  [/^([a-z]{2,3})wiki$/, (m) => `${m[1]}.wikipedia.org`],
+  [/^([a-z_]+)wiki$/, (m) => `${m[1].replace(/_/g, '-')}.wikipedia.org`], // zh_yuewiki → zh-yue.wikipedia.org
+  [/^([a-z-]+)wikisource$/, (m) => `${m[1]}.wikisource.org`],
+  [/^([a-z-]+)wiktionary$/, (m) => `${m[1]}.wiktionary.org`],
+  [/^([a-z-]+)wikivoyage$/, (m) => `${m[1]}.wikivoyage.org`],
+  [/^([a-z-]+)wikiquote$/, (m) => `${m[1]}.wikiquote.org`],
+  [/^([a-z-]+)wikinews$/, (m) => `${m[1]}.wikinews.org`],
+  [/^([a-z-]+)wikiversity$/, (m) => `${m[1]}.wikiversity.org`],
+  [/^([a-z-]+)wikibooks$/, (m) => `${m[1]}.wikibooks.org`],
+];
+function wikiDbToDomain(wikiDb) {
+  const w = String(wikiDb || '');
+  if (!w) return w;
+  for (const [re, fn] of WIKI_DB_TO_DOMAIN) {
+    const m = w.match(re);
+    if (m) return typeof fn === 'function' ? fn(m) : fn;
+  }
+  return w; // unknown DB (testwiki, …) — client treats it as non-viewable
+}
+
+// PetScan request URL from widget-style params. negcats arrives as the
+// widget's 'A|B' form; PetScan wants newline-separated (petscan.js rule).
+function buildPetscanUrl({ cats, depth = 0, negcats = '', negdepth = 0, budget = 500 } = {}) {
+  const params = new URLSearchParams({
+    lang: 'commons', project: 'wikimedia',
+    cats: String(cats), depth: String(depth),
+    ns: '6', giu: '1',
+    max: String(budget), start: '0',
+    format: 'json', doit: '1', redirects: '0',
+  });
+  const neg = String(negcats || '').trim();
+  if (neg) {
+    params.set('negcats', neg.replace(/\|/g, '\n'));
+    params.set('negdepth', String(negdepth));
+  }
+  return `${PETSCAN_URL}?${params}`;
+}
+
+// Normalize PetScan's {pages:[{page_title (DB form, underscores), giu:[{wiki
+// (DB name), page, ns}]}]} into the client shape: File:-prefixed titles with
+// spaces, usage keyed by title with wiki domains and exact ns. Truncates to
+// budget (capped) — PetScan ignores max, so the budget is enforced here.
+function normalizePetscanPages(pages, budget = 500) {
+  const files = [];
+  const usage = {};
+  let capped = false;
+  for (const p of Array.isArray(pages) ? pages : []) {
+    if (files.length >= budget) { capped = true; break; }
+    const title = `File:${String(p.page_title || '').replace(/_/g, ' ')}`;
+    if (title.trim() === 'File:') continue;
+    files.push(title);
+    usage[title] = (Array.isArray(p.giu) ? p.giu : [])
+      .map((u) => ({ wiki: wikiDbToDomain(u.wiki), page: String(u.page || ''), ns: Number(u.ns) }))
+      .filter((u) => u.page);
+  }
+  return { files, usage, capped };
+}
+
+// Parse + validate relay query params; returns { ok, error?, params }.
+function parsePetscanParams(url) {
+  const clamp = (v, lo, hi, def) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : def;
+  };
+  const cats = String(url.searchParams.get('cats') || '').trim();
+  if (!cats) return { ok: false, error: 'cats is required' };
+  return {
+    ok: true,
+    params: {
+      cats,
+      depth: clamp(url.searchParams.get('depth'), 0, 12, 0),
+      negcats: String(url.searchParams.get('negcats') || ''),
+      negdepth: clamp(url.searchParams.get('negdepth'), 0, 12, 0),
+      budget: clamp(url.searchParams.get('budget'), 1, 1000, 500),
+    },
+  };
+}
+
+// Fetch PetScan with timeout + one retry, enforcing a byte cap. Returns
+// { truncated } when the response exceeds the cap (caller falls back).
+async function fetchPetscanBounded(petscanUrl) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), PETSCAN_TIMEOUT_MS);
+  try {
+    const r = await fetch(petscanUrl, { signal: ctrl.signal, headers: { 'User-Agent': PETSCAN_UA } });
+    const len = Number(r.headers.get('content-length') || 0);
+    if (len > PETSCAN_MAX_BYTES) return { truncated: true };
+    const text = await r.text();
+    if (!r.ok) throw new Error(`PetScan HTTP ${r.status}`);
+    if (text.length > PETSCAN_MAX_BYTES) return { truncated: true };
+    return { text };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const json = (res, status, obj, extra = {}) => {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra });
   res.end(JSON.stringify(obj));
@@ -317,6 +437,31 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ error: `proxy fetch failed: ${e.message}` }));
       }
       return;
+    }
+
+    // ── /api/petscan: capped PetScan relay (ISSUE-46, GLAM widget) ──
+    // Server-side only (PetScan quick-intersection ignores max; budget + byte
+    // caps live here). Returns the normalized { source, files, usage, capped,
+    // truncated } shape the widget's fetchGlamStats consumes.
+    if (url.pathname === '/api/petscan') {
+      const origin = req.headers.origin;
+      if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'origin not allowed' });
+      const ip = ipOf(req);
+      const wait = rlLimit(ip, 20, 300, 5000); // protect a shared community service
+      if (wait) return json(res, 429, { error: 'too many requests — try again shortly', retryAfterSeconds: wait }, { 'Retry-After': String(wait) });
+      const parsed = parsePetscanParams(url);
+      if (!parsed.ok) return json(res, 400, { error: parsed.error });
+      const { cats, depth, negcats, negdepth, budget } = parsed.params;
+      try {
+        const fetched = await fetchPetscanBounded(buildPetscanUrl({ cats, depth, negcats, negdepth, budget }));
+        if (fetched.truncated) return json(res, 200, { source: 'petscan', files: [], usage: {}, capped: true, truncated: true });
+        const d = JSON.parse(fetched.text);
+        if (!d || typeof d !== 'object') throw new Error('PetScan returned non-object JSON');
+        const { files, usage, capped } = normalizePetscanPages(d.pages, budget);
+        return json(res, 200, { source: 'petscan', files, usage, capped, truncated: false });
+      } catch (e) {
+        return json(res, 502, { error: `petscan failed: ${e.message}` });
+      }
     }
 
     // ── /api/wayback-gallery: batch Wayback snapshot lookup ──
@@ -567,4 +712,4 @@ if (!process.env.WIKIBENTO_TEST) {
   server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
 }
 
-export { normalizeConfig, validateOptions, manifestIds, ASK_SYSTEM, ASK_RULES };
+export { normalizeConfig, validateOptions, manifestIds, ASK_SYSTEM, ASK_RULES, buildPetscanUrl, wikiDbToDomain, normalizePetscanPages, parsePetscanParams };

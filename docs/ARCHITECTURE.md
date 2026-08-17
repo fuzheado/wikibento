@@ -145,8 +145,9 @@ export/reset ──────────────────────�
 
 ## Third-Party API Contracts (dependency-drift watchlist)
 
-**PetScan (`petscan.wmcloud.org`) — planned dependency for ISSUE-46 (GLAM
-tree+usage).** Contract verified 2026-08-17:
+**PetScan (`petscan.wmcloud.org`) — GLAM tree+usage dependency since
+ISSUE-46 (2026-08-17), via the capped `/api/petscan` relay.** Contract
+verified 2026-08-17:
 - Params: `lang=commons&project=wikimedia&cats=&depth=&negcats=&negdepth=&ns=6&giu=1&max=&start=0&format=json&doit=1&redirects=0`.
 - Response: `{pages: [{page_title (DB form, underscores), page_namespace: 6, giu: [{wiki (DB name e.g. enwiki), page, ns}]}]}` — `giu` carries EXACT namespace.
 - CORS: `Access-Control-Allow-Origin: *` (verified) — but see the cap quirk.

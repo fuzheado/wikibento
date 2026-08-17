@@ -153,20 +153,23 @@ GET https://commons.wikimedia.org/w/api.php?action=query&prop=globalusage|imagei
 Replicates GLAMorgan's computation browser-native, in four bounded stages
 (details + review: [GLAMORGAN-WIDGET.md](GLAMORGAN-WIDGET.md)):
 
-1. **Category walk** — `list=categorymembers&cmtype=file|subcat` iterated per
-   depth level (0–12), collecting file titles until a **file budget** (default
-   500, max 1,000). `negcats`/`negdepth` build an exclusion set. PetScan is
-   deliberately NOT used: it ignores the `max` cap and returns multi-10MB
-   responses for large trees.
-2. **Global usage** — `prop=globalusage` in multi-title batches,
-   `gulimit=100`, chunked by **min(count 50, encoded length 4,500)** — the
-   anonymous `titles` cap is 50 (`toomanyvalues`; length-only chunking
-   silently returns empty `query.pages` when short filenames pack 70+
-   titles — fixed 2026-08-16). ⚠️ The API's usage entries carry **no `ns`
-   field** (verified; GLAMorgan gets `ns` from PetScan's giu), so article-space
-   filtering uses a URL-path namespace heuristic (Talk:/User:/File:/Template:/
-   … excluded; localized namespace names like Diskussion: are conservatively
-   counted as articles).
+1. **Category walk + usage (ISSUE-46, 2026-08-17)** — **primary: PetScan via
+the same-origin `/api/petscan` relay** (`lang=commons&project=wikimedia`,
+`cats/depth/negcats/negdepth/ns=6/giu=1`): a single server-side crawl that
+resolves the tree AND returns per-file global usage with **exact `ns`**
+(no namespace heuristic). The relay enforces the **file budget** (default
+500, max 1,000) by truncating PetScan's response — PetScan quick-intersection
+mode IGNORES `max` and can return multi-10MB responses — and caps bytes
+(25 MB, else `truncated` → client falls back). **Fallback (degraded):** the
+bounded `categorymembers` walk + `prop=globalusage` in multi-title batches,
+`gulimit=100`, chunked by **min(count 50, encoded length 4,500)** — the
+anonymous `titles` cap is 50 (`toomanyvalues`; length-only chunking
+silently returns empty `query.pages` — fixed 2026-08-16). ⚠️ The API's usage
+entries carry **no `ns` field**, so the fallback filters article space with a
+URL-path namespace heuristic (localized namespace names conservatively
+counted as articles). The widget's output carries `source`
+(`'petscan'`/`'selfwalk'`); the card subtitle flags `· self-walk fallback`
+when degraded.
 3. **Pageviews** — `per-article/{project}/all-access/user/{page}/monthly/…`
    for distinct using pages, **capped at 150 pages** (weight = pages-per-file),
    6 concurrent. Beyond that, totals are labeled "views partial".

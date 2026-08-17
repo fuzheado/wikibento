@@ -156,13 +156,15 @@ maintained; the WMF pageviews API is the stable contract for view counts.
 Keep the self-walk as the **fallback** if PetScan is down or over budget
 (graceful degradation — the relay reports its source).
 
-**Relay contract sketch (`/api/petscan`, stateless):**
+**Relay contract (implemented 2026-08-17, branch `glam-petscan-relay`):**
 `GET /api/petscan?cats=&depth=&negcats=&negdepth=&budget=` →
 `{ source: 'petscan', files: [titles], usage: {title: [{wiki, page, ns}]},
   capped: bool, truncated: bool }` — server enforces `budget` by truncating
-PetScan's response (it ignores `max`), caps response bytes, timeouts,
-WM UA + pacing. Client keeps: pageviews (WMF API, count-50 batching),
-filmstrip, detail, budgets UI, progress.
+PetScan's response (it ignores `max`), caps response bytes (25 MB),
+timeouts (60 s), WM UA + per-IP pacing. Client keeps: pageviews (WMF API,
+count-50 batching), filmstrip, detail, budgets UI, progress. Verified:
+both paths (relay + self-walk fallback) match glamtools exactly on the
+XBio repro — 518/38/38/40/2/110,092 (`scripts/verify-glam.mjs`).
 
 **Revisit triggers (check at each roadmap pass):**
 1. Budget requests > ~1,000 files (PetScan relay raises the ceiling to

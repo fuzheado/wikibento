@@ -1931,7 +1931,7 @@ articleList/topPages) were already safe.
 518/38/38/40/2/110,092. Docs updated: HANDOFF gotcha #4, DATA-SOURCES
 §GLAM + §imageinfo + §videoinfo.
 
-## ISSUE-46 · GLAM widget: delegate tree+usage to PetScan via capped `/api/petscan` relay — **design done 2026-08-17** (branch `glam-petscan-relay`, implementation pending)
+## ISSUE-46 · GLAM widget: delegate tree+usage to PetScan via capped `/api/petscan` relay — **done 2026-08-17** (branch `glam-petscan-relay`)
 
 **Decision (2026-08-17):** adopt architecture B — replace the self-walk +
 globalusage lookup with PetScan (`giu`, exact `ns`) called through a thin
@@ -1947,16 +1947,26 @@ bug class (50-title anonymous cap, `gulimit` truncation, ns heuristic) that
 PetScan's exact-ns `giu` eliminates; parity with glamtools becomes
 structural instead of heuristic.
 
-**Scope (branch `glam-petscan-relay`):**
-1. `deploy/server.js`: `/api/petscan` — stateless GET relay, budget +
-   response-size caps, timeout, WM UA, pacing; reports `{source, files,
-   usage, capped, truncated}`.
-2. `src/widgets/dataSources.js`: `fetchGlamStats` uses the relay (usage from
-   `giu` ns-0, exact); keep filmstrip/detail/budgets/progress client-side.
-3. Fallback: PetScan down/over-budget → current self-walk (ISSUE-45 fix
-   stays in place as the degraded path).
-4. Verify: XBio depth-1 2026-07 matches glamtools exactly (518/38/38/40/2/
-   110,092) via both paths; tests + docs.
+**Implemented 2026-08-17 (all scope items, verified):**
+1. `deploy/server.js`: `/api/petscan` — stateless GET relay (budget +
+   response-size caps, 60 s timeout, WM UA, per-IP rate limits); reports
+   `{source, files, usage, capped, truncated}`; `wikiDbToDomain` normalizes
+   PetScan DB names → domains; `buildPetscanUrl`/`normalizePetscanPages`/
+   `parsePetscanParams` exported pure functions.
+2. `src/widgets/dataSources.js`: `fetchGlamStats(cfg, deps)` — relay
+   primary, `fetchSelfWalkUsage` fallback, `aggregateGlamStats` shared
+   (injectable views/thumbs); output carries `source`; card subtitle flags
+   `· self-walk fallback`.
+3. Fallback: PetScan down/truncated/empty → bounded self-walk (ISSUE-45
+   fix retained as the degraded path).
+4. **Tests: 19 new offline tests** (`tests/glam-petscan.test.mjs`, in `npm
+   test` — 36 total): URL construction, DB→domain mapping, normalization,
+   validation/clamps, aggregation (ns filtering, per-file views, top-N,
+   detail, partialViews), relay/fallback routing. **Live verification:**
+   `scripts/verify-glam.mjs` — both paths match glamtools exactly on XBio
+   depth-1 2026-07: 518 files · 38 used · 38 viewed · 40 pages · 2 wikis ·
+   110,092 views. HTTP smoke of the endpoint: validation 400s + real query
+   both correct.
 
 **Revisit triggers (→ full server aggregation C):** budgets > ~1K files,
 repeat-load cache wins, glamtools ships a real stats API, or PetScan

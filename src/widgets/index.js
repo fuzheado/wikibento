@@ -355,7 +355,7 @@ export const WIDGET_TYPES = {
     fetch: (config) => fetchGlamStats(config),
     transform: (data) => ({
       title: data.category,
-      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ' · views partial' : ''}`,
+      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ' · views partial' : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
       stats: [
         { label: 'Files in category', value: data.files.toLocaleString(), sub: data.cappedFiles ? 'budget-capped' : undefined },
         { label: 'Files viewed', value: data.viewedFiles.toLocaleString(), sub: `of ${data.usedFiles.toLocaleString()} used` },

@@ -269,34 +269,48 @@ async function attachThumbs(files) {
  * 6. GLAM Category Usage — GLAMorgan-style impact stats for a Commons
  *  category tree and month: files, used/viewed files, pages, total views,
  *  top-N filmstrip, and per-page detail for the top file.
+ *  ISSUE-46 (2026-08-17): tree+usage now come from PetScan via the
+ *  same-origin /api/petscan relay (exact-ns giu); the bounded self-walk +
+ *  batched globalusage remains the fallback when the relay is unavailable.
  */
-export async function fetchGlamStats(cfg = {}) {
-  const category = cleanCategoryNameForWalk(cfg.category || '');
-  const depth = Math.min(Math.max(parseInt(cfg.depth) || 0, 0), MAX_DEPTH);
-  const year = Math.min(Math.max(parseInt(cfg.year) || new Date().getFullYear(), 2015), new Date().getFullYear() + 1);
-  const month = Math.min(Math.max(parseInt(cfg.month) || 1, 1), 12);
-  const budget = Math.min(Math.max(parseInt(cfg.fileBudget) || GLAM_FILE_BUDGET, 50), 1000);
-  const topN = Math.min(Math.max(parseInt(cfg.topN) || 5, 1), 10);
 
-  if (!category) throw new Error('Glam stats need a category');
+const PETSCAN_RELAY = '/api/petscan';
 
-  const exclCats = await collectExcludedCategories(cfg.negcats, parseInt(cfg.negdepth) || 0);
+/** ISSUE-46 primary source: PetScan via the same-origin capped relay.
+ *  Returns null on any failure → caller falls back to the self-walk. */
+async function fetchPetscanRelay({ category, depth, negcats, negdepth, budget }) {
+  try {
+    const params = new URLSearchParams({
+      cats: category, depth: String(depth),
+      negcats: negcats || '', negdepth: String(negdepth),
+      budget: String(budget),
+    });
+    const d = await fetchJSON(`${PETSCAN_RELAY}?${params}`);
+    if (!d || d.source !== 'petscan' || !Array.isArray(d.files)) return null;
+    return d;
+  } catch { return null; }
+}
+
+/** Fallback acquisition: bounded categorymembers walk + batched globalusage
+ *  (50-title chunks — the ISSUE-45 fix). */
+async function fetchSelfWalkUsage(category, depth, budget, negcats, negdepth) {
+  const exclCats = await collectExcludedCategories(negcats, negdepth);
   const files = await collectCategoryFiles(category, depth, budget, exclCats);
-  const cappedFiles = files.length >= budget;
-  if (!files.length) {
-    return {
-      category, files: 0, cappedFiles, usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0,
-      totalViews: 0, partialViews: false, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
-      top: [], detail: null,
-    };
-  }
-
   const usage = await fetchBatchedUsage(files);
+  return { files, usage };
+}
 
-  // Distinct ns-0 pages, with a usage-weight for prioritization.
+/** Shared aggregation (injectable views/thumbs for tests): ns-0 pages map →
+ *  bounded monthly views (top GLAM_VIEW_BUDGET by usage weight) → per-file
+ *  aggregates → top-N filmstrip → top-file detail. */
+export async function aggregateGlamStats(files, usage, { year, month, topN, showDetail = true, views = fetchMonthlyViews, thumbs = attachThumbs } = {}) {
+  // Distinct ns-0 pages, with a usage-weight for prioritization. Self-walk
+  // usage entries carry no ns (already article-filtered); PetScan entries
+  // carry exact ns — keep only 0.
   const pages = {};
   files.forEach(f => {
     for (const u of usage[f] || []) {
+      if (u.ns !== undefined && u.ns !== 0) continue;
       const k = `${u.wiki}:${u.page}`;
       if (!pages[k]) pages[k] = { wiki: u.wiki, page: u.page, weight: 0, views: 0 };
       pages[k].weight++;
@@ -308,14 +322,14 @@ export async function fetchGlamStats(cfg = {}) {
     ? [...pageKeys].sort((a, b) => pages[b].weight - pages[a].weight).slice(0, GLAM_VIEW_BUDGET)
     : pageKeys;
   await pool(keysToFetch, 6, async (k) => {
-    pages[k].views = await fetchMonthlyViews(pages[k].wiki, pages[k].page, year, month);
+    pages[k].views = await views(pages[k].wiki, pages[k].page, year, month);
   });
 
   // Per-file aggregates.
   const fileStats = files.map(f => ({
     title: f,
-    used: (usage[f] || []).length > 0,
-    views: (usage[f] || []).reduce((s, u) => s + (pages[`${u.wiki}:${u.page}`]?.views || 0), 0),
+    used: (usage[f] || []).some((u) => u.ns === undefined || u.ns === 0),
+    views: (usage[f] || []).reduce((s, u) => (u.ns !== undefined && u.ns !== 0 ? s : s + (pages[`${u.wiki}:${u.page}`]?.views || 0)), 0),
   }));
   const usedFiles = fileStats.filter(f => f.used).length;
   const viewedFiles = fileStats.filter(f => f.views > 0).length;
@@ -327,17 +341,17 @@ export async function fetchGlamStats(cfg = {}) {
     .filter(f => f.used)
     .sort((a, b) => b.views - a.views || Number(b.used) - Number(a.used))
     .slice(0, topN);
-  await attachThumbs(top);
+  await thumbs(top);
 
   // Top-file detail: its ns-0 pages with monthly views, top 10.
   let detail = null;
-  if (cfg.showDetail !== false && top.length) {
-    const rows = usage[top[0].title] || [];
+  if (showDetail && top.length) {
+    const rows = (usage[top[0].title] || []).filter((u) => u.ns === undefined || u.ns === 0);
     await pool(rows, 6, async (u) => {
       const k = `${u.wiki}:${u.page}`;
       if (!(k in pages)) pages[k] = { wiki: u.wiki, page: u.page, weight: 0, views: 0 };
       if (!pages[k].viewsFetched) {
-        pages[k].views = await fetchMonthlyViews(u.wiki, u.page, year, month);
+        pages[k].views = await views(u.wiki, u.page, year, month);
         pages[k].viewsFetched = true;
       }
     });
@@ -353,9 +367,7 @@ export async function fetchGlamStats(cfg = {}) {
   }
 
   return {
-    category,
     files: files.length,
-    cappedFiles,
     usedFiles,
     viewedFiles,
     pages: pageKeys.length,
@@ -365,6 +377,46 @@ export async function fetchGlamStats(cfg = {}) {
     monthLabel: `${year}-${String(month).padStart(2, '0')}`,
     top: top.map(f => ({ title: f.title.replace(/^File:/, '').replace(/_/g, ' '), views: f.views, thumbUrl: f.thumbUrl })),
     detail,
+  };
+}
+
+/** GLAM impact stats: PetScan via /api/petscan relay (primary, ISSUE-46),
+ *  bounded self-walk fallback. deps injectable for tests. */
+export async function fetchGlamStats(cfg = {}, deps = {}) {
+  const category = cleanCategoryNameForWalk(cfg.category || '');
+  const depth = Math.min(Math.max(parseInt(cfg.depth) || 0, 0), MAX_DEPTH);
+  const year = Math.min(Math.max(parseInt(cfg.year) || new Date().getFullYear(), 2015), new Date().getFullYear() + 1);
+  const month = Math.min(Math.max(parseInt(cfg.month) || 1, 1), 12);
+  const budget = Math.min(Math.max(parseInt(cfg.fileBudget) || GLAM_FILE_BUDGET, 50), 1000);
+  const topN = Math.min(Math.max(parseInt(cfg.topN) || 5, 1), 10);
+
+  if (!category) throw new Error('Glam stats need a category');
+
+  const { relay = fetchPetscanRelay, walk = fetchSelfWalkUsage } = deps;
+  const acquired = await relay({ category, depth, negcats: cfg.negcats, negdepth: parseInt(cfg.negdepth) || 0, budget });
+  let files, usage, cappedFiles, source;
+  if (acquired && !acquired.truncated && acquired.files?.length) {
+    ({ files, usage } = acquired);
+    cappedFiles = !!acquired.capped;
+    source = 'petscan';
+  } else {
+    ({ files, usage } = await walk(category, depth, budget, cfg.negcats, parseInt(cfg.negdepth) || 0));
+    cappedFiles = files.length >= budget;
+    source = 'selfwalk';
+  }
+  if (!files.length) {
+    return {
+      category, source, files: 0, cappedFiles, usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0,
+      totalViews: 0, partialViews: false, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
+      top: [], detail: null,
+    };
+  }
+
+  return {
+    category,
+    source,
+    cappedFiles,
+    ...(await aggregateGlamStats(files, usage, { year, month, topN, showDetail: cfg.showDetail !== false, ...deps })),
   };
 }
 

@@ -68,6 +68,18 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   dragConfig) — the app's rowHeight={80} was ignored and the grid rendered
   with RGL's 150px-row defaults all along. Fixed via `gridConfig`; board
   now renders at the intended density. Commit ee70ce4, verified live.
+- ✅ **GLAM PetScan relay implemented (ISSUE-46, 2026-08-17)** — branch
+  `glam-petscan-relay`. `deploy/server.js` gains `/api/petscan` (stateless
+  capped relay: budget + 25 MB byte cap, 60 s timeout, per-IP limits;
+  `wikiDbToDomain` maps PetScan DB names → domains; pure fns exported).
+  `fetchGlamStats` rewritten: PetScan relay primary, self-walk fallback
+  (ISSUE-45 fix retained), shared `aggregateGlamStats` with injectable
+  views/thumbs; output carries `source`, card subtitle flags self-walk
+  fallback. **19 new offline tests** (tests/glam-petscan.test.mjs — npm
+  test now 36) + `scripts/verify-glam.mjs` live parity check. **Verified:
+  both paths match glamtools exactly on XBio depth-1 2026-07 — 518/38/38/
+  40/2/110,092**; endpoint HTTP-smoked (400 on missing cats, real query
+  OK). NOT deployed (server change needs the deploy procedure).
 - ✅ **GLAM architecture decision: PetScan relay (ISSUE-46, 2026-08-17)** —
   after the ISSUE-45 zero-usage bug, a source read of glamtools showed
   GLAMorgan has NO stats backend (PetScan + same-origin pageviews proxy +
