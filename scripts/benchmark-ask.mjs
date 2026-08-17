@@ -21,7 +21,7 @@
  * benchmark, NOT part of `npm test` (live dependency, no SLA).
  */
 import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 process.env.WIKIBENTO_TEST = '1'; // must precede the server.js import (no listen)
@@ -43,7 +43,7 @@ const UPSTREAM = `https://api.wikimedia.org/service/lw/inference/v1/models/${MOD
 const { ASK_SYSTEM, ASK_RULES, validateOptions, manifestIds } = await import('../deploy/server.js');
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const defs = manifestIds(manifest);
-const { INTENT_FIXTURES } = await import(pathToFileURL(join(process.cwd(), FIXTURE_PATH)).href);
+const { INTENT_FIXTURES } = await import(pathToFileURL(resolve(process.cwd(), FIXTURE_PATH)).href);
 const { scoreOptions, printScorecard, summarizeScorecard } = await import('../tests/intent-benchmark-lib.mjs');
 
 const stripThink = (s) => String(s).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
