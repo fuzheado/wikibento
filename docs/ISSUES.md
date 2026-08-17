@@ -1902,3 +1902,31 @@ Source: user direction 2026-08-16; precedents verified 2026-08-16
 Wikimania_2026).
 **Facility record + caveat (experimental, no SLA, may be removed):**
 docs/DATA-SOURCES.md §23.
+
+## ISSUE-45 · GLAM widget silently returns zero usage — anonymous `titles` cap (50) — **done 2026-08-16**
+
+**Reported:** GLAM Category Usage for "Images from XBio" (depth 1, 2026-07)
+showed 518 files but **0 used / 0 pages / 0 views**, while
+glamtools.toolforge.org returned 518 files · 38 used · 40 pages · 2 wikis ·
+110,092 views.
+
+**Root cause (verified live):** the Action API caps the `titles` parameter
+at **50 values for anonymous clients** (`toomanyvalues`, lowlimit 50 /
+highlimit 500 for bots — confirmed for `prop=globalusage` AND
+`prop=imageinfo`). `fetchBatchedUsage` chunked by **encoded length only**
+(4,500 chars), so short filenames packed 71–75 titles per chunk and EVERY
+query failed. The failure is **silent**: the response carries
+`{"batchcomplete":""}` with no `query.pages` — no error key, so the widget
+parsed it as "no usage" and reported zeros. Filename-length-dependent: long
+names (WLM-style) stayed ≤50/chunk and worked, which is why earlier
+verifications passed.
+
+**Fix:** chunk by **min(count 50, encoded length 4,500)** in the three
+length-based multi-title batchers — `fetchBatchedUsage` (GLAM),
+`fetchMediaPlaylist` (mediaPlayer), `fetchCommonsGallery` (file gallery).
+The by-count-50 sliders (pageimages|extracts enrichment, imageinfo in
+articleList/topPages) were already safe.
+
+**Verified:** widget now matches GLAMorgan exactly on every metric —
+518/38/38/40/2/110,092. Docs updated: HANDOFF gotcha #4, DATA-SOURCES
+§GLAM + §imageinfo + §videoinfo.

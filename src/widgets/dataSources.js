@@ -196,7 +196,11 @@ async function fetchBatchedUsage(files) {
   };
   for (const f of files) {
     const len = encodeURIComponent(f).length + 1;
-    if (chunk.length && chunkLen + len > MAX_ENCODED) await flush();
+    // Anonymous API clients cap `titles` at 50 per query (toomanyvalues;
+    // logged-in bots get 500) — chunk by min(count 50, encoded length), or
+    // short filenames pack 70+ titles into a 4,500-char chunk and every
+    // query silently fails (no error surface — empty query.pages).
+    if (chunk.length >= 50 || (chunk.length && chunkLen + len > MAX_ENCODED)) await flush();
     chunk.push(f);
     chunkLen += len;
   }
@@ -564,7 +568,8 @@ export async function fetchMediaPlaylist(filesText) {
   };
   for (const f of files) {
     const len = encodeURIComponent(f).length + 1;
-    if (chunk.length && chunkLen + len > MAX_ENCODED) await flush();
+    // 50-title anonymous cap (toomanyvalues) — see fetchBatchedUsage.
+    if (chunk.length >= 50 || (chunk.length && chunkLen + len > MAX_ENCODED)) await flush();
     chunk.push(f);
     chunkLen += len;
   }
@@ -1172,7 +1177,8 @@ export async function fetchCommonsGallery(filesText) {
   };
   for (const t of titles) {
     const len = encodeURIComponent(t).length + 1;
-    if (chunk.length && chunkLen + len > MAX_ENCODED) await flush();
+    // 50-title anonymous cap (toomanyvalues) — see fetchBatchedUsage.
+    if (chunk.length >= 50 || (chunk.length && chunkLen + len > MAX_ENCODED)) await flush();
     chunk.push(t);
     chunkLen += len;
   }

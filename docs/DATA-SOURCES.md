@@ -158,9 +158,11 @@ Replicates GLAMorgan's computation browser-native, in four bounded stages
    500, max 1,000). `negcats`/`negdepth` build an exclusion set. PetScan is
    deliberately NOT used: it ignores the `max` cap and returns multi-10MB
    responses for large trees.
-2. **Global usage** — `prop=globalusage` in multi-title batches (50 titles),
-   `gulimit=100`, with **length-aware chunking** (long filenames blow the ~8KB
-   GET URL limit — HTTP 414). ⚠️ The API's usage entries carry **no `ns`
+2. **Global usage** — `prop=globalusage` in multi-title batches,
+   `gulimit=100`, chunked by **min(count 50, encoded length 4,500)** — the
+   anonymous `titles` cap is 50 (`toomanyvalues`; length-only chunking
+   silently returns empty `query.pages` when short filenames pack 70+
+   titles — fixed 2026-08-16). ⚠️ The API's usage entries carry **no `ns`
    field** (verified; GLAMorgan gets `ns` from PetScan's giu), so article-space
    filtering uses a URL-path namespace heuristic (Talk:/User:/File:/Template:/
    … excluded; localized namespace names like Diskussion: are conservatively
@@ -368,7 +370,7 @@ describe it in the docs above, done.
 
 ## 15. Commons File Gallery — Commons API `imageinfo` (batched) **Widget:** Commons File Gallery · **Fetcher:** `fetchCommonsGallery(filesText)`
 - **Input:** a textarea list of Commons files, one per line (`File:` prefix optional). Ordering is client-side in the transform — re-sorting never re-fetches.
-- **Endpoint:** Action API `prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=400&iiextmetadatafilter=ImageDescription` (`origin=*`) — 400px thumbs + dimensions + description caption. **Adaptive batching by encoded length (~4,500 chars/chunk), not by count** — long filenames (WLM) blow GET URLs (HTTP 414) otherwise.
+- **Endpoint:** Action API `prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=400&iiextmetadatafilter=ImageDescription` (`origin=*`) — 400px thumbs + dimensions + description caption. **Adaptive batching by min(count 50, ~4,500 encoded chars/chunk)** — the anonymous `titles` cap is 50 (toomanyvalues), long filenames (WLM) blow GET URLs (HTTP 414).
 - **Missing files:** counted (`missing` in the fetch result), surfaced in the subtitle ("3 files · 1 not found") — never fatal.
 - **Order modes:** `listed` (input order) · `random` (Fisher–Yates shuffle, fresh each refresh) · `alpha` (title) · `largest` (width×height). `maxItems` clamps rows.
 - **Gotcha (fixed 2026-08-13):** strip the `File:` prefix for normalization but **re-add it in the API `titles`** — without the prefix every title resolves as a missing main-namespace page.
@@ -423,7 +425,7 @@ describe it in the docs above, done.
 
 ## 22. Video / Media Player — Commons API `videoinfo` (batched) **Widget:** Video / Media Player · **Fetcher:** `fetchMediaPlaylist(filesText)`
 - **Input:** a textarea list of Commons files, one per line (`File:` prefix optional). One file = plain embed; several = jukebox playlist.
-- **Endpoint:** Action API `prop=videoinfo&viprop=derivatives|url|size|duration` (`origin=*`) — returns the original + all transcoded derivatives (VP9/VP8 WebM, Theora OGG, quicktime iOS path) with width/height/duration. **Adaptive batching by encoded length (~4,500 chars/chunk)** — same rule as `fetchCommonsGallery`/`fetchBatchedUsage` (HTTP 414 otherwise).
+- **Endpoint:** Action API `prop=videoinfo&viprop=derivatives|url|size|duration` (`origin=*`) — returns the original + all transcoded derivatives (VP9/VP8 WebM, Theora OGG, quicktime iOS path) with width/height/duration. **Adaptive batching by min(count 50, ~4,500 encoded chars/chunk)** — same rule as `fetchCommonsGallery`/`fetchBatchedUsage` (anonymous 50-title cap + HTTP 414 otherwise).
 - **Audio works too:** `videoinfo` serves audio files — derivatives may list an mp3 transcode; the widget plays the original Ogg/Opus directly (Commons format policy = WebM/OGG only; MP4 uploads blocked by patents, so VP9 WebM is the universal playback default).
 - **Playback URL pick (`pickPlayUrl`):** prefer transcoded `video/webm` derivatives (excludes the original, whose src lacks `/transcoded/`); quality is **height-based** ("480p" = 640×480) — largest derivative ≤ target, auto = largest ≤ 1080p; fallback = original URL. `?utm_source=…` query junk stripped from all URLs.
 - **Per-track media type:** video if any derivative is `video/*` or the extension is webm/ogv, else audio → the card renders `<video>` or `<audio>` per track (mixed playlists fine).

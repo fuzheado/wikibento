@@ -299,7 +299,14 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
    all 239,084 files, 39 MB response). Never call PetScan from this app for big
    categories — the GLAM widget does its own bounded categorymembers walk.
 4. **Long filenames blow multi-title GET URLs** (HTTP 414). Batch by encoded
-   length (~4,500 chars), not by count — see `fetchBatchedUsage`.
+   length (~4,500 chars), not by count — see `fetchBatchedUsage`. **BUT the
+   anonymous `titles` cap is 50 per query** (`toomanyvalues`, lowlimit 50 /
+   highlimit 500 for bots) — length-only chunking silently breaks when short
+   filenames pack 70+ titles into a chunk (every query returns empty
+   `query.pages`, NO error surface). Chunk by **min(count 50, length
+   4,500)**. Fixed 2026-08-16: GLAM widget showed 0 used/0 views for
+   "Images from XBio" while glamtools returned 518 files · 38 used · 40
+   pages · 110,092 views; after the fix the widget matches exactly.
 5. **Commons Impact Metrics is allow-list only**: unregistered categories 404
    with "the category you asked for is not loaded yet". Registration via
    `{{Views from category}}` template, processed monthly. The planned CIM-first
