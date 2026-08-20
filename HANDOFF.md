@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-08-16 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-08-17 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -56,7 +56,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   People at Wikimania 2024 depth 5 = 2,832 files / 1.19 MB / ~2 s via
   PetScan (~0.4 KB/file → a full-budget tree ≈ 12 MB, under the 25 MB byte
   cap). Tests: glam-petscan +3, new config-ranges suite +6 (npm test 45).
-  Not deployed (rides the pending ISSUE-46 deploy).
+  **DEPLOYED 2026-08-17** (bundle index-B_hgqo4i.js; merged to main ebb4af7).
 - ✅ **30 widget types total (2026-08-16):** + 🎬 Video/Media Player
   (ISSUE-39) + 🕰️ Wayback Snapshot Gallery (alpha). Full catalog:
   `?config=/dashboard.json`.
@@ -120,7 +120,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   test now 36) + `scripts/verify-glam.mjs` live parity check. **Verified:
   both paths match glamtools exactly on XBio depth-1 2026-07 — 518/38/38/
   40/2/110,092**; endpoint HTTP-smoked (400 on missing cats, real query
-  OK). NOT deployed (server change needs the deploy procedure).
+  OK). **DEPLOYED 2026-08-17** (merged to main ebb4af7; production bundle
+  index-B_hgqo4i.js; verified live — Wikimania 2024 depth 5 = 2,832 files,
+  capped: false).
 - ✅ **GLAM architecture decision: PetScan relay (ISSUE-46, 2026-08-17)** —
   after the ISSUE-45 zero-usage bug, a source read of glamtools showed
   GLAMorgan has NO stats backend (PetScan + same-origin pageviews proxy +
@@ -131,8 +133,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   2026-08-17); full server aggregation (C) only when budgets >~1K files or
   repeat-load caching wins. Design + revisit triggers:
   docs/GLAMORGAN-WIDGET.md §Architecture Decision; contracts recorded in
-  ARCHITECTURE.md watchlist; ROADMAP Phase 1.5. **Branch:
-  `glam-petscan-relay`** (docs only so far — implementation pending).
+  ARCHITECTURE.md watchlist; ROADMAP Phase 1.5. **Status: implemented +
+  merged to main 2026-08-17 (ebb4af7), deployed** (was `glam-petscan-relay`,
+  docs-only at decision time).
 - ✅ **Ask payload contract documented + intent→widget benchmark suite
   (2026-08-16):** ISSUE-44 gains the "Payload contract (as shipped)"
   section — the exact trim map (8 fields per widget: id/name/description/
@@ -193,7 +196,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-DkcrAAk0.js; latest deploy 2026-08-16 (Lean mode).
+- ✅ Git repo on GitHub (main). Current production bundle = index-B_hgqo4i.js;
+  latest deploy 2026-08-17 (GLAM PetScan relay + 30K budget ceiling +
+  clickable links + depth UX; prior: index-DkcrAAk0.js Lean mode 2026-08-16).
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
@@ -323,7 +328,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (372.94 KB JS / 112.01 KB gzip)
+npm run build      # → dist/ (436.79 KB JS / 128.66 KB gzip + 49.19 KB CSS)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```
@@ -346,7 +351,7 @@ App.jsx (state: widgets[] + layout[], URL boot, persistence)
 ```
 
 Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
-(7 fetchers), `src/widgets/WidgetFrame.jsx` (lifecycle + renderers),
+(fetchers, one per widget type), `src/widgets/WidgetFrame.jsx` (lifecycle + renderers),
 `src/lib/dashboardConfig.js` (format + `validateDashboard()` + example),
 `src/lib/markdown.js` (zero-dep Markdown renderer for the Text/Markdown widget),
 `src/lib/share.js` (URL loading/sharing).

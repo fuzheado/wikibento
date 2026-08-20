@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈468 KB total (~134 KB
+(the same grid engine used by Grafana and Kibana), ≈486 KB total (~139 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -57,7 +57,7 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 | **Wiki Stats** | 🌐 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Articles, edits, users for a language edition |
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
-| **GLAM Category Usage** | 📈 | Commons API + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month, top-image filmstrip, per-page usage detail |
+| **GLAM Category Usage** | 📈 | PetScan via same-origin `/api/petscan` relay + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month (file budget up to 30,000), top-image filmstrip, per-page usage detail — clickable category & page links |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 | **Article Excerpt** | 📄 | [REST `/page/summary`](https://en.wikipedia.org/api/rest_v1/page/summary/Ada_Lovelace) | First paragraph + short description + thumbnail for any article, linked to the page |
 | **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
@@ -134,7 +134,8 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
   files, pages on wikis, total views, top-image filmstrip, and per-page usage of
-  the top file (GLAMorgan-style)
+  the top file (GLAMorgan-style); PetScan-relay powered (budget up to 30,000
+  files), clickable category/page links, depth-aware zero-state
 - **Auto-refresh** — configurable per widget (default: 1 h, Wikistats widgets default 2 h)
 - **Resilient fetches** — the Wikistats CSV is fetched through a shared TTL cache
   (two widgets hitting the same 195 KB file now cost one request) with a 15 s
@@ -206,8 +207,24 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-08-14)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-08-17)
 
+- ✅ **GLAM PetScan relay + budget ceiling (2026-08-17):** the GLAM widget's
+  tree+usage flows through the same-origin `/api/petscan` relay (PetScan `giu`
+  exact-ns — structural parity with glamtools, verified 518/38/38/40/2/110,092
+  on XBio depth-1 2026-07); `fileBudget` honored up to **30,000** files
+  end-to-end (self-walk fallback stays capped at 1,000; the relay's 25 MB byte
+  cap + 60 s timeout are the real valves); client relay timeout matched to the
+  server (75 s single attempt — the 15 s `fetchJSON` default was aborting the
+  60 s server work and silently falling back). Verified live: People at
+  Wikimania 2024 depth 5 → **2,832 files, capped: false** (the old ceiling
+  truncated at 1,000); Wikimania 2026 depth 7 → 12,007 files under the new cap
+- ✅ **Clickable GLAM/CIM links + depth UX (2026-08-17):** GLAM + CIM card
+  category titles, the top-file header, and every per-page usage row link out
+  in a new tab; zero-file scans explain themselves ("No files directly in this
+  category — increase Depth to include subcategories" at depth 0); ⚙ panel
+  shows semantic hints for Depth ("0 = category only, 1 = + direct subcats")
+  and Excl depth
 - ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
   imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
   drops infobox flags/maps (verified: France's `Flag_of_France.svg` and all
