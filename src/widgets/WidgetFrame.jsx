@@ -212,12 +212,23 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
                   onChange={e => handleConfigChange(field.key, e.target.checked)}
                 />
               ) : field.type === 'number' ? (
-                <input
-                  type="number"
-                  value={widget.config[field.key] || ''}
-                  onChange={e => handleConfigChange(field.key, parseInt(e.target.value) || 0)}
-                  placeholder={field.placeholder}
-                />
+                <div className="config-number-wrap">
+                  <input
+                    type="number"
+                    min={field.min}
+                    max={field.max}
+                    value={widget.config[field.key] || ''}
+                    onChange={e => handleConfigChange(field.key, parseInt(e.target.value) || 0)}
+                    placeholder={field.placeholder}
+                  />
+                  {(field.hint || (field.min !== undefined && field.max !== undefined)) && (
+                    <small className="config-hint">
+                      {field.hint}
+                      {field.hint && field.min !== undefined && field.max !== undefined && ' · '}
+                      {field.min !== undefined && field.max !== undefined && `${field.min}–${field.max.toLocaleString()}`}
+                    </small>
+                  )}
+                </div>
               ) : field.type === 'textarea' ? (
                 <textarea
                   value={widget.config[field.key] || ''}
@@ -459,8 +470,16 @@ function RankingCard({ data }) {
 function GlamCard({ data }) {
   return (
     <div className="glam-card">
-      {data.title && <div className="stat-title" title={data.title}>{data.title}</div>}
+      {data.title && (
+        <div className="stat-title" title={data.title}>
+          {data.href
+            ? <a href={data.href} target="_blank" rel="noopener noreferrer">{data.title}</a>
+            : data.title}
+        </div>
+      )}
       {data.subtitle && <div className="stat-subtitle">{data.subtitle}</div>}
+      {data.emptyHint && <div className="widget-empty glam-empty">{data.emptyHint}</div>}
+      {!data.emptyHint && (
       <div className="glam-stats">
         {(data.stats || []).map((s, i) => (
           <div key={i} className="glam-stat">
@@ -470,6 +489,7 @@ function GlamCard({ data }) {
           </div>
         ))}
       </div>
+      )}
       {data.filmstrip && data.filmstrip.length > 0 && (
         <div className="sample-strip">
           {data.filmstrip.map((img, i) => (
@@ -488,7 +508,13 @@ function GlamCard({ data }) {
       )}
       {data.detail && data.detail.rows && data.detail.rows.length > 0 && (
         <div className="ranking-card glam-detail">
-          {data.detail.title && <div className="ranking-title" title={data.detail.title}>{data.detail.title}</div>}
+          {data.detail.title && (
+            <div className="ranking-title" title={data.detail.title}>
+              {data.detail.titleHref
+                ? <a className="ranking-link" href={data.detail.titleHref} target="_blank" rel="noopener noreferrer">{data.detail.title}</a>
+                : data.detail.title}
+            </div>
+          )}
           <div className="ranking-header">
             <span className="ranking-col col-0">Wiki</span>
             <span className="ranking-col col-1">Page</span>
@@ -498,7 +524,11 @@ function GlamCard({ data }) {
             {data.detail.rows.map((row, i) => (
               <div key={i} className="ranking-row">
                 <span className="ranking-col col-0" title={row.wiki}>{row.wiki.replace(/\.org$/, '')}</span>
-                <span className="ranking-col col-1" title={`${row.wiki}:${row.page}`}>{row.page}</span>
+                <span className="ranking-col col-1" title={`${row.wiki}:${row.page}`}>
+                  {row.href
+                    ? <a className="ranking-link" href={row.href} target="_blank" rel="noopener noreferrer">{row.page}</a>
+                    : row.page}
+                </span>
                 <span className="ranking-col col-2">{row.views.toLocaleString()}</span>
               </div>
             ))}
@@ -1065,7 +1095,13 @@ function WikiPageCard({ data }) {
 function CimSnapshotCard({ data }) {
   return (
     <div className="glam-card">
-      {data.title && <div className="stat-title" title={data.title}>{data.title}</div>}
+      {data.title && (
+        <div className="stat-title" title={data.title}>
+          {data.href
+            ? <a href={data.href} target="_blank" rel="noopener noreferrer">{data.title}</a>
+            : data.title}
+        </div>
+      )}
       {data.subtitle && <div className="stat-subtitle">{data.subtitle}</div>}
       <div className="glam-stats">
         {(data.stats || []).map((s, i) => (

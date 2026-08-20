@@ -16,6 +16,47 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **GLAM depth UX (2026-08-17)** — zero-state explainer + config hints:
+  when a scan returns 0 files the card now shows a real message instead of
+  silent zeros — depth 0: "No files directly in this category — increase
+  Depth to include subcategories"; deeper: "No files found in this category
+  tree" (transform emits `emptyHint`, GlamCard swaps the stats grid for the
+  hint). Config panel: `hint` field on configFields renders inline
+  semantics — Depth "0 = category only, 1 = + direct subcats", Excl depth
+  "0 = excluded cats only, 1 = + their subcats" (plus the 0–12 range);
+  negdepth gained min/max 0–12 so the range shows too. Browser-verified
+  (zero-state via a nonexistent category, hints in the ⚙ panel).
+- ✅ **Clickable titles + page names on GLAM/CIM cards (2026-08-17)** —
+  ISSUE-47: GLAM Category Usage + CIM Category Snapshot card titles link
+  to the Commons `Category:` page in a new tab (`.excerpt-title a` styling;
+  the card title, not the drag-handle title bar, is the link target).
+  Extended: the GLAM card's per-page usage table links too — the top-file
+  header opens its `File:` page and every usage row's page name opens on
+  its own wiki (`pageHref`, `.org` stripped; unknown wikis stay plain).
+  Audit: all other page-listing cards already linked (cimTopPages,
+  topPages, articleList, cimTopFiles). Transform tests cover en/commons/
+  unknown-wiki rows + null-detail (glam-petscan.test.mjs; npm test 48).
+- ✅ **GLAM file budget ceiling raised to 30,000 (2026-08-17)** — the
+  `glamorgan` widget's `fileBudget` (silently clamped at 1,000 in
+  production) now honors user values up to **30,000** end-to-end (raised
+  1,000 → 10,000 → 30,000 = GLAMorgan's own ceiling): client clamp
+  `GLAM_FILE_BUDGET_MAX` (dataSources.js), relay clamp `PETSCAN_BUDGET_MAX`
+  (server.js parsePetscanParams), registry/panel max, docs. The **self-walk
+  fallback stays capped at 1,000** (`GLAM_FALLBACK_CAP`) so a relay outage
+  can never trigger a multi-hundred-call browser walk — and `cappedFiles` is
+  now computed against the walk cap, so a capped fallback is labeled, not
+  silent. **Timeout mismatch fixed:** the relay legitimately runs up to 60 s
+  on big trees, but the client's `fetchJSON` default (15 s) aborted first
+  and silently fell back — `fetchPetscanRelay` now waits 75 s in a single
+  attempt; loadingHint updated ("30–90 s for large budgets"). **UI/import
+  contract:** registry configFields declare `min`/`max` (fileBudget 50–
+  30,000, depth 0–12, topN 1–10) → the ⚙ panel shows the range hint + HTML
+  min/max, and `validateDashboard` warns on out-of-range values ("will be
+  clamped", mirroring the layout w/h warning precedent). Live probe:
+  People at Wikimania 2024 depth 5 = 2,832 files / 1.19 MB / ~2 s via
+  PetScan (~0.4 KB/file → a full-budget tree ≈ 12 MB, under the 25 MB byte
+  cap). Tests: glam-petscan +3, new config-ranges suite +6 (npm test 45).
+  Not deployed (rides the pending ISSUE-46 deploy).
 - ✅ **30 widget types total (2026-08-16):** + 🎬 Video/Media Player
   (ISSUE-39) + 🕰️ Wayback Snapshot Gallery (alpha). Full catalog:
   `?config=/dashboard.json`.

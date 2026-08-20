@@ -263,6 +263,7 @@ function validateOptions(parsed, widgetDefs) {
 
 const PETSCAN_URL = 'https://petscan.wmcloud.org/';
 const PETSCAN_MAX_BYTES = 25 * 1024 * 1024; // quick-intersection can exceed this (39 MB trees)
+const PETSCAN_BUDGET_MAX = 30000; // client fileBudget ceiling (GLAM widget, matches GLAMorgan's 30K)
 const PETSCAN_TIMEOUT_MS = 60000;
 const PETSCAN_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) petscan-relay';
 
@@ -346,7 +347,7 @@ function parsePetscanParams(url) {
       depth: clamp(url.searchParams.get('depth'), 0, 12, 0),
       negcats: String(url.searchParams.get('negcats') || ''),
       negdepth: clamp(url.searchParams.get('negdepth'), 0, 12, 0),
-      budget: clamp(url.searchParams.get('budget'), 1, 1000, 500),
+      budget: clamp(url.searchParams.get('budget'), 1, PETSCAN_BUDGET_MAX, 500),
     },
   };
 }

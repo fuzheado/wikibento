@@ -61,7 +61,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `year` / `month` | numbers (pageview range; data starts 2015-08) |
 | | `negcats` | string, pipe-separated categories to exclude |
 | | `negdepth` | number, integer (exclusion depth) |
-| | `fileBudget` | number, integer 50–1,000 (files walked; capped trees labeled) |
+| | `fileBudget` | number, integer 50–30,000 (files walked via the PetScan relay; the self-walk fallback caps at 1,000; capped trees labeled) |
 | | `topN` | number, integer 1–10 (filmstrip size) |
 | | `showDetail` | boolean (top-file per-page usage table) |
 | `markdown` | `text` | string, Markdown (static widget — no fetch) |

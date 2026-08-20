@@ -41,7 +41,8 @@ for one Commons category tree, one month**:
    pages in a **39 MB / 16 s response**. GLAMorgan gets away with it server-side;
    a browser tab does not. → **Replaced with a client-side category walk** using
    the Commons Action API (`categorymembers`, files+subcats, depth-aware) with a
-   **hard file budget** (default 500, max 1,000). Depth semantics match
+   **hard file budget** (default 500, max 30,000 via the relay — GLAMorgan's
+   own ceiling; the browser self-walk fallback stays capped at 1,000). Depth semantics match
    PetScan's (0 = category itself, 1 = + direct subcats, …). The widget reports
    "first N of M files" when the budget caps the tree.
 2. **Pageviews are one REST call per distinct page.** GLAMorgan needs a
@@ -128,7 +129,7 @@ a same-origin pageviews proxy) and ~40 lines of browser-side aggregation.
 
 | | A. Self-contained client (as shipped) | **B. Delegate tree+usage to PetScan (chosen)** | C. Server-side aggregation + cache |
 |---|---|---|---|
-| Tree | own `categorymembers` walk, ≤1,000 files | **PetScan via `/api/petscan` relay, budget-capped server-side** | PetScan |
+| Tree | own `categorymembers` walk, ≤1,000 files (fallback cap) | **PetScan via `/api/petscan` relay, budget-capped server-side** | PetScan |
 | Usage | `globalusage` API + URL-path ns heuristic, `gulimit=100` | **PetScan `giu` — exact `ns`, no heuristic** | PetScan |
 | Pageviews | WMF API, ≤150 pages, client | WMF API, ≤150 pages, client | WMF API, batched, all pages, cached |
 | Widget-native features (filmstrip, top-N detail, budgets, progress) | native | native | need API surface |
@@ -143,12 +144,24 @@ CORS-open (verified 2026-08-17) but its quick-intersection mode **ignores
 directly: it goes through a thin stateless relay on our Toolforge server
 (the `/api/proxy` pattern) that enforces a file budget + response-size cap.
 
-**Why not C yet:** C's only wins are cross-user caching and >1K-file
-budgets. The widget is *designed* bounded (500–1,000 files, 150 pages, 2 h
-refresh) to stay polite; at that scale client-side pageviews are fine and
-caching saves little. C becomes the target when: users request budgets
-above ~1K files, popular categories generate repeat-load traffic, or the
+**Why not C yet:** C's only wins are cross-user caching and very large
+budgets. The widget is *designed* bounded (500–30,000 files via the relay,
+1,000-file fallback, 150 pages, 2 h refresh) to stay polite; at that scale
+client-side pageviews are fine and caching saves little. C becomes the
+target when: users request budgets above ~30,000 files (GLAMorgan's own
+ceiling), popular categories generate repeat-load traffic, or the
 SCALABILITY Phase 1.5 shared-cache layer lands. Revisit triggers below.
+
+> **Revision 2026-08-17:** the original ceiling was 1,000 files with C
+> triggered above ~1K. Lifting the ceiling to 30,000 became safe once the
+> relay (B) landed: the 25 MB byte cap + 60 s timeout bound the server's
+> PetScan work regardless of budget, pageviews stay capped at 150 client
+> fetches, and the self-walk fallback is separately capped at 1,000 so a
+> relay outage can never trigger a multi-hundred-call browser walk. 30,000
+> matches GLAMorgan's own cap; at ~0.4 KB/file of PetScan JSON (measured)
+> a full-budget tree is ~12 MB, under the byte cap. The docs' original
+> "browser pageviews then need server batching" rationale for the ~1K
+> trigger was stale — pageviews were already bounded at 150.
 
 **Explicit non-goals:** never depend on glamtools' `pageviews.php` proxy —
 same-origin-only (no CORS, verified 2026-08-17), unversioned, community-
@@ -167,8 +180,10 @@ both paths (relay + self-walk fallback) match glamtools exactly on the
 XBio repro — 518/38/38/40/2/110,092 (`scripts/verify-glam.mjs`).
 
 **Revisit triggers (check at each roadmap pass):**
-1. Budget requests > ~1,000 files (PetScan relay raises the ceiling to
-   GLAMorgan's 30K; browser pageviews then need server batching → C).
+1. Budget requests > ~30,000 files (GLAMorgan's own ceiling — beyond it,
+   the relay's byte cap + payload size make bigger trees a
+   server-aggregation problem → C), or payload-heavy trees that push the
+   normalized usage toward the 25 MB cap.
 2. Same categories loaded repeatedly (cross-user TTL cache becomes the
    clear win — server-side C with 10-min cache, SCALABILITY §cache).
 3. glamtools ships a real stats API (then "frame the tool" directly —
@@ -184,7 +199,7 @@ for the PetScan / pageviews.php contract records.
 
 New widget type `glamorgan` ("GLAM Category Usage", renderer `GlamCard`):
 config = category, depth (0–12), year, month, negcats, negdepth, fileBudget
-(50–1,000), topN (1–10), showDetail (bool). Fetcher `fetchGlamStats` in
+(50–30,000), topN (1–10), showDetail (bool). Fetcher `fetchGlamStats` in
 dataSources.js: category walk → batched globalusage → bounded pageviews →
 per-file aggregates → top-N filmstrip thumbs → top-file detail table.
 See docs/DATA-SOURCES.md §6 and the widget entry in src/widgets/index.js.

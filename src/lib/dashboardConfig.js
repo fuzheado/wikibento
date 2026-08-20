@@ -304,6 +304,8 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
       case 'number':
         if (typeof v !== 'number' || !Number.isFinite(v)) {
           errors.push(`${where}: config "${key}" must be a number (got ${JSON.stringify(v)})`);
+        } else if (field.min !== undefined && (v < field.min || v > field.max)) {
+          warnings.push(`${where}: config "${key}" is ${v} — out of range ${field.min}–${field.max} (will be clamped)`);
         }
         break;
       case 'boolean':

@@ -1968,6 +1968,38 @@ structural instead of heuristic.
    110,092 views. HTTP smoke of the endpoint: validation 400s + real query
    both correct.
 
-**Revisit triggers (→ full server aggregation C):** budgets > ~1K files,
+**Revisit triggers (→ full server aggregation C):** budgets > ~30,000
+files (GLAMorgan's own ceiling; raised through 1,000 → 10,000 → 30,000 on
+2026-08-17 — see the GLAMORGAN-WIDGET revision note),
 repeat-load cache wins, glamtools ships a real stats API, or PetScan
 reliability changes.
+
+## ISSUE-47 · GLAM / CIM cards: clickable category titles — **done 2026-08-17**
+
+**What:** the GLAM Category Usage card's category title is plain text; it
+should link to the Commons category in a new tab. (Same for the CIM
+Category Snapshot card, which shares the title pattern.)
+
+**Why:** `GlamCard` / `CimSnapshotCard` render `data.title` as a plain div
+(WidgetFrame.jsx) — unlike the CIM leaderboard (ISSUE-02's `{text, href}`
+cells) and the Article Excerpt card (`excerpt-title a` pattern). The title
+bar is the drag handle, so the card title (not the header) is the right
+click target.
+
+**Proposed fix:** the `glamorgan` transform emits `href:
+'https://commons.wikimedia.org/wiki/Category:' + encodeURIComponent(category)`
+(space-form title); `cimSnapshot` emits the underscore form directly (the
+leaderboard precedent). The cards render the title as
+`<a target="_blank" rel="noopener noreferrer">` when `href` is present,
+styled like `.excerpt-title a` (text-colored, underline on hover).
+
+**Fixed 2026-08-17:** both cards link out; two transform-contract tests
+added (tests/glam-petscan.test.mjs, npm test 47).
+
+**Extended 2026-08-17:** the GLAM card's per-page usage table now links
+too — the top-file header links to its Commons `File:` page, and every
+usage row's page name links to that page on its own wiki (`pageHref` with
+the `.org` stripped from full domains; unknown wikis stay plain). Audit
+result: every other page-listing card already linked (cimTopPages,
+topPages, articleList, cimTopFiles). Transform test covers en/commons/
+unknown-wiki rows (npm test 48).

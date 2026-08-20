@@ -321,7 +321,7 @@ export const WIDGET_TYPES = {
 
   glamorgan: {
     id: 'glamorgan',
-    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree — may take 10–30 s',
+    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree via PetScan — large budgets can take 30–90 s',
 
     timeScope: 'month',    name: 'GLAM Category Usage',
     icon: '📈',
@@ -343,18 +343,27 @@ export const WIDGET_TYPES = {
     dataSource: 'petscan-style walk + pageviews',
     configFields: [
       { key: 'category', label: 'Category', type: 'text', placeholder: 'Images from X' },
-      { key: 'depth', label: 'Depth', type: 'number', placeholder: '0-12' },
+      { key: 'depth', label: 'Depth', type: 'number', min: 0, max: 12, hint: '0 = category only, 1 = + direct subcats', placeholder: '0-12' },
       { key: 'year', label: 'Year', type: 'number', placeholder: '2026' },
       { key: 'month', label: 'Month', type: 'number', placeholder: '1-12' },
       { key: 'negcats', label: 'Exclude cats', type: 'text', placeholder: 'Cat A|Cat B' },
-      { key: 'negdepth', label: 'Excl depth', type: 'number', placeholder: '0' },
-      { key: 'fileBudget', label: 'File budget', type: 'number', placeholder: '500' },
-      { key: 'topN', label: 'Top images', type: 'number', placeholder: '5' },
+      { key: 'negdepth', label: 'Excl depth', type: 'number', min: 0, max: 12, hint: '0 = excluded cats only, 1 = + their subcats', placeholder: '0' },
+      { key: 'fileBudget', label: 'File budget', type: 'number', min: 50, max: 30000, placeholder: '500' },
+      { key: 'topN', label: 'Top images', type: 'number', min: 1, max: 10, placeholder: '5' },
       { key: 'showDetail', label: 'Top file detail', type: 'boolean' },
     ],
     fetch: (config) => fetchGlamStats(config),
-    transform: (data) => ({
+    transform: (data, config) => {
+      const depth = parseInt(config?.depth) || 0;
+      const emptyHint = data.files === 0
+        ? depth === 0
+          ? 'No files directly in this category — increase Depth to include subcategories'
+          : 'No files found in this category tree'
+        : undefined;
+      return {
       title: data.category,
+      emptyHint,
+      href: `https://commons.wikimedia.org/wiki/Category:${encodeURIComponent(data.category)}`,
       subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ' · views partial' : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
       stats: [
         { label: 'Files in category', value: data.files.toLocaleString(), sub: data.cappedFiles ? 'budget-capped' : undefined },
@@ -363,8 +372,20 @@ export const WIDGET_TYPES = {
         { label: 'Total views', value: data.totalViews.toLocaleString(), sub: data.monthLabel },
       ],
       filmstrip: data.top,
-      detail: data.detail,
-    }),
+      detail: data.detail && {
+        ...data.detail,
+        // Top-file name → its Commons File: page; usage rows → their pages
+        // (pageHref takes CIM-style prefixes, so drop the .org on domains).
+        titleHref: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent((data.detail.title || '').replace(/^Top file: /, '').replace(/ /g, '_'))}`,
+        rows: (data.detail.rows || []).map((u) => ({
+          wiki: u.wiki,
+          page: u.page,
+          views: u.views,
+          href: pageHref(u.wiki.replace(/\.org$/, ''), u.page),
+        })),
+      },
+    };
+    },
   },
 
   topWikipedias: {
@@ -825,6 +846,7 @@ export const WIDGET_TYPES = {
       const scope = resolveMonth(config.month);
       return {
       title: data.category.replace(/_/g, ' '),
+      href: `https://commons.wikimedia.org/wiki/Category:${data.category}`,
       subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · deep: ${data.filesDeep.toLocaleString()} files` : ''}`,
       stats: [
         { label: 'Files', value: data.files.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },

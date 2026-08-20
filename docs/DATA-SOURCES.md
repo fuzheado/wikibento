@@ -158,13 +158,15 @@ the same-origin `/api/petscan` relay** (`lang=commons&project=wikimedia`,
 `cats/depth/negcats/negdepth/ns=6/giu=1`): a single server-side crawl that
 resolves the tree AND returns per-file global usage with **exact `ns`**
 (no namespace heuristic). The relay enforces the **file budget** (default
-500, max 1,000) by truncating PetScan's response — PetScan quick-intersection
+500, max 30,000) by truncating PetScan's response — PetScan quick-intersection
 mode IGNORES `max` and can return multi-10MB responses — and caps bytes
 (25 MB, else `truncated` → client falls back). **Fallback (degraded):** the
 bounded `categorymembers` walk + `prop=globalusage` in multi-title batches,
 `gulimit=100`, chunked by **min(count 50, encoded length 4,500)** — the
 anonymous `titles` cap is 50 (`toomanyvalues`; length-only chunking
-silently returns empty `query.pages` — fixed 2026-08-16). ⚠️ The API's usage
+silently returns empty `query.pages` — fixed 2026-08-16). The fallback is
+**capped at 1,000 files** regardless of `fileBudget`, so a relay outage
+never triggers a multi-hundred-call browser walk. ⚠️ The API's usage
 entries carry **no `ns` field**, so the fallback filters article space with a
 URL-path namespace heuristic (localized namespace names conservatively
 counted as articles). The widget's output carries `source`

@@ -18,6 +18,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPetscanUrl, wikiDbToDomain, normalizePetscanPages, parsePetscanParams } from '../deploy/server.js';
 import { fetchGlamStats, aggregateGlamStats } from '../src/widgets/dataSources.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 // ── relay URL construction ────────────────────────────────────────────────
 
@@ -101,6 +102,14 @@ test('normalizePetscanPages: budget truncation sets capped (PetScan ignores max)
   assert.ok(usage['File:XBio illustration – Unused.png'] === undefined); // beyond budget → not walked
 });
 
+test('normalizePetscanPages: 30,000-budget tree truncates at the ceiling', () => {
+  const big = Array.from({ length: 30001 }, (_, i) => ({ page_title: `F${i}.jpg` }));
+  const { files, usage, capped } = normalizePetscanPages(big, 30000);
+  assert.equal(files.length, 30000);
+  assert.equal(capped, true);
+  assert.ok(usage['File:F30000.jpg'] === undefined); // first beyond ceiling
+});
+
 test('normalizePetscanPages: empty/garbage input', () => {
   assert.deepEqual(normalizePetscanPages(undefined, 5), { files: [], usage: {}, capped: false });
   assert.deepEqual(normalizePetscanPages([], 5), { files: [], usage: {}, capped: false });
@@ -117,7 +126,7 @@ test('parsePetscanParams: cats required; depth/budget clamped', () => {
   assert.equal(parsePetscanParams(new URL('http://localhost/api/petscan?cats=')).ok, false);
   const clamped = parsePetscanParams(new URL(`${base}&depth=99&budget=99999`)).params;
   assert.equal(clamped.depth, 12);
-  assert.equal(clamped.budget, 1000);
+  assert.equal(clamped.budget, 30000); // ceiling = GLAMorgan's 30K (raised 2026-08-17, was 1000 → 10000)
   const defaults = parsePetscanParams(new URL(`${base}&depth=&budget=`)).params;
   assert.equal(defaults.depth, 0);
   assert.equal(defaults.budget, 500);
@@ -240,6 +249,31 @@ test('fetchGlamStats: relay capped flag propagates', async () => {
   assert.equal(r.cappedFiles, true);
 });
 
+test('fetchGlamStats: fileBudget up to 30,000 reaches the relay unchanged', async () => {
+  const seen = [];
+  const relay = async (p) => { seen.push(p.budget); return { source: 'petscan', files: FILES, usage: USAGE, capped: false, truncated: false }; };
+  await fetchGlamStats({ category: 'C', year: 2026, month: 7, fileBudget: 5000, topN: 5 }, { relay, walk: async () => ({ files: [], usage: {} }), views: stubViews, thumbs: stubThumbs });
+  await fetchGlamStats({ category: 'C', year: 2026, month: 7, fileBudget: 99999, topN: 5 }, { relay, walk: async () => ({ files: [], usage: {} }), views: stubViews, thumbs: stubThumbs });
+  assert.deepEqual(seen, [5000, 30000]); // 99999 clamps to the 30,000 ceiling
+});
+
+test('fetchGlamStats: self-walk fallback is capped at 1,000 regardless of budget', async () => {
+  // A 10,000-file budget must never trigger a 10,000-file browser walk:
+  // the fallback caps at GLAM_FALLBACK_CAP and reports cappedFiles honestly.
+  let walkBudget = null;
+  const full = Array.from({ length: 1000 }, (_, i) => `File:W${i}.jpg`);
+  const usage = Object.fromEntries(full.map((f) => [f, []]));
+  const r = await fetchGlamStats({ category: 'C', year: 2026, month: 7, fileBudget: 10000, topN: 5 }, {
+    relay: async () => null, // relay down → fallback
+    walk: async (cat, depth, budget) => { walkBudget = budget; return { files: full, usage }; },
+    views: stubViews, thumbs: stubThumbs,
+  });
+  assert.equal(walkBudget, 1000);
+  assert.equal(r.source, 'selfwalk');
+  assert.equal(r.files, 1000);
+  assert.equal(r.cappedFiles, true); // walk hit its cap → labeled, not silent
+});
+
 test('fetchGlamStats: empty category → zero stats without network', async () => {
   const r = await fetchGlamStats({ category: 'Empty cat', year: 2026, month: 7, fileBudget: 500, topN: 5 }, {
     relay: async () => ({ source: 'petscan', files: [], usage: {}, capped: false, truncated: false }),
@@ -254,4 +288,73 @@ test('fetchGlamStats: empty category → zero stats without network', async () =
 
 test('fetchGlamStats: missing category throws (config guard)', async () => {
   await assert.rejects(() => fetchGlamStats({ year: 2026, month: 7 }, { relay: async () => null, walk: async () => ({ files: [], usage: {} }) }), /need a category/);
+});
+
+// ── transform contract: category titles link to Commons (ISSUE-47) ────────
+
+test('glamorgan transform: category title links to the Commons category', () => {
+  const t = WIDGET_TYPES.glamorgan.transform({
+    category: 'People at Wikimania 2024', files: 2832, cappedFiles: false, partialViews: false,
+    source: 'petscan', usedFiles: 290, viewedFiles: 100, pages: 500, wikis: 12, totalViews: 123456,
+    monthLabel: '2026-07', top: [], detail: null,
+  });
+  assert.equal(t.href, 'https://commons.wikimedia.org/wiki/Category:People%20at%20Wikimania%202024');
+  assert.equal(t.title, 'People at Wikimania 2024');
+  assert.equal(t.detail, null); // no detail → stays null (card hides the table)
+});
+
+test('glamorgan transform: empty result explains the depth-0 case (not silent zeros)', () => {
+  // depth 0: category itself has no files → point at the depth knob
+  const t0 = WIDGET_TYPES.glamorgan.transform({
+    category: 'Empty cat', files: 0, cappedFiles: false, partialViews: false,
+    source: 'petscan', usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0, totalViews: 0,
+    monthLabel: '2026-07', top: [], detail: null,
+  }, { depth: 0 });
+  assert.equal(t0.emptyHint, 'No files directly in this category — increase Depth to include subcategories');
+  // depth > 0: tree scanned, nothing found → different message
+  const t5 = WIDGET_TYPES.glamorgan.transform({
+    category: 'Empty cat', files: 0, cappedFiles: false, partialViews: false,
+    source: 'petscan', usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0, totalViews: 0,
+    monthLabel: '2026-07', top: [], detail: null,
+  }, { depth: 5 });
+  assert.equal(t5.emptyHint, 'No files found in this category tree');
+  // non-empty: no hint at all
+  const t1 = WIDGET_TYPES.glamorgan.transform({
+    category: 'C', files: 2832, cappedFiles: false, partialViews: false,
+    source: 'petscan', usedFiles: 290, viewedFiles: 100, pages: 500, wikis: 12, totalViews: 123456,
+    monthLabel: '2026-07', top: [], detail: null,
+  }, { depth: 5 });
+  assert.equal(t1.emptyHint, undefined);
+});
+
+test('glamorgan transform: detail rows link to their wiki pages (full domains)', () => {
+  const t = WIDGET_TYPES.glamorgan.transform({
+    category: 'C', files: 1, cappedFiles: false, partialViews: false,
+    source: 'petscan', usedFiles: 1, viewedFiles: 1, pages: 2, wikis: 2, totalViews: 100,
+    monthLabel: '2026-07', top: [],
+    detail: {
+      title: 'Top file: Dogs Plate XI.jpg',
+      rows: [
+        { wiki: 'en.wikipedia.org', page: 'Visible_spectrum', views: 42 },
+        { wiki: 'commons.wikimedia.org', page: 'File:Dogs Plate XI.jpg', views: 7 },
+        { wiki: 'testwiki', page: 'Some_Page', views: 1 }, // unknown DB → no href
+      ],
+    },
+  });
+  assert.equal(t.detail.titleHref, 'https://commons.wikimedia.org/wiki/File:Dogs_Plate_XI.jpg');
+  assert.deepEqual(t.detail.rows.map((r) => r.href), [
+    'https://en.wikipedia.org/wiki/Visible_spectrum',
+    'https://commons.wikimedia.org/wiki/File%3ADogs_Plate_XI.jpg', // colon URL-encoded (valid, MW-normalized)
+    null, // unknown wiki prefix → plain text
+  ]);
+  assert.equal(t.detail.rows[2].page, 'Some_Page');
+});
+
+test('cimSnapshot transform: underscore-form category links to Commons', () => {
+  const t = WIDGET_TYPES.cimSnapshot.transform(
+    { category: 'Files_from_the_Biodiversity_Heritage_Library', files: 305868, used: 14434, wikis: 252, pages: 41819, filesDeep: 305868 },
+    { scope: 'deep', month: 0 },
+  );
+  assert.equal(t.href, 'https://commons.wikimedia.org/wiki/Category:Files_from_the_Biodiversity_Heritage_Library');
+  assert.equal(t.title, 'Files from the Biodiversity Heritage Library');
 });

@@ -72,7 +72,9 @@ function fetchWikistatsText(url) {
 // pageviews capped at a budget (GLAMorgan needs a server proxy for this).
 // See docs/GLAMORGAN-WIDGET.md for the full review.
 
-const GLAM_FILE_BUDGET = 500;   // max files walked from the tree
+const GLAM_FILE_BUDGET = 500;       // default file budget
+const GLAM_FILE_BUDGET_MAX = 30000; // ceiling (GLAMorgan's own 30K cap; the 25 MB relay byte-cap is the real valve)
+const GLAM_FALLBACK_CAP = 1000;     // self-walk fallback never walks more than this
 const GLAM_VIEW_BUDGET = 150;   // max pages with pageview fetches
 const GIU_LIMIT = 100;          // usage entries per file (gulimit)
 const MAX_DEPTH = 12;
@@ -277,7 +279,11 @@ async function attachThumbs(files) {
 const PETSCAN_RELAY = '/api/petscan';
 
 /** ISSUE-46 primary source: PetScan via the same-origin capped relay.
- *  Returns null on any failure → caller falls back to the self-walk. */
+ *  Returns null on any failure → caller falls back to the self-walk.
+ *  The server relay itself runs up to 60 s on big trees (its own timeout),
+ *  so the client must NOT use the 15 s fetchJSON default — we wait up to
+ *  75 s in a single attempt and let the relay's 502 (fast-fail) or the
+ *  bounded self-walk fallback decide the outcome. */
 async function fetchPetscanRelay({ category, depth, negcats, negdepth, budget }) {
   try {
     const params = new URLSearchParams({
@@ -285,7 +291,8 @@ async function fetchPetscanRelay({ category, depth, negcats, negdepth, budget })
       negcats: negcats || '', negdepth: String(negdepth),
       budget: String(budget),
     });
-    const d = await fetchJSON(`${PETSCAN_RELAY}?${params}`);
+    const text = await fetchTextWithRetry(`${PETSCAN_RELAY}?${params}`, { timeoutMs: 75000, retries: 0 });
+    const d = JSON.parse(text);
     if (!d || d.source !== 'petscan' || !Array.isArray(d.files)) return null;
     return d;
   } catch { return null; }
@@ -381,13 +388,17 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
 }
 
 /** GLAM impact stats: PetScan via /api/petscan relay (primary, ISSUE-46),
- *  bounded self-walk fallback. deps injectable for tests. */
+ *  bounded self-walk fallback. The user's fileBudget may go up to
+ *  GLAM_FILE_BUDGET_MAX (10,000 — the relay truncates server-side); the
+ *  browser self-walk fallback is separately capped at GLAM_FALLBACK_CAP
+ *  (1,000) so a relay outage can never trigger a multi-hundred-call walk
+ *  from the browser. deps injectable for tests. */
 export async function fetchGlamStats(cfg = {}, deps = {}) {
   const category = cleanCategoryNameForWalk(cfg.category || '');
   const depth = Math.min(Math.max(parseInt(cfg.depth) || 0, 0), MAX_DEPTH);
   const year = Math.min(Math.max(parseInt(cfg.year) || new Date().getFullYear(), 2015), new Date().getFullYear() + 1);
   const month = Math.min(Math.max(parseInt(cfg.month) || 1, 1), 12);
-  const budget = Math.min(Math.max(parseInt(cfg.fileBudget) || GLAM_FILE_BUDGET, 50), 1000);
+  const budget = Math.min(Math.max(parseInt(cfg.fileBudget) || GLAM_FILE_BUDGET, 50), GLAM_FILE_BUDGET_MAX);
   const topN = Math.min(Math.max(parseInt(cfg.topN) || 5, 1), 10);
 
   if (!category) throw new Error('Glam stats need a category');
@@ -400,8 +411,9 @@ export async function fetchGlamStats(cfg = {}, deps = {}) {
     cappedFiles = !!acquired.capped;
     source = 'petscan';
   } else {
-    ({ files, usage } = await walk(category, depth, budget, cfg.negcats, parseInt(cfg.negdepth) || 0));
-    cappedFiles = files.length >= budget;
+    const walkBudget = Math.min(budget, GLAM_FALLBACK_CAP);
+    ({ files, usage } = await walk(category, depth, walkBudget, cfg.negcats, parseInt(cfg.negdepth) || 0));
+    cappedFiles = files.length >= walkBudget;
     source = 'selfwalk';
   }
   if (!files.length) {
