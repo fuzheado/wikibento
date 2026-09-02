@@ -1589,6 +1589,53 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .media-badges { margin-left: auto; display: flex; gap: 4px; }
 .media-badge { font-size: 12px; opacity: 0.8; }
 
+/* Commons description + credit for the now-playing track */
+.media-desc {
+  margin: 6px 2px 0;
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+.media-desc-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.media-desc-credit {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* User-written annotation (Markdown) under the player */
+.media-annotation {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.media-annotation p { margin: 0 0 4px; }
+.media-annotation p:last-child { margin-bottom: 0; }
+.media-annotation a { color: var(--accent); }
+.media-annotation img { max-width: 100%; border-radius: var(--radius-sm); }
+.media-annotation code {
+  background: var(--surface);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
 /* ── Ask panel (ISSUE-44) — intent-first widget discovery ────── */
 .btn-ask {
   background: linear-gradient(135deg, rgba(74,158,255,0.22), rgba(139,92,246,0.22));

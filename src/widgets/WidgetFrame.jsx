@@ -934,6 +934,16 @@ function MediaPlayerCard({ data }) {
         </a>
         <span className="media-duration">{fmtDur(current.duration)}</span>
       </div>
+      {data.showDescription && (current.description || current.artist || current.license) && (
+        <div className="media-desc">
+          {current.description && <div className="media-desc-text">{current.description}</div>}
+          {(current.artist || current.license) && (
+            <div className="media-desc-credit">
+              {[current.artist, current.license].filter(Boolean).join(' · ')}
+            </div>
+          )}
+        </div>
+      )}
       <div className="media-controls">
         <button className="media-btn" onClick={playPrev} title="Previous track" disabled={order.length < 2}>⏮</button>
         <button className="media-btn" onClick={playNext} title={isLast && !loopPlaylist ? 'End of playlist' : 'Next track'} disabled={isLast && !loopPlaylist}>⏭</button>
@@ -943,6 +953,12 @@ function MediaPlayerCard({ data }) {
           {loopPlaylist && <span className="media-badge" title="Loop playlist on">🔁</span>}
         </span>
       </div>
+      {data.annotation && (
+        <div
+          className="media-annotation"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(data.annotation, { allowExternalImages: false }) }}
+        />
+      )}
     </div>
   );
 }

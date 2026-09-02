@@ -1498,6 +1498,16 @@ links). Config: files list, mediaType auto/video/audio, quality
 auto/240/480/720/1080, loopPlaylist, shuffle, autoplay. Schema enum +
 full-catalog dashboard.json (30 widgets). Verified live: FA-18 480p VP9
 pick, EN-Abbe audio (original Ogg), mixed next/prev, loop wrap, shuffle
+
+**Extended 2026-09-01:** `showDescription` (⚙, default ON) — `videoinfo`
+gains `extmetadata` and each track shows its Commons `ImageDescription`
+(striped HTML, clamped 280 chars) + `Artist · LicenseShortName` credit line
+under the now-playing title (`.media-desc`); ⚠ `iiextmetadatafilter` is
+IGNORED by videoinfo (full metadata set always returns — verified live).
+Plus `annotation` (textarea, Markdown via the zero-dep renderer, escaped,
+no external images) rendered under the controls — user-written caption for
+the board. Verified live: Dance reedit 2.webm → "Dance couple performing
+the cha cha." / Wpzhiyilee · CC BY-SA 3.0.
 reorder, autoplay unlock, kiosk-compatible. **DEPLOYED to Toolforge
 2026-08-16** (bundle index-DdJRNUuD.js) — see README ✅ bullet.
 

@@ -583,6 +583,10 @@ async function fetchRandomCategoryImages(category, limit) {
  *  Commons files. One call per ≤4,500-char batch; works for video AND audio
  *  (audio: derivatives may list an mp3 transcode, duration comes from the
  *  same viprop). Strips ?utm_source query junk from URLs. */
+function truncate(s, n) {
+  s = String(s || '').trim();
+  return s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s;
+}
 export async function fetchMediaPlaylist(filesText) {
   const files = (filesText || '').split('\n')
     .map((s) => s.trim().replace(/^File:\s*/i, ''))
@@ -599,7 +603,7 @@ export async function fetchMediaPlaylist(filesText) {
       action: 'query',
       prop: 'videoinfo',
       titles: chunk.join('|'),
-      viprop: 'derivatives|url|size|duration',
+      viprop: 'derivatives|url|size|duration|extmetadata', // extmetadata → description/artist/license (⚠ iiextmetadatafilter is IGNORED by videoinfo — full set returns)
       format: 'json',
       origin: '*',
     });
@@ -607,6 +611,7 @@ export async function fetchMediaPlaylist(filesText) {
     const byTitle = {};
     for (const p of Object.values(d?.query?.pages || {})) {
       const vi = p.videoinfo?.[0] || {};
+      const em = vi.extmetadata || {};
       byTitle[p.title] = {
         derivatives: (vi.derivatives || []).map((dv) => ({
           type: dv.type || '',
@@ -617,6 +622,9 @@ export async function fetchMediaPlaylist(filesText) {
         originalUrl: (vi.url || '').split('?')[0],
         duration: vi.duration || 0,
         size: vi.size || 0,
+        description: truncate(stripHtml(em.ImageDescription?.value || ''), 280),
+        artist: truncate(stripHtml(em.Artist?.value || ''), 80),
+        license: stripHtml(em.LicenseShortName?.value || ''),
         missing: !!p.missing,
       };
     }

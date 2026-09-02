@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-09-02T12:12:18.000Z",
+ "generatedAt": "2026-09-02T14:23:47.371Z",
  "widgetCount": 30,
  "widgets": [
   {
@@ -1226,6 +1226,14 @@
     {
      "key": "autoplay",
      "type": "boolean"
+    },
+    {
+     "key": "showDescription",
+     "type": "boolean"
+    },
+    {
+     "key": "annotation",
+     "type": "textarea"
     }
    ],
    "defaults": [
@@ -1235,6 +1243,8 @@
     "loopPlaylist",
     "shuffle",
     "autoplay",
+    "showDescription",
+    "annotation",
     "refreshSeconds"
    ]
   },

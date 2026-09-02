@@ -16,6 +16,14 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Media player description + annotation (2026-09-01, DEPLOYED — bundle index-DBwecE6U.js):**
+  the 🎬 widget gains "Show Commons description" (⚙, default ON — now-playing
+  track shows its `videoinfo` extmetadata `ImageDescription` + `Artist ·
+  License` credit, `.media-desc` block; `iiextmetadatafilter` is ignored by
+  videoinfo, noted in code) and a freeform **annotation** textarea (Markdown,
+  escape-first renderer, no external images) under the controls — user-written
+  captions for boards/kiosks. Verified live with Dance reedit 2.webm
+  ("Dance couple performing the cha cha." · Wpzhiyilee · CC BY-SA 3.0).
 - ✅ **CIM File Spotlight image preview (2026-09-01, DEPLOYED — bundle index-D5iaTtCr.js):**
   the 🔦 widget gains "Show image preview" (⚙ checkbox, default ON) — a 480px
   Commons thumb of the file above the stats, clickable to the Commons file page
