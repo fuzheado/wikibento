@@ -1103,6 +1103,17 @@ function CimSnapshotCard({ data }) {
         </div>
       )}
       {data.subtitle && <div className="stat-subtitle">{data.subtitle}</div>}
+      {data.image?.url && (
+        <a
+          className="card-image"
+          href={data.fileHref || data.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open on Commons"
+        >
+          <img src={data.image.url} alt={data.title} loading="lazy" />
+        </a>
+      )}
       <div className="glam-stats">
         {(data.stats || []).map((s, i) => (
           <div key={i} className="glam-stat">

@@ -1036,20 +1036,24 @@ export const WIDGET_TYPES = {
     icon: '🔦',
     description: 'One Commons file: wikis/pages using it + monthly view trend',
     labelFromConfig: (c) => (c.filename || '').replace(/_/g, ' '),
-    defaults: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', month: 0, refreshSeconds: 3600 },
+    defaults: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', month: 0, showImage: true, refreshSeconds: 3600 },
     renderer: 'CimSnapshotCard',
     dataSource: 'CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly',
     configFields: [
       { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
       { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'showImage', label: 'Show image preview', type: 'boolean' },
       CIM_MONTH_FIELD,
     ],
-    fetch: (config) => fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month),
+    fetch: (config) => fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month, config.showImage),
     transform: (data, config) => {
       const scope = data.resolvedMonth || resolveMonth(config.month);
       return {
       title: data.file.replace(/_/g, ' '),
+      href: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
+      fileHref: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
       subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
+      image: config.showImage !== false ? data.image : null,
       stats: [
         { label: 'Wikis using it', value: data.wikis.toLocaleString(), sub: 'leveraging-wiki-count' },
         { label: 'Pages using it', value: data.pages.toLocaleString(), sub: 'leveraging-page-count' },

@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-08-16T04:56:56.839Z",
+ "generatedAt": "2026-09-02T01:56:24.078Z",
  "widgetCount": 30,
  "widgets": [
   {
@@ -1005,6 +1005,10 @@
      "options": [
       "all-wikis"
      ]
+    },
+    {
+     "key": "showImage",
+     "type": "boolean"
     },
     {
      "key": "month",

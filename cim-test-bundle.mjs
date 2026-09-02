@@ -109,6 +109,9 @@ var CimUnregisteredError = class extends Error {
 function cleanCategoryForCim(name) {
   return String(name || "").replace(/^Category:\s*/i, "").trim().replace(/ /g, "_");
 }
+function cleanMediaFileForCim(name) {
+  return String(name || "").replace(/^File:\s*/i, "").trim().replace(/ /g, "_");
+}
 function prevCimMonth(d = /* @__PURE__ */ new Date()) {
   return { year: d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear(), month: d.getMonth() === 0 ? 12 : d.getMonth() };
 }
@@ -214,6 +217,54 @@ async function fetchCimTopFiles(category, scope = "deep", wiki = "all-wikis", ye
   });
   return { category: cat, rows, resolvedMonth: { year: y, month: m } };
 }
+async function fetchCommonsFileImage(file) {
+  try {
+    const params = new URLSearchParams({
+      action: "query",
+      prop: "imageinfo",
+      titles: `File:${file}`,
+      // File: prefix REQUIRED after normalization (gotcha #12)
+      iiprop: "url",
+      iiurlwidth: "480",
+      format: "json",
+      origin: "*"
+    });
+    const d = await fetchJSON(`https://commons.wikimedia.org/w/api.php?${params}`);
+    const info = Object.values(d?.query?.pages || {})[0]?.imageinfo?.[0];
+    return info?.thumburl ? { url: info.thumburl.split("?")[0] } : null;
+  } catch {
+    return null;
+  }
+}
+async function fetchCimFileSpotlight(mediaFile, wiki = "all-wikis", year, month, showImage = true) {
+  const file = cleanMediaFileForCim(mediaFile);
+  if (!file) throw new Error("Enter a Commons file name");
+  const { year: py2, month: pm2 } = await latestCimMonth();
+  const y = parseInt(year) || py2;
+  const m = parseInt(month) || pm2;
+  const start = cimDate(y, m);
+  const end = cimDate(...Object.values(shiftCimMonth(y, m, 1)));
+  const probeStart = cimDate(py2, pm2);
+  const probeEnd = cimDate(...Object.values(shiftCimMonth(py2, pm2, 1)));
+  const trendStart = shiftCimMonth(y, m, -5);
+  const [snapItems, trendItems, image] = await Promise.all([
+    fetchCimMonth(`media-file-metrics-snapshot/${file}/${start}/${end}`, `media-file-metrics-snapshot/${file}/${probeStart}/${probeEnd}`),
+    fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(trendStart.year, trendStart.month)}/${end}`),
+    showImage ? fetchCommonsFileImage(file) : Promise.resolve(null)
+  ]);
+  const snap = snapItems[0] || {};
+  const trend = trendItems.map((it) => ({ date: (it.timestamp || "").slice(0, 7), views: it["pageview-count"] ?? 0 }));
+  return {
+    file,
+    resolvedMonth: { year: y, month: m },
+    image,
+    wikis: snap["leveraging-wiki-count"] ?? 0,
+    pages: snap["leveraging-page-count"] ?? 0,
+    views: trend[trend.length - 1]?.views ?? 0,
+    // selected month (snapshot window)
+    trend
+  };
+}
 var waybackCache = createTtlCache(10 * 60 * 1e3);
 
 // tests/cim-latest-month.test.mjs
@@ -241,7 +292,7 @@ var resp = (status, body) => ({ ok: status < 400, status, text: async () => body
 globalThis.fetch = async (url) => {
   const p = new URL(url).pathname;
   let m2, cat, y, m;
-  if (m2 = p.match(/category-metrics-snapshot\/([^/]+)\/(\d{4})(\d{2})\d{2}/)) {
+  if (m2 = p.match(/(?:category|media-file)-metrics-snapshot\/([^/]+)\/(\d{4})(\d{2})\d{2}/)) {
     [, cat, y, m] = m2;
   } else if (m2 = p.match(/top-viewed-media-files-monthly\/([^/]+)\/[^/]+\/[^/]+\/(\d{4})\/(\d{2})/)) {
     [, cat, y, m] = m2;
@@ -254,6 +305,33 @@ globalThis.fetch = async (url) => {
   if (cat === "Unregistered_Category" || key(+y, +m) > LAT) return resp(404, NOT_LOADED);
   return resp(200, cat === "__global__" ? GLOBAL_ITEMS : p.includes("snapshot") ? SNAP_ITEMS : TOP_ITEMS);
 };
+test("fetchCimFileSpotlight month=0 resolves to the latest published month; stats survive a missing image", async () => {
+  const d = await fetchCimFileSpotlight("A.jpg", "all-wikis", void 0, 0);
+  assert.deepEqual(d.resolvedMonth, LATEST);
+  assert.equal(d.wikis, 404);
+  assert.equal(d.image, null);
+});
+test("fetchCimFileSpotlight serves a 480px thumb when imageinfo has one; showImage=false skips the lookup", async () => {
+  const realFetch = globalThis.fetch;
+  let imageinfoCalls = 0;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes("prop=imageinfo") && u.includes("File%3AA.jpg")) {
+      return resp(200, JSON.stringify({ query: { pages: { "1": { imageinfo: [{ thumburl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/A.jpg/480px-A.jpg?c=1" }] } } } }));
+    }
+    if (u.includes("prop=imageinfo")) imageinfoCalls += 1;
+    return realFetch(url);
+  };
+  try {
+    const withImg = await fetchCimFileSpotlight("A.jpg", "all-wikis", void 0, 0, true);
+    assert.equal(withImg.image.url, "https://upload.wikimedia.org/wikipedia/commons/thumb/a/A.jpg/480px-A.jpg");
+    const noImg = await fetchCimFileSpotlight("A.jpg", "all-wikis", void 0, 0, false);
+    assert.equal(noImg.image, null);
+    assert.equal(imageinfoCalls, 0);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
 test("fetchCimSnapshot month=0 resolves to the latest published month during a publish lag", async () => {
   const d = await fetchCimSnapshot("Images_from_Metropolitan_Museum_of_Art", "deep", void 0, 0);
   assert.deepEqual(d.resolvedMonth, LATEST);

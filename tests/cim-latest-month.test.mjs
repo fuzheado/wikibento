@@ -25,7 +25,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchCimSnapshot, fetchCimTopFiles, CimUnregisteredError } from '../src/widgets/dataSources.js';
+import { fetchCimSnapshot, fetchCimTopFiles, fetchCimFileSpotlight, CimUnregisteredError } from '../src/widgets/dataSources.js';
 
 // ── date-relative stub setup ─────────────────────────────────────────────
 // LATEST = the calendar's previous month MINUS one — i.e. the lag scenario
@@ -53,7 +53,7 @@ const resp = (status, body) => ({ ok: status < 400, status, text: async () => bo
 globalThis.fetch = async (url) => {
   const p = new URL(url).pathname;
   let m2, cat, y, m;
-  if ((m2 = p.match(/category-metrics-snapshot\/([^/]+)\/(\d{4})(\d{2})\d{2}/))) {
+  if ((m2 = p.match(/(?:category|media-file)-metrics-snapshot\/([^/]+)\/(\d{4})(\d{2})\d{2}/))) {
     [, cat, y, m] = m2;
   } else if ((m2 = p.match(/top-viewed-media-files-monthly\/([^/]+)\/[^/]+\/[^/]+\/(\d{4})\/(\d{2})/))) {
     [, cat, y, m] = m2;
@@ -65,6 +65,37 @@ globalThis.fetch = async (url) => {
   if (cat === 'Unregistered_Category' || key(+y, +m) > LAT) return resp(404, NOT_LOADED);
   return resp(200, cat === '__global__' ? GLOBAL_ITEMS : (p.includes('snapshot') ? SNAP_ITEMS : TOP_ITEMS));
 };
+
+// ── File Spotlight: month resolution + optional image preview ───────────
+
+test('fetchCimFileSpotlight month=0 resolves to the latest published month; stats survive a missing image', async () => {
+  const d = await fetchCimFileSpotlight('A.jpg', 'all-wikis', undefined, 0);
+  assert.deepEqual(d.resolvedMonth, LATEST);
+  assert.equal(d.wikis, 404); // SNAP_ITEMS leverages 404 wikis (the real Met number)
+  assert.equal(d.image, null); // stub's imageinfo returns no pages → best-effort null, no throw
+});
+
+test('fetchCimFileSpotlight serves a 480px thumb when imageinfo has one; showImage=false skips the lookup', async () => {
+  const realFetch = globalThis.fetch;
+  let imageinfoCalls = 0;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('prop=imageinfo') && u.includes('File%3AA.jpg')) {
+      return resp(200, JSON.stringify({ query: { pages: { '1': { imageinfo: [{ thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/A.jpg/480px-A.jpg?c=1' }] } } } }));
+    }
+    if (u.includes('prop=imageinfo')) imageinfoCalls += 1;
+    return realFetch(url);
+  };
+  try {
+    const withImg = await fetchCimFileSpotlight('A.jpg', 'all-wikis', undefined, 0, true);
+    assert.equal(withImg.image.url, 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/A.jpg/480px-A.jpg');
+    const noImg = await fetchCimFileSpotlight('A.jpg', 'all-wikis', undefined, 0, false);
+    assert.equal(noImg.image, null);
+    assert.equal(imageinfoCalls, 0); // showImage=false → no imageinfo lookup at all
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
 
 // ── rule 1 + 2: default month resolves to the latest PUBLISHED month ─────
 

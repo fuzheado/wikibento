@@ -1611,8 +1611,22 @@ export async function fetchCimLeaderboard(scope = 'deep', wiki = 'all-wikis', ye
   return { rows: items.map((it) => ({ category: it.category, views: it['pageview-count'] ?? 0, rank: it.rank ?? 0 })), resolvedMonth: { year: y, month: m } };
 }
 
+/** 480px preview thumb for one Commons file (best-effort — null on any
+ *  failure, so a bad filename can never take down the CIM stats). */
+async function fetchCommonsFileImage(file) {
+  try {
+    const params = new URLSearchParams({
+      action: 'query', prop: 'imageinfo', titles: `File:${file}`, // File: prefix REQUIRED after normalization (gotcha #12)
+      iiprop: 'url', iiurlwidth: '480', format: 'json', origin: '*',
+    });
+    const d = await fetchJSON(`https://commons.wikimedia.org/w/api.php?${params}`);
+    const info = Object.values(d?.query?.pages || {})[0]?.imageinfo?.[0];
+    return info?.thumburl ? { url: info.thumburl.split('?')[0] } : null;
+  } catch { return null; }
+}
+
 /** 19h. CIM File Spotlight — per-file stats + monthly view trend. */
-export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year, month) {
+export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year, month, showImage = true) {
   const file = cleanMediaFileForCim(mediaFile);
   if (!file) throw new Error('Enter a Commons file name');
   const { year: py, month: pm } = await latestCimMonth();
@@ -1623,15 +1637,17 @@ export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year,
   const probeStart = cimDate(py, pm);
   const probeEnd = cimDate(...Object.values(shiftCimMonth(py, pm, 1)));
   const trendStart = shiftCimMonth(y, m, -5); // 6-month sparkline window
-  const [snapItems, trendItems] = await Promise.all([
+  const [snapItems, trendItems, image] = await Promise.all([
     fetchCimMonth(`media-file-metrics-snapshot/${file}/${start}/${end}`, `media-file-metrics-snapshot/${file}/${probeStart}/${probeEnd}`),
     fetchCim(`pageviews-per-media-file-monthly/${file}/${wiki}/${cimDate(trendStart.year, trendStart.month)}/${end}`),
+    showImage ? fetchCommonsFileImage(file) : Promise.resolve(null),
   ]);
   const snap = snapItems[0] || {};
   const trend = trendItems.map((it) => ({ date: (it.timestamp || '').slice(0, 7), views: it['pageview-count'] ?? 0 }));
   return {
     file,
     resolvedMonth: { year: y, month: m },
+    image,
     wikis: snap['leveraging-wiki-count'] ?? 0,
     pages: snap['leveraging-page-count'] ?? 0,
     views: trend[trend.length - 1]?.views ?? 0, // selected month (snapshot window)
