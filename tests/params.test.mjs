@@ -9,7 +9,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseParams, resolveParams } from '../src/lib/params.js';
+import { parseParams, resolveParams, parseParamSpecText, paramSpecToText } from '../src/lib/params.js';
 
 test('parseParams: defaults to first option; explicit value wins', () => {
   const { specs, values } = parseParams({
@@ -58,4 +58,33 @@ test('resolveParams: unknown names left LITERAL (never break a board)', () => {
 
 test('resolveParams: whitespace-tolerant placeholders', () => {
   assert.equal(resolveParams({ a: '{{ category }}' }, { category: 'X' }).a, 'X');
+});
+
+// ── ISSUE-50 follow-up: editable spec text (Board Controls ⚙ panel) ──────
+
+test('parseParamSpecText: full line format → block', () => {
+  const block = parseParamSpecText(
+    'category | buttons | Collection | Smithsonian, Rijksmuseum\nyear | select | Year | 2023, 2024\nquery | text | Search',
+  );
+  assert.deepEqual(block.category, { label: 'Collection', type: 'buttons', options: ['Smithsonian', 'Rijksmuseum'] });
+  assert.deepEqual(block.year, { label: 'Year', type: 'select', options: ['2023', '2024'] });
+  assert.deepEqual(block.query, { label: 'Search', type: 'text' }); // no options → text stays
+});
+
+test('parseParamSpecText: junk tolerated (bad names skipped, comments, blank lines)', () => {
+  const block = parseParamSpecText('# a comment\n\nok | text | Ok\nbad name!! | text | X');
+  assert.deepEqual(Object.keys(block), ['ok']);
+});
+
+test('parseParamSpecText: options without type default to select', () => {
+  const block = parseParamSpecText('size | Small, Large');
+  assert.equal(block.size.type, 'select');
+  assert.deepEqual(block.size.options, ['Small', 'Large']);
+});
+
+test('paramSpecToText roundtrips through parseParamSpecText', () => {
+  const block = { category: { label: 'Collection', type: 'buttons', options: ['A', 'B'] }, q: { label: 'Search', type: 'text' } };
+  const text = paramSpecToText(block);
+  const back = parseParamSpecText(text);
+  assert.deepEqual(back, block);
 });

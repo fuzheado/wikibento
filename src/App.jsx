@@ -10,7 +10,7 @@ import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
-import { parseParams, resolveParams } from './lib/params';
+import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -62,6 +62,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset) — also by board-param changes (ISSUE-50)
   const [paramSpecs, setParamSpecs] = useState({});   // board params (ISSUE-50): { name: { label, type, options } }
   const [paramValues, setParamValues] = useState({}); // board params live values: { name: string }
+  const [paramBlock, setParamBlock] = useState(null); // board params RAW (persisted; spec edits rewrite it)
   // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
   const [kiosk, setKiosk] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
@@ -99,6 +100,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     else if (params.get('lean') === '1') setLean(true); // ?lean=1 — chrome-free, no fullscreen
     const apply = (widgets, layout, paramsBlock) => {
       const { specs, values } = parseParams(paramsBlock);
+      setParamBlock(paramsBlock || null);
       setParamSpecs(specs);
       setParamValues(values);
       setWidgets(widgets);
@@ -245,12 +247,39 @@ const handleAutoHeight = useCallback((id, px) => {
   }, [widgets, layout, persist]);
 
   const handleUpdateConfig = useCallback((id, newConfig) => {
+    const target = widgets.find(w => w.id === id);
     const newWidgets = widgets.map(w =>
       w.id === id ? { ...w, config: newConfig } : w
     );
     setWidgets(newWidgets);
-    persist(newWidgets, layout);
-  }, [widgets, layout, persist]);
+    persist(newWidgets, layout, paramBlock);
+    // ISSUE-50: a Board Controls spec edit redefines the board's params.
+    // Live values survive when the name still exists (kept if its value is
+    // still among the options, else reset to the first option).
+    if (target?.widgetType === 'boardControls' && 'spec' in newConfig) {
+      const parsed = parseParamSpecText(newConfig.spec);
+      setParamValues((prev) => {
+        const next = {};
+        for (const [name, entry] of Object.entries(parsed)) {
+          const old = prev[name];
+          next[name] = entry.options?.length
+            ? (entry.options.includes(old) ? old : entry.options[0])
+            : (old ?? '');
+        }
+        return next;
+      });
+      setParamSpecs(Object.fromEntries(Object.entries(parsed).map(([n, e]) => [
+        n, { label: e.label, type: e.type || (e.options ? 'select' : 'text'), options: e.options },
+      ])));
+      setParamBlock(Object.keys(parsed).length ? parsed : null);
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        saved.params = Object.keys(parsed).length ? parsed : null;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      } catch { /* storage full/corrupt — params still live in memory */ }
+      setReloadKey((k) => k + 1);
+    }
+  }, [widgets, layout, persist, paramBlock]);
 
   const handleReset = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -262,6 +291,7 @@ const handleAutoHeight = useCallback((id, px) => {
   /** Replace the whole dashboard (example load / successful import). */
   const applyDashboard = useCallback((dashboard) => {
     const { specs, values } = parseParams(dashboard.params);
+    setParamBlock(dashboard.params || null);
     setParamSpecs(specs);
     setParamValues(values);
     setWidgets(dashboard.widgets);
@@ -275,6 +305,16 @@ const handleAutoHeight = useCallback((id, px) => {
    *  load() is the existing propagation trigger). */
   const handleSetParam = useCallback((name, value) => {
     setParamValues((prev) => ({ ...prev, [name]: value }));
+    setParamBlock((prev) => {
+      const block = prev && typeof prev === 'object' ? { ...prev } : {};
+      block[name] = { ...(block[name] || { label: name, type: 'text' }), value };
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        saved.params = block;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); // chosen value survives refresh
+      } catch { /* storage full/corrupt — value still live in memory */ }
+      return block;
+    });
     setReloadKey((k) => k + 1);
   }, []);
 
@@ -301,16 +341,10 @@ const handleAutoHeight = useCallback((id, px) => {
   /** Open the Share panel (QR code + copyable link). */
   const openShare = useCallback(() => setShowShare(true), []);
 
-  // Board params (ISSUE-50): resolve {{name}} placeholders in every widget
-  // config against the live values. Memoized so widget identity changes only
-  // when params actually resolve differently (render is cheap; reload is
-  // driven by reloadKey, not by identity). NOTE: must stay ABOVE the
-  // `if (!initialized)` early return — hooks run unconditionally.
-  const resolvedWidgets = useMemo(
-    () => widgets.map((w) => ({ ...w, config: resolveParams(w.config, paramValues) })),
-    [widgets, paramValues],
-  );
-
+  // Board params (ISSUE-50): WidgetFrame resolves {{name}} placeholders
+  // internally (resolvedConfig) — App passes RAW widget configs so the ⚙
+  // editor edits what was authored and never bakes a resolved literal over
+  // a placeholder (the "{{category}} lock-in" bug).
   if (!initialized) {
     return (
       <div className="boot-splash">
@@ -320,7 +354,7 @@ const handleAutoHeight = useCallback((id, px) => {
     );
   }
 
-  const widgetItems = resolvedWidgets.map(w => (
+  const widgetItems = widgets.map(w => (
     <div key={w.id} className="grid-item">
       <ErrorBoundary
         resetKey={w.config}

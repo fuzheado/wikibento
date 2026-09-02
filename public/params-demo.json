@@ -17,7 +17,8 @@
       "widgetType": "boardControls",
       "config": {
         "title": "Pick a collection",
-        "refreshSeconds": 86400
+        "refreshSeconds": 86400,
+        "spec": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum, Images from the Library of Congress"
       }
     },
     {

@@ -2148,6 +2148,28 @@ re-fetches the widget against the chosen category; non-referencing widgets are
 unaffected in output (they do re-run `load()`). Unit constitution:
 tests/params.test.mjs (parse/resolve/roundtrip, unknown names literal).
 
+**Follow-up 2026-09-01 (same day, deployed index-B1BCpReR.js) — two fixes from
+first real use:**
+1. **The `{{param}}` lock-in bug:** the ⚙ config panel edits the RESOLVED
+   config, so touching ANY field (e.g. sampleCount) wrote the whole resolved
+   config back — the placeholder was overwritten by its literal and the
+   widget was permanently locked to one value. Fix: resolution moved from App
+   into `WidgetFrame` (`resolvedConfig` useMemo) — the DATA path (fetch/
+   transform/titles/refresh) uses the resolved config, the ⚙ EDITOR path uses
+   the RAW `widget.config`, so the placeholder stays visible in the form
+   (provenance) and overwriting it manually remains the documented freeze
+   escape hatch. Verified live: edit sampleCount → Apply → buttons still
+   re-aim the widget.
+2. **Params editable in the UI:** Board Controls ⚙ gains a `spec` textarea —
+   one param per line, `name | type | Label | option1, option2` (2/3-part
+   shorthand forms supported; `#` comments; type defaults select-when-options
+   else text). `handleUpdateConfig` intercepts boardControls spec edits →
+   redefines the board params (live values preserved when still among the
+   options, else first option) + persists to localStorage + bumps reloadKey.
+   Roundtrip constitution: paramSpecToText/parseParamSpecText tests
+   (tests/params.test.mjs, npm test 65). Verified live: renamed options +
+   added a fourth via ⚙ → buttons reshaped immediately.
+
 **Caveats / non-goals for v1:**
 - Whole-board reload on every param change (see Ripple) — fine for prototype;
   revisit if boards grow past ~50 fetch widgets.

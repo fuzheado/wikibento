@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { resolveParams } from '../lib/params';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { loadPannellum } from '../lib/pannellumLoader';
@@ -8,6 +9,18 @@ import '../vendor/pannellum.css';
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam }) {
+  // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
+  // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
+  // path (config panel, handleConfigChange) deliberately uses the RAW
+  // widget.config so a field edit never bakes a placeholder's resolved value
+  // into the stored config (the "{{category}} lock-in" bug: editing
+  // sampleCount used to overwrite category with the literal category name).
+  // The placeholder stays visible in the ⚙ form — provenance, and overwriting
+  // it manually is the documented freeze/override escape hatch.
+  const resolvedConfig = useMemo(
+    () => resolveParams(widget.config, paramValues),
+    [widget.config, paramValues],
+  );
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -22,9 +35,9 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   // Header shows the analyzed asset (from config, live) unless the user
   // explicitly set a custom _title. Falls back to the generic widget name.
   const headerTitle =
-    widget.config._title && widget.config._title !== def?.name
-      ? widget.config._title
-      : def?.labelFromConfig?.(widget.config) || def?.name || widget.widgetType;
+    resolvedConfig._title && resolvedConfig._title !== def?.name
+      ? resolvedConfig._title
+      : def?.labelFromConfig?.(resolvedConfig) || def?.name || widget.widgetType;
 
   // Header tooltip carries the internal slug too — the canonical identifier
   // used in the registry, dashboard.json widgetType, and bug reports.
@@ -33,7 +46,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     : headerTitle;
 
   // Renderer can depend on config (e.g. pageviews stat vs trend display mode).
-  const renderer = def?.getRenderer?.(widget.config) || def?.renderer || 'StatCard';
+  const renderer = def?.getRenderer?.(resolvedConfig) || def?.renderer || 'StatCard';
 
   const fmtRefresh = (secs) => {
     const s = secs || 3600;
@@ -57,7 +70,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     icon: def?.icon ?? null,
     renderer,
     timeScope: def?.timeScope ?? null,
-    config: widget.config,
+    config: resolvedConfig,
     fetchedAt: state.data?._fetchedAt ?? null,
     error: state.error ?? null,
   }, null, 2);
@@ -121,26 +134,26 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
         loading: false,
         error: null,
         data: WIDGET_TYPES[widget.widgetType]?.transform
-          ? WIDGET_TYPES[widget.widgetType].transform(null, widget.config)
+          ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig)
           : null,
       });
       return;
     }
     setState(s => ({ ...s, loading: true, error: null }));
     try {
-      const data = await def.fetch(widget.config, { force }); // force = bust TTL/SWR caches (manual ↻ / Apply)
-      const transformed = def.transform(data, widget.config);
+      const data = await def.fetch(resolvedConfig, { force }); // force = bust TTL/SWR caches (manual ↻ / Apply)
+      const transformed = def.transform(data, resolvedConfig);
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
       setState({ loading: false, error: null, data: transformed });
   // Content-based auto-fit: registry entries may declare autoHeight(view, config)
   // → px; the app fits the grid row height once (unless the user resized manually).
-  const autoPx = def.autoHeight ? def.autoHeight(transformed, widget.config) : null;
+  const autoPx = def.autoHeight ? def.autoHeight(transformed, resolvedConfig) : null;
   if (autoPx && onAutoHeightRef.current) onAutoHeightRef.current(widget.id, autoPx);
     } catch (e) {
       setState({ loading: false, error: e.message, data: null });
     }
-  }, [widget.widgetType, widget.config]);
+  }, [widget.widgetType, resolvedConfig]);
 
   // Load on mount, on widget-type change, or when the app signals a full
   // reload (reloadKey bumped by import / example / reset). Config edits
@@ -155,10 +168,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   // Auto-refresh (static widgets have nothing to refresh)
   useEffect(() => {
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) return;
-    const secs = (widget.config.refreshSeconds || 3600) * 1000;
+    const secs = (resolvedConfig.refreshSeconds || 3600) * 1000;
     intervalRef.current = setInterval(load, secs);
     return () => clearInterval(intervalRef.current);
-  }, [load, widget.config.refreshSeconds]);
+  }, [load, resolvedConfig.refreshSeconds]);
 
   const handleConfigChange = (key, value) => {
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
@@ -286,7 +299,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
           {def?.fetch && (
             <div className="widget-info-row">
               <span className="widget-info-label">Auto-refresh</span>
-              <span>every {fmtRefresh(widget.config.refreshSeconds)}</span>
+              <span>every {fmtRefresh(resolvedConfig.refreshSeconds)}</span>
             </div>
           )}
           {state.data?._fetchedAt && (
@@ -328,7 +341,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
-        ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(widget.config.refreshSeconds)}
+        ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(resolvedConfig.refreshSeconds)}
       </div>
     )}
   </>

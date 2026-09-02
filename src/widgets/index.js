@@ -1103,9 +1103,10 @@ export const WIDGET_TYPES = {
     description: 'Buttons / menus that drive board params ({{param}}) — one click re-aims every widget that references the param (ISSUE-50)',
     defaults: { title: 'Board Controls', refreshSeconds: 86400 },
     renderer: 'BoardControlsCard',
-    dataSource: 'static (writes board params — see the params block in the dashboard JSON)',
+    dataSource: 'static (writes board params — edited here or in the dashboard JSON params block)',
     configFields: [
       { key: 'title', label: 'Title', type: 'text', placeholder: 'Board Controls' },
+      { key: 'spec', label: 'Params (one per line: name | type | Label | options)', type: 'textarea', rows: 5, placeholder: 'category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\nyear | select | Year | 2023, 2024\nquery | text | Search', hint: 'One param per line — name | buttons/select/text | Label | comma-separated options. Saving updates the board params; widgets referencing {{name}} re-fetch.' },
     ],
     // Static — the spec (params block) + values + setter arrive as WidgetFrame props;
     // transform just carries the title. Renderer switch passes paramSpecs/paramValues/onSetParam.

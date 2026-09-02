@@ -19,6 +19,45 @@ function parseParams(block) {
   return { specs, values };
 }
 var warned = /* @__PURE__ */ new Set();
+function parseParamSpecText(text) {
+  const block = {};
+  const TYPES = ["buttons", "select", "text"];
+  for (const line of String(text || "").split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const parts = t.split("|").map((s) => s.trim());
+    const name = parts[0];
+    if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) continue;
+    let type, label, options;
+    if (parts.length >= 4) {
+      [type, label, options] = [parts[1], parts[2], parts[3]];
+    } else if (parts.length === 3) {
+      if (TYPES.includes(parts[1])) {
+        [type, label] = [parts[1], parts[2]];
+      } else {
+        [options, label] = [parts[1], parts[2]];
+      }
+    } else if (parts.length === 2) {
+      if (TYPES.includes(parts[1])) type = parts[1];
+      else options = parts[1];
+    }
+    const entry = { label: label || name };
+    if (TYPES.includes(type)) entry.type = type;
+    if (options !== void 0 && options !== "") {
+      entry.options = options.split(",").map((s) => s.trim()).filter(Boolean);
+      if (!entry.type) entry.type = "select";
+    }
+    block[name] = entry;
+  }
+  return block;
+}
+function paramSpecToText(block) {
+  return Object.entries(block || {}).map(([name, p]) => {
+    const type = p.type || (p.options ? "select" : "text");
+    const opts = (p.options || []).join(", ");
+    return [name, type, p.label || name, opts].filter((v, i) => i < 3 || v).join(" | ");
+  }).join("\n");
+}
 function resolveParams(config, values) {
   if (!config || typeof config !== "object" || !values || typeof values !== "object") return config;
   let changed = false;
@@ -92,4 +131,27 @@ test("resolveParams: unknown names left LITERAL (never break a board)", () => {
 });
 test("resolveParams: whitespace-tolerant placeholders", () => {
   assert.equal(resolveParams({ a: "{{ category }}" }, { category: "X" }).a, "X");
+});
+test("parseParamSpecText: full line format \u2192 block", () => {
+  const block = parseParamSpecText(
+    "category | buttons | Collection | Smithsonian, Rijksmuseum\nyear | select | Year | 2023, 2024\nquery | text | Search"
+  );
+  assert.deepEqual(block.category, { label: "Collection", type: "buttons", options: ["Smithsonian", "Rijksmuseum"] });
+  assert.deepEqual(block.year, { label: "Year", type: "select", options: ["2023", "2024"] });
+  assert.deepEqual(block.query, { label: "Search", type: "text" });
+});
+test("parseParamSpecText: junk tolerated (bad names skipped, comments, blank lines)", () => {
+  const block = parseParamSpecText("# a comment\n\nok | text | Ok\nbad name!! | text | X");
+  assert.deepEqual(Object.keys(block), ["ok"]);
+});
+test("parseParamSpecText: options without type default to select", () => {
+  const block = parseParamSpecText("size | Small, Large");
+  assert.equal(block.size.type, "select");
+  assert.deepEqual(block.size.options, ["Small", "Large"]);
+});
+test("paramSpecToText roundtrips through parseParamSpecText", () => {
+  const block = { category: { label: "Collection", type: "buttons", options: ["A", "B"] }, q: { label: "Search", type: "text" } };
+  const text = paramSpecToText(block);
+  const back = parseParamSpecText(text);
+  assert.deepEqual(back, block);
 });
