@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "params": {
+    "category": {
+      "label": "Collection",
+      "type": "buttons",
+      "options": [
+        "Images from the Smithsonian Institution",
+        "Images from the Rijksmuseum",
+        "Images from the Library of Congress"
+      ]
+    }
+  },
+  "widgets": [
+    {
+      "id": "demo-controls",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "Pick a collection",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "demo-gallery",
+      "widgetType": "categorySize",
+      "config": {
+        "category": "{{category}}",
+        "wiki": "commons.wikimedia",
+        "sampleCount": 6,
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "demo-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "### Interactive board (ISSUE-50 prototype)\n\nThe buttons in **Board Controls** write the board's `category` param \u2014 the **Category Size** widget's config literally says `\"category\": \"{{...}}\"` pointing at that param. One click re-resolves the config and re-fetches the widget against the new collection.\n\nTry it, then inspect with \u2699 on either widget. (Fun fact: this note originally contained the placeholder literally \u2014 and markdown cards resolve params too, which is the documented ISSUE-41 collision caveat, demonstrated live.)",
+        "allowExternalImages": false,
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "demo-controls",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 4,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "demo-gallery",
+      "x": 4,
+      "y": 0,
+      "w": 8,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "demo-note",
+      "x": 0,
+      "y": 4,
+      "w": 4,
+      "h": 4,
+      "minW": 2,
+      "minH": 3
+    }
+  ]
+}
