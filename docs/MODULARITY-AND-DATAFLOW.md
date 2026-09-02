@@ -230,6 +230,82 @@ state — the integration work is the actual job per Part 2); do NOT roll our ow
 the *reactive graph* (adopt `@observablehq/runtime` or Jotai at Level 2). That is
 exactly the split Grafana's history endorses.
 
+## Part 4 — Input widgets: taxonomy, consumer coverage, impact matrix (2026-09-01)
+
+With the params primitive shipped (ISSUE-50), the interactivity question becomes:
+**what input widgets are worth building, in what order?** Grounded in the peer
+-taxonomy research above (Grafana variable types: query/custom/textbox/constant/
+interval/adhoc; Observable Inputs: button/text/number/range/select/search/table/
+date; Streamlit: button/text/select/multiselect/slider/file_uploader/data_editor)
+and a full audit of our registry's config fields.
+
+### The headline: every widget is ALREADY a consumer
+
+Because params resolve into any string (and, via the fetchers' own `parseInt`,
+number) config field, the **consumer side needs zero code**. A full registry audit:
+
+| Param (one name) | Widgets that re-aim for free |
+|---|---|
+| `article` | pageviews, excerpt, edithistory, quality, assessments, gallery, articleList, wikiPage — **8 widgets** |
+| `category` | categorySize, glamorgan, cimSnapshot/Trend/TopFiles/TopWikis/TopPages/TopEditors — **9 widgets** |
+| `filename` | fileUsage, cimFileSpotlight, cimFileTraffic, panorama360, mediaPlayer (single) |
+| `month` | all 8 CIM widgets + topPages (fetchers already `parseInt` the month) |
+| `domain` / `url` / `page` | linkcount / waybackGallery / wikiPage |
+| a LIST (multi-line) | fileGallery, articleList, mediaPlayer playlists (textarea fields are strings — interpolation already works) |
+| `query` | sparql (placeholders inside SPARQL text: `FILTER … {{category}}` — power-user escape hatch) |
+
+So an "article spotlight" board (pageviews + excerpt + quality + edit history +
+gallery) re-aims across 7 widgets from ONE control. The input-widget work is
+therefore almost entirely about **better producers**, not consumers.
+
+### Taxonomy → backlog, ranked by effort × impact
+
+Taxonomy sources: Grafana's variable types (the *query* variable — options
+fetched from a data source — is their single most-used type), Observable's
+Inputs (button/text/number/range/select/search/table/date), Streamlit's widget
+set (incl. data_editor = editable table), Tableau parameters + actions.
+
+**Quadrant 1 — quick wins (S effort, high impact):**
+
+| # | Input | Effort | Impact | Notes |
+|---|---|---|---|---|
+| 1 | ✅ Buttons | S | High | shipped (ISSUE-50) |
+| 2 | ✅ Text field | S | High | shipped |
+| 3 | ✅ Static select | S | High | shipped |
+| 4 | **Number stepper/slider** | S | Med-High | drives topN, sampleCount, depth, fileBudget, months, limits — fetchers already parseInt strings; slider UI is the only work. Kiosk-friendly. |
+| 5 | **Month/date picker** | S–M | High | the CIM family + topPages + pageviews windows all take a month; semantics already solved (`latestCimMonth`, `resolveMonth`). A picker that offers "latest available" fixes the ergonomics AND the month-lag class of confusion. |
+
+**Quadrant 2 — strategic (M effort, high impact):**
+
+| # | Input | Effort | Impact | Notes |
+|---|---|---|---|---|
+| 6 | **Dynamic query select** (Grafana's killer variable) | M | High | options FETCHED at load: institutions from a SPARQL query, subcategories via categorymembers, languages from Wikistats. Reuses the fetch layer; options = any query's first column. The "pick any GLAM institution" board. |
+| 7 | **Search-as-input** | M | High | Action API `opensearch`/autocomplete → sets `article`/`filename`/`category` param. The most natural Wikimedia input; no board authoring needed (viewers just search). |
+| 8 | **List param** (paste/upload a list) | M | High | textarea producer → `{{list}}` lands in fileGallery/articleList/mediaPlayer textareas. Pairs with the list-source handle (PagePile PSID) for the stable-reference version. GLAM batch workflows. |
+| 9 | **Click actions on existing widgets** (Path B) | M | High | category titles, leaderboard rows, top-pages rows, gallery items → "set param". The HyperCard moment; Tableau filter-action analogue. Cap the vocabulary to click→set-param. |
+
+**Quadrant 3 — deeper (L effort; do only when Level 2 is justified):**
+
+| # | Input | Effort | Impact | Notes |
+|---|---|---|---|---|
+| 10 | SPARQL result → param | L | Med-High | the SPARQL widget as PRODUCER: "use column X as a list param" is the 80% version (feeds #8); full typed outputs (`$ref`) is the Level 2 seed (Appendix C). |
+| 11 | Table / CSV editor input | L | Medium | paste CSV, pick a column/row as param (Streamlit data_editor analogue). Powerful; niche authoring audience. |
+| 12 | JSON stream input | L | Low | live streams have no home in a no-backend, localStorage app — the Part 2 ceiling. Revisit only with a backend. |
+
+**Deliberately skipped:** boolean toggles and color pickers (rarely board-level
+decisions), Grafana adhoc/groupby filters ( datasource-shaped, not our model),
+multi-select (single-value params today; multiselect implies list params — do #8
+first).
+
+### Recommended sequence
+
+**4 (number) + 5 (month picker) → 6 (dynamic select) → 9 (click actions) → 7
+(search) → 8 (list param) → 10 (SPARQL→param).** Rationale: 4+5 complete the
+static-input set with the constitutions already solved (resolved-month display);
+6 and 9 are the two highest-leverage producers (institution boards; make every
+list widget a controller); 7 is the viewer-facing one; 8+10 unlock the GLAM
+batch/list workflows that the list-source design anticipated.
+
 ## Recommendation
 
 The architecture is in good shape for both directions, but they are different-sized
