@@ -84,6 +84,8 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 
 ## Features
 
+### The board — layout & presentation
+
 - **Responsive layout** — on phones (<768px) the 12-column grid collapses to a
   single-column card stack (Grafana-style) that follows the grid's reading order
   (top-left first, so desktop drags are reflected on phones); tablets and
@@ -99,6 +101,9 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
 - **Lean mode** — ▣ Lean (or `?lean=1`) gives the same chrome-free,
   grid-locked presentation as kiosk **without fullscreen**: the browser
   stays resizable, so the board reads as a compact app at any window size
+
+### Building a dashboard
+
 - **Add Widget panel** — searchable catalog; click to add
 - **✨ Ask (ML advisor)** — type what you want in plain language ("random
   sampling of images from a category") and get widget recommendations with
@@ -113,6 +118,10 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
+- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card
+
+### Widget highlights
+
 - **Top Wikipedia Articles** — 🔥 most-visited articles per language edition
   (top.hatnote.com data, 28 languages). Date: "latest" or any day/month/year;
   Top N: all / 10 / arbitrary; **default noise filter** removes sponsored
@@ -126,25 +135,23 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
 - **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. Unregistered categories get a friendly "register via {{Views from category}}" state (404 ≠ error); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
-- **Freshness constitution** — every live-querying widget shows when its data was last fetched (⏱ footer: "updated 2:34:05 PM · auto-refresh 1h", refreshed on every load incl. auto-refresh) — so viewers can judge how stale or fresh a query is; static widgets (Text/Markdown, Wiki Page) are exempt by definition
-- **Temporal-scope constitution** — every widget whose data has a time scope (month/range/day) shows the **resolved** scope in its subtitle ("2026-07", "2026-02 → 2026-07", "2026-07-15 → 2026-08-13") — enforced by `npm test` (wired into `npm run build`, so a non-compliant widget blocks deployment). New widgets must declare `timeScope` in the registry
 - **SPARQL power widget** — 🧠 run any SPARQL against Wikidata (WDQS) or Commons (QLever) and get a big number, bars, line, or table — auto-detected from the result shape (manual override in ⚙). Canned presets unlock instant dashboards (collection depth, multi-institution comparison, Women-in-Red %, Commons top-depicts); 60 s timeout + retry + 10-min cache tame WDQS flakiness; long queries POST form-urlencoded (no CORS preflight)
 - **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
-- **Commons media previews** — File Usage Map can show the image itself + its
-  summary caption; Category Size can show a **random sample** of the category's photos
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
   files, pages on wikis, total views, top-image filmstrip, and per-page usage of
   the top file (GLAMorgan-style); PetScan-relay powered (budget up to 30,000
   files), clickable category/page links, depth-aware zero-state
-- **Auto-refresh** — configurable per widget (default: 1 h, Wikistats widgets default 2 h)
-- **Resilient fetches** — the Wikistats CSV is fetched through a shared TTL cache
-  (two widgets hitting the same 195 KB file now cost one request) with a 15 s
-  timeout and retry-with-backoff, so transient network hiccups don't kill widgets
-- **Resilience** — each widget is wrapped in an error boundary: a render crash
-  shows a themed fallback with Try Again instead of killing the dashboard; the
-  grid reflows when the window is resized
+- **Commons media previews** — File Usage Map can show the image itself + its
+  summary caption; Category Size can show a **random sample** of the category's photos
+
+### Transparency constitutions
+
+- **Freshness constitution** — every live-querying widget shows when its data was last fetched (⏱ footer: "updated 2:34:05 PM · auto-refresh 1h", refreshed on every load incl. auto-refresh) — so viewers can judge how stale or fresh a query is; static widgets (Text/Markdown, Wiki Page) are exempt by definition
+- **Temporal-scope constitution** — every widget whose data has a time scope (month/range/day) shows the **resolved** scope in its subtitle ("2026-07", "2026-02 → 2026-07", "2026-07-15 → 2026-08-13") — enforced by `npm test` (wired into `npm run build`, so a non-compliant widget blocks deployment). New widgets must declare `timeScope` in the registry
+
+### Sharing, persistence & housekeeping
+
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`); survives refresh
-- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card
 - **Export / Import** — ⬇ downloads the full config as `dashboard.json` (format v1);
   ⬆ loads one back (file or paste) with **full validation** — precise per-field
   errors, non-fatal warnings, nothing applied unless valid
@@ -155,6 +162,17 @@ on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
   oversized configs show a friendly notice instead of an un-scanable QR
 - **ⓘ About** — built-in explainer of what the tool does and how to use it
 - **Reset** — reverts to the 3 default starter widgets
+
+### Reliability
+
+- **Auto-refresh** — configurable per widget (default: 1 h, Wikistats widgets default 2 h)
+- **Resilient fetches** — the Wikistats CSV is fetched through a shared TTL cache
+  (two widgets hitting the same 195 KB file now cost one request) with a 15 s
+  timeout and retry-with-backoff, so transient network hiccups don't kill widgets
+- **Resilience** — each widget is wrapped in an error boundary: a render crash
+  shows a themed fallback with Try Again instead of killing the dashboard; the
+  grid reflows when the window is resized
+
 
 ## Quickstart
 
@@ -209,6 +227,8 @@ wikibento/
 
 ## Verified Working (smoke-tested 2026-08-12, updated 2026-08-17)
 
+### GLAM & CIM — impact metrics (2026-08-13 → 17)
+
 - ✅ **GLAM PetScan relay + budget ceiling (2026-08-17):** the GLAM widget's
   tree+usage flows through the same-origin `/api/petscan` relay (PetScan `giu`
   exact-ns — structural parity with glamtools, verified 518/38/38/40/2/110,092
@@ -225,12 +245,22 @@ wikibento/
   category — increase Depth to include subcategories" at depth 0); ⚙ panel
   shows semantic hints for Depth ("0 = category only, 1 = + direct subcats")
   and Excl depth
+- ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too). Month resolution is now publish-aware: default months resolve to the latest PUBLISHED month via `latestCimMonth()`, so the month-start publish lag can no longer masquerade as "unregistered" (fixed 2026-09-01)
+- ✅ **CIM File Traffic (2026-08-14):** 📉 interactive chart — labeled axes (compact Y ticks `254K`/`1.2M`, month X labels, "views"/"month" titles), −/+ zoom slices 3/6/12/24 months client-side, header shows the displayed range; self-heals the CIM 500-on-12-month-window bug (verified: exact window `20250801/20260801` 500s from browsers while curl 200s; 11/13/30-month windows fine) by retrying with the earliest month dropped
+- ✅ GLAM Category Usage: 500 files, 21/33 viewed, 235 pages on 58 wikis, 314,375 views (Featured pictures, 2026-07); top-file detail (Lion 97,121 views)
+- ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
+  on hover; category title no longer squished by the stats area (flex-shrink)
+
+### Galleries, media & lists (2026-08-13 → 16)
+
 - ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
   imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
   drops infobox flags/maps (verified: France's `Flag_of_France.svg` and all
   map SVGs have no caption); grid mode (small/medium/large) + list mode
   (thumb left, caption right); min-size filter (200px) for tiny icons;
   utm-stripped thumb URLs; example dashboard includes the gallery
+- ✅ **Commons File Gallery (2026-08-13):** 🗂️ pasted list of Commons files → batched `imageinfo` (400px thumbs + description captions); grid + list modes, order listed/random/alpha/largest (verified: 3 files, alphabetical subtitle, list mode, random order), missing-file counting ("3 files · 1 not found"), adaptive 4,500-char batching for long filenames
+- ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
 - ✅ **Video / Media Player (2026-08-16):** 🎬 native HTML5 playback of
   Commons video/audio — no player library (unlike the vendored Pannellum).
   One file or a jukebox playlist: batched `videoinfo` derivatives (one call
@@ -242,6 +272,38 @@ wikibento/
   subsequent autoplay), kiosk-compatible; missing files counted in the
   subtitle — verified live: FA-18 refueling clip (480p VP9), EN-Abbe
   spoken article (audio), Leica 1927 (1080p)
+- ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
+  lazy-loaded as a separate 56 KB asset) renders real Commons
+  equirectangular files — Imiloa grounds 12740×6370 verified live in the
+  widget: WebGL canvas, drag-to-look-around (pixel-diff verified),
+  auto-rotate, 2:1 + GPano detection with a "not 2:1" warning, display via
+  iiurlwidth=4096 thumb instead of the 10–20 MB original. New: per-widget
+  layout constraints (registry `defaultLayout` → react-grid-layout
+  minW/minH/maxW/maxH) — panorama defaults to w:4 h:3, can't shrink below
+  3×2 (verified by drag-resize). Config change re-fetches and rebuilds the
+  viewer
+
+### Article intelligence & power widgets (2026-08-13)
+
+- ✅ **Article Vitals (2026-08-13):** Article Excerpt (REST summary — Ada
+  Lovelace: description, thumbnail, first paragraph), Edit History (byte
+  deltas + user + timestamp + comment, newest-first), Article Quality (Lift
+  Wing ORES class — Albert Einstein → FA at 53.9%, full class distribution),
+  WikiProject Assessment (18 projects, class + importance badges); config
+  change re-fetches live; schema + example dashboard updated
+- ✅ Top Wikipedia Articles: hatnote via proxy (en latest: top-10 of 100, 4
+  noise items filtered incl. rank-1 `.xxx`); WMF fallback (de, ja — "via WMF
+  Pageviews API"); specific date (fr 2026-07-14); filterNoise toggle shows
+  `.xxx`/`.xyz` when off; topN 100=all (96 rows after filter); 100-row card
+  scrolls internally
+- ✅ Expanded view (⚙ checkbox): 120px thumbnails + intro extracts via the
+  MediaWiki API (prop=pageimages|extracts) — Spider-Man poster, Lucy Davis
+  photo; non-article pages (Main_Page, Special:*) filtered from both sources
+- ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
+- ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
+
+### Ask advisor, presentation chrome & grid (2026-08-15 → 16)
+
 - ✅ **✨ Ask advisor (2026-08-16):** intent-first widget discovery — type
   what you want, get widget recommendations with pre-filled configs,
   click to add. Manifest generated from the registry (~3.7K tokens),
@@ -266,57 +328,30 @@ wikibento/
   mode); fullscreen only on the Present click (user-gesture rule),
   never on boot — verified live on the full 30-widget catalog including
   the mobile stack
-- ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
-  lazy-loaded as a separate 56 KB asset) renders real Commons
-  equirectangular files — Imiloa grounds 12740×6370 verified live in the
-  widget: WebGL canvas, drag-to-look-around (pixel-diff verified),
-  auto-rotate, 2:1 + GPano detection with a "not 2:1" warning, display via
-  iiurlwidth=4096 thumb instead of the 10–20 MB original. New: per-widget
-  layout constraints (registry `defaultLayout` → react-grid-layout
-  minW/minH/maxW/maxH) — panorama defaults to w:4 h:3, can't shrink below
-  3×2 (verified by drag-resize). Config change re-fetches and rebuilds the
-  viewer
-- ✅ **Article Vitals (2026-08-13):** Article Excerpt (REST summary — Ada
-  Lovelace: description, thumbnail, first paragraph), Edit History (byte
-  deltas + user + timestamp + comment, newest-first), Article Quality (Lift
-  Wing ORES class — Albert Einstein → FA at 53.9%, full class distribution),
-  WikiProject Assessment (18 projects, class + importance badges); config
-  change re-fetches live; schema + example dashboard updated
-- ✅ **Commons File Gallery (2026-08-13):** 🗂️ pasted list of Commons files → batched `imageinfo` (400px thumbs + description captions); grid + list modes, order listed/random/alpha/largest (verified: 3 files, alphabetical subtitle, list mode, random order), missing-file counting ("3 files · 1 not found"), adaptive 4,500-char batching for long filenames
-- ✅ **Article List (2026-08-13):** 📋 pasted article titles → clickable rows (en/de/fr); optional enrichment adds 120px thumb + 3-line intro via batched `pageimages|extracts` (50/call — verified: 2 thumbs + 2 extracts for Ada Lovelace / Albert Einstein)
-- ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
-- ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
+
+### Constitutions, config loading & plumbing
+
 - ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
-- ✅ **CIM File Traffic (2026-08-14):** 📉 interactive chart — labeled axes (compact Y ticks `254K`/`1.2M`, month X labels, "views"/"month" titles), −/+ zoom slices 3/6/12/24 months client-side, header shows the displayed range; self-heals the CIM 500-on-12-month-window bug (verified: exact window `20250801/20260801` 500s from browsers while curl 200s; 11/13/30-month windows fine) by retrying with the earliest month dropped
-- ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 all 8 verified live against `Files_from_the_Biodiversity_Heritage_Library` — snapshot **305,868 files · 14,434 used · 252 wikis · 41,819 pages** (exact, no budget); trend (Jan 83.1M views); top files with thumbs (Dogs Plate XI 811,993); top wikis/pages/editors (SchlurcherBot 4,491); leaderboard (100 rows, UNESCO 6.6B); file spotlight (49 wikis · 346 pages · 811,993 views). Unregistered category → friendly register state (the 404 is ambiguous: disambiguation probe separates "not in CIM" from "no data for this month" — verified: BHL 2015-01 404s too)
 - ✅ All 28 data-driven widget types render live data in the browser; the
   29th (Text/Markdown) and 30th (Wiki Page — a static iframe) are static —
   no fetch, renders from config
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 30 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
+- ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
+  expand via the same-origin `/api/resolve` endpoint and load the dashboard
+- ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
+- ✅ Production build: 433.41 KB JS (127.58 KB gzip) + 48.86 KB CSS (9.86 KB gzip)
+
+### The starter board, re-verified (2026-08-12)
+
 - ✅ Main Page pageviews: 218.4M views / 30 days (~7.28M/day)
 - ✅ External links: 1,499 → LibreTexts.org; 2,850 all-namespaces / **2,320 articles-only** → gettyimages.com; 5,000+ cap indicator on youtube.com
 - ✅ Top 10 Wikipedias: English 1st at 7,223,053 articles
 - ✅ Category Size (WLM 2024): 239,084 items + random photo sample (6 thumbs, fresh per refresh)
 - ✅ File Usage Map: image + summary caption (Blue Marble, 500px thumb)
-- ✅ GLAM Category Usage: 500 files, 21/33 viewed, 235 pages on 58 wikis, 314,375 views (Featured pictures, 2026-07); top-file detail (Lion 97,121 views)
-- ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
 - ✅ Text/Markdown card: markdown rendering verified (headings/bold/links/lists/code);
   Wikimedia images render by default, external hosts blocked with an opt-in toggle,
   XSS payloads (`<script>`, `onerror`) inert
-- ✅ Top Wikipedia Articles: hatnote via proxy (en latest: top-10 of 100, 4
-  noise items filtered incl. rank-1 `.xxx`); WMF fallback (de, ja — "via WMF
-  Pageviews API"); specific date (fr 2026-07-14); filterNoise toggle shows
-  `.xxx`/`.xyz` when off; topN 100=all (96 rows after filter); 100-row card
-  scrolls internally
-- ✅ Expanded view (⚙ checkbox): 120px thumbnails + intro extracts via the
-  MediaWiki API (prop=pageimages|extracts) — Spider-Man poster, Lucy Davis
-  photo; non-article pages (Main_Page, Special:*) filtered from both sources
-- ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
-  expand via the same-origin `/api/resolve` endpoint and load the dashboard
-- ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
-  on hover; category title no longer squished by the stats area (flex-shrink)
-- ✅ Production build: 433.41 KB JS (127.58 KB gzip) + 48.86 KB CSS (9.86 KB gzip)
 
 ## Documentation
 
