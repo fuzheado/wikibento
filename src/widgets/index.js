@@ -992,7 +992,7 @@ export const WIDGET_TYPES = {
 
   cimLeaderboard: {
     id: 'cimLeaderboard',
-    category: 'Rankings & Platforms', intensity: 'low',
+    category: 'Categories & GLAM', intensity: 'low', // moved from Rankings & Platforms (2026-09-01) — keeps the CIM family together in the Add Widget panel
 
     timeScope: 'month',    name: 'CIM Global Leaderboard',
     icon: '🏆',

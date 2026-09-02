@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-09-02T01:56:24.078Z",
+ "generatedAt": "2026-09-02T12:12:18.000Z",
  "widgetCount": 30,
  "widgets": [
   {
@@ -951,7 +951,7 @@
    "icon": "🏆",
    "description": "Top 100 most-viewed categories on Commons (precomputed)",
    "dataSource": "CIM top-viewed-categories-monthly",
-   "category": "Rankings & Platforms",
+   "category": "Categories & GLAM",
    "type": "table",
    "intensity": "low",
    "experimental": false,
