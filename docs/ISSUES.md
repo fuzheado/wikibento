@@ -2170,6 +2170,24 @@ first real use:**
    (tests/params.test.mjs, npm test 65). Verified live: renamed options +
    added a fourth via ⚙ → buttons reshaped immediately.
 
+**Follow-up 2 (2026-09-01, deployed index-EqMYvBZt.js) — input types #4 + #5
+(MODULARITY §Part 4 quadrant 1):**
+- **`number` params** — spec `count | number | Photos | 3, 12, 1` (options =
+  min, max, step); renders a kiosk-friendly slider + numeric readout; value is
+  a string (fetchers parseInt). Drives topN/sampleCount/depth/budget/months.
+- **`month` params** — `month | month | Data month` (no options); renders a
+  ‹ label › stepper + a **Latest** chip (value 0 = latest available, matching
+  the widgets' own `latestCimMonth`/`resolveMonth` semantics). The stepper
+  shows the resolved month-year for explicit months ("September → 2026-09");
+  for Latest it stays neutral (the actual month is widget/publish-defined).
+  Verified live: Latest → CIM 2026-07; step to September → the honest
+  month-lag error + Retry; Latest again → recovers to 2026-07.
+- **Validator gap fixed:** `validateDashboard` now accepts `{{name}}`
+  placeholders in number config fields (skips numeric checks — resolution is
+  at fetch time); previously `sampleCount: "{{count}}"` failed validation and
+  the board wouldn't load.
+- Demo board (params-demo.json) upgraded to all five types. npm test 68.
+
 **Caveats / non-goals for v1:**
 - Whole-board reload on every param change (see Ripple) — fine for prototype;
   revisit if boards grow past ~50 fetch widgets.

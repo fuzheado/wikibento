@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { resolveParams } from '../lib/params';
+import { resolveMonth, fmtMonth } from '../lib/scope';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { loadPannellum } from '../lib/pannellumLoader';
@@ -646,6 +647,10 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
+            ) : spec.type === 'number' ? (
+              <NumberParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
+            ) : spec.type === 'month' ? (
+              <MonthParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
             ) : (
               <div className="board-param-buttons">
                 {(spec.options || []).map((opt) => (
@@ -663,6 +668,64 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Number param (ISSUE-50 #4) — kiosk-friendly slider + numeric readout.
+ *  spec.options = [min, max, step] (strings from the spec line); the value is
+ *  stored as a string (interpolation is string-level — fetchers parseInt). */
+function NumberParam({ spec, value, onSetParam, name }) {
+  const opts = (spec.options || []).map(Number);
+  const min = Number.isFinite(opts[0]) ? opts[0] : 0;
+  const max = Number.isFinite(opts[1]) ? opts[1] : 100;
+  const step = Number.isFinite(opts[2]) && opts[2] > 0 ? opts[2] : 1;
+  const num = Number(value);
+  const current = Number.isFinite(num) ? Math.min(Math.max(num, min), max) : min;
+  return (
+    <div className="board-param-number">
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={current}
+        aria-label={spec.label}
+        onChange={(e) => onSetParam?.(name, e.target.value)}
+      />
+      <span className="board-param-number-value">{current}</span>
+    </div>
+  );
+}
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+
+/** Month param (ISSUE-50 #5) — ‹ › stepper + Latest chip. Value = month
+ *  number 1–12 (the widgets' own year-resolution semantics apply), 0/empty =
+ *  latest available. Label shows the RESOLVED month-year so the picker is
+ *  truthful about what will be fetched (temporal-scope constitution spirit). */
+function MonthParam({ spec, value, onSetParam, name }) {
+  const num = parseInt(value);
+  const resolved = resolveMonth(num); // 0/invalid → latest available month, matching fetchers
+  const shift = (delta) => {
+    const next = (((num || resolved.month) - 1 + delta + 12) % 12) + 1;
+    onSetParam?.(name, String(next));
+  };
+  return (
+    <div className="board-param-month">
+      <button className="board-param-btn" onClick={() => shift(-1)} title="Previous month">←</button>
+      <button
+        className={`board-param-btn month-current${num ? '' : ' latest'}`}
+        onClick={() => onSetParam?.(name, '0')}
+        title="Click for latest available data"
+      >
+        {num ? MONTH_NAMES[num - 1] : 'Latest'}
+        {num > 0 && (
+          <span className="month-resolved"> → {fmtMonth(resolved.year, resolved.month)}</span>
+        )}
+      </button>
+      <button className="board-param-btn" onClick={() => shift(1)} title="Next month">→</button>
     </div>
   );
 }

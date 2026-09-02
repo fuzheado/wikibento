@@ -16,18 +16,22 @@
  */
 
 /** Normalize a dashboard `params` block → { specs, values }.
- *  specs: { name: { label, type, options, } } · values: { name: string } */
+ *  specs: { name: { label, type, options, } } · values: { name: string }.
+ *  Types: buttons | select | text | number (options = [min, max, step]) |
+ *  month (options ignored; value = month 1–12, or 0/empty = latest available
+ *  — matching the widgets' own resolveMonth/latestCimMonth semantics). */
 export function parseParams(block) {
   const specs = {};
   const values = {};
   if (!block || typeof block !== 'object') return { specs, values };
   for (const [name, raw] of Object.entries(block)) {
     if (!raw || typeof raw !== 'object') continue; // string shorthand ignored in v1
-    const type = ['buttons', 'select', 'text'].includes(raw.type) ? raw.type
+    const type = ['buttons', 'select', 'text', 'number', 'month'].includes(raw.type) ? raw.type
       : (Array.isArray(raw.options) ? 'select' : 'text');
     const options = Array.isArray(raw.options) ? raw.options.map(String) : undefined;
     let value = raw.value !== undefined ? String(raw.value)
-      : (options?.length ? options[0] : '');
+      : (type === 'month' ? '0'
+        : (options?.length ? options[0] : ''));
     if (type === 'text' && !value && typeof raw.value === 'string') value = raw.value;
     specs[name] = { label: raw.label || name, type, options };
     values[name] = value;
@@ -45,7 +49,9 @@ const warned = new Set();
  *  in, preserving the current choice when it is still among the options. */
 export function parseParamSpecText(text) {
   const block = {};
-  const TYPES = ['buttons', 'select', 'text'];
+  const TYPES = ['buttons', 'select', 'text', 'number', 'month'];
+  // number: options = "min, max, step" (e.g. `count | number | Photos | 3, 12, 1`)
+  // month: no options (a Latest chip + ‹ › month stepper; value 0 = latest available)
   for (const line of String(text || '').split('\n')) {
     const t = line.trim();
     if (!t || t.startsWith('#')) continue;

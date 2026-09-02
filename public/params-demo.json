@@ -9,6 +9,20 @@
         "Images from the Rijksmuseum",
         "Images from the Library of Congress"
       ]
+    },
+    "count": {
+      "label": "Sample photos",
+      "type": "number",
+      "options": [
+        3,
+        12,
+        1
+      ],
+      "value": 6
+    },
+    "month": {
+      "label": "CIM data month",
+      "type": "month"
     }
   },
   "widgets": [
@@ -18,7 +32,7 @@
       "config": {
         "title": "Pick a collection",
         "refreshSeconds": 86400,
-        "spec": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum, Images from the Library of Congress"
+        "spec": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum, Images from the Library of Congress\ncount | number | Sample photos | 3, 12, 1\nmonth | month | CIM data month"
       }
     },
     {
@@ -27,7 +41,17 @@
       "config": {
         "category": "{{category}}",
         "wiki": "commons.wikimedia",
-        "sampleCount": 6,
+        "sampleCount": "{{count}}",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "demo-cim",
+      "widgetType": "cimSnapshot",
+      "config": {
+        "category": "{{category}}",
+        "scope": "deep",
+        "month": "{{month}}",
         "refreshSeconds": 3600
       }
     },
@@ -35,7 +59,7 @@
       "id": "demo-note",
       "widgetType": "markdown",
       "config": {
-        "text": "### Interactive board (ISSUE-50 prototype)\n\nThe buttons in **Board Controls** write the board's `category` param \u2014 the **Category Size** widget's config literally says `\"category\": \"{{...}}\"` pointing at that param. One click re-resolves the config and re-fetches the widget against the new collection.\n\nTry it, then inspect with \u2699 on either widget. (Fun fact: this note originally contained the placeholder literally \u2014 and markdown cards resolve params too, which is the documented ISSUE-41 collision caveat, demonstrated live.)",
+        "text": "### Interactive board (ISSUE-50)\n\n**Board Controls** drives three params: `category` (buttons), `count` (slider \u2192 the gallery's sample size), and `month` (stepper \u2192 the CIM snapshot's data month, Latest = most recent published).\n\nThe widgets' configs literally contain the placeholders \u2014 inspect with \u2699.",
         "allowExternalImages": false,
         "refreshSeconds": 86400
       }
@@ -47,7 +71,7 @@
       "x": 0,
       "y": 0,
       "w": 4,
-      "h": 4,
+      "h": 6,
       "minW": 3,
       "minH": 3
     },
@@ -61,9 +85,18 @@
       "minH": 3
     },
     {
+      "i": "demo-cim",
+      "x": 4,
+      "y": 5,
+      "w": 8,
+      "h": 4,
+      "minW": 3,
+      "minH": 3
+    },
+    {
       "i": "demo-note",
       "x": 0,
-      "y": 4,
+      "y": 6,
       "w": 4,
       "h": 4,
       "minW": 2,

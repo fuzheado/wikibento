@@ -9,9 +9,9 @@ function parseParams(block) {
   if (!block || typeof block !== "object") return { specs, values };
   for (const [name, raw] of Object.entries(block)) {
     if (!raw || typeof raw !== "object") continue;
-    const type = ["buttons", "select", "text"].includes(raw.type) ? raw.type : Array.isArray(raw.options) ? "select" : "text";
+    const type = ["buttons", "select", "text", "number", "month"].includes(raw.type) ? raw.type : Array.isArray(raw.options) ? "select" : "text";
     const options = Array.isArray(raw.options) ? raw.options.map(String) : void 0;
-    let value = raw.value !== void 0 ? String(raw.value) : options?.length ? options[0] : "";
+    let value = raw.value !== void 0 ? String(raw.value) : type === "month" ? "0" : options?.length ? options[0] : "";
     if (type === "text" && !value && typeof raw.value === "string") value = raw.value;
     specs[name] = { label: raw.label || name, type, options };
     values[name] = value;
@@ -21,7 +21,7 @@ function parseParams(block) {
 var warned = /* @__PURE__ */ new Set();
 function parseParamSpecText(text) {
   const block = {};
-  const TYPES = ["buttons", "select", "text"];
+  const TYPES = ["buttons", "select", "text", "number", "month"];
   for (const line of String(text || "").split("\n")) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
@@ -154,4 +154,22 @@ test("paramSpecToText roundtrips through parseParamSpecText", () => {
   const text = paramSpecToText(block);
   const back = parseParamSpecText(text);
   assert.deepEqual(back, block);
+});
+test("number params: options = [min, max, step]; value defaults to min", () => {
+  const { specs, values } = parseParams({ count: { type: "number", label: "Photos", options: [3, 12, 1] } });
+  assert.equal(values.count, "3");
+  assert.deepEqual(specs.count.options, ["3", "12", "1"]);
+});
+test("month params: default value 0 (latest available)", () => {
+  const { values } = parseParams({ month: { type: "month", label: "Data month" } });
+  assert.equal(values.month, "0");
+  const { values: v2 } = parseParams({ month: { type: "month", value: 7 } });
+  assert.equal(v2.month, "7");
+});
+test("spec text: number form parses min,max,step; month form parses bare", () => {
+  const block = parseParamSpecText("count | number | Photos | 3, 12, 1\nmonth | month | Data month");
+  assert.deepEqual(block.count.options, ["3", "12", "1"]);
+  assert.equal(block.count.type, "number");
+  assert.equal(block.month.type, "month");
+  assert.equal(block.month.options, void 0);
 });

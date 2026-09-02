@@ -302,6 +302,9 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
     if (v === undefined || v === null || v === '') continue; // missing → widget default
     switch (field.type) {
       case 'number':
+        if (typeof v === 'string' && /^\{\{\s*[a-zA-Z0-9_-]+\s*\}\}$/.test(v)) {
+          break; // board-param placeholder (ISSUE-50) — resolved at fetch time; skip numeric checks
+        }
         if (typeof v !== 'number' || !Number.isFinite(v)) {
           errors.push(`${where}: config "${key}" must be a number (got ${JSON.stringify(v)})`);
         } else if (field.min !== undefined && (v < field.min || v > field.max)) {

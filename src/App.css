@@ -1627,6 +1627,26 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .board-param-select:focus,
 .board-param-input:focus { outline: none; border-color: var(--accent); }
 
+/* Number param — slider + readout (ISSUE-50 #4) */
+.board-param-number { display: flex; align-items: center; gap: 8px; }
+.board-param-number input[type='range'] { flex: 1; accent-color: var(--accent); min-width: 0; }
+.board-param-number-value {
+  min-width: 2.5em;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* Month param — ‹ label › stepper (ISSUE-50 #5) */
+.board-param-month { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.month-current {
+  min-width: 9em;
+  text-align: center;
+}
+.month-current.latest { border-color: var(--accent); color: var(--accent); }
+.month-resolved { font-size: 11px; color: var(--text-secondary); }
+
 /* Commons description + credit for the now-playing track */
 .media-desc {
   margin: 6px 2px 0;

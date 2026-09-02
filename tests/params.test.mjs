@@ -88,3 +88,26 @@ test('paramSpecToText roundtrips through parseParamSpecText', () => {
   const back = parseParamSpecText(text);
   assert.deepEqual(back, block);
 });
+
+// ── ISSUE-50 #4/#5: number + month param types ──────────────────────────
+
+test('number params: options = [min, max, step]; value defaults to min', () => {
+  const { specs, values } = parseParams({ count: { type: 'number', label: 'Photos', options: [3, 12, 1] } });
+  assert.equal(values.count, '3'); // string value — fetchers parseInt
+  assert.deepEqual(specs.count.options, ['3', '12', '1']);
+});
+
+test('month params: default value 0 (latest available)', () => {
+  const { values } = parseParams({ month: { type: 'month', label: 'Data month' } });
+  assert.equal(values.month, '0');
+  const { values: v2 } = parseParams({ month: { type: 'month', value: 7 } });
+  assert.equal(v2.month, '7');
+});
+
+test('spec text: number form parses min,max,step; month form parses bare', () => {
+  const block = parseParamSpecText('count | number | Photos | 3, 12, 1\nmonth | month | Data month');
+  assert.deepEqual(block.count.options, ['3', '12', '1']);
+  assert.equal(block.count.type, 'number');
+  assert.equal(block.month.type, 'month');
+  assert.equal(block.month.options, undefined);
+});
