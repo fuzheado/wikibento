@@ -16,7 +16,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
-- ✅ **CIM month-lag fix (2026-09-01, NOT yet deployed):** every CIM widget falsely
+- ✅ **CIM month-lag fix (2026-09-01, DEPLOYED — bundle index-BHGlMTfE.js):** every CIM widget falsely
   reported registered categories as "unregistered" at the start of each month —
   the calendar's previous month isn't published until the monthly job runs days
   in (verified live 2026-09-01: August 404'd while July had full Met data), AND
@@ -212,7 +212,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-B_hgqo4i.js;
+- ✅ Git repo on GitHub (main). Current production bundle = index-BHGlMTfE.js (CIM month-lag fix, 2026-09-01);
   latest deploy 2026-08-17 (GLAM PetScan relay + 30K budget ceiling +
   clickable links + depth UX; prior: index-DkcrAAk0.js Lean mode 2026-08-16).
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
