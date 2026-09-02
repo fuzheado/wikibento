@@ -7,7 +7,7 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam }) {
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -325,7 +325,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
         )}
         {state.data && !state.loading && (
   <>
-    <WidgetContent type={renderer} data={state.data} />
+    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
         ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(widget.config.refreshSeconds)}
@@ -338,13 +338,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   );
 }
 
-function WidgetContent({ type, data }) {
+function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
     case 'RankingCard': return <RankingCard data={data} />;
     case 'TrendCard': return <TrendCard data={data} />;
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
+    case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />;
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
     case 'ExcerptCard': return <ExcerptCard data={data} />;
     case 'EditHistoryCard': return <EditHistoryCard data={data} />;
@@ -587,6 +588,69 @@ function MarkdownCard({ data }) {
       className="markdown-card"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(data.markdown, { allowExternalImages: data.allowExternalImages }) }}
     />
+  );
+}
+
+/** Board Controls (ISSUE-50) — renders one control group per declared board
+ *  param (buttons / select / text); a change writes the param via onSetParam,
+ *  which re-resolves every widget config referencing {{param}} and bumps
+ *  reloadKey → referencing widgets re-fetch. The specs/values/setter arrive
+ *  as WidgetFrame props (only this renderer consumes them) — `data` is just
+ *  the card's own config (title). */
+function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
+  const specs = paramSpecs || {};
+  const names = Object.keys(specs);
+  return (
+    <div className="board-controls">
+      {data.title && <div className="stat-title">{data.title}</div>}
+      {names.length === 0 && (
+        <div className="widget-empty">
+          No board params declared. Add a <code>params</code> block to the
+          dashboard JSON, then reference them with <code>{'{{name}}'}</code> in
+          any widget config.
+        </div>
+      )}
+      {names.map((name) => {
+        const spec = specs[name];
+        const current = paramValues?.[name] ?? '';
+        return (
+          <div key={name} className="board-param-group">
+            <div className="board-param-label">{spec.label}</div>
+            {spec.type === 'text' ? (
+              <input
+                className="board-param-input"
+                value={current}
+                placeholder={spec.label}
+                onChange={(e) => onSetParam?.(name, e.target.value)}
+              />
+            ) : spec.type === 'select' ? (
+              <select
+                className="board-param-select"
+                value={current}
+                onChange={(e) => onSetParam?.(name, e.target.value)}
+              >
+                {(spec.options || []).map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="board-param-buttons">
+                {(spec.options || []).map((opt) => (
+                  <button
+                    key={opt}
+                    className={`board-param-btn${opt === current ? ' active' : ''}`}
+                    onClick={() => onSetParam?.(name, opt)}
+                    aria-pressed={opt === current}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

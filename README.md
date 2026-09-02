@@ -138,6 +138,8 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 ### Building a dashboard
 
+- **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders buttons/menus/text fields that re-aim every referencing widget with one click (the interactivity primitive — [ISSUE-50](docs/ISSUES.md))
+
 - **Add Widget panel** — searchable catalog; click to add
 - **✨ Ask (ML advisor)** — type what you want in plain language ("random
   sampling of images from a category") and get widget recommendations with

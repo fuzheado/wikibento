@@ -2096,7 +2096,7 @@ sends CORS `*` on upload.wikimedia.org — verified pattern from the
 thumbnail work). Licensing note: subtitles are user-generated CC BY-SA —
 the existing Commons link/credit surface already covers attribution.
 
-## ISSUE-50 · Board params v1: `{{param}}` interpolation + Board Controls card (buttons/select/text) — **open → prototype 2026-09-01**
+## ISSUE-50 · Board params v1: `{{param}}` interpolation + Board Controls card (buttons/select/text) — **prototype implemented + deployed 2026-09-01**
 
 **What:** the concrete Path A implementation of ISSUE-41's design (which is the
 declarative core of the Phase 3 interactivity vision): a board-level `params`

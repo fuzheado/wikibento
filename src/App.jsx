@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import GridLayout from 'react-grid-layout';
 import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
@@ -10,6 +10,7 @@ import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
+import { parseParams, resolveParams } from './lib/params';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -58,7 +59,9 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
-  const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset)
+  const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset) — also by board-param changes (ISSUE-50)
+  const [paramSpecs, setParamSpecs] = useState({});   // board params (ISSUE-50): { name: { label, type, options } }
+  const [paramValues, setParamValues] = useState({}); // board params live values: { name: string }
   // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
   const [kiosk, setKiosk] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
@@ -94,10 +97,13 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     const params = new URLSearchParams(window.location.search);
     if (params.get('kiosk') === '1') setKiosk(true);
     else if (params.get('lean') === '1') setLean(true); // ?lean=1 — chrome-free, no fullscreen
-    const apply = (widgets, layout) => {
+    const apply = (widgets, layout, paramsBlock) => {
+      const { specs, values } = parseParams(paramsBlock);
+      setParamSpecs(specs);
+      setParamValues(values);
       setWidgets(widgets);
       setLayout(layout);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets, layout }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets, layout, params: paramsBlock || null }));
     };
     const loadSaved = () => {
       try {
@@ -105,7 +111,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.widgets?.length && parsed.layout?.length) {
-            apply(parsed.widgets, parsed.layout);
+            apply(parsed.widgets, parsed.layout, parsed.params);
             return;
           }
         }
@@ -121,12 +127,13 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const text = await fetchRemoteConfig(configUrl);
           const r = validateDashboard(text);
           if (!r.valid) throw new Error(r.errors[0]);
-          apply(r.widgets, r.layout);
+          apply(r.widgets, r.layout, JSON.parse(text).params);
           loadedFromUrl = true;
         } else if (hashPayload) {
-          const r = validateDashboard(decodeDashboardHash(hashPayload));
+          const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
+          const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
-          apply(r.widgets, r.layout);
+          apply(r.widgets, r.layout, json.params);
           loadedFromUrl = true;
         }
       } catch (e) {
@@ -178,8 +185,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   }, [kiosk, lean, exitPresent]);
 
   // Persist to localStorage on changes
-  const persist = useCallback((newWidgets, newLayout) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets: newWidgets, layout: newLayout }));
+  const persist = useCallback((newWidgets, newLayout, paramsBlock) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets: newWidgets, layout: newLayout, params: paramsBlock || null }));
   }, []);
 
   const handleLayoutChange = useCallback((newLayout) => {
@@ -254,11 +261,22 @@ const handleAutoHeight = useCallback((id, px) => {
 
   /** Replace the whole dashboard (example load / successful import). */
   const applyDashboard = useCallback((dashboard) => {
+    const { specs, values } = parseParams(dashboard.params);
+    setParamSpecs(specs);
+    setParamValues(values);
     setWidgets(dashboard.widgets);
     setLayout(dashboard.layout);
-    persist(dashboard.widgets, dashboard.layout);
+    persist(dashboard.widgets, dashboard.layout, dashboard.params);
     setReloadKey((k) => k + 1);
   }, [persist]);
+
+  /** ISSUE-50 — write a board param; the reloadKey bump re-resolves every
+   *  widget config referencing {{name}} and re-fetches them (config change →
+   *  load() is the existing propagation trigger). */
+  const handleSetParam = useCallback((name, value) => {
+    setParamValues((prev) => ({ ...prev, [name]: value }));
+    setReloadKey((k) => k + 1);
+  }, []);
 
   const handleLoadExample = useCallback(() => {
     applyDashboard(EXAMPLE_DASHBOARD);
@@ -283,6 +301,16 @@ const handleAutoHeight = useCallback((id, px) => {
   /** Open the Share panel (QR code + copyable link). */
   const openShare = useCallback(() => setShowShare(true), []);
 
+  // Board params (ISSUE-50): resolve {{name}} placeholders in every widget
+  // config against the live values. Memoized so widget identity changes only
+  // when params actually resolve differently (render is cheap; reload is
+  // driven by reloadKey, not by identity). NOTE: must stay ABOVE the
+  // `if (!initialized)` early return — hooks run unconditionally.
+  const resolvedWidgets = useMemo(
+    () => widgets.map((w) => ({ ...w, config: resolveParams(w.config, paramValues) })),
+    [widgets, paramValues],
+  );
+
   if (!initialized) {
     return (
       <div className="boot-splash">
@@ -292,7 +320,7 @@ const handleAutoHeight = useCallback((id, px) => {
     );
   }
 
-  const widgetItems = widgets.map(w => (
+  const widgetItems = resolvedWidgets.map(w => (
     <div key={w.id} className="grid-item">
       <ErrorBoundary
         resetKey={w.config}
@@ -304,6 +332,9 @@ const handleAutoHeight = useCallback((id, px) => {
   onUpdateConfig={handleUpdateConfig}
   reloadKey={reloadKey}
  onAutoHeight={handleAutoHeight}
+ paramSpecs={paramSpecs}
+ paramValues={paramValues}
+ onSetParam={handleSetParam}
 />
       </ErrorBoundary>
     </div>

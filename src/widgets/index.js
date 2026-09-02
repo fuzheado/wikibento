@@ -1094,6 +1094,24 @@ export const WIDGET_TYPES = {
     },
   },
 
+  boardControls: {
+    id: 'boardControls',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'Board Controls',
+    icon: '🎛️',
+    description: 'Buttons / menus that drive board params ({{param}}) — one click re-aims every widget that references the param (ISSUE-50)',
+    defaults: { title: 'Board Controls', refreshSeconds: 86400 },
+    renderer: 'BoardControlsCard',
+    dataSource: 'static (writes board params — see the params block in the dashboard JSON)',
+    configFields: [
+      { key: 'title', label: 'Title', type: 'text', placeholder: 'Board Controls' },
+    ],
+    // Static — the spec (params block) + values + setter arrive as WidgetFrame props;
+    // transform just carries the title. Renderer switch passes paramSpecs/paramValues/onSetParam.
+    transform: (data, config) => ({ title: config.title || 'Board Controls' }),
+  },
+
   wikiPage: {
     id: 'wikiPage',
     category: 'Content & Embeds', intensity: 'low',

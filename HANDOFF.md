@@ -28,6 +28,21 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   scheme 400s — documented as a trap; + iOS quicktime pick) and **ISSUE-49
   filed** (TimedText subtitles — probe pattern verified; language
   enumeration + VTT endpoint are the open probes).
+- ✅ **Board params prototype (ISSUE-50, 2026-09-01, DEPLOYED — bundle index-DjTAjvPz.js):**
+  the first interactivity primitive (Path A of the 2026-09-01 research,
+  MODULARITY-AND-DATAFLOW §Part 3). Dashboards may declare a `params` block
+  (`{ name: { label, type: buttons|select|text, options, value } }`);
+  widget configs may reference `{{name}}` (deep string interpolation,
+  unknown names left literal + warned); the new static **Board Controls**
+  widget (🎛️, Content & Embeds) renders one control group per param and a
+  click writes the value + bumps `reloadKey` → all referencing widgets
+  re-resolve + re-fetch. Params persist in localStorage and round-trip
+  through boot/URL-config/import (App `apply` threads `params`).
+  Verified live: 3 museum-category buttons re-aim a Category Size widget
+  (Smithsonian 17,166 → Rijksmuseum 6,870 → Library of Congress, sample
+  photos re-aiming each time). Constitution: tests/params.test.mjs
+  (npm test 61). Deferred to ISSUE-41 full design: URL context overlay,
+  per-widget ⓘ provenance, schema/docs for `params`.
 - ✅ **Media player description + annotation (2026-09-01, DEPLOYED — bundle index-DBwecE6U.js):**
   the 🎬 widget gains "Show Commons description" (⚙, default ON — now-playing
   track shows its `videoinfo` extmetadata `ImageDescription` + `Artist ·
