@@ -16,6 +16,18 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Catalog organization + widget idea backlog (2026-09-01):** README
+  Features / Verified Working / Widget Catalog all regrouped into ###
+  subsections mirroring the app's Add Widget categories (all bullets/rows
+  verbatim — script-asserted 0 lost). **cimLeaderboard moved Rankings &
+  Platforms → Categories & GLAM** in the registry so the CIM family (9
+  widgets) is together in the Add Widget panel too (manifest regenerated;
+  deployed index-D1CFGyxI.js). Docs research: the media player has no open
+  TODOs beyond its spec — **ISSUE-48 filed** (poster frames via
+  Special:FilePath?width=640, verified 200 image/jpeg; direct thumb/seek
+  scheme 400s — documented as a trap; + iOS quicktime pick) and **ISSUE-49
+  filed** (TimedText subtitles — probe pattern verified; language
+  enumeration + VTT endpoint are the open probes).
 - ✅ **Media player description + annotation (2026-09-01, DEPLOYED — bundle index-DBwecE6U.js):**
   the 🎬 widget gains "Show Commons description" (⚙, default ON — now-playing
   track shows its `videoinfo` extmetadata `ImageDescription` + `Artist ·
@@ -361,7 +373,8 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (436.79 KB JS / 128.66 KB gzip + 49.19 KB CSS)
+npm run build      # → dist/ (439.68 KB JS / 129.32 KB gzip + 49.18 KB CSS;
+                   #   + 55 KB pannellum lazy asset — ~533 KB / ~152 KB gzip total)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```

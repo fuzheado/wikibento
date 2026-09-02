@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈486 KB total (~139 KB
+(the same grid engine used by Grafana and Kibana), ≈533 KB total (~152 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -85,7 +85,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Commons File Gallery** | 🗂️ | Commons API `imageinfo` (batched) | Gallery of any Commons files you list (one per line) — grid or list; order as-listed / random / alphabetical / largest-first; missing files counted |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
-| **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) | Native HTML5 playback of Commons video or audio — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay |
+| **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) | Native HTML5 playback of Commons video or audio — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay; optional **Commons description + artist/license credit** per track and a freeform **Markdown annotation** |
 
 ### Rankings & Platforms (4)
 
@@ -259,10 +259,25 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-08-17)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-09-01)
 
-### GLAM & CIM — impact metrics (2026-08-13 → 17)
+### GLAM & CIM — impact metrics (2026-08-13 → 09-01)
 
+- ✅ **CIM month-lag fix (2026-09-01):** the calendar's previous month isn't
+  published until CIM's monthly job runs, so at month start every default-month
+  CIM widget 404'd — and the disambiguation probe (built from the same month)
+  misread that as "unregistered" for long-registered categories. Fixed:
+  `latestCimMonth()` resolves the latest PUBLISHED month (bounded backward walk
+  probing the global leaderboard, 1 h TTL cache); all 9 CIM fetchers default to
+  it and probe against it; cards display the resolved month. Constitution:
+  tests/cim-latest-month.test.mjs (date-relative, runs in any month).
+  Verified live: Images_from_Metropolitan_Museum_of_Art resolves to 2026-07 =
+  **389,030 files · 20,700 used · 404 wikis · 31,351 pages**
+- ✅ **CIM File Spotlight image preview (2026-09-01):** 🔦 "Show image preview"
+  (default ON) renders a 480px Commons thumb of the file above the stats,
+  linked to the file page; best-effort fetch — a bad filename degrades to
+  stats-only, never an error. Verified live: Queen Mother Pendant Mask- Iyoba
+  MET DP231460.jpg → mask image + 60 wikis · 123 pages · 347,631 views (2026-07)
 - ✅ **GLAM PetScan relay + budget ceiling (2026-08-17):** the GLAM widget's
   tree+usage flows through the same-origin `/api/petscan` relay (PetScan `giu`
   exact-ns — structural parity with glamtools, verified 518/38/38/40/2/110,092
@@ -285,7 +300,7 @@ wikibento/
 - ✅ GLAM detail: wiki names show as shorthand (`en.wikipedia`), full hostname
   on hover; category title no longer squished by the stats area (flex-shrink)
 
-### Galleries, media & lists (2026-08-13 → 16)
+### Galleries, media & lists (2026-08-13 → 09-01)
 
 - ✅ **Article Gallery (2026-08-13):** REST `/page/media-list` + batched
   imageinfo — Albert Einstein → 32 captioned images; caption-presence filter
@@ -305,7 +320,11 @@ wikibento/
   autoplay with a browser-policy-aware ▶ Start pill (one click unlocks
   subsequent autoplay), kiosk-compatible; missing files counted in the
   subtitle — verified live: FA-18 refueling clip (480p VP9), EN-Abbe
-  spoken article (audio), Leica 1927 (1080p)
+  spoken article (audio), Leica 1927 (1080p). **Extended 2026-09-01:**
+  "Show Commons description" (default ON) — the now-playing track shows its
+  `ImageDescription` + `Artist · License` credit (verified: Dance reedit 2 →
+  "Dance couple performing the cha cha." · Wpzhiyilee · CC BY-SA 3.0); plus
+  a freeform **Markdown annotation** field for board captions
 - ✅ **360° Panorama Viewer (2026-08-13):** Pannellum 2.5.7 (vendored,
   lazy-loaded as a separate 56 KB asset) renders real Commons
   equirectangular files — Imiloa grounds 12740×6370 verified live in the
