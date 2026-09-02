@@ -843,7 +843,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => fetchCimSnapshot(config.category, config.scope, undefined, config.month),
     transform: (data, config) => {
-      const scope = resolveMonth(config.month);
+      const scope = data.resolvedMonth || resolveMonth(config.month);
       return {
       title: data.category.replace(/_/g, ' '),
       href: `https://commons.wikimedia.org/wiki/Category:${data.category}`,
@@ -878,7 +878,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => fetchCimTrend(config.category, config.scope, config.wiki, undefined, config.month, config.months),
     transform: (data, config) => {
-      const end = resolveMonth(config.month);
+      const end = data.resolvedMonth || resolveMonth(config.month);
       const n = Math.min(Math.max(parseInt(config.months) || 6, 2), 24);
       const start = shiftMonth(end.year, end.month, -(n - 1));
       return {
@@ -912,7 +912,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => fetchCimTopFiles(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
     transform: (data, config) => {
-      const scope = resolveMonth(config.month);
+      const scope = data.resolvedMonth || resolveMonth(config.month);
       return {
       title: data.category.replace(/_/g, ' '),
       subtitle: `${fmtMonth(scope.year, scope.month)} · top files by pageviews · ${config.scope} · precomputed (CIM)`,
@@ -935,7 +935,7 @@ export const WIDGET_TYPES = {
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopWikis(config.category, config.scope, undefined, config.month, config.topN),
     transform: (data, config) => {
- const sc = resolveMonth(config.month);
+ const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
       data.category.replace(/_/g, ' '),
       `${fmtMonth(sc.year, sc.month)} · wikis using the files · ${config.scope} · precomputed (CIM)`,
@@ -958,7 +958,7 @@ export const WIDGET_TYPES = {
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopPages(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
     transform: (data, config) => {
- const sc = resolveMonth(config.month);
+ const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
       data.category.replace(/_/g, ' '),
       `${fmtMonth(sc.year, sc.month)} · pages using the files · ${config.scope} · precomputed (CIM)`,
@@ -981,7 +981,7 @@ export const WIDGET_TYPES = {
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'editType', label: 'Edit type', type: 'select', options: CIM_EDIT_TYPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => fetchCimTopEditors(config.category, config.scope, config.editType, undefined, config.month, config.topN),
     transform: (data, config) => {
- const sc = resolveMonth(config.month);
+ const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
       data.category.replace(/_/g, ' '),
       `${fmtMonth(sc.year, sc.month)} · top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
@@ -1011,7 +1011,7 @@ export const WIDGET_TYPES = {
     transform: (data, config) => {
       const highlight = (config.highlight || '').trim();
       const hl = highlight ? data.rows.find((r) => r.category.replace(/_/g, ' ').toLowerCase() === highlight.toLowerCase()) : null;
-      const scope = resolveMonth(config.month);
+      const scope = data.resolvedMonth || resolveMonth(config.month);
       const mo = fmtMonth(scope.year, scope.month);
       return cimRanking(
         'Most-viewed categories',
@@ -1046,7 +1046,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month),
     transform: (data, config) => {
-      const scope = resolveMonth(config.month);
+      const scope = data.resolvedMonth || resolveMonth(config.month);
       return {
       title: data.file.replace(/_/g, ' '),
       subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
@@ -1079,7 +1079,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => fetchCimFileTraffic(config.filename, config.wiki, config.months, undefined, config.month),
     transform: (data, config) => {
-      const end = resolveMonth(config.month);
+      const end = data.resolvedMonth || resolveMonth(config.month);
       const n = Math.min(Math.max(parseInt(config.months) || 12, 3), 24);
       const start = shiftMonth(end.year, end.month, -(n - 1));
       return {

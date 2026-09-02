@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-08-17 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-09-01 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -16,6 +16,22 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **CIM month-lag fix (2026-09-01, NOT yet deployed):** every CIM widget falsely
+  reported registered categories as "unregistered" at the start of each month —
+  the calendar's previous month isn't published until the monthly job runs days
+  in (verified live 2026-09-01: August 404'd while July had full Met data), AND
+  the 404 disambiguation probe was built from the same `prevCimMonth()` as the
+  main request when month=0, so probe ≡ main → both 404 → false "register via
+  {{Views from category}}" verdict. Fix: new `latestCimMonth()` helper (bounded
+  backward walk probing the category-independent global leaderboard, 1 h TTL
+  cache) — all 9 CIM fetchers now default to the latest PUBLISHED month and probe
+  against it; fetchers return `resolvedMonth` and the CIM transforms display it
+  (config-computed `resolveMonth(config.month)` stays as fallback). Also: 4xx
+  fetches are now terminal in `fetchTextWithRetry` (previously retried with 1.5 s
+  backoff — every 404 error path and the whole test suite were 1.5–4.5 s slower).
+  Constitution: tests/cim-latest-month.test.mjs (4 tests, date-relative stub —
+  runs in any month; npm test 53). Verified live: Met snapshot resolves to
+  2026-07 = 389,030 files · 20,700 used · 404 wikis · 31,351 pages.
 - ✅ **GLAM depth UX (2026-08-17)** — zero-state explainer + config hints:
   when a scan returns 0 files the card now shows a real message instead of
   silent zeros — depth 0: "No files directly in this category — increase
