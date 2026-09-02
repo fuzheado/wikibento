@@ -167,6 +167,69 @@ actually needed before committing to a reactive-graph primitive.
 
 ---
 
+## Part 3 — State of the art: how peer tools do interactivity (researched 2026-09-01)
+
+A scan of the tools that already ship widget interactivity — to answer "roll our own
+or borrow?" — found **three competing models** in the wild, with clear track records:
+
+| Model | Exemplars | Mechanism | Track record |
+|---|---|---|---|
+| **Variables / parameters** (hub-and-spoke) | **Grafana**, Metabase, Apache Superset, Power BI, Streamlit | Named values (`$var` / `{{var}}`) interpolated into panel *queries* at evaluation time; changing a variable re-runs every referencing panel. **No direct widget→widget edges.** | The survivor. Grafana's modern `@grafana/scenes` runtime still centers on it; chained/derived variables cover dependency cases; Metabase/Superset both built native-filter + Jinja-style templating variants. |
+| **Actions / events** (declarative source→target edges) | **Tableau** (filter / highlight / URL actions), Kibana drilldowns, Metabase click behavior, Retool / Appsmith event handlers | "On click of SOURCE, do ACTION to TARGET" — Tableau's "Use as Filter" is the canonical case | Powerful but **wiring complexity grows with widget pairs**; Retool/Appsmith apps notoriously become event-handler hairballs. Every mature tool *caps* the action vocabulary: Tableau only filter/highlight/navigate; Metabase only "update filter / go to destination". |
+| **Reactive dataflow** (named cells + dependency graph) | **Observable** (`@observablehq/runtime` is MIT and embeddable), Jotai, TanStack Query | Cells declare outputs; references form a graph; recompute is topological | Most elegant client-side model — but it *replaces* the app's execution model rather than layering on top. |
+
+Three conclusions:
+
+1. **Grafana — the direct peer — never built widget→widget messaging, deliberately.**
+   The industry's collective lesson is that general message-passing between dashboard
+   nodes is a complexity trap (cf. mTropolis's fate, PARADIGMS.md §2), and that ~90%
+   of real interactivity is "something sets a named parameter; widgets that reference
+   it re-query." Actions exist everywhere as a *thin, capped veneer on top of
+   variables* (click → set filter), never as a general bus.
+2. **Streamlit's propagation semantics are the right fit for this app:** on an input
+   change, re-run what references it, skip the rest. WikiBento's equivalent is
+   already half-built — config change → `load()` re-run; a params change just needs
+   re-resolution + `reloadKey`.
+3. **The reactive graph is infrastructure, not a feature.** Grafana built variables
+   as a product feature and adopted a reactive scene runtime underneath. We should
+   copy that split: hand-roll the (tiny) variables layer, borrow the reactive engine
+   only if Level 2 wiring ever proves necessary.
+
+### The minimal primitive set (prototype scope)
+
+1. **Params** — App state `{ name → value }`, persisted in the dashboard JSON
+   (additive `params` top-level block; `validateDashboard` already ignores unknown
+   top-level keys — verified 2026-09-01).
+2. **Interpolation** — `resolveParams(config, values)`: `{{name}}` substitution in
+   config string fields, resolved ONCE before validate/fetch (unknown names left
+   literal + warned).
+3. **Controllers** — widgets/controls that WRITE params: buttons, select, text
+   (the Board Controls card of ISSUE-41).
+4. **Re-fetch trigger** — already exists: re-resolve configs + bump `reloadKey`.
+5. *(later, Level 2 only)* — declared outputs + `$ref` edges for true
+   widget→widget flow; the point to adopt Jotai / `@observablehq/runtime`.
+
+### Paths forward
+
+- **Path A (first) — params + Board Controls card** = ISSUE-50. The demo: three
+  category buttons re-aim a gallery/stats widget via `{{category}}`. Kiosk +
+  buttons = touchscreen museum interactive. Everything stays serializable and
+  URL-addressable (`?…&category=X` — ISSUE-40's context params use the same
+  resolution path).
+- **Path B (after A) — the capped action layer:** "on click of a GLAM category
+  title / leaderboard row / top-page row → set param" (the Tableau filter-action
+  analogue). Makes every existing list widget a controller while staying inside
+  the variables hub.
+- **Path C (when proven) — Level 2 `$ref` wiring** with a real reactive primitive
+  (Appendix C sketch). Path A's usage tells us if this is ever needed.
+- **Parallel cheap win:** the list-source handle (PagePile PSID, §Part 2) —
+  producer/consumer chaining through an external stable ID, zero in-memory wiring.
+
+**Verdict:** roll our own the *variables layer* (it is a resolve function + App
+state — the integration work is the actual job per Part 2); do NOT roll our own
+the *reactive graph* (adopt `@observablehq/runtime` or Jotai at Level 2). That is
+exactly the split Grafana's history endorses.
+
 ## Recommendation
 
 The architecture is in good shape for both directions, but they are different-sized

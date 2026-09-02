@@ -2095,3 +2095,63 @@ if direct Commons URLs are used, add `crossorigin="anonymous"` (Wikimedia
 sends CORS `*` on upload.wikimedia.org — verified pattern from the
 thumbnail work). Licensing note: subtitles are user-generated CC BY-SA —
 the existing Commons link/credit surface already covers attribution.
+
+## ISSUE-50 · Board params v1: `{{param}}` interpolation + Board Controls card (buttons/select/text) — **open → prototype 2026-09-01**
+
+**What:** the concrete Path A implementation of ISSUE-41's design (which is the
+declarative core of the Phase 3 interactivity vision): a board-level `params`
+block, `{{name}}` placeholders in any widget config string, and a **Board
+Controls** card (static widget, `boardControls`) that renders a button group /
+select / text field per param — clicking a control re-resolves every referencing
+widget's config and re-fetches it. The canonical demo: three category-name
+buttons → a Category Size widget's `{{category}}` config → the sample photos and
+stats re-aim to the chosen museum.
+
+**Why:** this is the single primitive that turns WikiBento from a poster wall
+into an interactive instrument (user direction 2026-09-01: "a button in Widget A
+sends a category name to Widget B as input"). It is also the industry-validated
+model: Grafana/Metabase/Superset/Power BI all converged on variables-as-hub with
+NO widget→widget messaging (research 2026-09-01, MODULARITY-AND-DATAFLOW §Part 3)
+— general message-passing is the complexity trap that killed the CD-ROM-era
+object/message authoring tools (mTropolis). Variables first; a capped click→set
+param action layer (Tableau's lesson) is the follow-up.
+
+**Design (implemented as prototype 2026-09-01, additive, no format break):**
+- **`params` top-level block** (validateDashboard ignores unknown top-level keys
+  — verified): `{ "params": { "category": { "label": "Museum", "type":
+  "buttons" | "select" | "text", "options": ["A", "B"], "value": "A" } } }`.
+  `value` is the live value (defaults to `options[0]` or `""`).
+- **`src/lib/params.js`**: `parseParams(block)` → `{ specs, values }`;
+  `resolveParams(config, values)` → deep `{{name}}` substitution in string
+  fields (numbers/booleans untouched; unknown names left literal).
+- **Resolution timing:** App resolves every widget config
+  (`useMemo([widgets, paramValues])`) before passing to WidgetFrame — the
+  validator never sees placeholders, select enums validate on resolved values.
+- **Ripple:** `handleSetParam(name, value)` = set param value + bump
+  `reloadKey` → all fetch widgets re-run `load()` (the existing whole-board
+  reload trigger; per-widget dependency tracking is a later optimization —
+  with N ≤ 40 widgets and 1 h-TTL caches, whole-board reload on an explicit
+  click is acceptable and predictable).
+- **`boardControls` static widget** (timeScope `point`, no fetch): renderer
+  receives `paramSpecs` / `paramValues` / `onSetParam` via WidgetFrame props
+  (only this renderer consumes them). Config: `{ title }` — shows all declared
+  params by default. Buttons render one group per param; the active value is
+  highlighted.
+- **Provenance (deferred to ISSUE-41 full design):** ⓘ Session shows applied
+  params; URL context overlay (`?…&category=X`) is the same resolution path and
+  lands with ISSUE-40.
+
+**Prototype verification (2026-09-01):** hash-config demo — `params.category`
+(three museum categories) + `boardControls` (button group) + `categorySize`
+(`config.category = "{{category}}"`, 6 random photos): clicking a button
+re-fetches the widget against the chosen category; non-referencing widgets are
+unaffected in output (they do re-run `load()`). Unit constitution:
+tests/params.test.mjs (parse/resolve/roundtrip, unknown names literal).
+
+**Caveats / non-goals for v1:**
+- Whole-board reload on every param change (see Ripple) — fine for prototype;
+  revisit if boards grow past ~50 fetch widgets.
+- No URL overlay, no per-widget ⓘ provenance, no markdown-text collision
+  warning yet (ISSUE-41 full design covers these).
+- `params` is NOT in the JSON schema yet — add to docs/dashboard.schema.json +
+  docs/JSON-FORMAT.md when the prototype graduates.
