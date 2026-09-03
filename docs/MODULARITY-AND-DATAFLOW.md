@@ -417,6 +417,46 @@ WikiBento:
 5. **localStorage ceiling:** no cross-device/multi-user sync — the standing
    Part 2 boundary, unchanged.
 
+## Part 6 — Showing the wiring: complexity management for dense boards (2026-09-01)
+
+Clarification first: "one controls surface" survives Path B. A click action on a
+row is a **write into the hub**, invisible until the user clicks — it adds zero
+permanent chrome. And because the wiring is *declarative* (config references,
+spec targets), the widget-to-widget graph is **derived, not authored** — it can
+always be recomputed from the dashboard JSON and can never drift from reality.
+That single property makes every display option below cheap.
+
+### The three tiers of wiring display (with precedents)
+
+| Tier | What it is | Precedents | Effort |
+|---|---|---|---|
+| **A. Derived, read-only map** | a view computed from configs: controls → params → consumer widgets | **Airflow's DAG Graph View** (read/monitor, not author), Obsidian's graph view, community Observable-runtime visualizers | S — bipartite columns (controls \| params \| consumers), click-to-jump; our graph is a hub (depth-1 star), so a free-form layout isn't even needed |
+| **B. On-canvas trace overlay** | arrows drawn ON the board itself, on demand, per control | **Excel's Trace Precedents/Dependents** (Formula Auditing tracer arrows — the canonical pattern: on demand, per cell, never all-at-once), **Figma prototype connections** (viewers see connections read-only) | M — we already have layout coordinates + live DOM rects; hover/click a control → SVG arrows to affected widgets. The "show me what this button affects" moment, visual |
+| **C. Authoring canvas** | box-and-arrow as the EDITOR — wiring is the artifact | **Node-RED, Max/MSP, Unreal Blueprints**, React Flow apps | L — and it's a different paradigm: the canvas becomes the program (Part 2's Level 3). React Flow is the easy 10%; edge-authoring UX, validation, and layout persistence are the 90% |
+
+**Recommendation:** build A now (it doubles as the P3 provenance surface — one
+implementation, two jobs), B as the demo/kiosk showpiece (an Excel-style "trace
+this control" is a board-explainer AND an educational feature), and treat C as
+ruled out for the same reason as Part 2's Level 4: a hub graph doesn't need a
+node editor. Free-form canvases exist to lay out arbitrary graphs; a star is
+better served by columns and arrows-on-demand, at roughly a tenth the cost.
+
+### Best practices for complexity management (from the survey)
+
+1. **Derived > authored** — every wiring view must be computed from the configs,
+   never stored separately (a stored graph drifts; a derived one can't).
+2. **On-demand tracing over ambient display** — Excel shows arrows only when
+   asked; Figma shows thin connection dots, full arrows on selection. Ambient
+   hairballs (Node-RED at scale) are the failure mode to avoid.
+3. **Zoom levels:** board (just controls + data) → ⓘ (this widget's drivers) →
+   wiring map (whole board). Each level answers one question, no more.
+4. **Status in the map, not the board** — Airflow's graph view shows run state;
+   our map can later show each param's current value and each widget's data age
+   (the ⏱ footer's data, reused).
+5. **Complexity budgets** (from Part 5): ~8 visible controls; beyond that,
+   split boards and connect with ISSUE-40 parameterized links — navigation over
+   accumulation.
+
 ## Recommendation
 
 The architecture is in good shape for both directions, but they are different-sized
