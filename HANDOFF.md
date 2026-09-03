@@ -16,6 +16,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
+  cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files
+  ≥ 10× and ≥ 10k deep files — e.g. UNESCO 575 vs 16.4M) render a two-segment
+  mini-bar + caption: "575 direct · 16,414,373 in tree (28,547×) — tree reach,
+  not direct attribution". No extra fetch (the snapshot endpoint returns both
+  scopes in one call). Also fixes a latent mislabel: stats showed shallow keys
+  under the configured scope's label — deep scope now shows -deep values
+  (fallbacks for partial data; found by the new tests). Flat trees render
+  unchanged. Constitution: tests/cim-gap.test.mjs (npm test 73). Issue #5
+  closed with implementation note; investigation record in
+  docs/DATA-SOURCES.md §19.
 - ✅ **Cross-browser fix + matrix suite (2026-09-03, DEPLOYED — bundle index-BgEdNEa0.js):**
   see the FIXED known-issue entry below for the full User-Agent-preflight
   diagnosis. New `npm run test:browsers` (scripts/browser-matrix.mjs,
@@ -276,7 +287,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-BgEdNEa0.js (Firefox/Safari CORS fix, 2026-09-03);
+- ✅ Git repo on GitHub (main). Current production bundle = index-DClvfKWq.js (CIM gap indicator, 2026-09-03);
   latest deploy 2026-08-17 (GLAM PetScan relay + 30K budget ceiling +
   clickable links + depth UX; prior: index-DkcrAAk0.js Lean mode 2026-08-16).
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —

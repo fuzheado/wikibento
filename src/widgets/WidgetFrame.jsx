@@ -1279,6 +1279,17 @@ function CimSnapshotCard({ data }) {
           </div>
         ))}
       </div>
+      {data.gap && (
+        <div className="cim-gap" title="Deep scope sweeps subcategories up to 7 levels — this number is the reach of the whole tree, not just the category itself">
+          <div className="cim-gap-bar" aria-hidden="true">
+            <span className="cim-gap-direct" style={{ width: `${Math.max((data.gap.direct / data.gap.tree) * 100, 0.75)}%` }} />
+          </div>
+          <div className="cim-gap-caption">
+            {data.gap.direct.toLocaleString()} direct · {data.gap.tree.toLocaleString()} in tree
+            ({data.gap.ratio.toLocaleString()}×) — tree reach, not direct attribution
+          </div>
+        </div>
+      )}
       {data.trend && data.trend.length > 0 && (
         <div className="mini-sparkline">
           {(() => {

@@ -844,16 +844,32 @@ export const WIDGET_TYPES = {
     fetch: (config) => fetchCimSnapshot(config.category, config.scope, undefined, config.month),
     transform: (data, config) => {
       const scope = data.resolvedMonth || resolveMonth(config.month);
+      const deep = config.scope !== 'shallow';
+      // Stats reflect the SELECTED scope (fixes latent mislabel: the shallow
+      // keys were shown under a "deep" label). The snapshot endpoint returns
+      // both scopes in one call, so this is free.
+      const files = deep ? (data.filesDeep ?? data.files ?? 0) : (data.files ?? 0);
+      const used = deep ? (data.usedDeep ?? data.used ?? 0) : (data.used ?? 0);
+      const wikis = deep ? (data.wikisDeep ?? data.wikis ?? 0) : (data.wikis ?? 0);
+      const pages = deep ? (data.pagesDeep ?? data.pages ?? 0) : (data.pages ?? 0);
+      // ISSUE-5: surface extreme diffusion capture — deep tree ≫ direct files
+      // (e.g. UNESCO: 575 direct vs 16.4M in tree) means the number is tree
+      // reach, not direct attribution.
+      let gap = null;
+      if (deep && data.files > 0 && data.filesDeep >= 10000 && data.filesDeep / data.files >= 10) {
+        gap = { direct: data.files, tree: data.filesDeep, ratio: Math.round(data.filesDeep / data.files) };
+      }
       return {
       title: data.category.replace(/_/g, ' '),
       href: `https://commons.wikimedia.org/wiki/Category:${data.category}`,
-      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · deep: ${data.filesDeep.toLocaleString()} files` : ''}`,
+      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · direct: ${data.files.toLocaleString()} files` : ''}`,
       stats: [
-        { label: 'Files', value: data.files.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
-        { label: 'Files used', value: data.used.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
-        { label: 'Wikis', value: data.wikis.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
-        { label: 'Pages', value: data.pages.toLocaleString(), sub: config.scope === 'shallow' ? 'shallow' : 'deep' },
+        { label: 'Files', value: files.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+        { label: 'Files used', value: used.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+        { label: 'Wikis', value: wikis.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+        { label: 'Pages', value: pages.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
       ],
+      gap,
       };
     },
   },

@@ -1589,6 +1589,27 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .media-badges { margin-left: auto; display: flex; gap: 4px; }
 .media-badge { font-size: 12px; opacity: 0.8; }
 
+/* CIM shallow-vs-deep gap indicator (Issue #5) */
+.cim-gap { margin: 8px 2px 0; }
+.cim-gap-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.cim-gap-direct {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.cim-gap-caption {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 /* Board Controls (ISSUE-50) — buttons/select/text that write board params */
 .board-controls { display: flex; flex-direction: column; gap: 12px; height: 100%; min-height: 0; overflow: auto; }
 .board-param-group { display: flex; flex-direction: column; gap: 6px; }
