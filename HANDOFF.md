@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-09-01 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-09-03 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -16,6 +16,26 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Cross-browser fix + matrix suite (2026-09-03, DEPLOYED — bundle index-BgEdNEa0.js):**
+  see the FIXED known-issue entry below for the full User-Agent-preflight
+  diagnosis. New `npm run test:browsers` (scripts/browser-matrix.mjs,
+  playwright-core devDep) loads any dashboard URL in Chromium + Firefox +
+  WebKit and gates on widget error frames + severe console errors (hatnote
+  CORS noise / 404 probes / transient 5xx classified benign with reasons).
+  Engines are per-playwright-version builds — install once via
+  `node node_modules/playwright-core/cli.js install firefox webkit chromium`;
+  the install traps (version mismatch, __dirlock, stalled cdn.playwright.dev
+  downloads → manual azureedge.net/CfT-bucket fallback) are distilled in the
+  new `cross-browser-testing` skill (~/.pi/agent/skills/).
+- ✅ **Interactivity research + params evolution (2026-09-01 → 09-03):**
+  MODULARITY-AND-DATAFLOW gained Parts 3–6 (peer interconnection-model
+  comparison, input-widget taxonomy + effort×impact matrix, headwinds
+  analysis incl. loop/scale/clutter precedents, wiring-display tiers).
+  ISSUE-50 evolved: spec textarea (params editable in the ⚙ UI), the
+  `{{param}}` lock-in fix (⚙ edits RAW config; resolution lives in
+  WidgetFrame), number-slider + month-stepper param types, validator
+  placeholder support, and the params-demo.json board. Tier A wiring view
+  (derived read-only map) is next — fully specced in Part 6, not started.
 - ✅ **Catalog organization + widget idea backlog (2026-09-01):** README
   Features / Verified Working / Widget Catalog all regrouped into ###
   subsections mirroring the app's Add Widget categories (all bullets/rows
@@ -388,8 +408,8 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (439.68 KB JS / 129.32 KB gzip + 49.18 KB CSS;
-                   #   + 55 KB pannellum lazy asset — ~533 KB / ~152 KB gzip total)
+npm run build      # → dist/ (~541 KB total / ~154 KB gzip incl. pannellum lazy asset)
+npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```

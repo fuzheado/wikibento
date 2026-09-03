@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈533 KB total (~152 KB
+(the same grid engine used by Grafana and Kibana), ≈541 KB total (~154 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -36,6 +36,8 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 ```
 
 (Or use a [w.wiki](https://w.wiki) short link for the same config: `?config=https://w.wiki/TR9R` — expanded automatically via the same-origin `/api/resolve` endpoint.)
+
+An **interactive demo** (Board Controls driving galleries via params) is at `?config=/params-demo.json` — press the buttons, move the slider, step the month.
 
 A **full-catalog sample** (all 30 widget types, real working assets) is hosted
 with the app itself:
@@ -96,10 +98,11 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 
-### Content & Embeds (3)
+### Content & Embeds (4)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
+| **Board Controls** | 🎛️ | (static — writes board params) | Buttons / number sliders / month steppers / menus / text fields that drive `{{param}}` references in other widgets — the interactivity primitive; params editable in ⚙ |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
 | **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor |
@@ -138,7 +141,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 ### Building a dashboard
 
-- **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders buttons/menus/text fields that re-aim every referencing widget with one click (the interactivity primitive — [ISSUE-50](docs/ISSUES.md))
+- **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param); per-widget targeting is designed (docs/MODULARITY-AND-DATAFLOW.md §Part 5) but not yet built
 
 - **Add Widget panel** — searchable catalog; click to add
 - **✨ Ask (ML advisor)** — type what you want in plain language ("random
@@ -154,7 +157,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
-- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card
+- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card; the interactive params demo (🎛️ Board Controls) lives at `?config=/params-demo.json`
 
 ### Widget highlights
 
@@ -219,6 +222,7 @@ npm run build        # production build → dist/
 npx vite preview     # serve dist/ at http://localhost:4173
 npm run lint # oxlint
 npm run smoke # grid-geometry smoke test (catches silently-ignored dependency props)
+npm run test:browsers # cross-browser matrix: the dashboard in Chromium + Firefox + WebKit (see scripts/browser-matrix.mjs)
 ```
 
 ## Project Structure
@@ -261,7 +265,7 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-09-01)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-09-03)
 
 ### GLAM & CIM — impact metrics (2026-08-13 → 09-01)
 
@@ -280,6 +284,15 @@ wikibento/
   linked to the file page; best-effort fetch — a bad filename degrades to
   stats-only, never an error. Verified live: Queen Mother Pendant Mask- Iyoba
   MET DP231460.jpg → mask image + 60 wikis · 123 pages · 347,631 views (2026-07)
+- ✅ **Interactive params verified cross-browser (2026-09-03):** the params-demo
+  board (buttons + number slider + month stepper driving a Category Size widget
+  and a CIM snapshot) passes a 3-engine matrix — Chromium, Firefox, WebKit:
+  widgets rendered, 0 error frames, 0 severe console errors per engine
+  (`npm run test:browsers`, scripts/browser-matrix.mjs)
+- ✅ **Firefox/Safari CORS fix verified (2026-09-03):** full 30-widget catalog
+  (+ Board Controls = 31) loaded in all three engines — was 60 CORS console
+  errors in Firefox before the User-Agent-header fix (see
+  docs/BUG-REPORT-ios-safari-fetch.md for the full diagnosis)
 - ✅ **GLAM PetScan relay + budget ceiling (2026-08-17):** the GLAM widget's
   tree+usage flows through the same-origin `/api/petscan` relay (PetScan `giu`
   exact-ns — structural parity with glamtools, verified 518/38/38/40/2/110,092
@@ -387,7 +400,7 @@ wikibento/
 ### Constitutions, config loading & plumbing
 
 - ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
-- ✅ All 28 data-driven widget types render live data in the browser; the
+- ✅ All 29 data-driven widget types render live data in the browser; the
   29th (Text/Markdown) and 30th (Wiki Page — a static iframe) are static —
   no fetch, renders from config
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 30 widgets
