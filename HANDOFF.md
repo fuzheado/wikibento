@@ -585,6 +585,13 @@ containment), index.html no-cache.*
 - Use `User:Fuzheado` in User-Agents and on-wiki pages; **never** `User:AndrewLih` (old alias)
 - See docs/AUTHORS.md; identity also baked into `~/.pi/agent/AGENTS.md`
 
+## External Contributions
+
+Public feature requests and bug reports arrive via **GitHub Issues** (templates
+in `.github/ISSUE_TEMPLATE/`). Triage flow: duplicate/clarify → move accepted
+items into `docs/ISSUES.md` with the next ISSUE-NN number → roadmap/ship per
+the usual process. `docs/ISSUES.md` remains the canonical internal tracker.
+
 ## Session Notes for AI Agents
 
 - The LLM wiki (`~/.llm-wiki`) has observations/insights from this project's
