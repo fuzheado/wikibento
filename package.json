@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "esbuild tests/scope-compliance.test.mjs --bundle --platform=node --format=esm --outfile=test-bundle.mjs --log-level=error && esbuild tests/ask-validation.test.mjs --bundle --platform=node --format=esm --outfile=ask-test-bundle.mjs --log-level=error && esbuild tests/intent-benchmark.test.mjs --bundle --platform=node --format=esm --outfile=intent-test-bundle.mjs --log-level=error && esbuild tests/glam-petscan.test.mjs --bundle --platform=node --format=esm --outfile=glam-test-bundle.mjs --log-level=error && esbuild tests/config-ranges.test.mjs --bundle --platform=node --format=esm --outfile=config-test-bundle.mjs --log-level=error && esbuild tests/cim-latest-month.test.mjs --bundle --platform=node --format=esm --outfile=cim-test-bundle.mjs --log-level=error && esbuild tests/params.test.mjs --bundle --platform=node --format=esm --outfile=params-test-bundle.mjs --log-level=error && WIKIBENTO_TEST=1 node --test test-bundle.mjs ask-test-bundle.mjs intent-test-bundle.mjs glam-test-bundle.mjs config-test-bundle.mjs cim-test-bundle.mjs params-test-bundle.mjs; rm -f test-bundle.mjs ask-test-bundle.mjs intent-test-bundle.mjs glam-test-bundle.mjs config-test-bundle.mjs",
-    "smoke": "node scripts/smoke-grid.mjs"
+    "smoke": "node scripts/smoke-grid.mjs",
+    "test:browsers": "node scripts/browser-matrix.mjs"
   },
   "dependencies": {
     "pannellum": "^2.5.7",
@@ -25,6 +26,7 @@
     "@vitejs/plugin-react": "^6.0.4",
     "esbuild": "^0.28.2",
     "oxlint": "^1.75.0",
+    "playwright-core": "^1.59.1",
     "vite": "^8.2.0"
   }
 }

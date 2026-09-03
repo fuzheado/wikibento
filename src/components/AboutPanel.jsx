@@ -54,8 +54,9 @@ export default function AboutPanel({ onClose }) {
           <h4>Data &amp; etiquette</h4>
           <p>
             All data comes from Wikimedia APIs (pageviews REST API, MediaWiki
-            Action API, Wikistats, Commons). Requests identify the tool in the
-            User-Agent and are paced to respect Wikimedia's rate limits.
+            Action API, Wikistats, Commons). Requests come straight from your
+            browser (identified by its own User-Agent) and are paced to
+            respect Wikimedia's rate limits.
           </p>
 
           <p className="about-footer">

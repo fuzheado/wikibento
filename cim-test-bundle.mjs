@@ -27,7 +27,6 @@ function createTtlCache(ttlMs) {
 }
 
 // src/widgets/dataSources.js
-var WIKIBENTO_UA = "WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)";
 var wikistatsCache = createTtlCache(5 * 60 * 1e3);
 async function fetchTextWithRetry(url, { timeoutMs = 15e3, retries = 2, method = "GET", body = null, contentType = null, withBody = false } = {}) {
   const shortUrl = url.replace(/^https?:\/\//, "").slice(0, 80);
@@ -38,7 +37,17 @@ async function fetchTextWithRetry(url, { timeoutMs = 15e3, retries = 2, method =
     try {
       const resp2 = await fetch(url, {
         method,
-        headers: { "User-Agent": WIKIBENTO_UA, ...body ? { "Content-Type": contentType || "application/json" } : {} },
+        // NOTE: no custom User-Agent here. In browsers, User-Agent is a FORBIDDEN
+        // header — Chromium strips it before the CORS preflight check, but Firefox
+        // and WebKit include it in the preflight, and Wikimedia's REST endpoints
+        // reject `user-agent` in Access-Control-Allow-Headers (RESTBase allows only
+        // `api-user-agent`; the CIM service 405s OPTIONS outright). Net effect with
+        // the header set: every RESTBase/CIM fetch dies with NetworkError in
+        // Firefox/Safari while Chrome works (verified 2026-09-03, fixed by removing
+        // it). The header was also a no-op — browsers always send their own UA.
+        // Server-side code (deploy/server.js relays) sends the descriptive UA;
+        // browser requests are identified by the browser's own UA + Origin.
+        headers: body ? { "Content-Type": contentType || "application/json" } : void 0,
         body,
         signal: controller.signal
       });

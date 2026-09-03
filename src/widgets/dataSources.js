@@ -11,7 +11,6 @@ const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 import { createTtlCache } from '../lib/fetchCache';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 
-const WIKIBENTO_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado)';
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
 const wikistatsCache = createTtlCache(5 * 60 * 1000);
@@ -30,7 +29,17 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method 
     try {
       const resp = await fetch(url, {
         method,
-        headers: { 'User-Agent': WIKIBENTO_UA, ...(body ? { 'Content-Type': contentType || 'application/json' } : {}) },
+        // NOTE: no custom User-Agent here. In browsers, User-Agent is a FORBIDDEN
+        // header — Chromium strips it before the CORS preflight check, but Firefox
+        // and WebKit include it in the preflight, and Wikimedia's REST endpoints
+        // reject `user-agent` in Access-Control-Allow-Headers (RESTBase allows only
+        // `api-user-agent`; the CIM service 405s OPTIONS outright). Net effect with
+        // the header set: every RESTBase/CIM fetch dies with NetworkError in
+        // Firefox/Safari while Chrome works (verified 2026-09-03, fixed by removing
+        // it). The header was also a no-op — browsers always send their own UA.
+        // Server-side code (deploy/server.js relays) sends the descriptive UA;
+        // browser requests are identified by the browser's own UA + Origin.
+        headers: body ? { 'Content-Type': contentType || 'application/json' } : undefined,
         body,
         signal: controller.signal,
       });
@@ -871,26 +880,11 @@ async function fetchTopPageDay(lang, { y, m, d }) {
       })),
     };
   } catch { /* fall through */ }
-  // 2. hatnote direct (only works if they ever add CORS)
-  try {
-    const data = JSON.parse(await fetchTextWithRetry(`${HATNOTE_API}/${lang}/wikipedia/${y}/${m}/${d}.json`));
-    if (!data?.articles?.length) return null;
-    return {
-      source: 'hatnote',
-      dateLabel: data.formatted_date,
-      fullLang: data.full_lang,
-      totalTrafficShort: data.total_traffic_short,
-      permalink: data.permalink,
-      articles: data.articles.map((a) => ({
-        title: a.title, rank: a.rank, views: a.pviews ?? a.views,
-        views_short: a.views_short || compactNumber(a.pviews ?? a.views),
-        imageUrl: hatnoteThumb(a.image_url),
-        summary: a.summary || '',
-        url: a.url || '',
-      })),
-    };
-  } catch { /* fall through */ }
-  // 3. WMF Pageviews top REST (CORS-enabled; zero-padded dates)
+  // 2. WMF Pageviews top REST (CORS-enabled; zero-padded dates)
+  // NOTE: there is no "direct hatnote" fallback — hatnote sends no CORS headers
+  // (verified repeatedly), so a direct browser fetch can never succeed; and in
+  // WebKit the blocked fetch raises an uncaught pageerror even when the promise
+  // rejection is handled (noise the browser matrix suite flagged 2026-09-03).
   try {
     const mm = String(m).padStart(2, '0');
     const dd = String(d).padStart(2, '0');

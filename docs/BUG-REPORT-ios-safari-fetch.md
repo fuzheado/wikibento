@@ -1,9 +1,19 @@
 # Bug Report: iOS Safari "Load failed" on Wikistats + Pageviews widgets
 
-**Status:** OPEN — deferred 2026-08-12 (user will revisit)
-**Severity:** Medium (2 of 7 widget types affected on iOS Safari only)
-**Affects:** Wiki Stats, Top 10 Wikipedias (Wikistats), Article pageviews (RESTBase)
-**Reported:** 2026-08-12 by Andrew Lih (User:Fuzheado)
+**Status: FIXED 2026-09-03 — root cause found via Firefox reproduction.** The
+same root cause explains this report AND the 2026-09-03 Firefox "NetworkError"
+wave: `fetchTextWithRetry` set a `User-Agent` request header on every fetch.
+`User-Agent` is a forbidden header: Chromium strips it before the CORS preflight
+check (so requests stay "simple" and Chrome always worked), but **Firefox and
+WebKit include it in the preflight** — and Wikimedia's REST endpoints reject it
+(RESTBase's preflight allow-list has `api-user-agent` but not `user-agent`; the
+CIM service 405s OPTIONS outright). Every RESTBase-family fetch (pageviews,
+Wikistats-adjacent REST, CIM, media-list) died with NetworkError/"Load failed"
+while Action-API calls (`w/api.php`, which answers preflights properly) worked
+— exactly the affected/working split in the table below. Fix: no custom headers
+on browser GETs (the header was a no-op in browsers anyway — the real tool UA
+lives server-side in deploy/server.js relays). Verified fixed in Chromium +
+Firefox + WebKit via `npm run test:browsers`.
 
 ---
 
