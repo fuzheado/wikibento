@@ -306,6 +306,113 @@ static-input set with the constitutions already solved (resolved-month display);
 list widget a controller); 7 is the viewer-facing one; 8+10 unlock the GLAM
 batch/list workflows that the list-source design anticipated.
 
+## Part 5 — Headwinds: loops, scale, clutter — and how the field handles them (2026-09-01)
+
+Before hardening the scoped-params design (P1–P3: surfaced IDs, targeted writes,
+visible wiring), a due-diligence pass on the three failure modes every prior
+system hit, with precedents for how each was solved.
+
+### Comparison matrix — interconnection models, side by side
+
+| Model | Exemplars | Targeting | Loop risk & mitigation | Scale story | Clutter | Serializable |
+|---|---|---|---|---|---|---|
+| **Spreadsheet cells** | Excel, Google Sheets | direct cell refs (per-cell edges) | **Structurally possible** → detected: status-bar circular-reference list, error value in cells; optional iterative-calc mode is an explicit opt-in with max-iterations | smart recalc engine tracks precedents/dependents, recomputes only what changed | formulas live in cells — zero extra UI | ✅ the original |
+| **Reactive cells** | Observable notebooks, Jotai | named-variable refs (per-cell edges) | **Structurally possible** → runtime throws on cycles at graph build; can't serialize a cycle | topological recompute, only dependents re-run | code lives in cells; graph invisible (community built external visualizers) | ✅ notebook JSON |
+| **Broadcast variables** | Grafana (classic), Metabase filters | **none — hub-and-spoke by reference** | **Structurally impossible** (variables are written only by controls; panels only read) — no edges to loop | known pain: a broad variable switch re-queries ALL referencing panels at once → browser freeze on dense dashboards (community-documented); mitigation = fewer referencing panels, scoped variables | low — one variable row of controls at dashboard top | ✅ dashboard JSON |
+| **Scoped variables** ⭐ | Grafana per-section/tab variables (2025–26 POC→ship), **WikiBento targeted params (P2)** | per-scope writes over a global default | **Structurally impossible** by the same argument (writes only from user controls) | same as broadcast + scopes reduce blast radius | low, if scope picker is progressive-disclosure | ✅ |
+| **Event / actions graph** | Tableau actions, Retool, Appsmith, Node-RED, Zapier/Make | explicit source→target edges | **Real and common** → Node-RED: user Function nodes loop, CPU spikes, needs watchdogs/max-depth hacks; Make/Zapier detect cycles; Excel-style iteration never offered — prevention by capping the action vocabulary | edges grow ~O(sources×targets); Retool apps famously become hairballs | HIGH — the action-chain UI is the #1 complexity complaint | ⚠️ flows serialize but are code-like |
+| **Direct message-passing** | HyperCard buttons/scripts, mTropolis modifiers | arbitrary (any object → any object) | **Worst case** — the messaging web is the program; no systemic detection (mTropolis-era tools had none) | authors hand-manage | scripts hidden inside objects | ⚠️ stacks, proprietary |
+| **WikiBento scoped params (chosen)** | — | hub + optional per-widget overrides (P2) | **Structurally impossible today** (writes only from Board Controls user clicks; fetch/render never write). Guardrail to keep: params are written by user events only | broadcast = O(referencing widgets) per click — same as Grafana; scoped targets shrink it; referencing-only reload is a known optimization | controllable via progressive disclosure (P3 visibility, collapsed-by-default editors) | ✅ dashboard JSON |
+
+The pattern across the field: **the tools that loop are the tools with edges.**
+Spreadsheets and reactive notebooks pay for their per-cell edges with cycle
+detection engines; broadcast/scoped variable systems have no edges and therefore
+no loops. Choosing the hub model buys us the strongest guarantee for free — the
+only obligation is to keep it.
+
+### Headwind 1 — Feedback loops
+
+**Today: impossible by construction.** The dataflow is strictly
+`user event → param value → widget configs → fetch → render`. Writes happen only
+in Board Controls handlers (user gestures); fetch/render paths never write
+params. There are no widget→widget edges, so no cycle can form — the same
+structural argument as Grafana classic.
+
+**When Path B actions ship (any widget row click → set param), a weaker class of
+self-disturbance appears:** clicking a leaderboard row sets `category`, which
+re-fetches that same leaderboard — the row you clicked may disappear or reorder.
+That is NOT an infinite loop (one write → one refetch → stop; no write happens
+on fetch/render), but it is surprising UX. Mitigations, in order:
+1. **Keep the constitution: writes originate only from user gestures** — never
+   from fetch completion, timers, or render. Encode it as a code-review rule
+   now and a testable invariant later (transform/renderers receive `onSetParam`
+   only via the Board Controls renderer contract).
+2. Self-targeting writes should be a deliberate opt-in (a checkbox "apply to
+   this widget too"), not a default.
+3. If ever a non-gesture writer is truly needed, adopt the spreadsheet
+   precedent: cycle detection over the (statically computable)
+   param-reference graph + a max-iterations cap. Not needed today.
+
+### Headwind 2 — Scalability
+
+The real precedent is a **documented Grafana pain**: switching a broad variable
+re-queries every referencing panel simultaneously → browser freeze on dense
+dashboards. WikiBento has the same shape: today a param change bumps
+`reloadKey`, and **all** fetch widgets re-run `load()` — O(board), not
+O(referencing).
+
+Mitigations, in order of when we'll need them:
+1. **Scoped targets (P2) already reduce blast radius** — clicks re-fetch fewer
+   widgets when authors declare targets.
+2. **Referencing-only reload** (the next optimization, ~S effort): the
+   param-reference graph is statically computable — scan each widget's raw
+   config for `{{name}}`, then a param write re-runs only matching widgets.
+   This is Excel's precedent exactly ("recalculate only what changed").
+3. **In-flight coalescing already exists** (`createTtlCache` dedupes identical
+   concurrent fetches) — N widgets referencing the same URL cost one request.
+4. **Wikimedia etiquette as a backstop:** batched queries, TTL caches, and
+   1s-pacing norms in `docs/SCALABILITY.md` bound the worst case; if boards
+   grow past ~50 fetch widgets, couple referencing-only reload with a small
+   stagger.
+
+### Headwind 3 — Interface clutter
+
+Precedent: Grafana keeps ALL variable controls in one dashboard-top bar — never
+per-panel — and even so, dense variable rows are a known annoyance. Tableau's
+action chains and Retool's event handlers are the cautionary tales. Rules for
+WikiBento:
+1. **One controls surface per board** (Board Controls cards), not scattered
+   per-widget inputs. Multiple cards are fine (they write the same hub), but
+   inputs never appear inside data widgets except as the Path-B click actions,
+   which are invisible until click.
+2. **Progressive disclosure everywhere:** param targeting (P2) behind the ⚙
+   panel, collapsed by default; wiring visibility (P3) in ⓘ panels, not on the
+   canvas; the only always-visible chrome is the controls the author chose to
+   place.
+3. **Kiosk mode is the clutter escape valve** — it renders exactly the controls
+   the author placed and nothing else; interactive boards for museum walls are
+   the flagship use case, and they show N controls, not N×M wiring UI.
+4. **Budget rule:** if a board needs more than ~8 visible controls, that's a
+   signal to split boards and use ISSUE-40 parameterized links between them —
+   navigation over accumulation.
+
+### Honest downsides of scoped params (so the write-up isn't a sales pitch)
+
+1. **Divergent state:** the same param can hold different values per widget
+   once overrides exist. This is powerful and confusing — provenance (ⓘ showing
+   "category = Rijksmuseum, scoped to this widget") stops being optional and
+   becomes load-bearing (ISSUE-41 anticipated this).
+2. **Broadcast-by-default surprise:** without targets, a click affects every
+   referencing widget — usually desired, occasionally not. The reverse map (P3)
+   is the cure; ship it with targeting, not after.
+3. **Name collisions:** two widgets using `{{category}}` for different intents
+   share one value. Governance is documentation, not code (choose param names
+   by role, not by target).
+4. **Share-link size:** per-widget overrides in a `#/d/` hash can bloat URLs —
+   may need the `?config=` hosted-JSON route for heavily-wired boards.
+5. **localStorage ceiling:** no cross-device/multi-user sync — the standing
+   Part 2 boundary, unchanged.
+
 ## Recommendation
 
 The architecture is in good shape for both directions, but they are different-sized
