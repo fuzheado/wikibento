@@ -473,11 +473,20 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 **Tracked bugs & fixes: `docs/ISSUES.md`** — ISSUE-01 (leaderboard double rank numerals), ISSUE-02 (clickable category names), ISSUE-03 (ⓘ info button on every widget).
 
-- **OPEN BUG — iOS Safari "Load failed" on Wikistats + pageviews widgets**
-  (see **docs/BUG-REPORT-ios-safari-fetch.md**): Safari-only network-layer
-  failures to `wikimedia.org` + `wikistats.wmcloud.org`, both networks, not
-  reproduced in Chromium. Mitigations live (timeout/retry/cache, URL-bearing
-  errors, 🧪 diagnostics panel). Deferred for later debugging.
+- **FIXED — Firefox/Safari/WebKit network errors (2026-09-03):** the "iOS Safari
+  Load failed" bug (docs/BUG-REPORT-ios-safari-fetch.md) and the Firefox
+  NetworkError wave share one root cause: `fetchTextWithRetry` set a
+  `User-Agent` header on every browser fetch. Chromium strips the forbidden
+  header before the CORS preflight check (masked the bug), Firefox/WebKit
+  preflight with it — and Wikimedia's REST endpoints reject `user-agent`
+  (RESTBase allow-list: `api-user-agent` only; CIM 405s OPTIONS) while the
+  Action API answers preflights properly — hence the exact working/failing
+  split. Fix: no custom headers on browser GETs. Verified in all three engines
+  via the new **`npm run test:browsers`** cross-browser matrix
+  (scripts/browser-matrix.mjs — Chromium/Firefox/WebKit, loads a dashboard,
+  counts widget error frames + severe console errors; hatnote-CORS noise,
+  404 probes and transient 5xx classified benign). Full 30-widget catalog:
+  30/30/30 widgets, 0 errors on all engines.
 - `_title` (custom widget title) isn't editable in the config panel
 - **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
   defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
