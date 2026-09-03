@@ -442,10 +442,15 @@ wikibento/
 
 ## Feedback & Feature Requests
 
-Ideas, widget requests, and bug reports all go to
-**[GitHub Issues](https://github.com/fuzheado/wikibento/issues)** — there are
-templates for both. When filing, a dashboard config (`?config=` link or the
-`/dashboard.json` export) plus your browser help more than anything else.
+- **Bug reports & concrete feature requests** →
+  [GitHub Issues](https://github.com/fuzheado/wikibento/issues) — templates for
+  both. A dashboard config (`?config=` link or the `/dashboard.json` export)
+  plus your browser help more than anything else.
+- **Ideas & brainstorming** →
+  [Discussions → Ideas](https://github.com/fuzheado/wikibento/discussions/categories/ideas)
+- **Boards you built** →
+  [Discussions → Show and tell](https://github.com/fuzheado/wikibento/discussions/categories/show-and-tell)
+
 Requests that get picked up are tracked with full design notes in
 [docs/ISSUES.md](docs/ISSUES.md) and [docs/ROADMAP.md](docs/ROADMAP.md), so you
 can watch an idea become a widget.
