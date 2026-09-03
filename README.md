@@ -1,9 +1,9 @@
-# 📊 WikiBento — Wikimedia Dashboard
+# 📊 WikiBento — a Composable Wikimedia Dashboard
 
 ![WikiBento demo dashboard](docs/screenshot.png)
 
-WikiBento is a drag-and-drop dashboard for Wikimedia — a single board for
-keeping an eye on things and acting on them. Wikimedia's data and activity
+WikiBento is a drag-and-drop composable dashboard for Wikimedia — a single reactive layout for
+keeping an eye on content or interacting with it. Wikimedia's content and activity
 live across many places: pageview and stats APIs, wiki pages, recent changes,
 Commons. WikiBento brings what you care about into one place — starting with
 metrics like article pageviews, external link counts, category sizes, file
