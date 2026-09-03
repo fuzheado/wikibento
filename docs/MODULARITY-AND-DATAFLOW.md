@@ -228,7 +228,11 @@ Three conclusions:
 **Verdict:** roll our own the *variables layer* (it is a resolve function + App
 state — the integration work is the actual job per Part 2); do NOT roll our own
 the *reactive graph* (adopt `@observablehq/runtime` or Jotai at Level 2). That is
-exactly the split Grafana's history endorses.
+exactly the split Grafana's history endorses. Headwinds of this choice — loops,
+scale, clutter, and honest downsides — are analyzed with field precedents in
+**Part 5** below; the one-line summary is that hub models are structurally
+loop-free, and the obligations that buys us (gesture-only writes, referencing
+-only reload, progressive disclosure) are all cheaper than the alternatives.
 
 ## Part 4 — Input widgets: taxonomy, consumer coverage, impact matrix (2026-09-01)
 
