@@ -894,23 +894,35 @@ function AssessmentsCard({ data }) {
   );
 }
 
-/** Article Gallery — grid of thumbs with captions below (size: small/medium/large). */
+/** Article Gallery — grid of thumbs with captions below (size: small/medium/large).
+ *  Grouped mode (rows carry `group: { key, label }`) inserts a full-width
+ *  group header at each group boundary; caption-less tiles show their file
+ *  name when the transform sets `showFileName`. */
 function GalleryGridCard({ data }) {
   const size = data.size || 'medium';
   const fit = data.fit || 'contain';
   const rows = data.rows || [];
+  const tiles = [];
+  for (let i = 0; i < rows.length; i++) {
+    const img = rows[i];
+    const prev = rows[i - 1];
+    if (img.group && (!prev || !prev.group || prev.group.key !== img.group.key)) {
+      tiles.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
+    }
+    tiles.push(
+      <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
+        <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
+        {(img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}
+      </a>
+    );
+  }
   return (
     <div className="gallery-card">
       <div className="ranking-title" title={data.title}>{data.title}</div>
       <div className="ranking-subtitle">{data.subtitle}</div>
       <div className={`gallery-grid gallery-${size}`}>
-        {rows.length === 0 && <div className="widget-empty">No captioned images found</div>}
-        {rows.map((img) => (
-          <a key={img.title} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
-            <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
-            {img.caption && <span className="gallery-caption">{img.caption}</span>}
-          </a>
-        ))}
+        {rows.length === 0 && <div className="widget-empty">{data.emptyText || 'No images found'}</div>}
+        {tiles}
       </div>
     </div>
   );
@@ -939,24 +951,34 @@ function ArticleListCard({ data }) {
   );
 }
 
-/** Article Gallery — list rows: thumb left, caption right. */
+/** Article Gallery — list rows: thumb left, caption right.
+ *  Grouped mode inserts a group header at each group boundary. */
 function GalleryListCard({ data }) {
   const rows = data.rows || [];
+  const items = [];
+  for (let i = 0; i < rows.length; i++) {
+    const img = rows[i];
+    const prev = rows[i - 1];
+    if (img.group && (!prev || !prev.group || prev.group.key !== img.group.key)) {
+      items.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
+    }
+    items.push(
+      <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer">
+        <img className="gallery-list-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
+        <div className="gallery-list-body">
+          <span className="gallery-list-caption">{img.caption || img.title}</span>
+          <span className="gallery-list-file">{img.title}</span>
+        </div>
+      </a>
+    );
+  }
   return (
     <div className="gallery-card gallery-list-card">
       <div className="ranking-title" title={data.title}>{data.title}</div>
       <div className="ranking-subtitle">{data.subtitle}</div>
       <div className="gallery-list">
-        {rows.length === 0 && <div className="widget-empty">No captioned images found</div>}
-        {rows.map((img) => (
-          <a key={img.title} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer">
-            <img className="gallery-list-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
-            <div className="gallery-list-body">
-              <span className="gallery-list-caption">{img.caption || img.title}</span>
-              <span className="gallery-list-file">{img.title}</span>
-            </div>
-          </a>
-        ))}
+        {rows.length === 0 && <div className="widget-empty">{data.emptyText || 'No images found'}</div>}
+        {items}
       </div>
     </div>
   );
