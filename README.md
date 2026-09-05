@@ -225,6 +225,17 @@ npm run smoke # grid-geometry smoke test (catches silently-ignored dependency pr
 npm run test:browsers # cross-browser matrix: the dashboard in Chromium + Firefox + WebKit (see scripts/browser-matrix.mjs)
 ```
 
+**Remote browser engines** (for the WebKit leg on hosts where Playwright lacks
+it, e.g. linux-arm64): run `scripts/remote-browser-daemon.mjs` on a machine
+that has Playwright WebKit (macOS/x64 Linux), then connect from the test box:
+
+```bash
+# on the daemon host (e.g. the M1 Mac):  node scripts/remote-browser-daemon.mjs --engines webkit --port 9322
+# on the test box: get a live endpoint, rewrite localhost→daemon IP, run the matrix
+curl -s -X POST -H 'content-type: application/json' -d '{"engine":"webkit"}' http://<daemon-ip>:9322/launch
+PW_WS_ENDPOINTS="webkit=ws://<daemon-ip>:<port>/<id>" PW_WS_HOST=<daemon-ip> npm run test:browsers -- --engines webkit
+```
+
 ## Project Structure
 
 ```
