@@ -17,6 +17,8 @@ import {
   fetchAssessments,
   fetchEditHistory,
   fetchArticleGallery,
+  fetchMinTTranslation,
+  normalizeLangCode,
   fetchPanoramaFile,
  fetchCommonsGallery,
  fetchArticleList,
@@ -1161,7 +1163,6 @@ export const WIDGET_TYPES = {
     // transform just carries the title. Renderer switch passes paramSpecs/paramValues/onSetParam.
     transform: (data, config) => ({ title: config.title || 'Board Controls' }),
   },
-
   wikiPage: {
     id: 'wikiPage',
     category: 'Content & Embeds', intensity: 'low',
@@ -1210,6 +1211,39 @@ export const WIDGET_TYPES = {
         project,
       };
     },
+  },
+
+  translate: {
+    id: 'translate',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'Translator (MinT)',
+    icon: '🌐',
+    description: 'Machine-translates its text (typed or via {{param}}) into another language — Wikimedia MinT: 200+ languages on open NMT models (NLLB-200, OpusMT, IndicTrans2). No key, no proxy (CORS ✓). MinT has no auto-detect — set the source language.',
+    labelFromConfig: (c) => `${normalizeLangCode(c.from) || 'en'} → ${normalizeLangCode(c.to) || 'es'}`,
+    defaults: {
+      text: 'Jazz is a music genre that originated in New Orleans.',
+      from: 'en',
+      to: 'es',
+      refreshSeconds: 86400,
+    },
+    renderer: 'TranslateCard',
+    dataSource: 'MinT translate.wmcloud.org (POST /api/translate, CORS ✓)',
+    defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
+    configFields: [
+      { key: 'text', label: 'Text to translate ({{params}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Jazz is a music genre…' },
+      { key: 'from', label: 'Source language (2-letter code)', type: 'text', placeholder: 'en' },
+      { key: 'to', label: 'Target language (2-letter code)', type: 'text', placeholder: 'es' },
+    ],
+    fetch: (config) => fetchMinTTranslation(config.text, config.from, config.to),
+    transform: (data, config) => ({
+      original: String(config.text || '').trim(),
+      translation: String(data?.translation || ''),
+      from: data?.from || normalizeLangCode(config.from) || 'en',
+      to: data?.to || normalizeLangCode(config.to) || 'es',
+      model: data?.model || null,
+      truncated: !!data?.truncated,
+    }),
   },
 
   sparql: {

@@ -2241,3 +2241,29 @@ Verified live end-to-end: Harvard presidents 1 → 30 images (+2 decorative
 hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
 National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
 delivered; no write access to GitHub).
+
+## ISSUE-53 · Translator (MinT) widget: machine translation via Wikimedia MinT — **done (branch `translate-mint`, PR #21)**
+
+**What:** the first wiki-native AI-node (see WIDGET-IDEAS §Node Algebra, family 8)
+and the natural companion to the speaker (#16) and transformer (#18) work: a
+fetch widget whose `text` (typed or `{{param}}`-driven via ISSUE-50 Board
+Controls) is machine-translated into a target language. Registry id `translate`,
+category Content & Embeds, `timeScope:'point'`.
+
+**Service:** MinT (Wikimedia Language team) — `POST
+https://translate.wmcloud.org/api/translate`, body `{content,
+source_language, target_language, format:'text'}`. **CORS `*` verified
+2026-09-05** (ACAO `*` on POST + clean OPTIONS preflight) → browser-direct,
+**no key, no proxy** (contrast: service TTS voices and LLM summarizers need
+keys/proxies — MinT is the key-free AI demo). MinT has **no `auto` source
+detection**, so `from` defaults `en`, `to` defaults `es` (2-letter codes,
+normalized). Content >8,000 chars is truncated + flagged. Same text+pair is
+cached 24 h (createTtlCache). Serving model surfaced in the card
+(`nllb200-600M` etc.) for transparency.
+
+**Files:** `src/widgets/dataSources.js` (buildMinTRequest/parseMinTResponse/
+fetchMinTTranslation — pure helpers exported for tests), registry entry,
+TranslateCard renderer, App.css, `tests/translate.test.mjs` (10 tests →
+npm test 117), README row. Live-verified: curl en→es 0.29 s
+(nllb200-600M); headless-Chromium probe: Board Controls phrase button →
+translated text re-aims in the card, zero console/page errors.
