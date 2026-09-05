@@ -1103,15 +1103,145 @@ function cleanThumbUrl(url) {
 }
 
 /**
- * Article gallery — significant images with captions.
+ * Conservative decorative-file heuristic for CAPTION-LESS images only
+ * (gallery widget `hideDecorative`, GitHub issue fuzheado/wikibento#3):
+ * flags, coats of arms / escudos / wappen, seals, emblems, crests, insignia,
+ * badges, roundels, logos, small locator/blank maps (incl. "(orthographic
+ * projection)" globes), generic icons/symbols, placeholder stubs. Matched
+ * against the file name WITHOUT the "File:" prefix.
+ *
+ * Verified 2026-09-05 against live media-list payloads (France, Germany,
+ * UK, US, Japan, India, European Union, National Gallery London, List of
+ * presidents of Harvard University): the matched set is exactly the expected
+ * decoration (Flag_of_France.svg, Coat_of_arms_of_Germany.svg,
+ * Imperial_Seal_of_Japan.svg, National_Gallery_London_logo.svg,
+ * Noimage.svg …) with zero content-image false positives (Albert Einstein:
+ * 0 of 4 caption-less files matched; president portraits all kept).
+ * Captioned images are NEVER subject to this filter.
+ */
+const DECORATIVE_FILE_RE = new RegExp([
+  /(^|[\s_\-.)(])flag([\s_\-.]of|$)/.source,                               // Flag_of_France.svg, State flag of X.svg
+  /(^|[\s_\-.)(])coat[\s_\-.]of[\s_\-.]arms/.source,                       // Coat of arms of X.svg, Greater_coat_of_arms…
+  /(^|[\s_\-.)(])(escudo|armoiries|wappen|герб)([\s_\-.)(]|$)/.source,    // non-English CoA
+  /(^|[\s_\-.)(])(great[\s_\-.]seal|state[\s_\-.]seal|official[\s_\-.]seal|seal[\s_\-.]of)([\s_\-.)(]|$)/.source, // Imperial_Seal_of_Japan.svg
+  /(^|[\s_\-.)(])(emblem|insignia|crest|heraldry|heraldic|roundel)([\s_\-.)(]|$)/.source, // Emblem_of_India.svg
+  /(^|[\s_\-.)(])(logo|logotype)([\s_\-.)(]|$)/.source,                   // National_Gallery_London_logo.svg
+  /(^|[\s_\-.)(])(locator[\s_\-.]map|blank[\s_\-.]?map|orthographic[\s_\-.]projection)([\s_\-.)(]|$)/.source, // locator maps (BlankMap-World…)
+  /(^|[\s_\-.)(])(symbol|icon|badge|noimage|placeholder)([\s_\-.)(]|$)/.source, // icons / stubs
+].join('|'), 'i');
+
+export function isDecorativeImageTitle(title) {
+  if (!title) return false;
+  return DECORATIVE_FILE_RE.test(String(title).replace(/^File\s*:/i, '').trim());
+}
+
+/**
+ * Pick which media-list items survive the gallery's image selection.
+ * Default (includeAll off) keeps ONLY captioned type=image items — the
+ * historical "significant images" behavior. With includeAll on, every
+ * type=image item with a title is a candidate; caption-less decorative
+ * files (flags, coats of arms, logos, locator maps …) are additionally
+ * dropped when hideDecorative is on (the default) — captioned items are
+ * never decorative-filtered. Returns { kept, decorative } where decorative
+ * counts the caption-less items dropped by the heuristic.
+ */
+export function selectGalleryCandidates(items, { includeAll = false, hideDecorative = true } = {}) {
+  const out = { kept: [], decorative: 0 };
+  for (const it of items || []) {
+    if (!it || it.type !== 'image' || !it.title) continue; // non-images + title-less stubs
+    const captioned = !!(it.caption && it.caption.html);
+    if (!includeAll && !captioned) continue;
+    if (includeAll && !captioned && hideDecorative && isDecorativeImageTitle(it.title)) {
+      out.decorative++;
+      continue;
+    }
+    out.kept.push(it);
+  }
+  return out;
+}
+
+/**
+ * Annotate gallery rows with `group: { key, label }` for the renderer's
+ * group headers. Rows must carry sectionId (number, 0 = lead) and galleryId
+ * (string|null; set on items inside <gallery> blocks by media-list).
+ * - groupBy 'section': one group per article section — label uses the
+ *   tocdata heading when available ("Section: History"), else "Section N"
+ *   (lead is 0 → "Section: Introduction"). Gallery images stay in their
+ *   containing section.
+ * - groupBy 'gallery': each <gallery> block becomes its own "Gallery N"
+ *   group (N = order of first appearance among the surviving rows); every
+ *   other image keeps its section group.
+ * - groupBy 'none' (default): rows returned untouched.
+ */
+export function assignRowGroups(rows, groupBy = 'none', headings = new Map()) {
+  if (groupBy !== 'section' && groupBy !== 'gallery') return rows;
+  const galleryN = new Map();
+  for (const row of rows) {
+    const gid = row.galleryId ?? null;
+    if (groupBy === 'gallery' && gid != null) {
+      if (!galleryN.has(gid)) galleryN.set(gid, galleryN.size + 1);
+      row.group = { key: `g:${gid}`, label: `Gallery ${galleryN.get(gid)}` };
+    } else {
+      const sid = Number(row.sectionId) || 0;
+      const heading = headings.get(sid);
+      row.group = {
+        key: `s:${sid}`,
+        label: heading ? `Section: ${heading}` : (sid === 0 ? 'Section: Introduction' : `Section ${sid}`),
+      };
+    }
+  }
+  return rows;
+}
+
+/** Fetch section index → heading (prop=tocdata) for section-group labels.
+ *  Returns an empty Map on any failure — callers fall back to "Section N". */
+async function fetchSectionHeadings(project, article) {
+  try {
+    const params = new URLSearchParams({
+      action: 'parse',
+      prop: 'tocdata',
+      page: String(article || '').replace(/_/g, ' '),
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+    const map = new Map();
+    for (const s of d?.parse?.tocdata?.sections || []) {
+      if (s && /^\d+$/.test(String(s.index))) {
+        const line = String(s.line || '').trim();
+        if (line) map.set(parseInt(s.index, 10), line);
+      }
+    }
+    return map;
+  } catch { return new Map(); }
+}
+
+/**
+ * Article gallery — significant images with captions (default), optionally
+ * ALL images incl. caption-less <gallery> blocks and table lists, with a
+ * decorative filter and section/gallery grouping (GitHub issue #3).
  * REST /page/media-list is Parsoid's server-side media extraction (images +
  * captions + srcset in one CORS-enabled call — no wikitext parsing needed).
- * Significance heuristic (verified 2026-08-13): keep only type=image items
- * WITH captions — caption-less items are exactly the noise (infobox flags
- * like Flag_of_France.svg, maps, logos, portraits); then a batched imageinfo
+ * Significance heuristic (verified 2026-08-13, extended 2026-09-05): the
+ * default keeps only type=image items WITH captions — caption-less items are
+ * exactly the noise (infobox flags like Flag_of_France.svg, maps, logos,
+ * portraits); `includeAll` opts into caption-less gallery/table images with
+ * the optional `hideDecorative` filename filter; then a batched imageinfo
  * call drops images smaller than minSize (tiny icons).
+ *
+ * Backward compatible: the original positional signature
+ * (article, project, minSize, maxItems) still works — the new options object
+ * is the optional 5th argument: { includeAll = false, hideDecorative = true,
+ * groupBy = 'none' | 'section' | 'gallery' }.
  */
-export async function fetchArticleGallery(article, project = 'en.wikipedia', minSize = 200, maxItems = 0) {
+export async function fetchArticleGallery(article, project = 'en.wikipedia', minSize = 200, maxItems = 0, options = {}) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const includeAll = !!opts.includeAll;
+  const groupBy = opts.groupBy === 'section' || opts.groupBy === 'gallery' ? opts.groupBy : 'none';
+  // hideDecorative only means anything once includeAll is on — the default
+  // mode already drops every caption-less item. Default true.
+  const hideDecorative = includeAll && opts.hideDecorative !== false;
   const title = article.replace(/ /g, '_');
   let list;
   try {
@@ -1120,16 +1250,16 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
     if (e.message?.startsWith('HTTP 404')) throw new Error(`Article not found: ${article}`);
     throw new Error(`Gallery fetch failed: ${e.message}`);
   }
-  const images = (list?.items || []).filter((it) => it.type === 'image' && it.caption?.html);
-  if (!images.length) return { article, rows: [], total: 0, dropped: 0 };
+  const { kept, decorative } = selectGalleryCandidates(list?.items, { includeAll, hideDecorative });
+  if (!kept.length) return { article, rows: [], total: 0, dropped: 0, decorative, includeAll, groupBy };
 
   // Authoritative dimensions + mime via batched imageinfo (50 titles/call).
   const info = {};
-  for (let i = 0; i < images.length; i += 50) {
+  for (let i = 0; i < kept.length; i += 50) {
     const params = new URLSearchParams({
       action: 'query',
       prop: 'imageinfo',
-      titles: images.slice(i, i + 50).map((it) => it.title).join('|'),
+      titles: kept.slice(i, i + 50).map((it) => it.title).join('|'),
       iiprop: 'size|mime',
       format: 'json',
       formatversion: '2',
@@ -1147,23 +1277,31 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
   const min = Math.max(parseInt(minSize) || 200, 0);
   const rows = [];
   let dropped = 0;
-  for (const it of images) {
+  for (const it of kept) {
     const dim = info[it.title];
     if (dim && (dim.width < min || dim.height < min)) { dropped++; continue; }
     const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
     const thumbUrl = cleanThumbUrl(src?.src);
     if (!thumbUrl) { dropped++; continue; }
+    const caption = stripHtml(it.caption?.html || '');
     rows.push({
       title: it.title.replace(/^File:/, '').replace(/_/g, ' '),
       fileUrl: `https://${project}.org/wiki/${it.title.replace(/ /g, '_')}`,
-      caption: stripHtml(it.caption?.html || ''),
+      caption,
+      showFileName: includeAll && !caption, // renderer shows the file name under caption-less tiles
       thumbUrl,
       width: dim?.width,
       height: dim?.height,
+      sectionId: it.section_id ?? 0,
+      galleryId: it.gallery_id ?? null,
     });
   }
+  // Section/gallery grouping labels (one cheap tocdata call, grouped modes only).
+  if (rows.length && groupBy !== 'none') {
+    assignRowGroups(rows, groupBy, await fetchSectionHeadings(project, article));
+  }
   const limit = Math.max(parseInt(maxItems) || 0, 0);
-  return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped };
+  return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped, decorative, includeAll, groupBy };
 }
 
 /**

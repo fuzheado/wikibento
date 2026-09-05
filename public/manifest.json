@@ -1,7 +1,7 @@
 {
  "version": 2,
- "generatedAt": "2026-09-02T14:23:47.371Z",
- "widgetCount": 30,
+ "generatedAt": "2026-09-05T01:53:33.632Z",
+ "widgetCount": 31,
  "widgets": [
   {
    "id": "pageviews",
@@ -532,7 +532,7 @@
    "id": "gallery",
    "name": "Article Gallery",
    "icon": "🖼️",
-   "description": "Significant images in an article with captions (grid or list)",
+   "description": "Images used in an article — captioned by default; optional all-images mode (gallery/table images, decorative filter) and section/gallery grouping (grid or list)",
    "dataSource": "REST /page/media-list + imageinfo",
    "category": "Articles",
    "type": "media",
@@ -584,6 +584,23 @@
     {
      "key": "maxItems",
      "type": "number"
+    },
+    {
+     "key": "includeAll",
+     "type": "boolean"
+    },
+    {
+     "key": "hideDecorative",
+     "type": "boolean"
+    },
+    {
+     "key": "groupBy",
+     "type": "select",
+     "options": [
+      "none",
+      "section",
+      "gallery"
+     ]
     }
    ],
    "defaults": [
@@ -594,6 +611,9 @@
     "imageFit",
     "minSize",
     "maxItems",
+    "includeAll",
+    "hideDecorative",
+    "groupBy",
     "refreshSeconds"
    ]
   },
@@ -1052,6 +1072,30 @@
    ],
    "defaults": [
     "filename"
+   ]
+  },
+  {
+   "id": "boardControls",
+   "name": "Board Controls",
+   "icon": "🎛️",
+   "description": "Buttons / menus that drive board params ({{param}}) — one click re-aims every widget that references the param (ISSUE-50)",
+   "dataSource": "static (writes board params — edited here or in the dashboard JSON params block)",
+   "category": "Content & Embeds",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "title",
+     "type": "text"
+    },
+    {
+     "key": "spec",
+     "type": "textarea"
+    }
+   ],
+   "defaults": [
+    "title"
    ]
   },
   {

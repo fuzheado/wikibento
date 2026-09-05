@@ -2195,3 +2195,49 @@ first real use:**
   warning yet (ISSUE-41 full design covers these).
 - `params` is NOT in the JSON schema yet — add to docs/dashboard.schema.json +
   docs/JSON-FORMAT.md when the prototype graduates.
+
+## ISSUE-51 · Article Gallery: show-all / decorative-filter / section-gallery grouping — **done (314ccfc)**
+
+**What:** the `gallery` widget shows only "significant" captioned images, so
+`<gallery>` blocks and table/figure image lists never display — e.g. List of
+presidents of Harvard University returns 32 media-list items but just 1
+captioned one. Requested (GitHub issue #3, fuzheado/wikibento): an option to
+"maximally" display all images while still hiding minor/decorative ones, and
+an option to break the grid into article sections / per-gallery sections.
+
+**Why:** `fetchArticleGallery` filters media-list items to
+`type === 'image' && caption.html` (src/widgets/dataSources.js) — caption-less
+items are dropped wholesale even when they are content (president portraits,
+gallery photos). Media-list items inside `<gallery>` blocks carry a unique
+`gallery_id`; every item carries `section_id` and is ordered by article
+position — both are usable grouping keys, and `section_id` maps 1:1 to
+`action=parse&prop=tocdata` heading indexes (verified live on Albert Einstein,
+2026-09-05).
+
+**Proposed fix:** three additive `gallery` config options (defaults preserve
+today's behavior exactly):
+- `includeAll` (boolean, default false) — also include caption-less images.
+- `hideDecorative` (boolean, default true, only when includeAll) — drop common
+  decorative caption-less files (flags, coats of arms/escudos/wappen, seals,
+  emblems, insignia, logos, locator/blank/orthographic maps, icons/symbols,
+  Noimage stubs) via a conservative filename heuristic; captioned images never
+  filtered; documented as user-disableable.
+- `groupBy` (select none|section|gallery, default none) — renderer shows group
+  headers; rows carry the grouping key. Section labels come from one
+  `prop=tocdata` call when available, else "Section N" / "Section:
+  Introduction" (lead); gallery mode sets each `<gallery>` block off as its
+  own "Gallery N".
+
+**Fixed 2026-09-05 (314ccfc, branch `issue-3-gallery-all-images`):**
+`includeAll`/`hideDecorative` selection + `assignRowGroups` grouping helpers
+in dataSources.js (fetchArticleGallery gains an optional 5th options object;
+4-arg callers unchanged); the two gallery renderers render group headers,
+caption-less file-name labels and an includeAll-aware empty state; autoHeight
+budgets headers; ⓘ/catalog description + Ask manifest updated; README catalog
+row + history, HANDOFF, DATA-SOURCES §13 documented; heuristic verified
+against 12 live pages with zero content false positives and captioned images
+exempt. Constitution: tests/gallery-options.test.mjs (13 tests → npm test 88).
+Verified live end-to-end: Harvard presidents 1 → 30 images (+2 decorative
+hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
+National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
+delivered; no write access to GitHub).

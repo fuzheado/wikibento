@@ -62,7 +62,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
 | **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
 | **WikiProject Assessment** | 🧭 | MediaWiki API `prop=pageassessments` | Quality class + importance per WikiProject banner (enwiki and other PageAssessments wikis) |
-| **Article Gallery** | 🖼️ | [REST `/page/media-list`](https://en.wikipedia.org/api/rest_v1/page/media-list/Albert_Einstein) + `imageinfo` | Significant images with captions — grid (small/medium/large) or list (thumb left, caption right); filters out uncaptioned flags/logos/maps and tiny icons |
+| **Article Gallery** | 🖼️ | [REST `/page/media-list`](https://en.wikipedia.org/api/rest_v1/page/media-list/Albert_Einstein) + `imageinfo` | Images used in the article — grid (small/medium/large) or list; captioned by default (drops uncaptioned flags/logos/maps + tiny icons); optional **All images** mode (also gallery/table images, with a decorative-image filter you can disable) and **section/gallery grouping** with headers |
 
 ### Categories & GLAM (11)
 
@@ -350,6 +350,7 @@ wikibento/
   minW/minH/maxW/maxH) — panorama defaults to w:4 h:3, can't shrink below
   3×2 (verified by drag-resize). Config change re-fetches and rebuilds the
   viewer
+- ✅ **Article Gallery show-all / grouping (2026-09-05, GitHub issue #3):** three new ⚙ options — **All images** (`includeAll`, default off: legacy captioned-only behavior unchanged) also shows caption-less `<gallery>` blocks and table lists (e.g. List of presidents of Harvard University: 1 → 30 images); **Hide decorative** (`hideDecorative`, default on, only with All images) drops caption-less flags/coats of arms/escudos/seals/emblems/logos/icons/locator maps/placeholders via a conservative filename heuristic verified against 12 real pages (zero content false positives; captioned files never filtered; disable to show everything); **Group by** (`groupBy`: none | section | gallery) renders group headers — section mode labels groups with real article headings via one `prop=tocdata` call ("Section: Childhood, youth and education"), gallery mode sets each `<gallery>` block off as its own "Gallery N" group. Empty state no longer claims "No captioned images found" in all-images mode; caption-less tiles show their file name; autoHeight accounts for group headers. minSize floor + batched imageinfo unchanged. Verified live end-to-end (Harvard / National Gallery London / Einstein).
 
 ### Article intelligence & power widgets (2026-08-13)
 

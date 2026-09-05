@@ -647,19 +647,21 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Article Gallery',
     icon: '🖼️',
-    description: 'Significant images in an article with captions (grid or list)',
+    description: 'Images used in an article — captioned by default; optional all-images mode (gallery/table images, decorative filter) and section/gallery grouping (grid or list)',
   // Content-based auto-fit: tall enough to show the fetched images.
   // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
   autoHeight: (view, config) => {
     const n = view?.rows?.length;
     if (!n) return null;
+    // Grouped modes insert a header per group (~20px each).
+    const groups = view.rows.reduce((acc, r, i, a) => acc + (r.group && (i === 0 || a[i - 1].group?.key !== r.group.key) ? 1 : 0), 0);
     const mode = config?.displayMode || 'grid';
-    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66);
+    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66) + groups * 20;
     const size = config?.iconSize || 'medium';
     const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
     const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
     const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
-    return 64 + rows * (tilePx + 46);
+    return 64 + rows * (tilePx + 46) + groups * 20;
   },
   defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
@@ -671,6 +673,9 @@ export const WIDGET_TYPES = {
       imageFit: 'contain',   // grid: 'contain' (letterbox) | 'cover' (fill-crop)
       minSize: 200,          // drop images smaller than this (px)
       maxItems: 0,           // 0 = all
+      includeAll: false,     // also include caption-less images (gallery blocks, table lists)
+      hideDecorative: true,  // (with includeAll) hide flags/coats of arms/logos/locator maps …
+      groupBy: 'none',       // 'none' | 'section' | 'gallery' — render group headers
       refreshSeconds: 3600,
     },
     renderer: 'GalleryGridCard',
@@ -694,15 +699,43 @@ export const WIDGET_TYPES = {
       ]},
       { key: 'minSize', label: 'Min image size (px)', type: 'number', placeholder: '200' },
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', placeholder: '0' },
+      { key: 'includeAll', label: 'All images (also caption-less gallery/table images)', type: 'boolean' },
+      { key: 'hideDecorative', label: 'Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)', type: 'boolean' },
+      { key: 'groupBy', label: 'Group by', type: 'select', options: [
+        { value: 'none', label: 'None (one grid/list)' },
+        { value: 'section', label: 'Article section (headings as group headers)' },
+        { value: 'gallery', label: 'Gallery blocks set off as their own groups' },
+      ]},
     ],
-    fetch: (config) => fetchArticleGallery(config.article, config.project, config.minSize, config.maxItems),
-    transform: (data, config) => ({
-      title: data.article.replace(/_/g, ' '),
-      subtitle: `${data.rows.length} images${data.dropped ? ` · ${data.dropped} filtered (tiny/uncaptioned)` : ''}`,
-      rows: data.rows,
-      size: config.iconSize || 'medium',
-      fit: config.imageFit || 'contain',
+    fetch: (config) => fetchArticleGallery(config.article, config.project, config.minSize, config.maxItems, {
+      includeAll: config.includeAll,
+      hideDecorative: config.hideDecorative,
+      groupBy: config.groupBy,
     }),
+    transform: (data, config) => {
+      const includeAll = !!config.includeAll;
+      const groupBy = config.groupBy === 'section' || config.groupBy === 'gallery' ? config.groupBy : 'none';
+      const n = data.rows.length;
+      const parts = [`${n} image${n === 1 ? '' : 's'}`];
+      if (includeAll) {
+        if (data.dropped) parts.push(`· ${data.dropped} filtered (tiny)`);
+        if (data.decorative) parts.push(`· ${data.decorative} decorative hidden`);
+      } else if (data.dropped) {
+        parts.push(`· ${data.dropped} filtered (tiny/uncaptioned)`);
+      }
+      if (groupBy === 'section') parts.push('· section groups');
+      if (groupBy === 'gallery') parts.push('· gallery groups');
+      let emptyText = includeAll ? 'No images found' : 'No captioned images found';
+      if (includeAll && n === 0 && (data.dropped || data.decorative)) emptyText = 'All images filtered (tiny/decorative)';
+      return {
+        title: data.article.replace(/_/g, ' '),
+        subtitle: parts.join(' '),
+        rows: data.rows,
+        size: config.iconSize || 'medium',
+        fit: config.imageFit || 'contain',
+        emptyText,
+      };
+    },
   },
 
   fileGallery: {

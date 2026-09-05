@@ -295,37 +295,72 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 
 ## 13. Article Gallery — REST `/page/media-list` + `imageinfo`
 
-**Widget:** Article Gallery · **Fetcher:** `fetchArticleGallery(article, project, minSize, maxItems)`
+**Widget:** Article Gallery · **Fetcher:** `fetchArticleGallery(article, project, minSize, maxItems, options)`
+— the positional args are legacy; new options travel in the optional 5th
+argument: `{ includeAll = false, hideDecorative = true, groupBy = 'none' }`
+(signature is backward compatible — old 4-arg callers unchanged).
 
 - **Endpoint:** `https://{project}.org/api/rest_v1/page/media-list/{title}` —
   Parsoid's server-side media extraction: every media item with `type`
   (image/audio/video), `title`, `caption.html`, `srcset` (1x/2x thumb URLs),
-  `section_id`, `leadImage`, `showInGallery`. One call, ~30–60 KB. **No
+  `section_id`, `leadImage`, `showInGallery`. Items inside `<gallery>` blocks
+  additionally carry a unique `gallery_id` (e.g. `mwAq4`); items are ordered
+  by article position with their section. One call, ~30–60 KB. **No
   wikitext parsing needed** — this IS MediaWiki's AST/Parsoid output (the
   `wikimedia-wikitext` skill's rule: don't parse wikitext when you don't need
   write-back).
 - **CORS:** ✅ `Access-Control-Allow-Origin: *` (REST API).
-- **Significance filter (verified 2026-08-13):** keep only `type=image` items
-  WITH `caption` — caption-less items are exactly the noise: France's
-  `Flag_of_France.svg` (infobox flag), EU/map SVGs, territorial-waters maps,
-  government portraits. Then a batched `prop=imageinfo&iiprop=size|mime`
-  (50 titles/call) drops images smaller than `minSize` (default 200 px) —
-  catches remaining tiny icons/logos. Captioned SVGs (significant diagrams)
-  survive the filter, as intended.
+- **Significance filter (default — verified 2026-08-13):** keep only
+  `type=image` items WITH `caption` — caption-less items are exactly the
+  noise: France's `Flag_of_France.svg` (infobox flag), EU/map SVGs,
+  territorial-waters maps, government portraits. Then a batched
+  `prop=imageinfo&iiprop=size|mime` (50 titles/call) drops images smaller
+  than `minSize` (default 200 px) — catches remaining tiny icons/logos.
+  Captioned SVGs (significant diagrams) survive the filter, as intended.
+- **All-images mode (`includeAll`, GitHub issue #3, 2026-09-05):** with
+  `includeAll: true` the caption filter is lifted so `<gallery>` blocks and
+  table/figure lists display too (List of presidents of Harvard University:
+  1 → 30 images; National Gallery London galleries; India's uncaptioned
+  nature photos). The `minSize` floor and batched imageinfo enrichment still
+  apply. **`hideDecorative`** (default true, only meaningful here) drops
+  common decorative CAPTION-LESS files via a conservative filename heuristic
+  (flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/
+  badges/roundels, logos, small locator/blank maps incl. "(orthographic
+  projection)" globes, icons/symbols, `Noimage` placeholders) — verified
+  2026-09-05 against 12 live pages with zero content-image false positives;
+  captioned images are NEVER decorative-filtered; set `hideDecorative:
+  false` to show literally everything.
+- **Grouping (`groupBy`: none | section | gallery, 2026-09-05):** when set,
+  rows carry `group: { key, label }` and the renderers show headers.
+  `section` groups by article section — one cheap
+  `action=parse&prop=tocdata` call maps `section_id` → heading
+  ("Section: Childhood, youth and education"; fallback "Section N", lead =
+  "Section: Introduction" when tocdata is unavailable, e.g. __NOTOC__
+  pages). `gallery` sets each `<gallery>` block off as its own "Gallery N"
+  group (surviving-row order) and section-groups everything else.
 - **Gotchas:** `showInGallery` is NOT a useful filter — true for every image
   on 4 pages tested (only audio gets false). `srcset` URLs are
   protocol-relative with `utm_source/campaign/content` params — normalized
   to absolute https + stripped (see `cleanThumbUrl`). Captions are HTML with
-  links → stripped to plain text (`stripHtml`) for the widget.
+  links → stripped to plain text (`stripHtml`) for the widget. A few
+  media-list items are title-less stubs — excluded silently. In all-images
+  mode, caption-less tiles show the file name under the thumb (grid) / next
+  to it (list), and the empty state says "No images found" (never "No
+  captioned images found").
 - **Display modes:** grid (small/medium/large via `iconSize`, CSS
   `auto-fill minmax(110/170/250px, 1fr)`) or list (90×60 thumb left, caption
-  right, file name below). Grid thumbs are **square tiles**
-  (`aspect-ratio: 1/1`) with `object-fit: contain` by default — the whole
-  image is always visible, letterboxed against the tile background (no
-  cropping of wide panoramas or tall portraits); `imageFit: 'cover'` opts
-  back into square fill-crop.
-- **Verified:** Albert Einstein → 32 captioned images (of 35 total); France →
-  38 of 47 captioned — 2026-08-13.
+  right, file name below). Group headers span the full grid row
+  (`.gallery-group-header`, `grid-column: 1 / -1`). Grid thumbs are
+  **square tiles** (`aspect-ratio: 1/1`) with `object-fit: contain` by
+  default — the whole image is always visible, letterboxed against the tile
+  background (no cropping of wide panoramas or tall portraits);
+  `imageFit: 'cover'` opts back into square fill-crop.
+- **Verified:** default mode — Albert Einstein → 32 captioned images (of 35
+  total), France → 38 of 47 captioned (2026-08-13). Options mode
+  (2026-09-05, live E2E): Harvard presidents 1 → 30 rows + 2 decorative
+  hidden; Einstein all-images → 36 rows across 27 real section headings;
+  National Gallery London all-images + gallery grouping → "Gallery 1/2/3"
+  groups with section groups between.
 
 ## 14. 360° Panorama — Commons `imageinfo` + Pannellum
 

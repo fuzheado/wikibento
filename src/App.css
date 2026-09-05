@@ -1214,6 +1214,8 @@ body {
 .gallery-thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; background: var(--bg); }
 .gallery-caption { font-size: 10px; color: var(--text-secondary); padding: 4px 6px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .gallery-item:hover .gallery-caption { color: var(--text); }
+.gallery-group-header { grid-column: 1 / -1; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); padding: 12px 2px 2px; margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+.gallery-group-header:first-child { border-top: none; padding-top: 2px; margin-top: 0; }
 .gallery-list { flex: 1; min-height: 0; overflow-y: auto; }
 .gallery-list-item { display: flex; gap: 10px; padding: 6px 4px; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .gallery-list-item:hover { background: rgba(255,255,255,0.02); }
