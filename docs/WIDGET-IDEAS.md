@@ -579,3 +579,50 @@ The GLAM Wiki Dashboard + SightGlass (ISSUE-23) + CIM all read the same
 underlying mediacounts family at different granularities. A unified
 "GLAM data layer" abstraction (daily via this API, monthly via CIM,
 job-based via SightGlass) would let widgets share one vocabulary.
+
+
+## Node Algebra: primitive widget families (2026-09-05 brainstorm)
+
+The interactivity conversation (issues #16/#18/#19 + MODULARITY Parts 3–5)
+needs a shared vocabulary for *what kinds of nodes exist*. Consumers are
+already universal (Part 4: params interpolate into every config field); the
+open design space is the middle and output of the graph. Proposed families
+(anchor: the hub carries named values; nodes do things to them):
+
+1. **Sources** — fetch widgets, pasted lists, Board Controls, URL context
+   params (ISSUE-40); future external list handles (PagePile/PSID, §List
+   Sources above).
+2. **Controllers** — gesture writes a param (issue #19, Path B). Param
+   namespaces that pay off are mapped in MODULARITY Part 4.
+3. **Transformers** — consume one (or two) feeds, emit one (issue #18).
+   Phase-1 ops: Filter (keyword/regex/negate) · Sort (alpha/numeric/natural/
+   reverse) · **Reverse/invert** · Dedupe (Unique) · Top-N/Truncate ·
+   **Union/merge (two feeds)** · **Rename/remap** · **Regex-extract**.
+   (Completes the Yahoo Pipes operator set: Fetch·Filter·Sort·Truncate·
+   Unique·Rename·Union·Reverse·Regex·Loop.) Plus the LLM **Summarizer**
+   (service-backed).
+4. **Reducers / aggregators** — feed → single value: count, sum/avg of a
+   numeric field, group-by (precedent: gallery groupBy headers; CIM
+   aggregates), histogram/buckets, is-empty→status. The classic second half
+   of Pipes-style demos ("500 images → count by country").
+5. **Enrichers** — rows ↔ external lookup: batched thumbnail/summary
+   (Article List precedent), standalone QID↔label resolver (the SPARQL
+   label fix generalized), Commons file-existence check, join two feeds by
+   key.
+6. **Routers / gates** — branch-if / whitelist-gate. DELIBERATELY Level-2
+   (MODULARITY Path C): declarative, capped, never a visual wiring canvas.
+7. **Effectors (output family, issue #16)** — speaker (shipped in PR #17);
+   planned siblings: card-compositor (text+image → graphic), export node
+   (feed → CSV/JSON/txt download), embed-snippet generator, story nodes
+   (TimelineJS/StoryMapJS — §Knight Lab evaluation above; issue #9).
+8. **AI-native nodes** — Summarizer (#18); **Translate via MinT**
+   (Wikimedia's own service — free, no key: "translate this feed's labels
+   into my board language"); **Score/triage via ORES** per item (reuses the
+   quality fetcher over a list — WMF's own ML as a classifier primitive);
+   entity-link (text → QIDs, future/hard); the Ask panel's answer → param
+   ("prompt node").
+
+Sequencing note: 1–3 exist or are filed (#16/#18/#19). Reducers and the
+QID↔label enricher slot in as cheap Phase-1.5 follow-ups to #18; MinT
+translate is the recommended first service-backed AI node after the
+Summarizer because it needs no keys and no proxy.
