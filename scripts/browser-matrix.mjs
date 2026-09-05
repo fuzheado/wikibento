@@ -49,6 +49,30 @@ const URL_TO_TEST = arg('url', 'https://wikibento.toolforge.org/?config=https://
 const WAIT_MS = parseInt(arg('wait', '15000'), 10);
 const ENGINES = arg('engines', 'chromium,firefox,webkit').split(',').map((s) => s.trim());
 
+// Remote-engine support: PW_WS_ENDPOINTS="webkit=ws://host:port/…,chromium=ws://…"
+// When an engine has a ws endpoint here, connect() to it instead of launching
+// locally — lets the WebKit leg run on a Mac/other host (see
+// scripts/remote-browser-daemon.mjs).
+const WS_ENDPOINTS = Object.fromEntries(
+  (process.env.PW_WS_ENDPOINTS || '')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .map((pair) => {
+      const eq = pair.indexOf('=');
+      return eq > 0 ? [pair.slice(0, eq).trim(), pair.slice(eq + 1).trim()] : null;
+    }).filter(Boolean),
+);
+// launchServer endpoints advertise localhost/127.0.0.1 (the daemon's own
+// loopback) — a REMOTE client must point the host at the daemon machine.
+// Set PW_WS_HOST to the daemon's reachable address to rewrite it.
+const WS_HOST = process.env.PW_WS_HOST || '';
+const remoteWs = (engine) => {
+  let url = WS_ENDPOINTS[engine];
+  if (WS_HOST && /^ws:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(url)) {
+    url = url.replace(/^ws:\/\/(localhost|127\.0\.0\.1)/, `ws://${WS_HOST}`);
+  }
+  return url;
+};
+
 // Known-benign console errors (checked 2026-09-03): top.hatnote.com has no CORS —
 // the widget tries direct, gets blocked, and falls back to the WMF endpoint /
 // same-origin proxy (docs/DATA-SOURCES.md §8); bare 404 resource loads are
@@ -75,10 +99,14 @@ for (const engine of ENGINES) {
     console.log(`⚠ ${engine}: unknown engine, skipping`);
     continue;
   }
-  const row = { engine, url: URL_TO_TEST, widgets: 0, widgetErrors: 0, consoleErrors: 0, benignConsole: 0, samples: [], consoleSamples: [] };
+  const row = { engine, url: URL_TO_TEST, widgets: 0, widgetErrors: 0, consoleErrors: 0, benignConsole: 0, samples: [], consoleSamples: [], remote: Boolean(WS_ENDPOINTS[engine]) };
   let browser;
   try {
-    browser = await launch.launch({ headless: true });
+    if (WS_ENDPOINTS[engine]) {
+      browser = await launch.connect(remoteWs(engine)); // remote engine (daemon host)
+    } else {
+      browser = await launch.launch({ headless: true });
+    }
     const page = await browser.newPage();
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
