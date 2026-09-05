@@ -1162,6 +1162,33 @@ export const WIDGET_TYPES = {
     transform: (data, config) => ({ title: config.title || 'Board Controls' }),
   },
 
+  speaker: {
+    id: 'speaker',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'Speaker (text-to-speech)',
+    icon: '🔊',
+    description: 'Output widget — speaks its text aloud with speech synthesis. First of the output/effector family. Safety-first: nothing speaks until ▶ is clicked once on the widget ("armed"); speak-on-change (default off) then announces text changes — e.g. a {{param}} phrase driven by Board Controls.',
+    labelFromConfig: (c) => (c.text || '').trim().slice(0, 28) + ((c.text || '').trim().length > 28 ? '…' : ''),
+    defaults: {
+      text: 'Hello — I am the WikiBento speaker. Press play to hear me, or point a board param at my text.',
+      speakOnChange: false,
+      refreshSeconds: 86400,
+    },
+    renderer: 'SpeakerCard',
+    dataSource: 'static (no fetch) — Web Speech synthesis (speechSynthesis)',
+    defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
+    configFields: [
+      { key: 'text', label: 'Text to speak ({{params}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Hello — point a Board Controls {{phrase}} at me, or type anything.' },
+      { key: 'speakOnChange', label: 'Auto-speak when the text changes (only after one ▶ click)', type: 'boolean' },
+    ],
+    // Static widget — rendered from resolved config; nothing to fetch.
+    transform: (data, config) => ({
+      text: String(config.text || ''),
+      speakOnChange: config.speakOnChange === true,
+    }),
+  },
+
   wikiPage: {
     id: 'wikiPage',
     category: 'Content & Embeds', intensity: 'low',

@@ -3,6 +3,7 @@ import { resolveParams } from '../lib/params';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
+import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import '../vendor/pannellum.css';
 
@@ -360,6 +361,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
     case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />;
+    case 'SpeakerCard': return <SpeakerCard data={data} onSetParam={onSetParam} />;
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
     case 'ExcerptCard': return <ExcerptCard data={data} />;
     case 'EditHistoryCard': return <EditHistoryCard data={data} />;
@@ -1003,6 +1005,199 @@ function pickPlayUrl(row, quality) {
     if (webm.length) return webm[webm.length - 1].src;
   }
   return row.originalUrl || '';
+}
+
+/**
+ * Speaker — text-to-speech output widget (GitHub issue #16), first of the
+ * output/effector family.
+ *
+ * SAFETY (see src/lib/speech.js + issue #16): never speaks until ▶ has been
+ * clicked on THIS widget ("armed") — the browser only guards speak() until
+ * the first page click, so the widget enforces its own gate. speakOnChange
+ * (registry default OFF) auto-speaks after arming, debounced (Board Controls
+ * text inputs fire per keystroke). Mute is controller-global: one mute
+ * button silences every speaker. Zero-voice engines (headless CI) render a
+ * degraded state — never an error, never a console exception.
+ */
+function SpeakerCard({ data, onSetParam }) {
+  const text = String(data?.text ?? '');
+  const speakOnChange = data?.speakOnChange === true;
+  const [status, setStatus] = useState('idle'); // idle | speaking | degraded
+  const [muted, setMuted] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [voices, setVoices] = useState([]);
+  const [voice, setVoice] = useState(''); // in-card picker (runtime roster; not persisted)
+  const [note, setNote] = useState(null);
+  const ctlRef = useRef(null);
+  const armedRef = useRef(false);
+  const voicesRef = useRef([]);
+  const prevTextRef = useRef(text);
+  const stallTimer = useRef(null);
+  const debounceTimer = useRef(null);
+  const settledRef = useRef(true);
+
+  // Bind the shared controller + scan the voice roster (async voiceschanged).
+  useEffect(() => {
+    if (!ctlRef.current) {
+      ctlRef.current = createSpeechController({
+        synth: typeof window !== 'undefined' && window.speechSynthesis ? window.speechSynthesis : null,
+        Utterance: typeof window !== 'undefined' && window.SpeechSynthesisUtterance ? window.SpeechSynthesisUtterance : null,
+      });
+      setMuted(ctlRef.current.isMuted());
+    }
+    const ctl = ctlRef.current;
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+    if (!ctl.hasSynth()) {
+      setStatus('degraded');
+      setNote('Speech synthesis is not available in this browser.');
+      return undefined;
+    }
+    const scan = () => {
+      const list = (synth.getVoices?.() || []).slice();
+      voicesRef.current = list;
+      setVoices(list);
+      setStatus((s) => (list.length === 0 ? 'degraded' : s === 'degraded' ? 'idle' : s));
+      setNote((n) => (n && n.includes('No voice') ? (list.length === 0 ? n : null) : n));
+      if (list.length === 0) setNote('No voice available on this device — the text is shown below.');
+    };
+    scan();
+    const unsubMute = ctl.onMuteChange(setMuted);
+    synth.addEventListener?.('voiceschanged', scan);
+    return () => {
+      unsubMute?.();
+      synth.removeEventListener?.('voiceschanged', scan);
+      clearTimeout(stallTimer.current);
+      clearTimeout(debounceTimer.current);
+      ctl.stopAll();
+    };
+  }, []);
+
+  const say = useCallback((msg) => {
+    const ctl = ctlRef.current;
+    if (!ctl || !String(msg).trim()) return;
+    settledRef.current = false;
+    setNote(null);
+    clearTimeout(stallTimer.current);
+    // Stall guard: Firefox headless queues an utterance that never starts nor
+    // errors; if nothing settles in 6s, cancel + degrade instead of hanging.
+    stallTimer.current = setTimeout(() => {
+      if (!settledRef.current) {
+        settledRef.current = true;
+        ctl.stopAll();
+        setStatus('degraded');
+        setNote('Speech did not start — no working voice on this device.');
+      }
+    }, 6000);
+    const finish = (next) => {
+      settledRef.current = true;
+      clearTimeout(stallTimer.current);
+      setStatus(next);
+    };
+    const res = ctl.speak(msg, {
+      voice: voice || null,
+      rate: 1,
+      volume: 0.8,
+      onstart: () => {
+        settledRef.current = true;
+        clearTimeout(stallTimer.current);
+        setStatus('speaking');
+      },
+      onend: () => finish(voicesRef.current.length > 0 ? 'idle' : 'degraded'),
+      onerror: (code) => {
+        settledRef.current = true;
+        clearTimeout(stallTimer.current);
+        if (code === 'not-allowed') setNote('Click ▶ to let this widget speak.');
+        else if (code !== 'interrupted') setNote(`Speech error (${code})`);
+        setStatus(voicesRef.current.length > 0 ? 'idle' : 'degraded');
+      },
+    });
+    if (!res.ok) {
+      settledRef.current = true;
+      if (res.reason === 'muted') setNote('🔇 Muted — click the mute button to unmute.');
+      else if (res.reason === 'empty') setNote('Nothing to speak — add text in ⚙ or point a {{param}} at it.');
+      else if (res.reason === 'no-synth') { setStatus('degraded'); setNote('Speech synthesis is not available in this browser.'); }
+      else if (res.reason === 'not-supported') { setStatus('degraded'); setNote('Speech synthesis failed to start.'); }
+    }
+  }, [voice]);
+
+  const handlePlay = useCallback(() => {
+    if (muted) { setNote('🔇 Muted — click the mute button to unmute.'); return; }
+    if (voicesRef.current.length === 0) { setStatus('degraded'); setNote('No voice available on this device — the text is shown below.'); return; }
+    armedRef.current = true;
+    setArmed(true);
+    say(text);
+  }, [muted, text, say]);
+
+  const handleStop = useCallback(() => {
+    ctlRef.current?.stopAll();
+    setStatus(voicesRef.current.length > 0 ? 'idle' : 'degraded');
+  }, []);
+
+  const handleToggleMute = useCallback(() => {
+    const ctl = ctlRef.current;
+    if (!ctl) return;
+    const nowMuted = ctl.toggleMuted();
+    onSetParam?.('audioMuted', nowMuted ? 'true' : 'false'); // persist/share via ISSUE-50 params
+  }, [onSetParam]);
+
+  // speakOnChange — announce text updates ONLY once armed (safety gate).
+  useEffect(() => {
+    const prev = prevTextRef.current;
+    prevTextRef.current = text;
+    if (!speakOnChange || text === prev) return undefined;
+    if (!armedRef.current) {
+      setNote('Text updated — press ▶ to hear it.');
+      return undefined;
+    }
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => say(text), 800); // keystroke debounce
+    return () => clearTimeout(debounceTimer.current);
+  }, [text, speakOnChange, say]);
+
+  const noVoice = voices.length === 0;
+  const showVoicePicker = voices.length > 1 && !noVoice;
+  return (
+    <div className="speaker-card">
+      <div className="speaker-controls">
+        {noVoice ? (
+          <span className="speaker-degraded">🔇 No voice on this device</span>
+        ) : status === 'speaking' ? (
+          <button className="widget-btn" onClick={handleStop} title="Stop speaking">⏹ Stop</button>
+        ) : (
+          <button
+            className="widget-btn"
+            onClick={handlePlay}
+            title={armed ? 'Speak this text' : 'Click once to let this widget speak — after that it may auto-speak when its text changes'}
+          >
+            {armed ? '▶ Speak' : '▶ Speak (enable)'}
+          </button>
+        )}
+        <button className="widget-btn" onClick={handleToggleMute} title={muted ? 'Unmute all speakers' : 'Mute all speakers'}>
+          {muted ? '🔇' : '🔊'}
+        </button>
+        {showVoicePicker && (
+          <select
+            className="board-param-select speaker-voice"
+            aria-label="Voice"
+            value={voice}
+            onChange={(e) => setVoice(e.target.value)}
+          >
+            <option value="">Auto ({voices[0]?.lang || 'device'})</option>
+            {voices.map((v) => (
+              <option key={`${v.name}-${v.lang}`} value={v.name}>{v.name} — {v.lang}</option>
+            ))}
+          </select>
+        )}
+        <span className={`speaker-status${status === 'speaking' ? ' speaking' : ''}`} aria-live="polite">
+          {status === 'speaking' ? '🔊 Speaking…' : noVoice ? '' : muted ? 'Muted' : armed ? 'Ready' : 'Press ▶ once to enable'}
+        </span>
+      </div>
+      {note && <div className="widget-empty speaker-note" aria-live="polite">{note}</div>}
+      <div className="speaker-text">
+        {text ? text : <span className="widget-empty">No text yet — type some in ⚙ or point a board {{param}} at the text field.</span>}
+      </div>
+    </div>
+  );
 }
 
 /** Media player — video/audio embed + jukebox playlist (ISSUE-39). */
