@@ -2054,3 +2054,72 @@ function writeWaybackCache(key, payload) {
     localStorage.setItem(WAYBACK_LS, JSON.stringify(all));
   } catch { /* storage full/unavailable — cache is best-effort */ }
 }
+
+
+// ── MinT machine translation (Wikimedia Language team) ─────────────
+// POST https://translate.wmcloud.org/api/translate — CORS `*` verified
+// 2026-09-05 (ACAO:* on POST + OPTIONS preflight). Body fields are
+// content / source_language / target_language / format ('text') — NOT
+// text/from/to (422 trap). MinT has NO `auto` source detection: the
+// source language must be known. Test instance translate.wmcloud.org is
+// fine at dashboard scale; keep bulk use ≥1s-paced.
+const MINT_API = 'https://translate.wmcloud.org/api/translate';
+export const MINT_MAX_CHARS = 8000; // soft cap; longer content is truncated + flagged
+const minTCache = createTtlCache(24 * 60 * 60 * 1000); // same text+pair → same translation
+
+export const normalizeLangCode = (s) => String(s || '').trim().toLowerCase().slice(0, 8);
+
+/** Build the MinT POST request — exported for tests (no network). */
+export function buildMinTRequest(text, from, to) {
+  const content = String(text ?? '').trim();
+  const source_language = normalizeLangCode(from) || 'en';
+  const target_language = normalizeLangCode(to) || 'es';
+  const truncated = content.length > MINT_MAX_CHARS;
+  return {
+    url: MINT_API,
+    body: JSON.stringify({
+      content: truncated ? content.slice(0, MINT_MAX_CHARS) : content,
+      source_language,
+      target_language,
+      format: 'text',
+    }),
+    truncated,
+  };
+}
+
+/** Parse a MinT success payload — exported for tests. */
+export function parseMinTResponse(json) {
+  return {
+    translation: String(json?.translation ?? ''),
+    model: json?.model ?? null,
+    from: json?.sourcelanguage ?? null,
+    to: json?.targetlanguage ?? null,
+    seconds: typeof json?.translationtime === 'number' ? json.translationtime : null,
+  };
+}
+
+/** Translate text via MinT (browser-direct; CORS verified 2026-09-05). */
+export async function fetchMinTTranslation(text, from = 'en', to = 'es') {
+  const { url, body, truncated } = buildMinTRequest(text, from, to);
+  return minTCache.get(body, async () => {
+    let raw;
+    try {
+      raw = await fetchTextWithRetry(url, { method: 'POST', body, timeoutMs: 60000, retries: 1, withBody: true });
+    } catch (e) {
+      if (e instanceof Error && /^HTTP 422/.test(e.message)) {
+        throw new Error('MinT: this language pair is not supported — check translate.wmcloud.org/api/languages');
+      }
+      throw e;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('MinT: unexpected response');
+    }
+    const out = parseMinTResponse(parsed);
+    out.truncated = truncated;
+    if (!out.translation) throw new Error('MinT: empty translation returned');
+    return out;
+  });
+}
