@@ -544,4 +544,79 @@ warranted — but only after Level 1 has proven the need.
 
 ---
 
+
+## Part 7 — Timing, freshness & multi-input policy (2026-09-05)
+
+For widgets that consume multiple feeds (union/join transformers, #18's data
+plane) the timing questions are: when to render, how long to wait, what to
+show while waiting, what to do on partial failure, and how to cancel stale
+work. Policy below — grounded in how the peer tools handle it (Grafana:
+independent panels, per-query timeouts, no joins; TanStack Query: per-query
+timeout/retry/staleTime; RxJS: combineLatest vs forkJoin vs merge; Prometheus:
+per-query timeout + fixed staleness; CDN SWR: serve stale, refresh in
+background).
+
+### 0. The reframe — the hub dissolves most "waiting"
+
+Outputs flow as *param writes*, not polls: a downstream widget runs when a
+value is WRITTEN (reloadKey bump), not on a timer. Source A (fast) writes →
+downstream runs with A; source B (slow) writes 40 s later → downstream runs
+again with A+B. No union-level wait exists at the dataflow layer; each run
+renders whatever has arrived and the state converges when the last writer
+lands. This is the Grafana-not-Airflow choice (Part 2/3) paying off.
+
+### 1. Per-input timeouts & retries — never a union-level timer
+
+Each source keeps its own budget; a slow source degrades alone. Current
+defaults in `fetchTextWithRetry` (dataSources.js): 15 s, 2 retries,
+500 ms·attempt backoff; 4xx terminal (never retried); POSTs (MinT, 60 s)
+retry 1× on 5xx/network only. Registry `loadingHint` communicates slow ops
+("SPARQL may take up to 60 s").
+
+| Class | Budget | Notes |
+|---|---|---|
+| REST summaries/thumbnails | ≤15 s | default |
+| Batched imageinfo / media-list | ≤30 s | |
+| SPARQL (WDQS/QLever) | ≤60 s | loadingHint set |
+| MinT / LLM POSTs | ≤60–90 s, retries 1 | never retry 4xx |
+
+A multi-input widget MAY declare an overall join budget for its `waitFor:
+'all'` mode, but the default is incremental (rule 2) and per-input.
+
+### 2. Render incrementally with per-input state — never all-or-nothing
+
+Default semantics = combineLatest-with-progress: a union widget shows each
+input's badge — ✓ fresh (with its own `_fetchedAt` stamp), ⏳ pending,
+⚠ error — and composes whatever has arrived. Strict forkJoin semantics is an
+opt-in `waitFor: 'all'`. Partial failure shows the healthy inputs + a clear
+per-input error; it never blanks the whole card.
+
+### 3. Never blank what you have; never let stale work win
+
+- **SWR:** TTL caches serve repeat reads instantly (createTtlCache; labels
+  24 h, MinT 24 h, wikistats 5 m). Widgets keep showing the last good value
+  while a refresh is in flight.
+- **Supersede:** `WidgetFrame.load()` claims `++loadSeqRef.current`; only the
+  latest run may write state (success OR error), and unmount invalidates
+  in-flight loads — a slow fetch from an old config can never clobber a
+  newer result (ISSUE-54, PR #24). This is the load-bearing rule the moment
+  widgets consume changing `{{param}}` feeds.
+
+### 4. Etiquette & scheduling under the no-backend ceiling
+
+- Auto-refresh is per-widget `setInterval`, NOT a scheduler (Part 2): no
+  retries/backfills/DAG scheduling. Multi-input widgets rely on the cascade
+  (rule 0) + caches, not on refresh timers, for cross-widget freshness.
+- Rate limits: honor WMF 429 discipline; MinT ≥1 s pacing for bulk; TTL
+  caches are the first line of defense; cap fan-out per refresh instead of
+  spraying N parallel fetches (concurrency degrades CPU-bound MT inference).
+- Jitter/stagger: prefer slightly offset auto-refresh intervals over N
+  widgets refiring simultaneously on the hour.
+
+### 5. Failure & honesty semantics
+
+An input that times out or 422s shows its own error badge and retry
+affordance; the union still renders healthy inputs. Errors are per-source
+and attributed (which feed, which op) — never a bare "failed".
+
 *End of document.*
