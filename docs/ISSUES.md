@@ -2241,3 +2241,25 @@ Verified live end-to-end: Harvard presidents 1 → 30 images (+2 decorative
 hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
 National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
 delivered; no write access to GitHub).
+
+## ISSUE-54 · Request-serial guard in WidgetFrame.load() — stale writes can't clobber fresh results — **done (branch `supersede-guard`, PR #22)**
+
+**Problem:** `load()` had no request-serial token. A slow fetch started under
+an old config/params (60 s SPARQL, batched imageinfo, MinT round-trips)
+could resolve AFTER a newer run (param change → reloadKey bump → re-load,
+or manual ↻) and overwrite its result with stale data — or a stale failure
+could blank a fresh result. Latent for single widgets; it compounds the
+moment widgets consume changing `{{param}}` feeds (the #18 transformer
+data plane, timing policy 2026-09-05).
+
+**Fix (src/widgets/WidgetFrame.jsx):** `loadSeqRef` — each load() claims
+`++loadSeqRef.current`; success and error paths check `seq !==
+loadSeqRef.current` before touching state and simply return if superseded.
+Unmount invalidates in-flight loads (`loadSeqRef.current += 1`) so a slow
+fetch can't write state after the widget is removed. ~15 lines, no behavior
+change for the normal single-run path.
+
+**Verified:** npm test 117 pass · lint clean · build green · chromium matrix
+smoke PASS. (Race itself isn't unit-testable without a React harness — repo
+convention is lib-level tests + browser probes; the guard is covered by
+review + smoke.)
