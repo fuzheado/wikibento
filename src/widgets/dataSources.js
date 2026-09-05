@@ -10,6 +10,13 @@ const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
+import {
+  wikidataEntityId,
+  labelLanguage,
+  buildLabelRequestUrl,
+  parseLabelResponse,
+  enrichEntityLabels,
+} from '../lib/sparqlLabels';
 
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
@@ -1310,6 +1317,24 @@ const SPARQL_TIMEOUT_MS = 60000;
 const SPARQL_GET_LIMIT = 1800; // WDQS GET URLs cap ~2,000 chars
 const sparqlCache = createTtlCache(10 * 60 * 1000);
 
+// Wikidata labels are stable — cache them 24 h. Keyed by language + the
+// sorted id chunk, so each distinct result set costs ONE label request
+// per language per day, and the lookup rides the sparql widget's own
+// fetch lifecycle (no second refresh interval; the 10-min sparqlCache
+// above means re-runs of the same query add no label traffic at all).
+const sparqlLabelCache = createTtlCache(24 * 60 * 60 * 1000);
+
+/**
+ * Batch label lookup for one ≤50-id chunk (Issue #6). Throws on HTTP
+ * failure so createTtlCache drops the entry and the next run retries
+ * fresh — a transient failure must not pin bare QIDs for 24 h.
+ */
+async function fetchWikidataLabels(ids, lang) {
+  const key = `${lang}::${[...ids].sort().join('|')}`;
+  return sparqlLabelCache.get(key, async () =>
+    parseLabelResponse(await fetchJSON(buildLabelRequestUrl(ids, lang)), lang));
+}
+
 /** Shorten entity URIs (Q160236, M37200540) — others kept as-is. */
 function shortenSparqlUri(value) {
   const m = String(value).match(/\/(entity|File|Category)\/([^/]+)$/);
@@ -1332,8 +1357,16 @@ function coerceSparqlValue(binding) {
  * 17. SPARQL Query — arbitrary SPARQL (WDQS / QLever Commons) + Humaniki.
  * Returns { vars, rows } — plain objects, never the raw bindings envelope.
  * GET for short queries, POST form-urlencoded (no CORS preflight) beyond.
+ *
+ * `opts.resolveLabels` (default off — the sparql widget opts in): every
+ * cell whose source binding was a Wikidata entity URI is batch-resolved
+ * to "Label (Q123)" text via the Action API (see ../lib/sparqlLabels).
+ * Works for ANY endpoint — QLever can't run SERVICE wikibase:label, so
+ * this is the general post-processing fix (Issue #6). Best-effort: a
+ * label-lookup failure never fails the query; raw QIDs stay in place.
  */
-export async function fetchSparql(query, endpoint = 'wdqs', maxRows = 100) {
+export async function fetchSparql(query, endpoint = 'wdqs', maxRows = 100, opts = {}) {
+  const { resolveLabels = false } = opts || {};
   const ep = SPARQL_ENDPOINTS[endpoint] || SPARQL_ENDPOINTS.wdqs;
   const cap = Math.max(parseInt(maxRows) || 100, 1);
 
@@ -1395,12 +1428,35 @@ export async function fetchSparql(query, endpoint = 'wdqs', maxRows = 100) {
     }
     const vars = d?.head?.vars || [];
     if (!vars.length) throw new Error('SPARQL returned no variables');
-    const rows = (d?.results?.bindings || []).slice(0, cap).map((b) => {
+    const bindings = (d?.results?.bindings || []).slice(0, cap);
+    // Entity-cell coordinates: collected on the RAW bindings (uri-typed,
+    // full Wikidata entity URI) BEFORE shortening — only genuine entity
+    // URIs are ever re-labelled, never literals that read "Q123".
+    const entityCells = []; // { r, v, id }
+    const rows = bindings.map((b, r) => {
       const row = {};
-      for (const v of vars) row[v] = b[v] ? coerceSparqlValue(b[v]) : null;
+      for (const v of vars) {
+        if (!b[v]) { row[v] = null; continue; }
+        if (b[v].type === 'uri') {
+          const id = wikidataEntityId(b[v].value);
+          if (id) entityCells.push({ r, v, id });
+        }
+        row[v] = coerceSparqlValue(b[v]);
+      }
       return row;
     });
-    return { vars, rows };
+    const result = { vars, rows };
+    if (resolveLabels && entityCells.length) {
+      try {
+        await enrichEntityLabels(result.rows, entityCells, result.vars, {
+          lang: labelLanguage(typeof navigator !== 'undefined' ? navigator.language : undefined),
+          fetchBatch: fetchWikidataLabels,
+        });
+      } catch {
+        // Enrichment is best-effort — never fail the query over labels.
+      }
+    }
+    return result;
   });
 }
 

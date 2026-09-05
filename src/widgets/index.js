@@ -1220,7 +1220,10 @@ export const WIDGET_TYPES = {
       const preset = getPreset(config.preset);
       const query = config.query || preset?.query || '';
       const endpoint = config.endpoint || preset?.endpoint || 'wdqs';
-      return fetchSparql(query, endpoint, config.maxRows);
+      // Issue #6: resolve Wikidata entity QIDs to "Label (Q123)" text —
+      // QLever can't run SERVICE wikibase:label, so the widget path
+      // post-processes every result (see fetchSparql opts.resolveLabels).
+      return fetchSparql(query, endpoint, config.maxRows, { resolveLabels: true });
     },
     transform: (data, config) => {
       const preset = getPreset(config.preset);
