@@ -16,7 +16,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
-- ✅ **GLAM view-budget fix (2026-09-08, pending deploy):** the 📈 widget's
+- ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-BLGokffr.js, commit a8c994a):** the 📈 widget's
   monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
   a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
   the tree is shallow (1,956 files at depth 6 AND 12 — depth and the 20K
@@ -309,9 +309,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-DClvfKWq.js (CIM gap indicator, 2026-09-03);
-  latest deploy 2026-08-17 (GLAM PetScan relay + 30K budget ceiling +
-  clickable links + depth UX; prior: index-DkcrAAk0.js Lean mode 2026-08-16).
+- ✅ Git repo on GitHub (main). Current production bundle = index-BLGokffr.js (full merged main + GLAM view-budget fix, 2026-09-08);
+  prior: index-DClvfKWq.js CIM gap indicator 2026-09-03, index-BgEdNEa0.js cross-browser fix 2026-09-03,
+  index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
