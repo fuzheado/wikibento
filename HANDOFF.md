@@ -16,6 +16,27 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **GLAM view-budget fix (2026-09-08, pending deploy):** the 📈 widget's
+  monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
+  a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
+  the tree is shallow (1,956 files at depth 6 AND 12 — depth and the 20K
+  file budget were NOT the issue), but the category has **285 distinct ns-0
+  pages**, and the old top-150-by-weight cut was arbitrary (nearly every
+  page has weight 1), silently dropping **879,082 of 1,375,031 monthly
+  views (64%)** — Economy of India (101,789 views, one file) among them.
+  Reproduced both numbers independently: widget-style top-150 = 495,949,
+  all-pages = 1,375,045 vs GLAMorgan 1,386,218 (residual ≈ agent model + a
+  wikiquote page `wikiToProject` skips). The partial state is now honest:
+  subtitle reads `views partial (150 of 285 pages)`-style with
+  `viewsFetched` in the output, the Total views stat gains a `partial` sub
+  label, and `aggregateGlamStats` takes an injectable `viewBudget` (test
+  regression: a 9999-view weight-1 page beyond an injected 150 cut).
+  Also from the all-widgets clamp audit: self-walk fallback `GIU_LIMIT`
+  100 → **500** (the Action API `gulimit` max — 100 silently truncated
+  heavily-used files; relay path has no per-file cap) and a stale comment
+  (10,000 → 30,000) fixed. Everything else audited is display-only,
+  config-surfaced, or documented against upstream limits. Constitution:
+  updated tests/glam-petscan.test.mjs (npm test 73).
 - ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — branch `issue-3-gallery-all-images`, patch delivered, NOT pushed/merged):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
 - ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
   cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files

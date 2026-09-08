@@ -321,7 +321,7 @@ export const WIDGET_TYPES = {
 
   glamorgan: {
     id: 'glamorgan',
-    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree via PetScan — large budgets can take 30–90 s',
+    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree via PetScan — large budgets can take 30–90 s, very large trees a few minutes',
 
     timeScope: 'month',    name: 'GLAM Category Usage',
     icon: '📈',
@@ -364,12 +364,12 @@ export const WIDGET_TYPES = {
       title: data.category,
       emptyHint,
       href: `https://commons.wikimedia.org/wiki/Category:${encodeURIComponent(data.category)}`,
-      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ' · views partial' : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
+      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ` · views partial (${(data.viewsFetched ?? 0).toLocaleString()} of ${data.pages.toLocaleString()} pages)` : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
       stats: [
         { label: 'Files in category', value: data.files.toLocaleString(), sub: data.cappedFiles ? 'budget-capped' : undefined },
         { label: 'Files viewed', value: data.viewedFiles.toLocaleString(), sub: `of ${data.usedFiles.toLocaleString()} used` },
         { label: 'Pages using files', value: data.pages.toLocaleString(), sub: `on ${data.wikis.toLocaleString()} wikis` },
-        { label: 'Total views', value: data.totalViews.toLocaleString(), sub: data.monthLabel },
+        { label: 'Total views', value: data.totalViews.toLocaleString(), sub: data.partialViews ? `partial · ${data.monthLabel}` : data.monthLabel },
       ],
       filmstrip: data.top,
       detail: data.detail && {

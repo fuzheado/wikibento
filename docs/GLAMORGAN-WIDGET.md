@@ -47,10 +47,12 @@ for one Commons category tree, one month**:
    "first N of M files" when the budget caps the tree.
 2. **Pageviews are one REST call per distinct page.** GLAMorgan needs a
    server proxy for this. Browser compromise: fetch views for the top
-   **150 pages by usage weight** (6 concurrent, ~15–30 s worst case); if a tree
-   has more, the Views card and filmstrip are labeled **"partial"** and computed
-   over the top 150. Your example scale (one file → 10 pages) needs **11 calls**.
-   The existing "CORS proxy" roadmap item is the upgrade path to full exactness.
+   **2,000 pages by usage weight** (6 concurrent, ~100 s worst case; was 150
+   until 2026-09-08 — the old cap silently dropped 64% of MIT OCW's views
+   because weight-1 ordering is arbitrary, so high-traffic single-file pages
+   were skipped); if a tree has more, the Views card and filmstrip are
+   labeled **"views partial (N of M pages)"** and computed over the top 2,000.
+   The batched-pageviews relay is the upgrade path to full exactness.
 
 ## Additional Spec Clarifications Adopted
 
@@ -131,7 +133,7 @@ a same-origin pageviews proxy) and ~40 lines of browser-side aggregation.
 |---|---|---|---|
 | Tree | own `categorymembers` walk, ≤1,000 files (fallback cap) | **PetScan via `/api/petscan` relay, budget-capped server-side** | PetScan |
 | Usage | `globalusage` API + URL-path ns heuristic, `gulimit=100` | **PetScan `giu` — exact `ns`, no heuristic** | PetScan |
-| Pageviews | WMF API, ≤150 pages, client | WMF API, ≤150 pages, client | WMF API, batched, all pages, cached |
+| Pageviews | WMF API, ≤2,000 pages, client | WMF API, ≤2,000 pages, client | WMF API, batched, all pages, cached |
 | Widget-native features (filmstrip, top-N detail, budgets, progress) | native | native | need API surface |
 | Parity with glamtools | heuristic drift possible | **structural** | structural |
 
@@ -146,7 +148,7 @@ directly: it goes through a thin stateless relay on our Toolforge server
 
 **Why not C yet:** C's only wins are cross-user caching and very large
 budgets. The widget is *designed* bounded (500–30,000 files via the relay,
-1,000-file fallback, 150 pages, 2 h refresh) to stay polite; at that scale
+1,000-file fallback, 2,000 pages, 2 h refresh) to stay polite; at that scale
 client-side pageviews are fine and caching saves little. C becomes the
 target when: users request budgets above ~30,000 files (GLAMorgan's own
 ceiling), popular categories generate repeat-load traffic, or the
@@ -162,6 +164,19 @@ SCALABILITY Phase 1.5 shared-cache layer lands. Revisit triggers below.
 > a full-budget tree is ~12 MB, under the byte cap. The docs' original
 > "browser pageviews then need server batching" rationale for the ~1K
 > trigger was stale — pageviews were already bounded at 150.
+>
+> **Revision 2026-09-08:** the pageview budget was raised 150 → 2,000 after
+> a verified 3× undercount on `Media from MIT OpenCourseWare` (2026-05):
+> 285 distinct ns-0 pages, of which the 135 beyond the old top-150 cut
+> carried 879,082 of 1,375,031 monthly views (64%) — because almost every
+> page has usage weight 1, so the weight ordering was arbitrary and skipped
+> high-traffic single-file pages (Economy of India: 101,789 views). The
+> partial state is now quantified on the card (`views partial (N of M
+> pages)`; Total views stat marked `partial`), the self-walk fallback's
+> `gulimit` rose 100 → 500 (the Action API max; it also had no
+> continuation), and `aggregateGlamStats` takes an injectable `viewBudget`
+> for tests. Full exactness above 2,000 pages still needs the server-side
+> batched-pageviews relay.
 
 **Explicit non-goals:** never depend on glamtools' `pageviews.php` proxy —
 same-origin-only (no CORS, verified 2026-08-17), unversioned, community-

@@ -139,6 +139,10 @@ const VIEWS = {
   'de.wikipedia.org:Alpha': 5,
   'en.wikipedia.org:Beta': 7,
   'fr.wikipedia.org:Gamma': 3,
+  // Regression 2026-09-08: a high-traffic page using ONE file must not be
+  // silently dropped when the view budget truncates (MIT OCW: Economy of India
+  // = 102K monthly views, skipped by the old 150-page weight heuristic).
+  'en.wikipedia.org:Page_4_39': 9999,
 };
 const stubViews = async (wiki, page) => VIEWS[`${wiki}:${page}`] || 0;
 const stubThumbs = async () => {};
@@ -188,16 +192,27 @@ test('aggregateGlamStats: self-walk usage (no ns field) treated as article', asy
   assert.equal(r.totalViews, 10);
 });
 
-test('aggregateGlamStats: partialViews beyond the view budget', async () => {
+test('aggregateGlamStats: partialViews beyond the view budget (injected; default is 2,000)', async () => {
   const files = Array.from({ length: 5 }, (_, i) => `File:${i}.jpg`);
   const usage = {};
   for (let i = 0; i < 5; i++) {
     usage[files[i]] = Array.from({ length: 40 }, (_, j) => ({ wiki: 'en.wikipedia.org', page: `Page_${i}_${j}`, ns: 0 }));
   }
-  // 5 files × 40 pages = 200 distinct pages > GLAM_VIEW_BUDGET (150)
-  const r = await aggregateGlamStats(files, usage, { year: 2026, month: 7, topN: 5, views: stubViews, thumbs: stubThumbs });
+  // 5 files × 40 pages = 200 distinct pages — the default budget is now 2,000
+  // (2026-09-08 raise from 150, which undercounted the MIT OCW case), so the
+  // cap is injected here to exercise the partial path without a 2,001-page fixture.
+  // Page_4_39 (9999 views, weight 1, last in file order) sits beyond the 150
+  // cut — the truncated total demonstrably loses it.
+  const r = await aggregateGlamStats(files, usage, { year: 2026, month: 7, topN: 5, views: stubViews, thumbs: stubThumbs, viewBudget: 150 });
   assert.equal(r.partialViews, true);
   assert.equal(r.pages, 200);
+  assert.equal(r.viewsFetched, 150); // quantifies the card's "views partial (150 of 200 pages)" label
+  assert.equal(r.totalViews, 0);     // the 9999-view page is outside the injected budget
+  // Same data at the default budget: no truncation, and the big page counts.
+  const full = await aggregateGlamStats(files, usage, { year: 2026, month: 7, topN: 5, views: stubViews, thumbs: stubThumbs });
+  assert.equal(full.partialViews, false);
+  assert.equal(full.viewsFetched, 200);
+  assert.equal(full.totalViews, 9999);
 });
 
 test('aggregateGlamStats: showDetail=false skips the detail table', async () => {
