@@ -16,7 +16,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
-- ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-BLGokffr.js, commit a8c994a):** the 📈 widget's
+- ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-ejrRtwiS.js):** the 📈 widget's
   monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
   a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
   the tree is shallow (1,956 files at depth 6 AND 12 — depth and the 20K
@@ -36,7 +36,19 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   heavily-used files; relay path has no per-file cap) and a stale comment
   (10,000 → 30,000) fixed. Everything else audited is display-only,
   config-surfaced, or documented against upstream limits. Constitution:
-  updated tests/glam-petscan.test.mjs (npm test 73).
+  updated tests/glam-petscan.test.mjs (npm test 108).
+  **Deploy-verification finding (same day):** live browser checks of the
+  MIT OCW widget exposed a second silent-wrongness bug — the view walk's
+  285-request burst can trip the pageview API's rate limiter, and 429s were
+  terminal in `fetchTextWithRetry` (2026-09-01 rule) AND zero-filled by
+  `fetchMonthlyViews`' catch-all → one live run silently lost ~65% of
+  views; a clean run matched the offline reproduction exactly (1,375,031).
+  Fix: 429 is now transient (retried with backoff like 5xx — 404 stays
+  terminal), `fetchMonthlyViews` returns `null` on non-404 failure (0 stays
+  "genuinely no data"), `aggregateGlamStats` counts `viewsFailed`, and the
+  card subtitle appends `· N pages failed` (GLAMorgan's own warning
+  pattern). Verified live: Total views 1,375,031 / Files viewed 158 —
+  exact match with GLAMorgan-parity expectations.
 - ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — branch `issue-3-gallery-all-images`, patch delivered, NOT pushed/merged):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
 - ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
   cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files

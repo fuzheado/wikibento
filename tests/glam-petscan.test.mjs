@@ -215,6 +215,23 @@ test('aggregateGlamStats: partialViews beyond the view budget (injected; default
   assert.equal(full.totalViews, 9999);
 });
 
+test('aggregateGlamStats: failed view fetches are counted, not silently zeroed', async () => {
+  // views stub: null = fetch failure (429 after retries / network), 0 = genuine no-data
+  const flaky = async (wiki, page) => (page === 'Page_0_5' || page === 'Page_3_9') ? null : stubViews(wiki, page);
+  const files = Array.from({ length: 5 }, (_, i) => `File:${i}.jpg`);
+  const usage = {};
+  for (let i = 0; i < 5; i++) {
+    usage[files[i]] = Array.from({ length: 40 }, (_, j) => ({ wiki: 'en.wikipedia.org', page: `Page_${i}_${j}`, ns: 0 }));
+  }
+  const r = await aggregateGlamStats(files, usage, { year: 2026, month: 7, topN: 5, views: flaky, thumbs: stubThumbs });
+  assert.equal(r.viewsFailed, 2);       // the two null-returning pages are counted
+  assert.equal(r.pages, 200);
+  assert.equal(r.totalViews, 9999);     // failures contribute 0, real views still count (Page_4_39)
+  // all-OK stub: viewsFailed stays 0
+  const ok = await aggregateGlamStats(files, usage, { year: 2026, month: 7, topN: 5, views: stubViews, thumbs: stubThumbs });
+  assert.equal(ok.viewsFailed, 0);
+});
+
 test('aggregateGlamStats: showDetail=false skips the detail table', async () => {
   const r = await aggregateGlamStats(FILES, USAGE, { year: 2026, month: 7, topN: 5, showDetail: false, views: stubViews, thumbs: stubThumbs });
   assert.equal(r.detail, null);

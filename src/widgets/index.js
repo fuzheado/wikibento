@@ -364,7 +364,7 @@ export const WIDGET_TYPES = {
       title: data.category,
       emptyHint,
       href: `https://commons.wikimedia.org/wiki/Category:${encodeURIComponent(data.category)}`,
-      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ` · views partial (${(data.viewsFetched ?? 0).toLocaleString()} of ${data.pages.toLocaleString()} pages)` : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
+      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ` · views partial (${(data.viewsFetched ?? 0).toLocaleString()} of ${data.pages.toLocaleString()} pages)` : ''}${data.viewsFailed ? ` · ${data.viewsFailed.toLocaleString()} pages failed` : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
       stats: [
         { label: 'Files in category', value: data.files.toLocaleString(), sub: data.cappedFiles ? 'budget-capped' : undefined },
         { label: 'Files viewed', value: data.viewedFiles.toLocaleString(), sub: `of ${data.usedFiles.toLocaleString()} used` },

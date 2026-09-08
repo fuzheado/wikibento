@@ -52,6 +52,12 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method 
       });
       if (resp.status >= 500 && attempt < retries) {
         lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
+      } else if (resp.status === 429 && attempt < retries) {
+        // 429 = transient rate limiting, not "no data" — retry with backoff.
+        // (2026-09-08: was terminal with every other 4xx, so the GLAM view
+        // walk's 285+ request burst silently zero-filled throttled pages —
+        // a live check lost ~65% of total views to 429s.)
+        lastErr = new Error(`HTTP 429 (${shortUrl})`);
       } else if (!resp.ok) {
    let errBody = null;
    if (withBody) { try { errBody = (await resp.text()).slice(0, 300); } catch { /* body optional */ } }
@@ -264,8 +270,11 @@ async function fetchMonthlyViews(wiki, page, year, month) {
   try {
     const d = await fetchJSON(url);
     return (d.items || []).reduce((s, i) => s + (i.views || 0), 0);
-  } catch {
-    return 0; // 404 = no views that month
+  } catch (e) {
+    // 404 = genuinely no views that month → 0. Any other failure (429 after
+    // retries, 5xx, network) → null so the aggregate can count it as a FAILED
+    // page instead of silently treating throttling as "no views".
+    return /^HTTP 404 /.test(e?.message || '') ? 0 : null;
   }
 }
 
@@ -361,8 +370,11 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
   const keysToFetch = partialViews
     ? [...pageKeys].sort((a, b) => pages[b].weight - pages[a].weight).slice(0, viewBudget)
     : pageKeys;
+  let viewsFailed = 0; // pages whose view fetch failed (429 after retries / 5xx / network) — surfaced on the card
   await pool(keysToFetch, 6, async (k) => {
-    pages[k].views = await views(pages[k].wiki, pages[k].page, year, month);
+    const v = await views(pages[k].wiki, pages[k].page, year, month);
+    if (v == null) viewsFailed++;
+    pages[k].views = v || 0;
   });
 
   // Per-file aggregates.
@@ -391,7 +403,9 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
       const k = `${u.wiki}:${u.page}`;
       if (!(k in pages)) pages[k] = { wiki: u.wiki, page: u.page, weight: 0, views: 0 };
       if (!pages[k].viewsFetched) {
-        pages[k].views = await views(u.wiki, u.page, year, month);
+        const v = await views(u.wiki, u.page, year, month);
+        if (v == null) viewsFailed++;
+        pages[k].views = v || 0;
         pages[k].viewsFetched = true;
       }
     });
@@ -415,6 +429,7 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
     totalViews,
     partialViews,
     viewsFetched: keysToFetch.length, // quantifies the "views partial (N of M pages)" label
+    viewsFailed,
     monthLabel: `${year}-${String(month).padStart(2, '0')}`,
     top: top.map(f => ({ title: f.title.replace(/^File:/, '').replace(/_/g, ' '), views: f.views, thumbUrl: f.thumbUrl })),
     detail,
@@ -453,7 +468,7 @@ export async function fetchGlamStats(cfg = {}, deps = {}) {
   if (!files.length) {
     return {
       category, source, files: 0, cappedFiles, usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0,
-      totalViews: 0, partialViews: false, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
+      totalViews: 0, partialViews: false, viewsFailed: 0, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
       top: [], detail: null,
     };
   }
