@@ -29,6 +29,7 @@ const TYPE_BY_RENDERER = {
   WaybackGalleryCard: 'media', PanoramaCard: 'media',
   SparqlCard: 'query',
   MarkdownCard: 'embed', WikiPageCard: 'embed',
+  ListSourceCard: 'table', EchoCard: 'table',
 };
 
 // Shared config-field constants referenced inside configFields arrays

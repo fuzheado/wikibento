@@ -63,6 +63,11 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [paramSpecs, setParamSpecs] = useState({});   // board params (ISSUE-50): { name: { label, type, options } }
   const [paramValues, setParamValues] = useState({}); // board params live values: { name: string }
   const [paramBlock, setParamBlock] = useState(null); // board params RAW (persisted; spec edits rewrite it)
+  // ISSUE-51 (widget-to-widget dataflow): { widgetId → emitted value }. Built
+  // live from each widget's registry `emit`, consumed via the `source` picker
+  // or {{widget:id}} interpolation. Ephemeral — rebuilt from fresh loads,
+  // never persisted.
+  const [widgetOutputs, setWidgetOutputs] = useState({});
   // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
   const [kiosk, setKiosk] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
@@ -285,6 +290,7 @@ const handleAutoHeight = useCallback((id, px) => {
     localStorage.removeItem(STORAGE_KEY);
     setWidgets(DEFAULT_WIDGETS);
     setLayout(DEFAULT_LAYOUT);
+    setWidgetOutputs({});
     setReloadKey((k) => k + 1);
   }, []);
 
@@ -296,6 +302,7 @@ const handleAutoHeight = useCallback((id, px) => {
     setParamValues(values);
     setWidgets(dashboard.widgets);
     setLayout(dashboard.layout);
+    setWidgetOutputs({});
     persist(dashboard.widgets, dashboard.layout, dashboard.params);
     setReloadKey((k) => k + 1);
   }, [persist]);
@@ -303,8 +310,7 @@ const handleAutoHeight = useCallback((id, px) => {
   /** ISSUE-50 — write a board param; the reloadKey bump re-resolves every
    *  widget config referencing {{name}} and re-fetches them (config change →
    *  load() is the existing propagation trigger). */
-  const handleSetParam = useCallback((name, value) => {
-    setParamValues((prev) => ({ ...prev, [name]: value }));
+  const handleSetParam = useCallback((name, value) => {    setParamValues((prev) => ({ ...prev, [name]: value }));
     setParamBlock((prev) => {
       const block = prev && typeof prev === 'object' ? { ...prev } : {};
       block[name] = { ...(block[name] || { label: name, type: 'text' }), value };
@@ -317,6 +323,28 @@ const handleAutoHeight = useCallback((id, px) => {
     });
     setReloadKey((k) => k + 1);
   }, []);
+
+  /** ISSUE-51 — a widget published its output. Value-compared so a consumer
+   *  re-emitting an identical value is a no-op (no render storms). */
+  const handleWidgetOutput = useCallback((id, value) => {
+    setWidgetOutputs((prev) => {
+      if (id in prev && JSON.stringify(prev[id]) === JSON.stringify(value)) return prev;
+      return { ...prev, [id]: value };
+    });
+  }, []);
+
+  // The `source` picker options: every widget on the board that can emit,
+  // labeled by its live header title so identical types stay distinguishable.
+  const sourceOptions = useMemo(
+    () => widgets
+      .filter((w) => WIDGET_TYPES[w.widgetType]?.emit)
+      .map((w) => {
+        const def = WIDGET_TYPES[w.widgetType];
+        const label = def.labelFromConfig?.(w.config) || def.name || w.widgetType;
+        return { id: w.id, label: `${def.icon} ${def.name} — ${label}` };
+      }),
+    [widgets],
+  );
 
   const handleLoadExample = useCallback(() => {
     applyDashboard(EXAMPLE_DASHBOARD);
@@ -369,6 +397,9 @@ const handleAutoHeight = useCallback((id, px) => {
  paramSpecs={paramSpecs}
  paramValues={paramValues}
  onSetParam={handleSetParam}
+ widgetOutputs={widgetOutputs}
+ sourceOptions={sourceOptions}
+ onOutput={handleWidgetOutput}
 />
       </ErrorBoundary>
     </div>

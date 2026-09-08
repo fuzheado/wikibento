@@ -16,6 +16,30 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Widget-to-widget dataflow (ISSUE-52, 2026-09-08 — DEPLOYED, bundle index-OJOY0xwd.js):** the next
+  interactivity rung after board params (ISSUE-50). Any widget can **emit** its output (registry `emit`
+  fn; published by WidgetFrame in BOTH static and fetch paths — the producers are all static), and any
+  other widget can consume it via a new **`source` config-field type** (⚙ dropdown of emitting widgets;
+  output arrives as `opts.sourceOutput` to transform/fetch) or **`{{widget:id}}` interpolation**
+  (deep-string, same as `{{param}}`; arrays join with \n so a list feeds a textarea field — e.g.
+  `"articles": "{{widget:flow-list}}"`). Consumers re-fetch on output change via a **content-based
+  signature** (`widgetOutputSignature`, src/lib/dataflow.js) — identical re-emits are no-ops, no
+  refresh storms/loops; built from the RAW config so `{{widget:}}` refs survive the resolution that
+  hides them. **Four new Dataflow widgets** (category "Dataflow", new: 🧾 Text List / 🔎 Filter Lines /
+  🔢 Line Count / 🖨️ Value Display-echo) ship the rudimentary chain the user asked for —
+  **List → Filter → Count → Display** — live at `?config=/flow-demo.json`; EXAMPLE_DASHBOARD + the
+  35-widget `dashboard.json` catalog carry the same row; the Ask manifest sees the new fields/category.
+  Constitution: tests/dataflow.test.mjs (13 tests → npm test 125; wired into `npm test`, cleanup list
+  now rm's all 10 bundles). validateDashboard warns (never errors) on a `source` pointing off-board.
+  **Two bugs caught by browser verification during this work:** (1) the static-widget branch of
+  WidgetFrame.load() returned before publishing emit output — no producer ever emitted; (2)
+  widgetOutputSignature was computed from the resolved config, so interpolation refs were invisible
+  and those consumers never reloaded. Both fixed; verified live in Chromium (Text List 5→7 lines
+  propagates Filter "7 of 7" · Count "7" · Echo "7" · Article List re-fetches 7 real articles via
+  interpolation) and via `npm run test:browsers` (flow-demo 6/6 × 3 engines, 0 errors; full catalog
+  passes when the pageview API isn't rate-limited — a local burst trips Wikimedia 429s, widgets
+  degrade gracefully, re-runs clean). Docs: ISSUES.md ISSUE-52 (full design + fixes), README catalog
+  + features, JSON-FORMAT Dataflow section, this file.
 - ✅ **SPARQL QID → label resolution (Issue #6, merged as PR #11, DEPLOYED 2026-09-08):** QLever can't run
   `SERVICE wikibase:label` (it federates to a dead host), so QLever queries returned bare QIDs — the widget
   path now post-processes every SPARQL result: cells whose binding was a Wikidata entity URI (Q or P) are
@@ -618,6 +642,7 @@ containment), index.html no-cache.*
 1. ~~SPARQL power widget~~ — **done 2026-08-13**: WDQS/QLever/Humaniki + auto renderer + presets (see Current Status); map + force-graph renderers remain Phase 2
 1. ~~Wiki Page embed~~ — **done 2026-08-13**: static iframe, desktop/mobile toggle, section anchors (see Current Status)
 1. ~~CIM widgets~~ — **done 2026-08-13**: 8 separate precomputed widgets (see Current Status); starter pack / glamorgan merge deferred by design
+1. ~~Widget-to-widget dataflow (ISSUE-52)~~ — **done 2026-09-08**: `source` picker + `{{widget:id}}` + 🧾🔎🔢🖨️ chain (see Current Status); the designed-but-unbuilt Part 5 (per-widget targeting of board params) is now partially delivered — targets are widget outputs rather than params; a visual wiring view remains Tier-A design (MODULARITY-AND-DATAFLOW §Part 6)
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md

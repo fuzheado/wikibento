@@ -2241,3 +2241,88 @@ Verified live end-to-end: Harvard presidents 1 → 30 images (+2 decorative
 hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
 National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
 delivered; no write access to GitHub).
+
+## ISSUE-52 · Widget-to-widget dataflow: `source` picker + `{{widget:id}}` interpolation + the four-Dataflow-widget chain — **done + DEPLOYED 2026-09-08 (bundle index-OJOY0xwd.js)**
+
+**What:** beyond board params (ISSUE-50) — where a Board Controls card drives
+`{{param}}` references — wire widgets to each other: one widget's **output**
+feeds the next. The rudimentary demo the user asked for: a **list → filter →
+count → display** chain (Text List → Filter Lines → Line Count → Value
+Display), plus a Text List feeding a real widget's textarea field
+(Article List titles).
+
+**Why:** interactivity is currently one-way (controls → params → widgets).
+A filter widget that consumes a source and re-emits gives boards the
+"pipeline" feel — the natural next rung on the dataflow ladder in
+MODULARITY-AND-DATAFLOW §Part 3 (inputs → parameters → widget-to-widget
+edges), without a visual DAG.
+
+**Design (2 mechanisms, both additive):**
+- **Emission** — a registry entry may declare `emit(data, config) → value`
+  (string | number | array | object). WidgetFrame publishes it to the App
+  (`widgetOutputs[id]`) after every load — static AND fetch paths (the
+  producers are all static; the first implementation forgot the static
+  return path — caught in browser verification, see the two fixes below).
+- **Consumption** —
+  1. a new `source` **config-field type** (a select of every emitting widget
+     on the board, labeled by its live title); the producer's output is
+     passed to the consumer's `transform`/`fetch` as `opts.sourceOutput`
+     (structured, type-preserving);
+  2. **`{{widget:id}}` interpolation** — the same deep-string mechanism as
+     `{{param}}`, extended in `resolveParams`; arrays join with newlines so
+     a list output can feed a textarea config (`"articles":
+     "{{widget:flow-list}}"`). Unknown refs stay literal + one console.warn
+     (never break a board). `stringifyOutput`/`extractWidgetRefs` are the
+     pure helpers (src/lib/params.js).
+
+**Reload wiring:** WidgetFrame computes a content-based signature of every
+referenced output (`widgetOutputSignature`, src/lib/dataflow.js) and
+re-runs its load only when it changes — identical re-emits are no-ops, so
+no refresh storms and no emit→reload→emit loops. Signature is built from
+the RAW config (resolution replaces the `{{widget:id}}` placeholder with
+the value, hiding the ref — the first implementation used the resolved
+config and the interpolation path never reloaded; caught in browser
+verification).
+
+**The four new Dataflow widgets (category "Dataflow", all static):**
+🧾 **Text List** (pastes lines; emits them) · 🔎 **Filter Lines** (consumes a
+source, keeps lines by contains/equals/starts/ends + case toggle, emits the
+filtered list) · 🔢 **Line Count** (consumes a source, emits the count) ·
+🖨️ **Value Display / echo** (renders number/list/JSON; pass-through emit for
+further piping). Renderers: `ListSourceCard` (numbered scrollable list) +
+`EchoCard`; both registered in the Add-Widget type glyph map + Ask manifest.
+
+**Fix #1 (browser verifier caught it):** the static-widget branch of
+`WidgetFrame.load()` returned before publishing `emit` output — none of the
+four dataflow producers ever emitted. Restructured so `publishOutput` runs
+in both paths.
+
+**Fix #2 (browser verifier caught it):** `widgetOutputSignature` was computed
+from the resolved config — after resolution the `{{widget:id}}` was gone, so
+`extractWidgetRefs` found nothing and interpolation consumers never
+reloaded. Now computed from the raw `widget.config`.
+
+**Constitution:** tests/dataflow.test.mjs (13 tests; npm test now 125):
+params.js `{{widget:}}` resolution + stringifyOutput + extractWidgetRefs;
+dataflow helpers (toLines/countOf/resolveSourceValue/signature — content-
+based, identical re-emits identical); the canonical chain List → Filter
+(contains/starts/ends/equals + case) → Count → Echo numbers; validateDashboard
+warns (never errors) on a `source` pointing off-board; `flow-demo.json` valid.
+Wired into `npm run test` (dataflow-test-bundle.mjs; cleanup list fixed to
+rm all 10 bundles).
+
+**Shipped artifacts:** `public/flow-demo.json` (`?config=/flow-demo.json` —
+the 6-widget chain demo incl. a markdown explainer and the interpolation-fed
+Article List); EXAMPLE_DASHBOARD + `public/dashboard.json` gain the same
+5-widget flow row (now 35 widget types); docs/ISSUES.md (this entry),
+README (catalog + features), HANDOFF, JSON-FORMAT updated. Ask manifest
+regenerated (35 widgets; the LLM sees `source` fields + Dataflow category).
+
+**Verified:** unit 125/125; `npm run test:browsers` flow-demo 6/6 widgets ×
+Chromium/Firefox/WebKit, 0 errors, 0 console errors; full 35-widget catalog
+passes all engines when the pageview API isn't rate-limiting (a local burst
+of live requests trips Wikimedia 429s — the widgets degrade gracefully, 0
+render errors; re-runs clean). Live interaction verified in Chromium: Text
+List 5→7 lines propagates Filter "7 of 7", Count "7", Echo "7" and the
+Article List re-fetches 7 real articles w/ thumbnails + intros via
+`{{widget:flow-list}}`.

@@ -1830,3 +1830,69 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   opacity: .8;
   border-top: 1px solid var(--border);
 }
+
+/* ── Dataflow (ISSUE-51): Text List / Filter / Echo cards ───── */
+
+.list-source-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list-source-row {
+  display: flex;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: baseline;
+}
+
+.list-source-item {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.echo-card {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.echo-json {
+  margin: 4px 0 0;
+  padding: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: calc(100% - 60px);
+  overflow: auto;
+}
+
+.config-source-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.config-source-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-source-wrap .config-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  line-height: 1.3;
+}

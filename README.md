@@ -113,6 +113,15 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 |---|---|---|---|
 | **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); Wikidata entity cells render **"Label (QID)"** (QLever can't run the label SERVICE — labels resolved via `wbgetentities`); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
 
+### Dataflow (4) — widget-to-widget connections (ISSUE-52)
+
+| Widget | Icon | Data Source | Shows |
+|---|---|---|---|
+| **Text List** | 🧾 | (static — a list you paste) | A numbered list whose lines are **published to the board**: any widget can consume them via its `source` picker or `{{widget:<id>}}` interpolation |
+| **Filter Lines** | 🔎 | another widget's output (`source`) | Keeps only the lines matching a pattern (contains/equals/starts-with/ends-with, case toggle) — emits the filtered list downstream |
+| **Line Count** | 🔢 | another widget's output (`source`) | Counts the lines/elements of any emitted output — emits the number (chain it into a Value Display) |
+| **Value Display** | 🖨️ | another widget's output (`source`) | Prints whatever a widget outputs — number, lines, or JSON — the debug/pipe endpoint of a chain; passes the value through (`emit`) |
+
 ### Web & History (1)
 
 | Widget | Icon | Data Source | Shows |
@@ -142,6 +151,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 ### Building a dashboard
 
 - **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param); per-widget targeting is designed (docs/MODULARITY-AND-DATAFLOW.md §Part 5) but not yet built
+- **🔀 Widget-to-widget dataflow (ISSUE-52)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four new Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`
 
 - **Add Widget panel** — searchable catalog; click to add
 - **✨ Ask (ML advisor)** — type what you want in plain language ("random
