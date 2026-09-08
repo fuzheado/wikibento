@@ -59,3 +59,55 @@ export function widgetOutputSignature(config, widgetOutputs) {
   }
   return parts.length ? parts.sort().join('|') : null;
 }
+
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The {{widget:oldId}} token with whitespace tolerance. */
+const tokenRe = (oldId) => new RegExp(`\\{\\{\\s*widget\\s*:\\s*${escapeRegExp(oldId)}\\s*\\}\\}`, 'g');
+
+/** Deep rewrite: every reference to `oldId` becomes `newId` — the `source`
+ *  config field AND every {{widget:oldId}} token in any string (whitespace-
+ *  tolerant). The rename-resolution engine: after a user renames a widget,
+ *  every consumer on the board is repointed atomically (App applies this to
+ *  all widget configs). Other keys/values are untouched. */
+export function renameWidgetRefs(value, oldId, newId) {
+  const re = tokenRe(oldId);
+  const walk = (v) => {
+    if (typeof v === 'string') return v.replace(re, `{{widget:${newId}}}`);
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object') {
+      const out = {};
+      for (const [k, val] of Object.entries(v)) {
+        out[k] = k === 'source' && val === oldId ? newId : walk(val);
+      }
+      return out;
+    }
+    return v;
+  };
+  return walk(value);
+}
+
+/** How many {{widget:id}} tokens reference `id` inside a value (deep). */
+export function countWidgetTokens(value, id) {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === 'string') return (value.match(tokenRe(id)) || []).length;
+  if (Array.isArray(value)) return value.reduce((a, v) => a + countWidgetTokens(v, id), 0);
+  if (typeof value === 'object') return Object.values(value).reduce((a, v) => a + countWidgetTokens(v, id), 0);
+  return 0;
+}
+
+/** The widgets (other than `id` itself) that reference `id` — via a `source`
+ *  field or any {{widget:id}} token in their config. Used by the rename
+ *  resolution dialog to say how many references will be repointed. */
+export function findWidgetRefs(widgets, id) {
+  const hits = [];
+  for (const w of widgets || []) {
+    if (!w || w.id === id) continue;
+    let refs = 0;
+    const cfg = w.config;
+    if (cfg && typeof cfg === 'object' && cfg.source === id) refs++;
+    refs += countWidgetTokens(cfg, id);
+    if (refs > 0) hits.push({ id: w.id, refs });
+  }
+  return hits;
+}

@@ -169,14 +169,30 @@ Beyond board params, a widget can **emit** its output and another widget can
    `lineCount`, `echo`) — set it to the **id** of any widget on the board
    that emits. The producer's output reaches the consumer's `transform` as
    `opts.sourceOutput` and consumers re-fetch automatically when it changes.
-   The ⚙ panel renders this as a dropdown of emitting widgets; in JSON it's
-   a plain string: `"config": { "source": "flow-list", ... }`.
+   In JSON it's a plain string: `"config": { "source": "flow-list", ... }`;
+   in the ⚙ panel it's a **combobox** — dropdown of emitting widgets (by
+   instance id) **and** manual id typing.
 2. **`{{widget:<id>}}` interpolation** — the same deep-string mechanism as
    `{{param}}` board params, resolvable in ANY string config field. Arrays
    join with newlines, so a Text List's lines can feed a multi-line textarea
    field directly:
    `"config": { "articles": "{{widget:flow-list}}", ... }`
    Unknown widget ids are left literal (never break a board).
+
+### Instance ids and renaming (ISSUE-53)
+
+- Every widget's **id** is its stable instance name — the header shows a
+  small id chip (click → ⚙), the ⓘ panel shows it, and the source picker
+  lists emitters by id.
+- ⚙ edits it under **Name (instance id)**: validates non-empty,
+  `[A-Za-z0-9_-]` (the reference grammar), and unique on the board.
+- Renaming a referenced id opens a **confirm dialog** — "N references in M
+  widgets" — and confirm **repoints all of them** (source fields + every
+  `{{widget:old-id}}` token, deep) and the layout entry; Cancel changes
+  nothing.
+- ⚙ also has **Display title (optional)** (header override, `_title`).
+- Imported boards whose ids use characters outside `[A-Za-z0-9_-]` get a
+  warning (they can't be referenced via interpolation/the picker).
 
 Emitting widget types (current): `listSource` (the lines), `filterLines`
 (the filtered lines), `lineCount` (the number), `echo` (pass-through). The

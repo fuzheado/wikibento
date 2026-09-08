@@ -2326,3 +2326,77 @@ render errors; re-runs clean). Live interaction verified in Chromium: Text
 List 5→7 lines propagates Filter "7 of 7", Count "7", Echo "7" and the
 Article List re-fetches 7 real articles w/ thumbnails + intros via
 `{{widget:flow-list}}`.
+
+## ISSUE-53 · Widget instance names + rename resolution (id chips, editable name, repoint dialog, source combobox) — **done + DEPLOYED 2026-09-08**
+
+**What (user session, dataflow review):** after ISSUE-52 wire-up, three
+consistency gaps: (1) widget *instance ids* (the `flow-list` in JSON — the
+stable name other widgets reference) were **invisible in the UI** — the ⓘ
+panel showed the *type* slug (`listSource`), not the instance id, and headers
+showed computed labels only, so "some boxes have an instance name and some
+don't"; (2) the instance name could only be set by editing JSON — no interface
+path, and no resolution policy for what happens to references when a widget
+is renamed; (3) the source picker was a plain `<select>` only on consumer
+widgets — no manual entry, and no single consistent control.
+
+**Design decisions (answering the user's questions):**
+- **Every widget gets a visible, editable instance name.** Id chip in every
+  header (click opens ⚙; hidden in kiosk/lean with the rest of the chrome);
+  ⓘ shows the instance id prominently + a Type row; the source-picker options
+  are labeled `icon Type · instance-id — label` so identical types and renames
+  stay distinguishable.
+- **Rename resolution = dialog + atomic repoint** (their stronger suggestion):
+  renaming in ⚙ validates (non-empty, `[A-Za-z0-9_-]` — the token grammar,
+  unique on the board) then scans every widget for `source` fields and
+  `{{widget:id}}` tokens pointing at the old id. If any exist → confirm dialog
+  "Rename X → Y? This updates N references in M widgets (…); they will be
+  repointed to Y. Cancel leaves everything unchanged." Confirm rewrites all
+  configs atomically (renameWidgetRefs) + the layout `i`; Cancel changes
+  nothing. Silent auto-repoint rejected (mutates other widgets' configs
+  invisibly); manual-only rejected (silent broken links). **Inline errors**
+  for empty/invalid/duplicate keep the ⚙ panel open (fix: Apply closed the
+  panel in the same tick as the error — error was set then unmounted).
+- **One consistent source control:** the picker is now a **combobox**
+  (`<input list=datalist>`) everywhere — dropdown of emitting widgets (by
+  instance id) AND manual id typing. The dropdown's presence still follows
+  the widget type declaring a `source` config field (only dataflow consumers
+  today); interpolation `{{widget:id}}` remains the manual path on any string
+  field — the combobox makes both discoverable. A per-field binding UI
+  (wire any widget's field to any output) remains the Tier-A visual-wiring
+  design (MODULARITY-AND-DATAFLOW §Part 6).
+- **Display title**: the previously-uneditable `_title` now has a "Display
+  title (optional)" field in ⚙ (header override; defaults to the computed
+  label like "5 lines"). Kills the long-standing known issue.
+
+**Bonus behavior surfaced by verification:** a markdown note whose text
+contains `{{widget:flow-list}}` is a *live* consumer — it renders the resolved
+list, is counted as a reference by the rename dialog, and is repointed with
+everything else. Widgets are referrable from anywhere a string lives.
+
+**Constitution:** tests/dataflow.test.mjs +5 (renameWidgetRefs deep rewrite
+incl. regex-special ids, findWidgetRefs/countWidgetTokens counts, validateDashboard
+warns-not-errors on unreferrable id formats, `source` is a known key on
+consumer types → no unknown-key warning) → npm test 131. validateDashboard
+warns (never blocks) on ids outside `[A-Za-z0-9_-]` — such ids can't be
+referenced via `{{widget:}}`/the picker.
+
+**Verified live in the browser (Chromium + 3-engine matrix):** id chips on all
+6 flow-demo widgets; ✔ rename `flow-list→my-list` → dialog "3 references in 3
+widgets (flow-note, flow-filter, flow-articles)" → confirm → chip + filter
+header (`🔎 my-list`) + source dropdown + note text all repointed, chain still
+renders (5→5→5→5, Article List re-fetches via `{{widget:my-list}}`); ✔ invalid
+name "bad name!" → inline error + panel stays open; ✔ duplicate name →
+"already the name of another widget"; ✔ Cancel → nothing changes. Browser
+matrix: flow-demo 6/6 × Chromium/Firefox/WebKit, 0 errors, 0 console errors.
+
+**Second bug caught by browser verification (rename propagation freeze):**
+the first rename implementation cleared the WHOLE `widgetOutputs` registry on
+rename — consumers' reload signatures compare against a per-frame
+`prevOutputSigRef`, so producers re-emitting IDENTICAL values post-clear made
+`sig === prev` → the reload never fired → the chain froze at stale 0s
+(filter "0 of 0") and stayed dead (only a full page reload recovered it).
+Fix: DON'T clear outputs on rename — only the renamed widget's key goes stale
+(`setWidgetOutputs(prev => drop renamed key)`); its remount re-emits under the
+new id and its consumers re-source, everyone else untouched (no reload storm,
+no stale-prev). Verified: rename → chain stable at 5→5→5→5 within ~2 s, no
+transients, no reload needed.

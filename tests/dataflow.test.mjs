@@ -15,7 +15,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolveParams, stringifyOutput, extractWidgetRefs } from '../src/lib/params.js';
-import { toLines, countOf, resolveSourceValue, widgetOutputSignature } from '../src/lib/dataflow.js';
+import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
 
@@ -174,6 +174,53 @@ test('filterLines: match modes + case sensitivity', () => {
   assert.deepEqual(t({ source: 's', pattern: 'Ada Lovelace', match: 'equals' }, lines), ['Ada Lovelace']);
 });
 
+// ── ISSUE-53: instance names + rename resolution ───────────
+
+test('renameWidgetRefs: repoints source fields and {{widget:id}} tokens deep', () => {
+  const cfg = {
+    source: 'flow-list',
+    articles: '{{widget:flow-list}} and {{ widget:flow-list }}',
+    nested: { deep: ['x {{widget:flow-list}} y'] },
+    untouched: { n: 6, flag: true, other: '{{widget:flow-other}}', obj: { b: 1 } },
+  };
+  const out = renameWidgetRefs(cfg, 'flow-list', 'my-list');
+  assert.equal(out.source, 'my-list');
+  assert.equal(out.articles, '{{widget:my-list}} and {{widget:my-list}}'); // whitespace variant normalized
+  assert.deepEqual(out.nested.deep, ['x {{widget:my-list}} y']);
+  assert.deepEqual(out.untouched, { n: 6, flag: true, other: '{{widget:flow-other}}', obj: { b: 1 } }); // foreign refs + values untouched
+});
+
+test('renameWidgetRefs: scalar/array passthrough, regex-special ids escaped', () => {
+  assert.equal(renameWidgetRefs(42, 'a', 'b'), 42);
+  assert.equal(renameWidgetRefs(undefined, 'a', 'b'), undefined);
+  assert.deepEqual(renameWidgetRefs(['{{widget:l}}', '{{widget:l}}'], 'l', 'L'), ['{{widget:L}}', '{{widget:L}}']);
+  // an id containing regex chars is treated as a literal token name
+  assert.equal(renameWidgetRefs('{{widget:a.b}}', 'a.b', 'x'), '{{widget:x}}');
+});
+
+test('findWidgetRefs: counts source + interpolation refs, excludes self', () => {
+  const widgets = [
+    { id: 'src', widgetType: 'listSource', config: {} },
+    { id: 'f', widgetType: 'filterLines', config: { source: 'src' } },
+    { id: 'c', widgetType: 'lineCount', config: { source: 'f' } },
+    { id: 'al', widgetType: 'articleList', config: { articles: '{{widget:src}}' } },
+    { id: 'md', widgetType: 'markdown', config: { text: 'see {{widget:src}} and {{ widget:src }}' } },
+  ];
+  const hits = findWidgetRefs(widgets, 'src');
+  assert.deepEqual(hits.map((h) => h.id).sort(), ['al', 'f', 'md']); // self excluded, c not referencing src
+  const f = hits.find((h) => h.id === 'f');
+  assert.equal(f.refs, 1);
+  const md = hits.find((h) => h.id === 'md');
+  assert.equal(md.refs, 2);
+  assert.deepEqual(findWidgetRefs(widgets, 'nobody'), []);
+});
+
+test('countWidgetTokens: counts tokens per value', () => {
+  assert.equal(countWidgetTokens('{{widget:x}} {{widget:x}}', 'x'), 2);
+  assert.equal(countWidgetTokens({ a: ['{{widget:x}}'], b: '{{widget:y}}' }, 'x'), 1);
+  assert.equal(countWidgetTokens(3, 'x'), 0);
+});
+
 // ── config validation ────────────────────────────────────────
 
 test('validateDashboard: a source pointing at a board widget is fine', () => {
@@ -204,6 +251,34 @@ test('validateDashboard: a source pointing off-board warns but imports', () => {
   const r = validateDashboard(JSON.stringify(dash));
   assert.ok(r.valid, 'import must NOT be blocked');
   assert.ok(r.warnings.some((w) => w.includes('ghost')), `expected a warning naming "ghost": ${r.warnings}`);
+});
+
+test('validateDashboard: warns (never errors) on an unreferrable id format', () => {
+  const dash = {
+    version: 1,
+    widgets: [{ id: 'my list!', widgetType: 'listSource', config: { items: 'a' } }],
+    layout: [{ i: 'my list!', x: 0, y: 0, w: 3, h: 3 }],
+  };
+  const r = validateDashboard(JSON.stringify(dash));
+  assert.ok(r.valid, 'import must NOT be blocked');
+  assert.ok(r.warnings.some((w) => w.includes('my list!')), `expected a warning naming the id: ${r.warnings}`);
+});
+
+test('validateDashboard: `source` is a known key on consumer widgets (no unknown-key warning)', () => {
+  const dash = {
+    version: 1,
+    widgets: [
+      { id: 'src', widgetType: 'listSource', config: { items: 'a' } },
+      { id: 'f', widgetType: 'filterLines', config: { source: 'src', pattern: 'a' } },
+    ],
+    layout: [
+      { i: 'src', x: 0, y: 0, w: 3, h: 3 },
+      { i: 'f', x: 3, y: 0, w: 3, h: 3 },
+    ],
+  };
+  const r = validateDashboard(JSON.stringify(dash));
+  assert.ok(r.valid, r.errors.join('; '));
+  assert.ok(!r.warnings.some((w) => w.includes('unknown config key "source"')), `unexpected warn: ${r.warnings}`);
 });
 
 test('validateDashboard: the shipped flow demo is valid', async () => {

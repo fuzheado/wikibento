@@ -10,7 +10,7 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
   // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
   // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
   // path (config panel, handleConfigChange) deliberately uses the RAW
@@ -34,6 +34,13 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
+  // ISSUE-53: editable instance name (draft field in ⚙; committed on Apply →
+  // onRename which dialogs + repoints any references). Re-synced when the id
+  // actually changes (rename remounts the frame via React key, so this is
+  // mostly belt-and-braces for load/import paths).
+  const [instanceName, setInstanceName] = useState(widget.id);
+  const [nameError, setNameError] = useState(null);
+  useEffect(() => { setInstanceName(widget.id); }, [widget.id]);
   const intervalRef = useRef(null);
   // Latest onAutoHeight via ref — load()'s closure must not go stale as the
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
@@ -212,11 +219,35 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
   };
 
+  // ISSUE-53: commit the ⚙ name field — validation, then onRename (which may
+  // open the repoint dialog when other widgets reference this id). Returns
+  // true when the name is fine (so Apply can proceed); false leaves the panel
+  // open with an inline error so the user can fix it.
+  const commitRename = () => {
+    const trimmed = instanceName.trim();
+    setNameError(null);
+    if (trimmed === widget.id) return true;
+    if (!trimmed) { setNameError('Name cannot be empty'); return false; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+      setNameError('Use only letters, numbers, - and _ (other widgets reference this as {{widget:name}} or via the source picker)');
+      return false;
+    }
+    const r = onRename?.(widget.id, trimmed);
+    if (r && r.ok === false && r.error) { setNameError(r.error); return false; }
+    if (r && r.pending) setShowConfig(false); // dialog opens over the board; panel closes
+    return true;
+  };
+
   return (
     <div className="widget-frame">
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
+          <span
+            className="widget-id-chip"
+            title="Instance name — how other widgets refer to this box (⚙ to rename; renames repoint references)"
+            onClick={(e) => { e.stopPropagation(); setShowConfig(true); }}
+          >{widget.id}</span>
         </span>
         <div className="widget-actions">
           <button
@@ -240,6 +271,30 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
 
       {showConfig && (
         <div className="widget-config">
+          {/* ISSUE-53: instance identity + display title — every widget is
+              referrable by a consistent, editable name. The name renames the
+              id (dialog + repoint when others reference it); the title is the
+              optional display override (config._title, header only). */}
+          <div className="config-field config-name-field">
+            <label>Name (instance id)</label>
+            <input
+              type="text"
+              value={instanceName}
+              onChange={(e) => { setInstanceName(e.target.value); setNameError(null); }}
+              placeholder="my-widget"
+            />
+            {nameError && <small className="config-hint config-error">{nameError}</small>}
+            {!nameError && <small className="config-hint">How other widgets reference this box ({'{{widget:' + widget.id + '}}'} or the source picker). Renaming repoints references.</small>}
+          </div>
+          <div className="config-field">
+            <label>Display title (optional)</label>
+            <input
+              type="text"
+              value={widget.config._title || ''}
+              onChange={(e) => handleConfigChange('_title', e.target.value)}
+              placeholder="auto — e.g. the item being analyzed"
+            />
+          </div>
           {(def?.configFields || []).map(field => (
             <div key={field.key} className="config-field">
               <label>{field.label}</label>
@@ -254,18 +309,24 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
                 </select>
               ) : field.type === 'source' ? (
                 <div className="config-source-wrap">
-                  <select
-                    className="config-source-select"
+                  {/* ISSUE-53: one consistent source control everywhere — a
+                      combobox: dropdown of emitting widgets (datalist) AND
+                      manual id entry. The picker lists every emitting widget
+                      by instance id; typing a literal id works too. */}
+                  <input
+                    className="config-source-input"
+                    list={`source-dl-${widget.id}`}
                     value={widget.config[field.key] || ''}
-                    onChange={e => handleConfigChange(field.key, e.target.value)}
-                  >
-                    <option value="">— none —</option>
+                    onChange={(e) => handleConfigChange(field.key, e.target.value)}
+                    placeholder="— none — or type an instance id"
+                  />
+                  <datalist id={`source-dl-${widget.id}`}>
                     {(sourceOptions || [])
-                      .filter(o => o.id !== widget.id)
-                      .map(o => (
+                      .filter((o) => o.id !== widget.id)
+                      .map((o) => (
                         <option key={o.id} value={o.id}>{o.label}</option>
                       ))}
-                  </select>
+                  </datalist>
                   {field.hint && <small className="config-hint">{field.hint}</small>}
                 </div>
               ) : field.type === 'boolean' ? (
@@ -310,7 +371,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
               )}
             </div>
           ))}
-          <button className="widget-btn widget-btn-apply" onClick={() => { setShowConfig(false); load(true); }}>
+          <button className="widget-btn widget-btn-apply" onClick={() => { if (commitRename()) { setShowConfig(false); load(true); } }}>
             Apply & Reload
           </button>
         </div>
@@ -320,8 +381,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
         <div className="widget-info">
           <div className="widget-info-head">
             <span className="widget-info-name">{def?.icon} {def?.name || widget.widgetType}</span>
-            <code className="widget-info-slug">{def?.id || widget.widgetType}</code>
+            <code className="widget-info-slug" title="Instance id — the stable name other widgets use to reference this box">{widget.id}</code>
           </div>
+          {def?.id && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Type</span>
+              <span><code>{def.id}</code></span>
+            </div>
+          )}
           {def?.description && <p className="widget-info-desc">{def.description}</p>}
           {def?.dataSource && (
             <div className="widget-info-row">

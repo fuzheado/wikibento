@@ -16,6 +16,24 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Widget instance names + rename resolution (ISSUE-53, 2026-09-08 — DEPLOYED):** every widget
+  now has a visible, editable instance name — an id chip in every header (click → ⚙), the instance id in
+  the ⓘ panel + a Type row, and source-picker options labeled `icon Type · id — label`. ⚙ gains a **Name
+  (instance id)** field + a **Display title (optional)** field (the old uneditable-`_title` known issue is
+  fixed). Renaming validates (non-empty, `[A-Za-z0-9_-]`, unique) and uses **dialog + atomic repoint**: if
+  any widget references the id (source fields or `{{widget:id}}` tokens), a confirm dialog reports
+  "N references in M widgets" and repoints them all (renameWidgetRefs, deep) + the layout `i`; Cancel is
+  a no-op. The source picker is now a **combobox** everywhere (datalist dropdown of emitting widgets by
+  instance id + manual typing). Markdown notes containing `{{widget:flow-list}}` are live consumers —
+  counted + repointed with everything else. Constitution: tests/dataflow.test.mjs +5 → npm test 131;
+  validateDashboard warns (never blocks) on ids outside the reference grammar. Verified live: rename
+  flow-list→my-list dialogs "3 references in 3 widgets" and repoints chip/filter-header/source-
+  dropdown/note uniformly with the chain intact; invalid + duplicate names show inline errors and the
+  panel stays open; Cancel leaves everything untouched; 3-engine matrix clean. **Rename-propagation
+  fix:** the first cut cleared all widget outputs on rename, which froze consumers (sig-equals-prev after
+  identical re-emits) — fixed by dropping only the renamed widget's key; rename now converges in ~2 s with
+  no transients (verified live). Docs: ISSUES.md ISSUE-53,
+  README features/catalog, JSON-FORMAT Dataflow+ids.
 - ✅ **Widget-to-widget dataflow (ISSUE-52, 2026-09-08 — DEPLOYED, bundle index-OJOY0xwd.js):** the next
   interactivity rung after board params (ISSUE-50). Any widget can **emit** its output (registry `emit`
   fn; published by WidgetFrame in BOTH static and fetch paths — the producers are all static), and any
@@ -586,7 +604,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   counts widget error frames + severe console errors; hatnote-CORS noise,
   404 probes and transient 5xx classified benign). Full 30-widget catalog:
   30/30/30 widgets, 0 errors on all engines.
-- `_title` (custom widget title) isn't editable in the config panel
+- **FIXED — `_title` (custom widget title) isn't editable in the config panel (ISSUE-53, 2026-09-08):** ⚙ now has a "Display title (optional)" field (header override; defaults to the computed label). Renaming the actual instance id works too — see the ISSUE-53 bullet in Current Status.
 - **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
   defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
   share link), a refresh re-applies the URL config (URL > localStorage > defaults

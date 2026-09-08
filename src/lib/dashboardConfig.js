@@ -254,6 +254,12 @@ export function validateDashboard(input) {
       errors.push(`${where}: duplicate id "${w.id}"`);
     } else {
       ids.add(w.id);
+      // ISSUE-53: ids are the instance names widgets are referenced by
+      // ({{widget:id}} interpolation + the source picker) — warn when an id
+      // can't be referenced that way (never block the import).
+      if (!/^[a-zA-Z0-9_-]+$/.test(w.id)) {
+        warnings.push(`${where}: id "${w.id}" uses characters outside [A-Za-z0-9_-] — other widgets can't reference it via {{widget:id}} or the source picker (rename it in ⚙)`);
+      }
     }
     if (typeof w.widgetType !== 'string') {
       errors.push(`${where}: "widgetType" must be a string`);
@@ -377,7 +383,11 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
 
   // Unknown keys are tolerated (forward compatibility) but flagged.
   const known = new Set([...Object.keys(fieldMap), 'refreshSeconds', '_title']);
+  // ISSUE-53: `source` is a first-class config key on consumer widgets — but
+  // only for widget types that declare a source config field. Tolerate it
+  // elsewhere (forward compatibility) without flagging.
+  const hasSourceField = fieldMap.source;
   Object.keys(c).forEach(k => {
-    if (!known.has(k)) warnings.push(`${where}: unknown config key "${k}" (ignored)`);
+    if (!known.has(k) && !(k === 'source' && hasSourceField)) warnings.push(`${where}: unknown config key "${k}" (ignored)`);
   });
 }
