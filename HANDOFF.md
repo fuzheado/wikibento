@@ -16,6 +16,16 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **SPARQL QID → label resolution (Issue #6, merged as PR #11, DEPLOYED 2026-09-08):** QLever can't run
+  `SERVICE wikibase:label` (it federates to a dead host), so QLever queries returned bare QIDs — the widget
+  path now post-processes every SPARQL result: cells whose binding was a Wikidata entity URI (Q or P) are
+  batch-resolved via `wbgetentities` (≤ 50 ids/call, 24 h TTL, `navigator.language` primary subtag with `en`
+  fallback, best-effort — a label failure never fails the query) and render **"Label (QID)"**. Vars with a
+  `?xLabel` sibling (WDQS SERVICE convention) are left alone; literals/non-Wikidata URIs untouched. Pure
+  helpers in `src/lib/sparqlLabels.js`; constitution: tests/sparql-labels.test.mjs (npm test 108).
+- ✅ **Browser matrix: remote engines + esbuild-bundle untracking (PRs #14/#15, DEPLOYED 2026-09-08):**
+  `npm run test:browsers` accepts `PW_WS_ENDPOINTS` for remote engine grids (scripts/remote-browser-daemon);
+  `*-test-bundle.mjs` artifacts untracked + gitignored (the npm test cleanup list had missed three).
 - ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-ejrRtwiS.js):** the 📈 widget's
   monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
   a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
@@ -49,7 +59,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   card subtitle appends `· N pages failed` (GLAMorgan's own warning
   pattern). Verified live: Total views 1,375,031 / Files viewed 158 —
   exact match with GLAMorgan-parity expectations.
-- ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — branch `issue-3-gallery-all-images`, patch delivered, NOT pushed/merged):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
+- ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — merged as PR #12, DEPLOYED 2026-09-08):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
 - ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
   cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files
   ≥ 10× and ≥ 10k deep files — e.g. UNESCO 575 vs 16.4M) render a two-segment
@@ -321,8 +331,8 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-BLGokffr.js (full merged main + GLAM view-budget fix, 2026-09-08);
-  prior: index-DClvfKWq.js CIM gap indicator 2026-09-03, index-BgEdNEa0.js cross-browser fix 2026-09-03,
+- ✅ Git repo on GitHub (main). Current production bundle = index-ejrRtwiS.js (full merged main + GLAM view-budget fix + 429 resilience, 2026-09-08);
+  prior same-day deploys: index-BLGokffr.js, index-DHc3p4sT.js; index-DClvfKWq.js CIM gap indicator 2026-09-03,
   index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
@@ -453,7 +463,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (~541 KB total / ~154 KB gzip incl. pannellum lazy asset)
+npm run build      # → dist/ (~560 KB total / ~160 KB gzip incl. pannellum lazy asset)
 npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
