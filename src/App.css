@@ -2069,3 +2069,48 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .translate-arrow { text-align: center; color: var(--muted, #888); font-size: 12px; line-height: 1; }
 .translate-result { font-size: 14px; line-height: 1.45; }
 .translate-note { font-size: 11px; color: var(--muted, #888); font-style: italic; }
+
+/* ── Ask board assembly (ISSUE-44 Phase 3a) ── */
+.ask-mode-row { display: flex; gap: 6px; padding: 0 14px 8px; }
+.ask-mode-chip {
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  border-radius: 999px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+}
+.ask-mode-chip:hover { color: var(--text); }
+.ask-mode-active { border-color: var(--accent); color: var(--accent); background: rgba(74,158,255,0.10); }
+.ask-board {
+  border: 1px solid var(--accent); border-radius: 8px; padding: 10px;
+  background: rgba(74,158,255,0.06); display: flex; flex-direction: column; gap: 8px;
+}
+.ask-board-summary { font-size: 12px; color: var(--text); }
+.ask-board-chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ask-board-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+  border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; background: var(--bg-2, #16181d);
+}
+.ask-board-id { color: var(--muted); font-family: monospace; font-size: 10px; }
+.ask-board-arrow { color: var(--accent); margin-left: 2px; }
+.ask-board-params { display: flex; flex-wrap: wrap; gap: 6px; }
+.ask-board-warnings { display: flex; flex-direction: column; gap: 3px; }
+.ask-board-warning { font-size: 11px; color: #e0b354; }
+.ask-board-add {
+  align-self: flex-start; border: 1px solid var(--accent); background: rgba(74,158,255,0.14);
+  color: var(--accent); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 600;
+}
+.ask-board-add:hover { background: rgba(74,158,255,0.24); }
+
+/* Assembly result toast + undo */
+.assembly-toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; z-index: 3000;
+  background: #1c1f26; border: 1px solid var(--accent); border-radius: 8px;
+  padding: 9px 14px; box-shadow: 0 6px 24px rgba(0,0,0,0.45); font-size: 12.5px; color: var(--text);
+  max-width: min(680px, 92vw);
+}
+.assembly-toast-error { border-color: #e06c5c; color: #f0a89d; }
+.assembly-toast-msg { flex: 1; }
+.assembly-toast-btn {
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; white-space: nowrap;
+}
+.assembly-toast-close { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; }

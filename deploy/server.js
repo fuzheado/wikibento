@@ -143,6 +143,24 @@ const ASK_RULES = `\n\nRULES:\n- Use EXACT widget ids from the catalog. Never in
 Assistant: ${JSON.stringify({ options: [{ widgetType: 'waybackGallery', config: { url: 'https://wikipedia.org', dates: '2010-01-01\n2020-01-01', toleranceDays: 365 }, reason: 'Wayback Snapshot Gallery shows one archived screenshot per requested date.' }] })}
 User: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}`;
 
+// ── Board-assembly mode (ISSUE-44 Phase 3a) ──
+// The client may request mode:'board' — the advisor returns a COMPLETE wired
+// fragment (params + widgets with self-assigned ids + {{param}}/{{widget:id}}
+// wiring) instead of single-widget options. VALUE RULES are shared verbatim
+// with the recommendation rules (single source of truth: extracted at runtime
+// from ASK_RULES between its VALUE RULES and OUTPUT SCHEMA sections).
+const ASK_VALUE_RULES = ASK_RULES.slice(ASK_RULES.indexOf('\n\nVALUE RULES (critical'), ASK_RULES.indexOf('\n\nOUTPUT SCHEMA:'));
+
+const ASK_ASSEMBLY_MANUAL = `\n\nBOARD ASSEMBLY MODE: the user wants a set of widgets that work TOGETHER (a switcher + driven widgets, a dataflow chain, or a themed collection). Return a COMPLETE, WIRED board fragment:
+- "widgets": the full widget list, IN WIRING ORDER (producers first), each with a UNIQUE kebab-case "id" YOU invent (ids are yours to assign — they describe the widget's role, e.g. "collection-switcher", "einstein-translate"), "widgetType" from the catalog, "config" pre-filled with the user's subjects, and layout "w"/"h" (w is 1-12 grid columns — galleries/panoramas need 12; h is 2-14 rows).
+- "params": declare board parameters ONLY when a switcher/stepper drives the widgets (Board Controls pattern): { name: { label, type: "buttons"|"select"|"text"|"number"|"month", options: [...], value } }. Widgets reference a param as {{name}} anywhere in their config. Max 4 params.
+- WIRING: a consumer widget's config field references a producer by its id — source fields (type "source") take the BARE producer id (e.g. "source": "museum-list"); text/textarea fields take {{widget:<producer-id>}} (list-shaped outputs feed textarea fields, text outputs feed text fields). Chain transitively (excerpt → translate → speaker can wire translate's text from excerpt and speaker's text from translate).
+- Only wire fields that semantically make sense: excerpt text → translate/speaker text; listSource lines → articleList titles / filterLines source; filterLines → lineCount / articleList; a params switcher → any config field via {{name}}.
+- Every {{widget:…}} id and every bare source id MUST match a widget id you declared; every {{param}} must match a declared param. Dangling references break the board.
+- Do NOT wire anything when the widgets are independent (a plain 2-3 widget collection needs no wiring — just pre-fill each config).`;
+
+const ASK_RULES_BOARD = `\n\nBOARD RULES:\n- Return JSON only: ${JSON.stringify({ board: { params: {}, widgets: [{ id: 'role-name-id', widgetType: 'id', config: { key: 'value or {{param:…}} or {{widget:…}}' }, w: 4, h: 3 }], summary: 'one sentence' } })}\n- widgetType: EXACT catalog ids. Use 2-6 widgets — the fewest that serve the request; add widgets only when the request implies them (a chain, a switcher + driven widgets, or complementary views). If the request is for ONE simple widget, prefer a normal recommendation instead (no board needed).\n- ids: kebab-case, unique within the board, descriptive of the role. Never reuse a catalog id as an instance id.\n- config: pre-fill subjects from the request using the value rules below; leave other fields out (defaults apply).\n- summary: one plain-language sentence describing the board.`;
+
 const stripThink = (s) => String(s).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
 async function callLlm(model, system, user) {
@@ -252,6 +270,87 @@ function validateOptions(parsed, widgetDefs) {
     });
   }
   return out;
+}
+
+// ── Board-assembly validation (ISSUE-44 Phase 3a) ──
+// Validates + sanitizes a model-returned {board:{params,widgets,summary}}.
+// Strict where it must be (refs must resolve), graceful where it can be
+// (a bad widget is DROPPED with its dependents, iteratively — the board
+// survives without it). Returns { widgets, params, warnings } — widgets []
+// means nothing usable survived and the client shows an error state.
+const ASSEMBLY_MAX_WIDGETS = 8;
+const ASSEMBLY_MAX_PARAMS = 4;
+function validateAssembly(parsed, widgetDefs) {
+  const warnings = [];
+  const rawBoard = parsed?.board && typeof parsed.board === 'object' ? parsed.board : null;
+  const rawWidgets = Array.isArray(rawBoard?.widgets) ? rawBoard.widgets : [];
+  const rawParams = rawBoard?.params && typeof rawBoard.params === 'object' && !Array.isArray(rawBoard.params) ? rawBoard.params : {};
+
+  // Params: name grammar, valid types, ≤ 4, options capped.
+  const params = {};
+  for (const [name, entry] of Object.entries(rawParams)) {
+    if (Object.keys(params).length >= ASSEMBLY_MAX_PARAMS) { warnings.push(`more than ${ASSEMBLY_MAX_PARAMS} params — extra dropped`); break; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) { warnings.push(`param "${String(name).slice(0, 30)}" dropped (name must be letters/digits/-/_)`); continue; }
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const types = ['buttons', 'select', 'text', 'number', 'month'];
+    const options = Array.isArray(entry.options) ? entry.options.map((s) => String(s).slice(0, 120)).filter(Boolean).slice(0, 12) : undefined;
+    params[name] = {
+      label: String(entry.label || name).slice(0, 80),
+      type: types.includes(entry.type) ? entry.type : (options?.length ? 'select' : 'text'),
+      ...(options?.length ? { options } : {}),
+      ...(entry.value !== undefined ? { value: String(entry.value).slice(0, 200) } : {}),
+    };
+  }
+
+  // Widgets: known types only, ids sanitized + deduped, configs normalized.
+  const widgets = [];
+  const ids = new Set();
+  for (const w of rawWidgets) {
+    if (widgets.length >= ASSEMBLY_MAX_WIDGETS) { warnings.push(`more than ${ASSEMBLY_MAX_WIDGETS} widgets — extra dropped`); break; }
+    const type = String(w?.widgetType || '');
+    const def = widgetDefs.get(type);
+    if (!def) continue; // hallucinated type → dropped silently (same policy as options)
+    let id = String(w?.id || type).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || type;
+    let n = 2;
+    while (ids.has(id)) id = `${id.slice(0, 38)}-${n++}`;
+    ids.add(id);
+    const num = (v, lo, hi, dflt) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt; };
+    widgets.push({
+      id,
+      widgetType: type,
+      config: normalizeConfig(w?.config, def),
+      w: num(w?.w, 1, 12, 3),
+      h: num(w?.h, 2, 14, 4),
+      ...(typeof w?.title === 'string' && w.title ? { title: w.title.slice(0, 80) } : {}),
+    });
+  }
+
+  // Iterative prune: drop widgets whose {{widget:id}} / bare source id /
+  // {{param}} references dangle (a dropped producer cascades to its
+  // consumers — a broken chain is worse than a shorter one).
+  let changed = true;
+  while (changed && widgets.length) {
+    changed = false;
+    const liveIds = new Set(widgets.map((w) => w.id));
+    for (let i = widgets.length - 1; i >= 0; i--) {
+      const w = widgets[i];
+      const cfgStr = JSON.stringify(w.config || {});
+      const widgetRefs = [...cfgStr.matchAll(/\{\{widget:([^}]+)\}\}/g)].map((m) => m[1].trim());
+      const paramRefs = [...cfgStr.matchAll(/\{\{(?!widget:)([^}]+)\}\}/g)].map((m) => m[1].trim());
+      const sourceFields = (widgetDefs.get(w.widgetType)?.configFields || []).filter((f) => f.type === 'source').map((f) => f.key);
+      const sourceRefs = sourceFields.map((k) => String(w.config?.[k] ?? '').trim()).filter(Boolean);
+      const dangling = widgetRefs.some((r) => !liveIds.has(r))
+        || paramRefs.some((r) => !(r in params))
+        || sourceRefs.some((r) => !liveIds.has(r));
+      if (dangling) {
+        warnings.push(`widget "${w.id}" dropped — a reference it consumes is not on the board`);
+        widgets.splice(i, 1);
+        changed = true;
+      }
+    }
+  }
+
+  return { widgets, params, warnings };
 }
 
 // ── /api/petscan: capped PetScan relay for the GLAM widget (ISSUE-46) ──
@@ -660,14 +759,15 @@ const server = createServer(async (req, res) => {
       const manifest = await getManifest();
       if (!manifest) return json(res, 503, { error: 'Ask is not configured (widget manifest missing)' });
       const defs = manifestIds(manifest);
-      const cacheKey = sha(prompt + manifest.version);
+      const mode = body?.mode === 'board' ? 'board' : 'suggest';
+      const cacheKey = sha(`${mode}|${prompt}|${manifest.version}`);
       const hit = askCacheGet(cacheKey);
       if (hit) {
-        logAsk(ip, prompt, hit.options.length, 0, true);
+        logAsk(ip, prompt, hit.options?.length ?? hit.board?.widgets?.length ?? 0, 0, true);
         return json(res, 200, { ...hit, cached: true });
       }
       const t0 = Date.now();
-      const system = ASK_SYSTEM(manifest) + ASK_MANUAL + ASK_RULES;
+      const system = ASK_SYSTEM(manifest) + ASK_MANUAL + (mode === 'board' ? ASK_ASSEMBLY_MANUAL + ASK_RULES_BOARD + ASK_VALUE_RULES : ASK_RULES);
       let content = null;
       try {
         content = await callLlm(ASK_MODEL, system, prompt);
@@ -677,10 +777,16 @@ const server = createServer(async (req, res) => {
       }
       let parsed = null;
       try { parsed = JSON.parse(content); } catch { /* non-JSON reply → no valid options */ }
-      const options = validateOptions(parsed, defs);
-      const payload = { options, model: ASK_MODEL, manifestVersion: manifest.version };
+      const payload = { model: ASK_MODEL, manifestVersion: manifest.version };
+      if (mode === 'board') {
+        const board = validateAssembly(parsed, defs);
+        payload.board = board;
+        payload.options = []; // uniform shape for the legacy client path
+      } else {
+        payload.options = validateOptions(parsed, defs);
+      }
       askCacheSet(cacheKey, payload);
-      logAsk(ip, prompt, options.length, Date.now() - t0, false);
+      logAsk(ip, prompt, payload.options.length, Date.now() - t0, false);
       return json(res, 200, { ...payload, cached: false });
     }
 
@@ -718,4 +824,4 @@ if (!process.env.WIKIBENTO_TEST) {
   server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
 }
 
-export { normalizeConfig, validateOptions, manifestIds, ASK_SYSTEM, ASK_MANUAL, ASK_RULES, buildPetscanUrl, wikiDbToDomain, normalizePetscanPages, parsePetscanParams };
+export { normalizeConfig, validateOptions, validateAssembly, manifestIds, ASK_SYSTEM, ASK_MANUAL, ASK_RULES, ASK_RULES_BOARD, ASK_ASSEMBLY_MANUAL, buildPetscanUrl, wikiDbToDomain, normalizePetscanPages, parsePetscanParams };
