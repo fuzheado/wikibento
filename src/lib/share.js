@@ -54,6 +54,21 @@ export function readHashConfig() {
  * (deploy/server.js) when available, since browsers can't follow the redirect
  * (the target page sends no CORS headers).
  */
+/** Friendly HTTP failure for a config URL — a 404 is almost always a wrong
+ *  path (or a file that hasn't been deployed), not a server fault. */
+function httpError(status, href, rawUrl) {
+  return status === 404
+    ? `config not found (HTTP 404) — check the ?config= path: ${href || rawUrl}`
+    : `Fetch failed: HTTP ${status} for ${rawUrl}`;
+}
+
+/** True when a fetched config response is actually an HTML document (SPA
+ *  fallback or error page) rather than JSON — the classic "missing file on the
+ *  dev server" case, which otherwise surfaces as "Unexpected token '<'". */
+export function looksLikeHtml(text) {
+  return /^\s*(<!doctype\s+html[\s>]|<\/?html[\s>])/i.test(String(text ?? ''));
+}
+
 export async function fetchRemoteConfig(url) {
   // Bare w.wiki/XXXX (no scheme) → https://w.wiki/XXXX
   if (!/^[a-z][a-z0-9+.-]*:/i.test(url) && WWIKI_BARE_RE.test(url)) {
@@ -70,15 +85,23 @@ export async function fetchRemoteConfig(url) {
       // No resolver (plain static host): try the browser fetch directly —
       // works only when the redirect target sends CORS headers.
       const resp = await fetch(u);
-      if (!resp.ok) throw new Error(`Fetch failed: HTTP ${resp.status} for ${url}`);
-      return resp.text();
+      if (!resp.ok) throw new Error(httpError(resp.status, u.href, url));
+      const text = await resp.text();
+      if (looksLikeHtml(text)) {
+        throw new Error(`the URL returned an HTML page, not JSON — the config file probably doesn't exist (HTTP ${resp.status}) or the path is wrong: ${u.href}`);
+      }
+      return text;
     }
   }
 
   if (WIKI_HOST_RE.test(u.hostname)) return fetchWikiPageText(u);
   const resp = await fetch(u);
-  if (!resp.ok) throw new Error(`Fetch failed: HTTP ${resp.status} for ${url}`);
-  return resp.text();
+  if (!resp.ok) throw new Error(httpError(resp.status, u.href, url));
+  const text = await resp.text();
+  if (looksLikeHtml(text)) {
+    throw new Error(`the URL returned an HTML page, not JSON — the config file probably doesn't exist (HTTP ${resp.status}) or the path is wrong: ${u.href}`);
+  }
+  return text;
 }
 
 /** Resolve a short URL to its final target via the same-origin resolver.

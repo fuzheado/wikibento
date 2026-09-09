@@ -2639,3 +2639,39 @@ render `["Article"]` and `["Language"]` respectively; the chain
 Einstein → excerpt → `EN → FR · nllb200-600M`; clicking **de** on the
 language-only card re-translates to `EN → DE · nllb200-600M`; the ⚙ picker
 shows both params with only `topic` checked on the article card.
+
+## ISSUE-60 · User guide + config-URL error handling — **done 2026-09-09**
+
+**What (user session):** after building the 4-widget params/dataflow chain, the
+user asked whether the philosophy and design decisions were documented in a
+user-facing manual. They weren't: `PHILOSOPHY.md` (why) and
+`MODULARITY-AND-DATAFLOW.md` (design research) are maintainer-facing, the README
+is feature bullets, and the in-app ⓘ panel never mentioned params or dataflow.
+
+**Deliverables:**
+- **`docs/GUIDE.md`** — tight user guide: the three-layer model (board params /
+  widget config / widget-to-widget) and the scope-matching rule; params
+  (definitions vs values, `show` scoping, name-by-role, broadcast);
+  dataflow (emit/consume, `{{widget:id}}`, reference chips, the waiting guard);
+  three worked examples (`translate-demo`, `flow-demo`, `params-demo`); local
+  settings; sharing/persistence; a troubleshooting table; a cookbook. Linked
+  from the README docs index and "Building a dashboard", and from the in-app ⓘ
+  panel (new "Concepts & guide" section listing the demos; stale catalog copy
+  fixed).
+- **Config-URL error handling** (`src/lib/share.js`): `looksLikeHtml()` +
+  `httpError()` — a config URL that returns an HTML page (SPA fallback) now says
+  *"returned an HTML page, not JSON — the config file probably doesn't exist"*,
+  and a 404 says *"config not found (HTTP 404) — check the ?config= path"*
+  instead of *"Not valid JSON: Unexpected token '<'"*.
+- **Dev/preview parity** (`vite.config.js`): a middleware 404s missing `*.json`
+  instead of serving `index.html`, matching `deploy/server.js`.
+
+**Constitution:** `tests/config-load.test.mjs` +5 (HTML detection; JSON/text are
+not HTML; HTML response → friendly error; 404 → missing-path error; valid JSON
+passthrough) → npm test 168.
+
+**Verified live (dev + built dist):** ⓘ shows the guide link and the demo list,
+stale copy gone; `?config=/nope.json` → *"config not found (HTTP 404) — check
+the ?config= path: …/nope.json"*; the dev server returns `text/plain` 404 for a
+missing JSON, while `/` is still HTML and existing configs are still
+`application/json`.

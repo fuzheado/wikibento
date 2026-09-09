@@ -18,6 +18,14 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **User guide + config-URL error handling (ISSUE-60, 2026-09-09):** `docs/GUIDE.md` — a tight
+  user-facing manual (three-layer model: board params / widget config / dataflow; params
+  definitions-vs-values and `show` scoping; dataflow + the waiting guard; three worked examples;
+  troubleshooting; cookbook), linked from the README and the in-app ⓘ panel (whose stale catalog
+  copy is fixed). Config URLs that return HTML or 404 now say so — *"returned an HTML page, not
+  JSON"* / *"config not found (HTTP 404) — check the ?config= path"* — instead of *"Unexpected
+  token '<'"*; a Vite middleware 404s missing `*.json` in dev so dev matches production.
+  Constitution: tests/config-load.test.mjs +5 → npm test 168.
 - ✅ **Board Controls per-card param scoping (ISSUE-59, 2026-09-09):** a Board Controls card can
   now render a **subset** of the board's params — ⚙ → *Params on this card* (a checkbox per
   declared param, stored as a comma-separated `show` allow-list; empty = all, backward
