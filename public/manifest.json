@@ -1,7 +1,7 @@
 {
  "version": 2,
- "generatedAt": "2026-09-09T09:01:19.386Z",
- "widgetCount": 36,
+ "generatedAt": "2026-09-09T09:11:27.514Z",
+ "widgetCount": 37,
  "widgets": [
   {
    "id": "pageviews",
@@ -1160,6 +1160,37 @@
     "project",
     "mobile",
     "fragment",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "translate",
+   "name": "Translator (MinT)",
+   "icon": "🌐",
+   "description": "Machine-translates its text (typed or via {{param}}) into another language — Wikimedia MinT: 200+ languages on open NMT models (NLLB-200, OpusMT, IndicTrans2). No key, no proxy (CORS ✓). MinT has no auto-detect — set the source language.",
+   "dataSource": "MinT translate.wmcloud.org (POST /api/translate, CORS ✓)",
+   "category": "Content & Embeds",
+   "type": "query",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "text",
+     "type": "textarea"
+    },
+    {
+     "key": "from",
+     "type": "text"
+    },
+    {
+     "key": "to",
+     "type": "text"
+    }
+   ],
+   "defaults": [
+    "text",
+    "from",
+    "to",
     "refreshSeconds"
    ]
   },
