@@ -1,7 +1,7 @@
 {
  "version": 2,
- "generatedAt": "2026-09-08T18:23:51.055Z",
- "widgetCount": 35,
+ "generatedAt": "2026-09-09T09:01:19.386Z",
+ "widgetCount": 36,
  "widgets": [
   {
    "id": "pageviews",
@@ -1096,6 +1096,32 @@
    ],
    "defaults": [
     "title"
+   ]
+  },
+  {
+   "id": "speaker",
+   "name": "Speaker (text-to-speech)",
+   "icon": "🔊",
+   "description": "Output widget — speaks its text aloud with speech synthesis. First of the output/effector family. Safety-first: nothing speaks until ▶ is clicked once on the widget (\"armed\"); speak-on-change (default off) then announces text changes — e.g. a {{param}} phrase driven by Board Controls.",
+   "dataSource": "static (no fetch) — Web Speech synthesis (speechSynthesis)",
+   "category": "Content & Embeds",
+   "type": "embed",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "text",
+     "type": "textarea"
+    },
+    {
+     "key": "speakOnChange",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "text",
+    "speakOnChange",
+    "refreshSeconds"
    ]
   },
   {

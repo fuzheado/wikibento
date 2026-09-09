@@ -2470,3 +2470,36 @@ fix reverted the run fails (⚙ 9/35 @1440, ⓘ 21/35 @1440, 14/35 and 33/35
 last field ("Max rows"), Apply commits and closes the panel; short panel
 (topwikis) shows the action inline with no forced scroll; ⓘ on filegallery
 scrolls with "Copy debug info" pinned; hint renders one line.
+
+## ISSUE-55 · Speaker widget: text-to-speech "output" widget (GitHub issue #16) — **done (branch `issue-16-speaker`, PR #17)**
+
+**What:** the first member of the output/effector widget family. `speaker`
+(registry id, category Content & Embeds) is a static widget (no fetch) that
+speaks its resolved `text` aloud via the Web Speech API. Text arrives through
+the ISSUE-50 channel: `text: "{{phrase}}"` re-resolves when Board Controls
+params change (reloadKey bump → static re-transform), so a Controls text/
+buttons param drives what the speaker says. A per-widget voice picker lists
+the device roster (name + lang — the Web Speech API exposes no gender
+metadata); mute is controller-global.
+
+**Safety model (the design center):** *nothing speaks unless a human makes
+it.* The browser only gates speak() until the user's first page click (Chrome
+M71+), so the widget enforces its own gate: `speakOnChange` (default OFF)
+auto-speaks only after ▶ has been clicked on that widget at least once
+("armed"). Speaking is one-at-a-time (cancel-before-speak, also the Chrome
+rate>2 wedge workaround), rate clamped [0.5, 2], volume capped, utterance
+cancelled on unmount/tab-hide. Every speaker card has ▶/⏹ and a 🔊 mute
+toggle writing a shareable `audioMuted` board param. Zero-voice engines
+(headless CI: Chromium `synthesis-failed`, Firefox silent stall — both
+verified 2026-09-05) render a degraded "No voice on this device" state
+showing the text; a 6s stall guard catches engines that queue forever.
+
+**Files:** `src/lib/speech.js` (controller factory + pure helpers, synth
+injected for tests), `src/widgets/index.js` (registry entry),
+`src/widgets/WidgetFrame.jsx` (SpeakerCard), `src/App.css`,
+`tests/speaker.test.mjs` (14 tests → npm test 145 after the dataflow merge), README row + this entry.
+Constitution: static widget precedent (markdown) — `timeScope:'point'`,
+no fetch, `refreshSeconds` present. Verified live on headless Chromium:
+resolved {{param}} text renders, param button re-aims the phrase,
+degraded state shown, speakOnChange does not fire before arming, zero
+console/page errors. Real audio + voices: manual leg on macOS/WebKit.
