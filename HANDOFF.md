@@ -6,9 +6,11 @@
 
 WikiBento is a dark-themed, drag-and-drop widget dashboard for Wikimedia —
 "insights and action". A single-page React app (React 19, Vite 8,
-react-grid-layout) with **no backend**: every widget fetches directly from
+react-grid-layout) with **no backend**: every live widget fetches directly from
 CORS-enabled Wikimedia APIs (RESTBase pageviews, MediaWiki Action API, Commons,
-Wikistats). Dashboards are JSON configs (format v1) that persist to
+Wikistats, Commons Impact Metrics, WDQS/QLever, MinT) — a handful of static
+widgets (Markdown, Board Controls, Speaker, Wiki Page, Text List) render from
+config. Dashboards are JSON configs (format v1) that persist to
 localStorage, export/import, and load via shareable URLs — either embedded in
 the hash (`#/d/<base64>`) or fetched from a URL (`?config=<url>`, including
 on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
@@ -16,6 +18,15 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **DEPLOYED 2026-09-09 (bundle index-BWKLfppo.js) — the whole session's stack is live:** six
+  PRs merged and shipped in one deploy — speaker widget (#17), translator widget (#21),
+  request-serial guard (#24), panel reachability (#31), docs research series (#30), ROADMAP
+  Phase 2.5 (#29). **37 widget types** now in the registry and in the `?config=/dashboard.json`
+  catalog. Deploy verified: bundle hash in index.html, `/api/resolve` OK, 3-engine matrix on the
+  live full catalog (37 widgets, 0 widget errors, 0 severe console errors), speaker card
+  (181-voice picker) + translator (EN→ES · nllb200-600M) rendering, and the panel fix live on the
+  translator's 264px card (panel scrolls 204px, Apply reachable). Startup log:
+  `WikiBento serving dist/ on port 8000`.
 - ✅ **Panel reachability — ⚙/ⓘ actions can never clip (ISSUE-54, 2026-09-09):** a widget shorter
   than its config panel guillotined the panel bottom — `.grid-item{overflow:hidden}` plus
   `.widget-config/.widget-info{flex-shrink:0}` with no internal overflow meant **"Apply & Reload"**
@@ -30,10 +41,40 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   (67–93px of panel height on a 3-column card) became one line + tooltip; label → "Name".
   Rejected: dual Apply (the **fields**, not the button, are unreachable — a 488px panel in a 232px
   card shows ~2 fields), popout (right *polish* follow-up, not the fix), auto-expand the card
-  (reflows the board). Constitution: **`npm run smoke:panels`** — 210 measurements (⚙+ⓘ ×
-  1440/1024/600px × 35 widgets at w3 h3, Wikimedia requests blocked so auto-height can't mask a
+  (reflows the board). Constitution: **`npm run smoke:panels`** — 222 measurements (⚙+ⓘ ×
+  1440/1024/600px × 37 widgets at w3 h3, Wikimedia requests blocked so auto-height can't mask a
   too-tall panel), exit 1 on any clipped action, negative-tested against the pre-fix CSS; wired
   into `npm run smoke`. Docs: ISSUES.md ISSUE-54, README features/quickstart.
+- ✅ **Translator (MinT) widget (ISSUE-56, PR #21, 2026-09-09):** fetch widget whose text (typed or
+  `{{param}}`-driven) is machine-translated by Wikimedia MinT — `POST
+  https://translate.wmcloud.org/api/translate`, CORS `*` verified → **browser-direct, no key, no
+  proxy** (the key-free AI node). `from`/`to` 2-letter codes (MinT has no auto-detect),
+  `format:'text'`, 8,000-char truncation flagged in the card, 24 h TTL cache, serving model
+  surfaced (`ES · nllb200-600M`). Merge work: ISSUE renumbered 53 → 56, `TranslateCard → 'query'`
+  in both TYPE_BY_RENDERER maps, manifest regenerated, translate added to the catalog sample.
+  Verified live: EN → *"El jazz es un género musical que se originó en Nueva Orleans."*
+- ✅ **Speaker widget (ISSUE-55, PR #17, 2026-09-09):** first output/effector widget — static
+  (no fetch, `timeScope:'point'`), speaks its resolved `text` via the Web Speech API. Safety model:
+  nothing speaks until ▶ is clicked once on that widget; `speakOnChange` (default OFF) auto-speaks
+  only after arming; controller-global 🔊 mute writes a shareable `audioMuted` param; one voice at
+  a time (cancel-before-speak), rate clamped [0.5, 2], utterance cancelled on unmount. Zero-voice
+  engines (headless CI) render a "No voice on this device" state + a 6 s stall guard — never an
+  error. Merge work: ISSUE renumbered 52 → 55, manifest regenerated, speaker added to the catalog
+  sample. Verified live: 181-voice picker (macOS Chromium), text + "Press ▶ once to enable" gate.
+- ✅ **Request-serial guard (ISSUE-57, PR #24, 2026-09-09):** `WidgetFrame.load()` claims
+  `++loadSeqRef.current` per run; the success and error paths return without touching state when
+  superseded, and unmount invalidates in-flight loads — a slow fetch under an old config/param can
+  no longer clobber a newer result (compounds with `{{param}}`/dataflow feeds). Merge work: the
+  guard now sits between the sourceOutput-aware fetch and transform; ISSUE renumbered 54 → 57.
+  **Verified with a controlled race probe** (params-driven MinT fetch, first response delayed 15 s):
+  with the guard the card keeps FRESH-BETA; with the guard removed and rebuilt the same probe ends
+  on STALE-ALPHA — red/green proof the guard is what fixes it.
+- ✅ **Docs: research series + ROADMAP Phase 2.5 (PRs #30/#29, 2026-09-09):**
+  `docs/TAPESTRY-EVALUATION.md` (WikiBento ↔ Internet Archive Tapestry primitives; three cheap
+  interop seams) and `docs/DEMO-IDEAS.md` (11 demo concepts A–K, Voyager-revisited provenance, demo
+  playbook) merged, plus ROADMAP **Phase 2.5 — board-to-board nav + Stage & Scene immersion layer**
+  (ship order 1→2→3, cache-warmth budget, steps-as-data, atmosphere). #30 merged first so #29's
+  DEMO-IDEAS link resolves from the moment it lands.
 - ✅ **Widget instance names + rename resolution (ISSUE-53, 2026-09-08 — DEPLOYED):** every widget
   now has a visible, editable instance name — an id chip in every header (click → ⚙), the instance id in
   the ⓘ panel + a Type row, and source-picker options labeled `icon Type · id — label`. ⚙ gains a **Name
@@ -251,7 +292,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   PetScan (~0.4 KB/file → a full-budget tree ≈ 12 MB, under the 25 MB byte
   cap). Tests: glam-petscan +3, new config-ranges suite +6 (npm test 45).
   **DEPLOYED 2026-08-17** (bundle index-B_hgqo4i.js; merged to main ebb4af7).
-- ✅ **30 widget types total (2026-08-16):** + 🎬 Video/Media Player
+- ✅ **30 widget types total (2026-08-16; now 37 — see the deploy bullet above):** + 🎬 Video/Media Player
   (ISSUE-39) + 🕰️ Wayback Snapshot Gallery (alpha). Full catalog:
   `?config=/dashboard.json`.
 - ✅ **Kiosk mode (2026-08-15)** — ⛶ Present + `?kiosk=1`: chrome-free
@@ -262,7 +303,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   chrome-free, grid-locked state WITHOUT fullscreen — resizable
   browser, iPad-app feel; shares the `.kiosk` CSS rules; Esc/✕ Exit;
   kiosk and lean mutually exclusive. **DEPLOYED** (commit 3bfad47,
-  bundle index-DkcrAAk0.js — current production bundle, verified live
+  bundle index-DkcrAAk0.js — then-current production bundle, verified live
   2026-08-16 incl. kiosk regression).
 - ✅ **Video / Media Player widget (2026-08-16)** — 🎬 ISSUE-39: native
   HTML5 `<video>`/`<audio>` (no player library) of Commons files —
@@ -391,8 +432,12 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-ejrRtwiS.js (full merged main + GLAM view-budget fix + 429 resilience, 2026-09-08);
-  prior same-day deploys: index-BLGokffr.js, index-DHc3p4sT.js; index-DClvfKWq.js CIM gap indicator 2026-09-03,
+- ✅ Git repo on GitHub (main). **Current production bundle = index-BWKLfppo.js** (deployed
+  2026-09-09 — 37 widget types: speaker + translator widgets, request-serial guard, panel
+  reachability; main = ddba238);
+  prior same-day deploys: index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
+  index-ejrRtwiS.js / index-BLGokffr.js / index-DHc3p4sT.js (GLAM 2026-09-08);
+  index-DClvfKWq.js CIM gap indicator 2026-09-03,
   index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
@@ -523,12 +568,12 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (~560 KB total / ~160 KB gzip incl. pannellum lazy asset)
+npm run build      # → dist/ (~576 KB total / ~165 KB gzip incl. pannellum lazy asset)
 npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
 npm run smoke      # grid geometry + panel reachability (ISSUE-54) — needs dist/ built
 npm run smoke:panels   # panel reachability only (⚙/ⓘ actions at w3 h3 across 3 widths)
 npx vite preview   # http://localhost:4173
-npm run lint       # oxlint (5 pre-existing warnings, all benign)
+npm run lint       # oxlint (pre-existing warnings only: vendored pannellum + a few legacy nits)
 ```
 
 Demo URL to see the full dashboard:
@@ -543,9 +588,11 @@ App.jsx (state: widgets[] + layout[], URL boot, persistence)
 │       └── renderer: StatCard | RankingCard | TrendCard | GlamCard | MarkdownCard
 ├── AddWidgetPanel / ImportPanel / AboutPanel
 └── src/widgets/index.js — WIDGET_TYPES registry (THE extension point)
-    each entry: { id, name, icon, defaults, configFields, fetch, transform, renderer, labelFromConfig?, getRenderer? }
+    each entry: { id, name, icon, category, defaults, configFields, fetch, transform, renderer,
+                 timeScope, emit?, source?, defaultLayout?, autoHeight?, labelFromConfig?, getRenderer? }
     fetch → raw data; transform → renderer contract; WidgetFrame owns loading/error/retry
-    static widgets (e.g. markdown) omit `fetch` — rendered from config directly
+    static widgets (e.g. markdown, speaker) omit `fetch` — rendered from config directly
+    emit → publishes widget output for dataflow consumers (`source` field / {{widget:id}})
 ```
 
 Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`

@@ -508,10 +508,11 @@ wikitech.wikimedia.org/wiki/Machine_Learning/LiftWing/Large_Language_Models/Wiki
 - **Outputs:** may include a `<think>…</think>` reasoning wrapper — strip it
   before use. Training cutoff is fixed; no live knowledge — supply context
   in the prompt for anything time-sensitive.
-- **Verified use (2026-08-16):** the ISSUE-44 "Ask" widget advisor — the
-  trimmed 30-widget catalog sent in the system prompt is 15,764 chars
-  (≈ 4.1–5.3K tokens; full system prompt with rules ≈ 4.5–6K, fits 32K with
-  ~26K headroom — see ISSUE-44 "Payload contract" for the exact trim
+- **Verified use (2026-08-16; catalog refreshed 2026-09-09):** the ISSUE-44
+  "Ask" widget advisor — the trimmed **37-widget** catalog sent in the system
+  prompt is 18,184 chars (≈ 4.5–6.1K tokens; full system prompt with rules
+  ≈ 21.5K chars ≈ 5.4–7.2K tokens — fits 32K with ~25K headroom and the 16K
+  fallback comfortably; see ISSUE-44 "Payload contract" for the exact trim
   map); `json_object` mode returns clean contract JSON on realistic intents
   with correct widget ids and pre-filled configs. ⚠️ **The model can
   hallucinate widget ids** (`video_player` for `mediaPlayer`) — always
@@ -531,3 +532,18 @@ widget; text classification and summarization helpers for GLAM workflows;
 multilingual dashboard text (the models are multilingual). Anything that is
 "structured text in, structured text out" over a constrained domain is the
 right paradigm — coding benchmarks are not.
+
+## 24. Translator (MinT) — Wikimedia machine translation (CORS ✓, no key) **Widget:** Translator (MinT) · **Fetcher:** `fetchMinTTranslation(text, from, to)`
+- **Endpoint:** `POST https://translate.wmcloud.org/api/translate` — body `{content, source_language, target_language, format:'text'}`. **CORS `*` verified 2026-09-05** (ACAO `*` on POST + clean OPTIONS preflight) → browser-direct, **no key, no proxy** (contrast: service TTS voices and LLM summarizers need keys/proxies — MinT is the key-free AI node).
+- **No auto-detect:** MinT has no `auto` source language, so `from` defaults `en`, `to` defaults `es` (2-letter codes, normalized lowercase; the widget exposes both as config fields).
+- **Models:** NLLB-200, OpusMT, IndicTrans2 — 200+ languages; the serving model is returned per request and surfaced in the card (`ES · nllb200-600M`) for transparency.
+- **Caps/caching:** content > 8,000 chars is truncated and flagged in the card; the same text+pair is cached 24 h (`createTtlCache`). Failures are not cached.
+- **Errors:** HTTP 422 = unsupported language pair → friendly widget error ("check translate.wmcloud.org/api/languages").
+- **Etiquette:** browser requests cannot set a custom User-Agent (forbidden header); the service accepts browser UA + Origin. Dashboard-scale usage is well under any bulk threshold, and the 24 h cache keeps repeats off the wire.
+- **Verified live (2026-09-09, production):** EN → *"El jazz es un género musical que se originó en Nueva Orleans."* (`ES · nllb200-600M`).
+
+## 25. Speaker — static (no fetch; Web Speech synthesis) **Widget:** Speaker (text-to-speech) · **Fetcher:** none (static widget)
+- **No network data source.** The text comes from config (typed, or `{{param}}`/`{{widget:id}}`-resolved); speech is produced by the browser's **Web Speech API** (`window.speechSynthesis` + `SpeechSynthesisUtterance`) — offline-capable, no API key, no service.
+- **Voice roster:** `speechSynthesis.getVoices()` (name + lang; the API exposes no gender metadata). Headless engines have **zero voices** — the widget renders a "No voice on this device" state with the text still shown (never an error), plus a 6 s stall guard for engines that queue an utterance forever.
+- **Safety model:** nothing speaks until ▶ is clicked once on that widget ("armed"); `speakOnChange` (default OFF) only auto-speaks after arming; controller-global 🔊 mute writes a shareable `audioMuted` board param; one utterance at a time (cancel-before-speak), rate clamped [0.5, 2], cancelled on unmount.
+- **Verified live (2026-09-09, production):** 181-voice picker (macOS Chromium), text + "Press ▶ once to enable" gate; degraded zero-voice state on headless probes.

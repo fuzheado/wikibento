@@ -8,11 +8,12 @@ live across many places: pageview and stats APIs, wiki pages, recent changes,
 Commons. WikiBento brings what you care about into one place — starting with
 metrics like article pageviews, external link counts, category sizes, file
 usage, and GLAM-style impact stats, and extending to listings and feeds you
-can click through and act on, like recent changes and usage trails.
+can click through and act on, like recent changes and usage trails — plus
+output nodes that speak (🔊 Speaker) or translate (🌐 Translator) what they hold.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈560 KB total (~160 KB
+(the same grid engine used by Grafana and Kibana), ≈576 KB total (~165 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -39,7 +40,7 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 
 An **interactive demo** (Board Controls driving galleries via params) is at `?config=/params-demo.json` — press the buttons, move the slider, step the month.
 
-A **full-catalog sample** (all 30 widget types, real working assets) is hosted
+A **full-catalog sample** (all 37 widget types, real working assets) is hosted
 with the app itself:
 
 ```
@@ -170,7 +171,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
-- **Example dashboard** — ✨ loads a showcase dashboard with all 30 widget types (real working assets), including a 📝 welcome card; the interactive params demo (🎛️ Board Controls) lives at `?config=/params-demo.json`
+- **Example dashboard** — ✨ loads a showcase dashboard with all 37 widget types (real working assets), including a 📝 welcome card; the interactive params demo (🎛️ Board Controls) lives at `?config=/params-demo.json`
 
 ### Widget highlights
 
@@ -292,7 +293,7 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-09-03)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-09-09)
 
 ### GLAM & CIM — impact metrics (2026-08-13 → 09-08)
 
@@ -443,6 +444,29 @@ wikibento/
   never on boot — verified live on the full 30-widget catalog including
   the mobile stack
 
+### Output & AI nodes + request supersede (2026-09-05 → 09-09)
+
+- ✅ **Speaker widget (🔊, PR #17):** the first *output* widget — speaks its
+  resolved text via the Web Speech API. Safety-first: nothing speaks until ▶ is
+  clicked once on the widget; `speakOnChange` (default off) only auto-speaks
+  after that; a controller-global 🔊 mute writes a shareable `audioMuted` board
+  param; one voice at a time (cancel-before-speak), rate clamped [0.5, 2].
+  Zero-voice engines render a "No voice on this device" state with the text
+  still shown — never an error. Verified live: 181-voice picker (macOS
+  Chromium), degraded state on headless probes
+- ✅ **Translator (MinT) widget (🌐, PR #21):** machine-translates its text
+  (typed or `{{param}}`-driven) via Wikimedia MinT — **key-free, no proxy**
+  (CORS `*` verified). 200+ languages on open NMT models, source/target codes,
+  8,000-char cap flagged in the card, 24 h TTL cache, serving model surfaced
+  for transparency. Verified live: EN → *"El jazz es un género musical que se
+  originó en Nueva Orleans."* (`ES · nllb200-600M`)
+- ✅ **Request-serial guard (ISSUE-57, PR #24):** `WidgetFrame.load()` claims a
+  sequence number per run; a superseded success or failure returns before
+  touching state, and unmount invalidates in-flight loads — a slow fetch under
+  an old config/param can no longer clobber a newer result. Verified with a
+  controlled race probe (first response delayed 15 s): with the guard the fresh
+  result survives; with the guard removed the stale response wins
+
 ### Constitutions, config loading & plumbing
 
 - ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
@@ -453,18 +477,18 @@ wikibento/
   every field below the fold (21/35 widget types at the fresh-add w3 h3 size,
   25/35 at 1024px, 27/35 at 820px). The long "Name (instance id)" hint (7 lines
   on a 3-column card, 67–93px per panel) is now one line with a tooltip.
-  Constitution: `npm run smoke:panels` — 210 measurements (⚙+ⓘ × 1440/1024/600
-  × 35 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
+  Constitution: `npm run smoke:panels` — 222 measurements (⚙+ⓘ × 1440/1024/600
+  × 37 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
   against the pre-fix CSS. Wired into `npm run smoke`
-- ✅ All 29 data-driven widget types render live data in the browser; the
-  29th (Text/Markdown) and 30th (Wiki Page — a static iframe) are static —
-  no fetch, renders from config
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 30 widgets
+- ✅ **All 32 data-driven widget types render live data in the browser; the 5
+  static ones (Text/Markdown, Board Controls, Speaker, Wiki Page, Text List)
+  render from config — no fetch**
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 37 widgets
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
-- ✅ Production build: 433.41 KB JS (127.58 KB gzip) + 48.86 KB CSS (9.86 KB gzip)
+- ✅ Production build: 478.25 KB JS (140.24 KB gzip) + 55.36 KB CSS (10.89 KB gzip) + 56.41 KB pannellum lazy asset (18.01 KB gzip)
 
 ### The starter board, re-verified (2026-08-12)
 
@@ -483,6 +507,11 @@ wikibento/
 - [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — why this project exists: the HyperCard lineage and the malleable-canvas thesis
 - [docs/PARADIGMS.md](docs/PARADIGMS.md) — research companion: presentation paradigms (cards, timelines, canvases, tile grids), the wayfinding question, and the CD-ROM multimedia era's rise and fall
 - [docs/TOOL-LANDSCAPE-SYNTHESIS.md](docs/TOOL-LANDSCAPE-SYNTHESIS.md) — research synthesis: ~40 dashboard/gallery/curation/dataflow tools surveyed (Freeboard, Are.na, Observable, oEmbed, ToolFlow…) and what each teaches WikiBento
+- [docs/TOOL-LANDSCAPE.md](docs/TOOL-LANDSCAPE.md) — the full survey behind the synthesis (dashboards, galleries, curation, dataflow)
+- [docs/TOOLFLOW-ANALYSIS.md](docs/TOOLFLOW-ANALYSIS.md) — assessment of Magnus Manske's ToolFlow: what to borrow, what to avoid
+- [docs/DEMO-IDEAS.md](docs/DEMO-IDEAS.md) — demo/showcase concept bank ("Voyager, revisited"): 11 concepts A–K with board wiring, venue and effort, plus a demo playbook
+- [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
+- [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
