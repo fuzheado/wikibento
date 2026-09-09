@@ -151,6 +151,31 @@ export const EXAMPLE_DASHBOARD = {
   widgetType: 'cimFileTraffic',
   config: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
  },
+ {
+  id: 'example-list',
+  widgetType: 'listSource',
+  config: { title: 'Curated articles', items: 'Ada Lovelace\nAlbert Einstein\nAlan Turing\nGrace Hopper', refreshSeconds: 86400 },
+ },
+ {
+  id: 'example-filter',
+  widgetType: 'filterLines',
+  config: { source: 'example-list', pattern: 'einstein', match: 'contains', caseSensitive: false, refreshSeconds: 86400 },
+ },
+ {
+  id: 'example-count',
+  widgetType: 'lineCount',
+  config: { source: 'example-filter', label: 'matched articles', refreshSeconds: 86400 },
+ },
+ {
+  id: 'example-echo',
+  widgetType: 'echo',
+  config: { source: 'example-count', title: 'Final count', refreshSeconds: 86400 },
+ },
+ {
+  id: 'example-list-articles',
+  widgetType: 'articleList',
+  config: { articles: '{{widget:example-list}}', project: 'en.wikipedia', enrich: true, refreshSeconds: 3600 },
+ },
 
   ],
   layout: [
@@ -177,6 +202,11 @@ export const EXAMPLE_DASHBOARD = {
  { i: 'example-cimtrend', x: 4, y: 51, w: 4, h: 4, minW: 3, minH: 3 },
  { i: 'example-cimtopfiles', x: 8, y: 51, w: 4, h: 6, minW: 3, minH: 3 },
   { i: 'example-cimfiletraffic', x: 0, y: 57, w: 6, h: 5, minW: 3, minH: 3 },
+ { i: 'example-list', x: 0, y: 62, w: 3, h: 5, minW: 2, minH: 3 },
+ { i: 'example-filter', x: 3, y: 62, w: 3, h: 5, minW: 2, minH: 3 },
+ { i: 'example-count', x: 6, y: 62, w: 3, h: 3, minW: 2, minH: 3 },
+ { i: 'example-echo', x: 9, y: 62, w: 3, h: 3, minW: 2, minH: 3 },
+ { i: 'example-list-articles', x: 0, y: 67, w: 12, h: 4, minW: 3, minH: 3 },
   ],
 };
 
@@ -224,6 +254,12 @@ export function validateDashboard(input) {
       errors.push(`${where}: duplicate id "${w.id}"`);
     } else {
       ids.add(w.id);
+      // ISSUE-53: ids are the instance names widgets are referenced by
+      // ({{widget:id}} interpolation + the source picker) — warn when an id
+      // can't be referenced that way (never block the import).
+      if (!/^[a-zA-Z0-9_-]+$/.test(w.id)) {
+        warnings.push(`${where}: id "${w.id}" uses characters outside [A-Za-z0-9_-] — other widgets can't reference it via {{widget:id}} or the source picker (rename it in ⚙)`);
+      }
     }
     if (typeof w.widgetType !== 'string') {
       errors.push(`${where}: "widgetType" must be a string`);
@@ -272,6 +308,16 @@ export function validateDashboard(input) {
   widgets.forEach(w => {
     if (w.id && !layoutIds.has(w.id)) {
       warnings.push(`Widget "${w.id}" has no layout entry — it will be auto-placed`);
+    }
+  });
+  // ISSUE-51: a widget's `source` should reference a widget actually on the
+  // board. Non-fatal warning — a link to a missing id shows the empty state.
+  widgets.forEach(w => {
+    const def = WIDGET_TYPES[w.widgetType];
+    const field = (def?.configFields || []).find((f) => f.type === 'source');
+    const src = field && w.config && typeof w.config[field.key] === 'string' ? w.config[field.key] : '';
+    if (src && !ids.has(src)) {
+      warnings.push(`Widget "${w.id}" feeds from "${src}" (${field.label}) — no widget with that id is on the board; it will show its empty state until connected`);
     }
   });
   [...layoutIds].forEach(id => {
@@ -337,7 +383,11 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
 
   // Unknown keys are tolerated (forward compatibility) but flagged.
   const known = new Set([...Object.keys(fieldMap), 'refreshSeconds', '_title']);
+  // ISSUE-53: `source` is a first-class config key on consumer widgets — but
+  // only for widget types that declare a source config field. Tolerate it
+  // elsewhere (forward compatibility) without flagging.
+  const hasSourceField = fieldMap.source;
   Object.keys(c).forEach(k => {
-    if (!known.has(k)) warnings.push(`${where}: unknown config key "${k}" (ignored)`);
+    if (!known.has(k) && !(k === 'source' && hasSourceField)) warnings.push(`${where}: unknown config key "${k}" (ignored)`);
   });
 }

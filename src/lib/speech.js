@@ -88,7 +88,7 @@ export function createSpeechController({ synth = null, Utterance = null } = {}) 
         if (onerror) u.onerror = (e) => onerror(e && e.error ? e.error : 'error');
         synth.speak(u);
         return { ok: true };
-      } catch (err) {
+      } catch {
         return { ok: false, reason: 'not-supported' };
       }
     },

@@ -1,7 +1,7 @@
 {
  "version": 2,
- "generatedAt": "2026-09-05T01:53:33.632Z",
- "widgetCount": 31,
+ "generatedAt": "2026-09-09T09:01:19.386Z",
+ "widgetCount": 36,
  "widgets": [
   {
    "id": "pageviews",
@@ -1099,6 +1099,32 @@
    ]
   },
   {
+   "id": "speaker",
+   "name": "Speaker (text-to-speech)",
+   "icon": "🔊",
+   "description": "Output widget — speaks its text aloud with speech synthesis. First of the output/effector family. Safety-first: nothing speaks until ▶ is clicked once on the widget (\"armed\"); speak-on-change (default off) then announces text changes — e.g. a {{param}} phrase driven by Board Controls.",
+   "dataSource": "static (no fetch) — Web Speech synthesis (speechSynthesis)",
+   "category": "Content & Embeds",
+   "type": "embed",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "text",
+     "type": "textarea"
+    },
+    {
+     "key": "speakOnChange",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "text",
+    "speakOnChange",
+    "refreshSeconds"
+   ]
+  },
+  {
    "id": "wikiPage",
    "name": "Wiki Page",
    "icon": "📄",
@@ -1320,6 +1346,131 @@
     "url",
     "dates",
     "toleranceDays",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "listSource",
+   "name": "Text List",
+   "icon": "🧾",
+   "description": "A pasted list of lines (articles, files, anything) published for other widgets — connect via a `source` picker or {{widget:id}}",
+   "dataSource": "static (a list you paste) — emits its lines to other widgets",
+   "category": "Dataflow",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "title",
+     "type": "text"
+    },
+    {
+     "key": "items",
+     "type": "textarea"
+    }
+   ],
+   "defaults": [
+    "title",
+    "items",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "filterLines",
+   "name": "Filter Lines",
+   "icon": "🔎",
+   "description": "Consume another widget\\",
+   "dataSource": "widget output (source) — no fetch",
+   "category": "Dataflow",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "source",
+     "type": "source"
+    },
+    {
+     "key": "title",
+     "type": "text"
+    },
+    {
+     "key": "pattern",
+     "type": "text"
+    },
+    {
+     "key": "match",
+     "type": "select",
+     "options": [
+      "contains",
+      "equals",
+      "starts",
+      "ends"
+     ]
+    },
+    {
+     "key": "caseSensitive",
+     "type": "boolean"
+    }
+   ],
+   "defaults": [
+    "source",
+    "title",
+    "pattern",
+    "match",
+    "caseSensitive",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "lineCount",
+   "name": "Line Count",
+   "icon": "🔢",
+   "description": "Count the lines/elements of another widget\\",
+   "dataSource": "widget output (source) — no fetch",
+   "category": "Dataflow",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "source",
+     "type": "source"
+    },
+    {
+     "key": "label",
+     "type": "text"
+    }
+   ],
+   "defaults": [
+    "source",
+    "label",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "echo",
+   "name": "Value Display",
+   "icon": "🖨️",
+   "description": "Show whatever another widget outputs (number, lines, JSON) — the debug/pipe endpoint of a dataflow chain; passes the value through",
+   "dataSource": "widget output (source) — no fetch",
+   "category": "Dataflow",
+   "type": "table",
+   "intensity": "low",
+   "experimental": false,
+   "configFields": [
+    {
+     "key": "source",
+     "type": "source"
+    },
+    {
+     "key": "title",
+     "type": "text"
+    }
+   ],
+   "defaults": [
+    "source",
+    "title",
     "refreshSeconds"
    ]
   }

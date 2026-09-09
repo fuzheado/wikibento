@@ -13,6 +13,7 @@ const CATEGORIES = [
   { id: 'Web & History', label: 'Web & History', icon: '🕰️' },
   { id: 'Queries & Power', label: 'Queries & Power', icon: '🧠' },
   { id: 'Content & Embeds', label: 'Content & Embeds', icon: '📝' },
+  { id: 'Dataflow', label: 'Dataflow', icon: '🔀' },
 ];
 
 const TYPE_FILTERS = [
@@ -35,7 +36,8 @@ const TYPE_BY_RENDERER = {
   GalleryGridCard: 'media', GalleryListCard: 'media', CimTopFilesCard: 'media',
   WaybackGalleryCard: 'media', PanoramaCard: 'media',
   SparqlCard: 'query',
-  MarkdownCard: 'embed', WikiPageCard: 'embed',
+  MarkdownCard: 'embed', WikiPageCard: 'embed', SpeakerCard: 'embed',
+  ListSourceCard: 'table', EchoCard: 'table',
 };
 
 const typeOf = (def) => TYPE_BY_RENDERER[def.renderer] || 'stat';

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { resolveParams } from '../lib/params';
 import { resolveMonth, fmtMonth } from '../lib/scope';
+import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { createSpeechController } from '../lib/speech';
@@ -10,7 +11,7 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
   // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
   // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
   // path (config panel, handleConfigChange) deliberately uses the RAW
@@ -20,13 +21,27 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   // The placeholder stays visible in the ⚙ form — provenance, and overwriting
   // it manually is the documented freeze/override escape hatch.
   const resolvedConfig = useMemo(
-    () => resolveParams(widget.config, paramValues),
-    [widget.config, paramValues],
+    () => resolveParams(widget.config, paramValues, widgetOutputs),
+    [widget.config, paramValues, widgetOutputs],
+  );
+  // ISSUE-51 (widget-to-widget dataflow): the emitted value of the widget this
+  // one `source`s from, if any — structured access; `{{widget:id}}` interpolation
+  // in any string field is a second, string-level pathway (see params.js).
+  const sourceOutputValue = useMemo(
+    () => resolveSourceValue(resolvedConfig, widgetOutputs),
+    [resolvedConfig, widgetOutputs],
   );
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
+  // ISSUE-53: editable instance name (draft field in ⚙; committed on Apply →
+  // onRename which dialogs + repoints any references). Re-synced when the id
+  // actually changes (rename remounts the frame via React key, so this is
+  // mostly belt-and-braces for load/import paths).
+  const [instanceName, setInstanceName] = useState(widget.id);
+  const [nameError, setNameError] = useState(null);
+  useEffect(() => { setInstanceName(widget.id); }, [widget.id]);
   const intervalRef = useRef(null);
   // Latest onAutoHeight via ref — load()'s closure must not go stale as the
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
@@ -130,21 +145,30 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
 
 
   const load = useCallback(async (force) => {
+    // ISSUE-51: publish this widget's output to the board so consumers can
+    // source from it. Runs in BOTH the static and fetch paths (the dataflow
+    // producers — Text List / Filter / Count / Echo — are all static).
+    // Skip undefined (an echo with no input isn't a value).
+    const publishOutput = (transformed) => {
+      if (def.emit && onOutput) {
+        const emitted = def.emit(transformed, resolvedConfig);
+        if (emitted !== undefined) onOutput(widget.id, emitted);
+      }
+    };
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
-      // Static widget (no fetch): render straight from config.
-      setState({
-        loading: false,
-        error: null,
-        data: WIDGET_TYPES[widget.widgetType]?.transform
-          ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig)
-          : null,
-      });
+      // Static widget (no fetch): render straight from config — the
+      // transform also sees its `source` output (dataflow, ISSUE-51).
+      const transformed = WIDGET_TYPES[widget.widgetType]?.transform
+        ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig, { sourceOutput: sourceOutputValue })
+        : null;
+      setState({ loading: false, error: null, data: transformed });
+      publishOutput(transformed);
       return;
     }
     setState(s => ({ ...s, loading: true, error: null }));
     try {
-      const data = await def.fetch(resolvedConfig, { force }); // force = bust TTL/SWR caches (manual ↻ / Apply)
-      const transformed = def.transform(data, resolvedConfig);
+      const data = await def.fetch(resolvedConfig, { force, sourceOutput: sourceOutputValue }); // force = bust TTL/SWR caches (manual ↻ / Apply)
+      const transformed = def.transform(data, resolvedConfig, { sourceOutput: sourceOutputValue });
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
       setState({ loading: false, error: null, data: transformed });
@@ -152,10 +176,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
   // → px; the app fits the grid row height once (unless the user resized manually).
   const autoPx = def.autoHeight ? def.autoHeight(transformed, resolvedConfig) : null;
   if (autoPx && onAutoHeightRef.current) onAutoHeightRef.current(widget.id, autoPx);
+      publishOutput(transformed);
     } catch (e) {
       setState({ loading: false, error: e.message, data: null });
     }
-  }, [widget.widgetType, resolvedConfig]);
+  }, [widget.widgetType, resolvedConfig, def, sourceOutputValue, widget.id, onOutput]);
 
   // Load on mount, on widget-type change, or when the app signals a full
   // reload (reloadKey bumped by import / example / reset). Config edits
@@ -166,6 +191,22 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey, widget.widgetType]);
+
+  // ISSUE-51 (widget-to-widget dataflow): re-load when a PRODUCER's output
+  // changes — via a `source` config field or any {{widget:id}} reference in
+  // this config. The signature is content-based, so a producer re-emitting an
+  // identical value is a no-op (no refresh storms, no emit→reload→emit loops).
+  // Deliberately built from the RAW config: resolution has already replaced
+  // {{widget:id}} with the value, so the refs are only visible pre-resolution.
+  const outputSig = useMemo(() => widgetOutputSignature(widget.config, widgetOutputs), [widget.config, widgetOutputs]);
+  const prevOutputSigRef = useRef(null);
+  useEffect(() => {
+    if (outputSig !== null && outputSig !== prevOutputSigRef.current) {
+      prevOutputSigRef.current = outputSig;
+      load();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputSig]);
 
   // Auto-refresh (static widgets have nothing to refresh)
   useEffect(() => {
@@ -179,11 +220,35 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
   };
 
+  // ISSUE-53: commit the ⚙ name field — validation, then onRename (which may
+  // open the repoint dialog when other widgets reference this id). Returns
+  // true when the name is fine (so Apply can proceed); false leaves the panel
+  // open with an inline error so the user can fix it.
+  const commitRename = () => {
+    const trimmed = instanceName.trim();
+    setNameError(null);
+    if (trimmed === widget.id) return true;
+    if (!trimmed) { setNameError('Name cannot be empty'); return false; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+      setNameError('Use only letters, numbers, - and _ (other widgets reference this as {{widget:name}} or via the source picker)');
+      return false;
+    }
+    const r = onRename?.(widget.id, trimmed);
+    if (r && r.ok === false && r.error) { setNameError(r.error); return false; }
+    if (r && r.pending) setShowConfig(false); // dialog opens over the board; panel closes
+    return true;
+  };
+
   return (
     <div className="widget-frame">
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
+          <span
+            className="widget-id-chip"
+            title="Instance name — how other widgets refer to this box (⚙ to rename; renames repoint references)"
+            onClick={(e) => { e.stopPropagation(); setShowConfig(true); }}
+          >{widget.id}</span>
         </span>
         <div className="widget-actions">
           <button
@@ -207,6 +272,30 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
 
       {showConfig && (
         <div className="widget-config">
+          {/* ISSUE-53: instance identity + display title — every widget is
+              referrable by a consistent, editable name. The name renames the
+              id (dialog + repoint when others reference it); the title is the
+              optional display override (config._title, header only). */}
+          <div className="config-field config-name-field">
+            <label>Name (instance id)</label>
+            <input
+              type="text"
+              value={instanceName}
+              onChange={(e) => { setInstanceName(e.target.value); setNameError(null); }}
+              placeholder="my-widget"
+            />
+            {nameError && <small className="config-hint config-error">{nameError}</small>}
+            {!nameError && <small className="config-hint">How other widgets reference this box ({'{{widget:' + widget.id + '}}'} or the source picker). Renaming repoints references.</small>}
+          </div>
+          <div className="config-field">
+            <label>Display title (optional)</label>
+            <input
+              type="text"
+              value={widget.config._title || ''}
+              onChange={(e) => handleConfigChange('_title', e.target.value)}
+              placeholder="auto — e.g. the item being analyzed"
+            />
+          </div>
           {(def?.configFields || []).map(field => (
             <div key={field.key} className="config-field">
               <label>{field.label}</label>
@@ -219,6 +308,28 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              ) : field.type === 'source' ? (
+                <div className="config-source-wrap">
+                  {/* ISSUE-53: one consistent source control everywhere — a
+                      combobox: dropdown of emitting widgets (datalist) AND
+                      manual id entry. The picker lists every emitting widget
+                      by instance id; typing a literal id works too. */}
+                  <input
+                    className="config-source-input"
+                    list={`source-dl-${widget.id}`}
+                    value={widget.config[field.key] || ''}
+                    onChange={(e) => handleConfigChange(field.key, e.target.value)}
+                    placeholder="— none — or type an instance id"
+                  />
+                  <datalist id={`source-dl-${widget.id}`}>
+                    {(sourceOptions || [])
+                      .filter((o) => o.id !== widget.id)
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>{o.label}</option>
+                      ))}
+                  </datalist>
+                  {field.hint && <small className="config-hint">{field.hint}</small>}
+                </div>
               ) : field.type === 'boolean' ? (
                 <input
                   type="checkbox"
@@ -261,7 +372,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
               )}
             </div>
           ))}
-          <button className="widget-btn widget-btn-apply" onClick={() => { setShowConfig(false); load(true); }}>
+          <button className="widget-btn widget-btn-apply" onClick={() => { if (commitRename()) { setShowConfig(false); load(true); } }}>
             Apply & Reload
           </button>
         </div>
@@ -271,8 +382,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, reloadKe
         <div className="widget-info">
           <div className="widget-info-head">
             <span className="widget-info-name">{def?.icon} {def?.name || widget.widgetType}</span>
-            <code className="widget-info-slug">{def?.id || widget.widgetType}</code>
+            <code className="widget-info-slug" title="Instance id — the stable name other widgets use to reference this box">{widget.id}</code>
           </div>
+          {def?.id && (
+            <div className="widget-info-row">
+              <span className="widget-info-label">Type</span>
+              <span><code>{def.id}</code></span>
+            </div>
+          )}
           {def?.description && <p className="widget-info-desc">{def.description}</p>}
           {def?.dataSource && (
             <div className="widget-info-row">
@@ -371,6 +488,9 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
     case 'GalleryListCard': return <GalleryListCard data={data} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} />;
+
+    case 'ListSourceCard': return <ListSourceCard data={data} />;
+    case 'EchoCard': return <EchoCard data={data} />;
 
     case 'SparqlCard': return <SparqlCard data={data} />;
 
@@ -949,6 +1069,62 @@ function ArticleListCard({ data }) {
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Text List / Filter Lines — a numbered, scrollable list of lines (the
+ *  visible face of any widget that emits an array of strings). */
+function ListSourceCard({ data }) {
+  const rows = data.lines || [];
+  return (
+    <div className="ranking-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="list-source-body">
+        {rows.length === 0
+          ? <div className="widget-empty">{data.emptyText || 'Nothing yet — connect a source in ⚙.'}</div>
+          : rows.map((s, i) => (
+              <div key={i} className="list-source-row">
+                <span className="rank-num">{i + 1}.</span>
+                <span className="list-source-item" title={s}>{s}</span>
+              </div>
+            ))}
+      </div>
+    </div>
+  );
+}
+
+/** Value Display (echo) — renders whatever a widget outputs: number/string as
+ *  a big readout, an array as a list, an object as pretty JSON. */
+function EchoCard({ data }) {
+  if (data.kind === 'none' || data.value === undefined) {
+    return (
+      <div className="echo-card">
+        {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+        <div className="widget-empty">
+          No value yet — open ⚙ and pick a <em>source</em> widget (e.g. Line Count).
+        </div>
+      </div>
+    );
+  }
+  if (data.kind === 'array') {
+    return <ListSourceCard data={{ title: data.title, subtitle: data.subtitle, lines: data.value }} />;
+  }
+  if (data.kind === 'object') {
+    return (
+      <div className="echo-card">
+        {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+        {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+        <pre className="echo-json">{JSON.stringify(data.value, null, 2)}</pre>
+      </div>
+    );
+  }
+  return (
+    <div className="stat-card">
+      {data.title && <div className="stat-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="stat-subtitle">{data.subtitle}</div>}
+      <div className="stat-value">{data.value ?? '—'}</div>
     </div>
   );
 }

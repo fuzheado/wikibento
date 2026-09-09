@@ -579,3 +579,162 @@ The GLAM Wiki Dashboard + SightGlass (ISSUE-23) + CIM all read the same
 underlying mediacounts family at different granularities. A unified
 "GLAM data layer" abstraction (daily via this API, monthly via CIM,
 job-based via SightGlass) would let widgets share one vocabulary.
+
+
+## External & Open-Ecosystem Widgets (2026-08-16 brainstorm; merged 2026-09-08)
+
+> Brainstorm continuation prompted by the ISSUES.md widget threads and the
+> "GitHub status / IIIF / more mapping" direction. These widgets tie WikiBento
+> to the *wider* open-access and free-content commons — FLOSS forges, open
+> scholarship, open cultural heritage, and the AI-era "who nourishes the
+> commons?" question. Deliberately no consumer platforms (no Amazon/Apple/
+> Spotify); the closest analog is LibriVox / IMSLP / Musopen — the open answer
+> to a "music widget."
+>
+> Legend: **★** impressiveness (wow/PR value) · **✦** innovation. Feasibility
+> is date-stamped; CORS status is from live Origin-header probes 2026-08-16.
+>
+> Node-family placement (vocabulary from the Node Algebra taxonomy below;
+> params = ISSUE-50, shipped): almost all of these are **new Sources**
+> feeding existing renderers — one fetcher per the registry pattern; the
+> IIIF/display rows are Effectors; the AI-era rows are AI-native nodes
+> riding the ISSUE-44 `/api/ask` relay.
+
+### CORS sweep (verified 2026-08-16, Origin: wikibento.toolforge.org)
+
+| Endpoint | Result |
+|---|---|
+| `api.github.com/repos/{owner}/{repo}` | ✅ CORS `*` (no auth for public) |
+| `gitlab.com/api/v4/projects/{id}` | ✅ CORS `*` |
+| `opencollective.com/{slug}.json` | ✅ CORS `*` |
+| `api.openalex.org` | ✅ CORS `*` |
+| `api.crossref.org` | ✅ CORS `*` |
+| `api.gbif.org/v1` | ✅ CORS `*` |
+| `iiif.harvardartmuseums.org` (manifest) | ✅ CORS `*` (institution-dependent) |
+| `export.arxiv.org/api` | ⚠️ 200, no ACAO → proxy or Atom feed |
+| `librivox.org/api` | ⚠️ probe timed out → re-check |
+| `api.zenodo.org` | ⚠️ probe timed out → re-check |
+
+### Tier 1 — Easy (one fetcher + existing renderer)
+
+| Idea | What it shows | Data source + feasibility | Effort | Wow |
+|---|---|---|---|---|
+| **Repo Pulse** 🐙 (GitHub/GitLab/Codeberg) | stars, forks, open issues/PRs, last release/commit, license | `api.github.com/repos/{owner}/{repo}` + GitLab `/api/v4/projects/{id}` — ✅ CORS `*` both | S | ★★ ✦✦ |
+| **Sustainer card** 💚 | monthly budget, backers, goal for a FLOSS project | `opencollective.com/{slug}.json` (✅ CORS `*`); Liberapay / GitHub Sponsors to probe | S | ★★ ✦✦✦ |
+| **arXiv / preprint radar** 📄 | latest N papers in a field / search | `export.arxiv.org/api` (⚠️ no CORS → proxy or Atom) | S | ★★ ✦✦ |
+| **Open-citation card** 📚 | citations + OA status (gold/green/closed) for a DOI/author | `api.openalex.org` + `api.crossref.org` (✅ CORS `*`) | S | ★★ ✦✦✦ |
+| **Public-Domain Day tracker** 🎉 | what just entered PD / "is author X PD yet" | static rule + Wikisource/Commons lookup | S | ★★★ ✦✦✦ |
+| **SDC completeness gauge** 🏷️ | % of a category's files with depicts/creator/license | WCQS (QLever) / `wbgetentities` | S | ★★ ✦✦✦ |
+
+### Tier 2 — Medium
+
+| Idea | What it shows | Data source + feasibility | Effort | Wow |
+|---|---|---|---|---|
+| **IIIF Deep-Zoom viewer** 🔍 | deep zoom of a manuscript/artwork + manifest metadata + pager | IIIF manifest (Wikidata P6108); OpenSeadragon renderer; ✅ manifest CORS varies by institution → `/api/proxy` fallback | M | ★★★★★ ✦✦✦✦ |
+| **IIIF Collection browser** 🗂️ | a museum's IIIF collection as gallery → viewer | same engine as above | M | ★★★★ ✦✦✦ |
+| **Wikipedia Coverage choropleth** 🗺️ | world shaded by per-country article presence/quality | Leaflet + country shapes + Wikidata | M | ★★★★ ✦✦✦✦ |
+| **Living-edits map** 🌍 | geolocated (anonymized) edit activity, live | EventStreams / Wikistats geo | M | ★★★★ ✦✦✦ |
+| **GBIF species map** 🦋 | occurrence map for a taxon | `api.gbif.org/v1` (✅ CORS `*`) | M | ★★★★ ✦✦✦ |
+| **Free-audio shelf** 🎧 (LibriVox / IMSLP / Musopen) | public-domain audiobook / classical player | reuse `mediaPlayer`; LibriVox API ⚠️ re-check | M | ★★★ ✦✦✦ |
+| **New-article survival rate** 🌱 | % of new articles alive at 30/90 days | PageTriage / AfC | M | ★★★ ✦✦✦✦ |
+| **Translation-gap monitor** 🌐 | languages missing/stub for an article + CX activity | `langlinks` + prose size | M | ★★ ✦✦✦ |
+
+### Tier 3 — Ambitious
+
+| Idea | What it shows | Data source + feasibility | Effort | Wow |
+|---|---|---|---|---|
+| **Wikipedia-in-AI citation monitor** 🤖 | how much the scholarly/AI world cites/relies on Wikipedia | OpenAlex / Semantic Scholar "cites Wikipedia", Common Crawl presence — research first | L | ★★★★★ ✦✦✦✦✦ |
+| **AI-vs-Wikipedia gap diff** 🧠 | LLM answer vs the living article, diffed | reuses ISSUE-44 `/api/ask` relay + article fetch | L | ★★★★★ ✦✦✦✦✦ |
+| **Revert/resilience dashboard** 🛡️ | edits vs reverts over time per wiki | edit tags + Lift Wing | L | ★★★★ ✦✦✦✦ |
+| **Antique-map overlay** 🗺️ | David Rumsey (CC) historic maps over OSM | georeferenced IIIF/XYZ tiles | L | ★★★★★ ✦✦✦✦ |
+| **Wikidata ↔ Wikipedia completeness matrix** 🔗 | structured/unstructured gap per topic | WDQS + article statements | L | ★★★ ✦✦✦✦ |
+| **Reference-rot remediation queue** ♻️ | ranked "fix these citations" worklist | Wayback + Crossref/OpenAlex DOI resolution | L | ★★★ ✦✦✦ |
+
+### Relations to ideas already banked (merged 2026-09-08)
+
+- **Maps overlap the Kartographer family above** — Coverage choropleth /
+  Living-edits / Antique-map / GBIF are new sources + renderers on the same
+  planned Leaflet engine, not a separate map stack.
+- **Reference-rot queue extends the Dead-link / Reference-rot Detector entry**
+  (Wayback infra already proven for the Wayback Snapshot Gallery).
+- **IA-specific widgets are already ISSUE-25** — the free-audio shelf is
+  deliberately *not* Internet Archive; LibriVox / IMSLP / Musopen are separate
+  catalogs.
+- **Revert/resilience is the quality dimension of ISSUE-28's movement health**
+  (traffic/editors today; reverts add the "holding the line" axis).
+- **Open-citation + arXiv + Wikipedia-in-AI all read the scholarly graph** —
+  candidates for the 🧑‍🔬 Researcher's View starter pack.
+
+### Node-family placement (vocabulary from the Node Algebra taxonomy below)
+
+| Idea family | Node kind | Notes |
+|---|---|---|
+| Repo Pulse, Sustainer, arXiv, Open-citation, Public-Domain, SDC gauge, GBIF, translation-gap | **Source** | one fetcher + existing StatCard / RankingCard / TrendCard |
+| IIIF viewer/collection, antique map, free-audio, choropleth, living-edits | **Source → Effector / display** | OpenSeadragon / Leaflet / mediaPlayer reuse |
+| New-article survival | **Reducer** (rate over a cohort) | PageTriage data |
+| Wikipedia-in-AI monitor, AI-vs-Wikipedia gap | **AI-native** | ride the ISSUE-44 `/api/ask` relay (Wikimedia-hosted LLM, no key) |
+
+### Notes & throughlines
+
+- **"Sustainer" theme** (Repo Pulse, Sustainer card, Revert/resilience) — the
+  prime-directive question "who nourishes the commons?" as widgets.
+- **"AI era" theme** (Wikipedia-in-AI citation, AI-vs-Wikipedia gap) — nothing
+  like this exists; the strongest candidates for "gets WikiBento written up."
+- **"Open cultural heritage" theme** (IIIF viewer/collection, GBIF, antique
+  maps, free-audio) — the external-GLAM expansion.
+- **Templating fit — params are LIVE (ISSUE-50, not just the ISSUE-41
+  design):** board `params` + Board Controls card + `{{param}}` interpolation
+  shipped (d1f3860 → b584f60 → 00b2dd7); URL context params per ISSUE-40.
+  IIIF viewer, coverage map, GBIF, and free-audio each take a single subject →
+  instantiate as `{{manifest}}` / `{{region}}` / `{{taxon}}` templates.
+- **Guardrail** — open-access/free-content or FLOSS-adjacent only; GitHub /
+  GitLab / OpenAlex / Crossref / Open Collective are commons *infrastructure*,
+  not commercial content.
+- **Hero shortlist** (most PR value): IIIF Deep-Zoom viewer · Wikipedia
+  Coverage choropleth · Wikipedia-in-AI monitor + AI-vs-Wikipedia gap.
+
+## Node Algebra: primitive widget families (2026-09-05 brainstorm)
+
+The interactivity conversation (issues #16/#18/#19 + MODULARITY Parts 3–5)
+needs a shared vocabulary for *what kinds of nodes exist*. Consumers are
+already universal (Part 4: params interpolate into every config field); the
+open design space is the middle and output of the graph. Proposed families
+(anchor: the hub carries named values; nodes do things to them):
+
+1. **Sources** — fetch widgets, pasted lists, Board Controls, URL context
+   params (ISSUE-40); future external list handles (PagePile/PSID, §List
+   Sources above).
+2. **Controllers** — gesture writes a param (issue #19, Path B). Param
+   namespaces that pay off are mapped in MODULARITY Part 4.
+3. **Transformers** — consume one (or two) feeds, emit one (issue #18).
+   Phase-1 ops: Filter (keyword/regex/negate) · Sort (alpha/numeric/natural/
+   reverse) · **Reverse/invert** · Dedupe (Unique) · Top-N/Truncate ·
+   **Union/merge (two feeds)** · **Rename/remap** · **Regex-extract**.
+   (Completes the Yahoo Pipes operator set: Fetch·Filter·Sort·Truncate·
+   Unique·Rename·Union·Reverse·Regex·Loop.) Plus the LLM **Summarizer**
+   (service-backed).
+4. **Reducers / aggregators** — feed → single value: count, sum/avg of a
+   numeric field, group-by (precedent: gallery groupBy headers; CIM
+   aggregates), histogram/buckets, is-empty→status. The classic second half
+   of Pipes-style demos ("500 images → count by country").
+5. **Enrichers** — rows ↔ external lookup: batched thumbnail/summary
+   (Article List precedent), standalone QID↔label resolver (the SPARQL
+   label fix generalized), Commons file-existence check, join two feeds by
+   key.
+6. **Routers / gates** — branch-if / whitelist-gate. DELIBERATELY Level-2
+   (MODULARITY Path C): declarative, capped, never a visual wiring canvas.
+7. **Effectors (output family, issue #16)** — speaker (shipped in PR #17);
+   planned siblings: card-compositor (text+image → graphic), export node
+   (feed → CSV/JSON/txt download), embed-snippet generator, story nodes
+   (TimelineJS/StoryMapJS — §Knight Lab evaluation above; issue #9).
+8. **AI-native nodes** — Summarizer (#18); **Translate via MinT**
+   (Wikimedia's own service — free, no key: "translate this feed's labels
+   into my board language"); **Score/triage via ORES** per item (reuses the
+   quality fetcher over a list — WMF's own ML as a classifier primitive);
+   entity-link (text → QIDs, future/hard); the Ask panel's answer → param
+   ("prompt node").
+
+Sequencing note: 1–3 exist or are filed (#16/#18/#19). Reducers and the
+QID↔label enricher slot in as cheap Phase-1.5 follow-ups to #18; MinT
+translate is the recommended first service-backed AI node after the
+Summarizer because it needs no keys and no proxy.

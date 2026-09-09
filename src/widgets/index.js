@@ -34,6 +34,7 @@ import {
 } from './dataSources';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
+import { toLines, countOf } from '../lib/dataflow';
 
 const NAMESPACE_LABELS = {
   '0': 'articles only',
@@ -321,7 +322,7 @@ export const WIDGET_TYPES = {
 
   glamorgan: {
     id: 'glamorgan',
-    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree via PetScan — large budgets can take 30–90 s',
+    category: 'Categories & GLAM', intensity: 'high', loadingHint: 'Walking the category tree via PetScan — large budgets can take 30–90 s, very large trees a few minutes',
 
     timeScope: 'month',    name: 'GLAM Category Usage',
     icon: '📈',
@@ -364,12 +365,12 @@ export const WIDGET_TYPES = {
       title: data.category,
       emptyHint,
       href: `https://commons.wikimedia.org/wiki/Category:${encodeURIComponent(data.category)}`,
-      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ' · views partial' : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
+      subtitle: `${data.monthLabel} · ${data.files.toLocaleString()} files${data.cappedFiles ? ' (capped)' : ''}${data.partialViews ? ` · views partial (${(data.viewsFetched ?? 0).toLocaleString()} of ${data.pages.toLocaleString()} pages)` : ''}${data.viewsFailed ? ` · ${data.viewsFailed.toLocaleString()} pages failed` : ''}${data.source === 'selfwalk' ? ' · self-walk fallback' : ''}`,
       stats: [
         { label: 'Files in category', value: data.files.toLocaleString(), sub: data.cappedFiles ? 'budget-capped' : undefined },
         { label: 'Files viewed', value: data.viewedFiles.toLocaleString(), sub: `of ${data.usedFiles.toLocaleString()} used` },
         { label: 'Pages using files', value: data.pages.toLocaleString(), sub: `on ${data.wikis.toLocaleString()} wikis` },
-        { label: 'Total views', value: data.totalViews.toLocaleString(), sub: data.monthLabel },
+        { label: 'Total views', value: data.totalViews.toLocaleString(), sub: data.partialViews ? `partial · ${data.monthLabel}` : data.monthLabel },
       ],
       filmstrip: data.top,
       detail: data.detail && {
@@ -1477,5 +1478,170 @@ export const WIDGET_TYPES = {
         toleranceDays: parseInt(config.toleranceDays) || 30,
       };
     },
+  },
+
+  // ── Dataflow (ISSUE-51): widget-to-widget connections ────────────────
+  // Beyond board params (ISSUE-50), a widget can *emit* an output (registry
+  // `emit`) and another widget can *consume* it via a `source` config field
+  // (structured, opts.sourceOutput) or `{{widget:id}}` interpolation (string,
+  // arrays join with newlines). The canonical demo chain:
+  //   Text List → Filter Lines → Line Count → Value Display
+  // and the Text List's output can also feed existing textarea widgets
+  // (e.g. articleList.articles) through interpolation.
+
+  listSource: {
+    id: 'listSource',
+    category: 'Dataflow', intensity: 'low',
+
+    timeScope: 'point',    name: 'Text List',
+    icon: '🧾',
+    description: 'A pasted list of lines (articles, files, anything) published for other widgets — connect via a `source` picker or {{widget:id}}',
+    labelFromConfig: (c) => {
+      const n = (c.items || '').split('\n').filter((s) => s.trim()).length;
+      return n ? `${n} lines` : null;
+    },
+    defaults: {
+      title: '',
+      items: 'Ada Lovelace\nAlbert Einstein\nAlan Turing\nGrace Hopper\nLinus Torvalds',
+      refreshSeconds: 86400,
+    },
+    renderer: 'ListSourceCard',
+    dataSource: 'static (a list you paste) — emits its lines to other widgets',
+    configFields: [
+      { key: 'title', label: 'Title (optional)', type: 'text', placeholder: 'Curated articles' },
+      { key: 'items', label: 'Items (one per line)', type: 'textarea', rows: 8, placeholder: 'Ada Lovelace\nAlbert Einstein', hint: 'Lines are emitted to the board: any widget can reference this list via the `source` picker or {{widget:<this widget id>}} interpolation.' },
+    ],
+    // Static — the widget itself is the data.
+    transform: (data, config) => {
+      const items = String(config.items || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      const title = (config.title || '').trim() || 'List';
+      return {
+        title,
+        subtitle: `${items.length} line${items.length === 1 ? '' : 's'} — a dataflow source`, 
+        lines: items,
+      };
+    },
+    // Emitted value: the plain list (interpolation joins it with newlines).
+    emit: (data) => data.lines,
+  },
+
+  filterLines: {
+    id: 'filterLines',
+    category: 'Dataflow', intensity: 'low',
+
+    timeScope: 'point',    name: 'Filter Lines',
+    icon: '🔎',
+    description: 'Consume another widget\'s output and keep only the lines matching a pattern — downstream widgets see the filtered list',
+    labelFromConfig: (c) => c.source || null,
+    defaults: {
+      source: '',
+      title: '',
+      pattern: 'einstein',
+      match: 'contains',    // 'contains' | 'equals' | 'starts' | 'ends'
+      caseSensitive: false,
+      refreshSeconds: 86400,
+    },
+    renderer: 'ListSourceCard',
+    dataSource: 'widget output (source) — no fetch',
+    configFields: [
+      { key: 'source', label: 'Input source', type: 'source', hint: 'The widget feeding this filter — pick any emitting widget on the board.' },
+      { key: 'title', label: 'Title (optional)', type: 'text', placeholder: 'Matches' },
+      { key: 'pattern', label: 'Match', type: 'text', placeholder: 'einstein' },
+      { key: 'match', label: 'Match mode', type: 'select', options: [
+        { value: 'contains', label: 'contains (substring)' },
+        { value: 'equals', label: 'equals (whole line)' },
+        { value: 'starts', label: 'starts with' },
+        { value: 'ends', label: 'ends with' },
+      ]},
+      { key: 'caseSensitive', label: 'Case-sensitive matching', type: 'boolean' },
+    ],
+    transform: (data, config, opts) => {
+      const lines = toLines(opts && opts.sourceOutput);
+      const pattern = String(config.pattern || '');
+      const hay = (s) => config.caseSensitive ? s : s.toLowerCase();
+      const needle = hay(pattern);
+      const mode = config.match || 'contains';
+      const kept = lines.filter((s) => {
+        if (!needle) return true; // empty pattern → keep everything
+        const t = hay(s);
+        if (mode === 'equals') return t === needle;
+        if (mode === 'starts') return t.startsWith(needle);
+        if (mode === 'ends') return t.endsWith(needle);
+        return t.includes(needle);
+      });
+      const base = (config.title || '').trim() || 'Filter';
+      return {
+        title: kept.length ? base : `${base} (no matches)`, 
+        subtitle: `${kept.length} of ${lines.length} line${lines.length === 1 ? '' : 's'} match${pattern ? ` “${pattern}”` : ' (no pattern)'}`, 
+        lines: kept,
+      };
+    },
+    // Emits the FILTERED list — downstream count/echo widgets chain off this.
+    emit: (data) => data.lines,
+  },
+
+  lineCount: {
+    id: 'lineCount',
+    category: 'Dataflow', intensity: 'low',
+
+    timeScope: 'point',    name: 'Line Count',
+    icon: '🔢',
+    description: 'Count the lines/elements of another widget\'s output — a number downstream widgets can consume ({{widget:id}} or a `source` picker)',
+    labelFromConfig: (c) => c.source || (c.label ? `${c.label} count` : null),
+    defaults: {
+      source: '',
+      label: '',
+      refreshSeconds: 86400,
+    },
+    renderer: 'StatCard',
+    dataSource: 'widget output (source) — no fetch',
+    configFields: [
+      { key: 'source', label: 'Input source', type: 'source', hint: 'Count the lines/elements of this widget\'s output.' },
+      { key: 'label', label: 'Label (optional)', type: 'text', placeholder: 'articles' },
+    ],
+    transform: (data, config, opts) => {
+      const n = countOf(opts && opts.sourceOutput);
+      return {
+        title: (config.label || '').trim() || 'Count',
+        subtitle: n === 1 ? '1 element' : `${n} elements`,
+        value: n.toLocaleString(),
+        count: n,
+      };
+    },
+    // Emits the numeric count — e.g. a downstream echo displays it.
+    emit: (data) => data.count,
+  },
+
+  echo: {
+    id: 'echo',
+    category: 'Dataflow', intensity: 'low',
+
+    timeScope: 'point',    name: 'Value Display',
+    icon: '🖨️',
+    description: 'Show whatever another widget outputs (number, lines, JSON) — the debug/pipe endpoint of a dataflow chain; passes the value through',
+    labelFromConfig: (c) => c.source || null,
+    defaults: {
+      source: '',
+      title: '',
+      refreshSeconds: 86400,
+    },
+    renderer: 'EchoCard',
+    dataSource: 'widget output (source) — no fetch',
+    configFields: [
+      { key: 'source', label: 'Input source', type: 'source', hint: 'The widget whose output you want to inspect.' },
+      { key: 'title', label: 'Title (optional)', type: 'text', placeholder: 'Counted value' },
+    ],
+    transform: (data, config, opts) => {
+      const out = opts && opts.sourceOutput;
+      const kind = Array.isArray(out) ? 'lines' : (out !== null && typeof out === 'object' ? 'json' : 'value');
+      return {
+        title: (config.title || '').trim() || 'Displayed value',
+        subtitle: out === undefined ? 'waiting for its source…' : undefined,
+        kind: out === undefined ? 'none' : kind,
+        value: out,
+      };
+    },
+    // Pass-through — you can pipe an output through Echo into another widget.
+    emit: (data) => (data.value === undefined ? undefined : data.value),
   },
 };

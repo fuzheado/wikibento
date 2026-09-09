@@ -107,7 +107,7 @@ function fakeSynth() {
     cancel: () => { state.cancelled += 1; utterances.forEach((u) => u.onerror?.({ error: 'interrupted' })); utterances.length = 0; },
     speak: (u) => { state.spoken.push(u.text); utterances.push(u); },
   };
-  const Utterance = function SpeechSynthesisUtteranceMock(text) { this.text = text; };
+  class Utterance { constructor(text) { this.text = text; } }
   return { synth, Utterance, state, utterances };
 }
 
@@ -123,7 +123,7 @@ test('speech: controller refuses to speak when muted', () => {
 });
 
 test('speech: controller refuses empty text / missing synth', () => {
-  const { synth, Utterance, state } = fakeSynth();
+  const { synth, Utterance } = fakeSynth();
   const ctl = createSpeechController({ synth, Utterance });
   assert.equal(ctl.speak('  ').reason, 'empty');
   const none = createSpeechController({});
@@ -170,7 +170,7 @@ test('speech: speak fires utterance events and rate/volume are clamped', () => {
 });
 
 test('speech: cancel() surfaces interrupted to the old utterance only', () => {
-  const { synth, Utterance, state } = fakeSynth();
+  const { synth, Utterance } = fakeSynth();
   const ctl = createSpeechController({ synth, Utterance });
   const errors = [];
   ctl.speak('a', { onerror: (c) => errors.push(c) });
