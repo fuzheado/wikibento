@@ -201,6 +201,130 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets: newWidgets, layout: newLayout, params: paramsBlock || null }));
   }, []);
 
+  /** ISSUE-44 Phase 3a — add an Ask-assembled board fragment BELOW the
+   *  current board (additive, never supplants). Steps: undo snapshot →
+   *  widget-id collision remap (atomic repoint of the fragment's refs) →
+   *  param merge (incompatible collisions are renamed + repointed, never
+   *  silently reinterpreted) → layout append in wiring order → full-board
+   *  validateDashboard gate → apply + undo toast. */
+  const [assemblyToast, setAssemblyToast] = useState(null); // { message, error?, prev? }
+  useEffect(() => {
+    if (!assemblyToast) return undefined;
+    const t = setTimeout(() => setAssemblyToast(null), 12000);
+    return () => clearTimeout(t);
+  }, [assemblyToast]);
+
+  const handleAddAssembly = useCallback((board) => {
+    const frag = board?.widgets || [];
+    if (!frag.length) return;
+    const prev = { widgets, layout, paramBlock };
+
+    // ── 1. Widget-id collision remap (fragment-internal, atomic) ──
+    const taken = new Set(widgets.map((w) => w.id));
+    const idMap = new Map(); // assembly id → applied id
+    for (const w of frag) {
+      let id = w.id;
+      let n = 2;
+      while (taken.has(id)) id = `${w.id.slice(0, 38)}-${n++}`;
+      idMap.set(w.id, id);
+      taken.add(id);
+    }
+    const remapId = (id) => idMap.get(id) || id;
+
+    // ── 2. Param merge: same name + same shape → keep existing (user's live
+    // value survives); same name + different shape → rename incoming and
+    // repoint the fragment's {{param}} references (never reinterpret). ──
+    const warnings = [];
+    const mergedBlock = paramBlock && typeof paramBlock === 'object' && !Array.isArray(paramBlock) ? { ...paramBlock } : {};
+    const paramMap = new Map(); // assembly param name → applied name
+    for (const [name, def] of Object.entries(board.params || {})) {
+      const existing = mergedBlock[name];
+      const compatible = !existing
+        || (existing.type === def.type && JSON.stringify(existing.options || []) === JSON.stringify(def.options || []));
+      if (compatible) {
+        paramMap.set(name, name);
+        if (!existing) mergedBlock[name] = { ...def };
+      } else {
+        let n = 2;
+        let newName = `${name.slice(0, 30)}-${n}`;
+        while (mergedBlock[newName]) newName = `${name.slice(0, 30)}-${++n}`;
+        mergedBlock[newName] = { ...def };
+        paramMap.set(name, newName);
+        warnings.push(`param “${name}” already exists with different options — added as “${newName}”`);
+      }
+    }
+    const remapParam = (name) => paramMap.get(name) || name;
+
+    // Rewrite a Board Controls spec string's param names (first field of
+    // each line) that were renamed in the merge.
+    const remapSpec = (spec) => String(spec || '').split('\n').map((line) => {
+      const first = line.split('|')[0].trim();
+      const mapped = paramMap.get(first);
+      return mapped && mapped !== first ? line.replace(first, mapped) : line;
+    }).join('\n');
+
+    // ── 3. Build fragment configs: defaults underlay, refs remapped,
+    // model-provided display title → config._title. ──
+    const fragWidgets = frag.map((w) => {
+      const def = WIDGET_TYPES[w.widgetType];
+      const config = { ...(def?.defaults || {}) };
+      const incoming = JSON.parse(JSON.stringify(w.config || {}));
+      const str = JSON.stringify(incoming)
+        .replace(/\{\{widget:([^}]+)\}\}/g, (m, id) => `{{widget:${remapId(String(id).trim())}}}`)
+        .replace(/\{\{(?!widget:)([^}]+)\}\}/g, (m, name) => `{{${remapParam(name.trim())}}}`);
+      const remapped = JSON.parse(str);
+      const sourceKeys = (def?.configFields || []).filter((f) => f.type === 'source').map((f) => f.key);
+      for (const k of sourceKeys) {
+        if (remapped[k]) remapped[k] = remapId(String(remapped[k]).trim());
+      }
+      if (w.widgetType === 'boardControls' && remapped.spec) remapped.spec = remapSpec(remapped.spec);
+      if (w.title) remapped._title = w.title;
+      Object.assign(config, remapped);
+      return { id: remapId(w.id), widgetType: w.widgetType, config };
+    });
+
+    // ── 4. Layout: append BELOW the current board in wiring order (concrete
+    // y positions — validateDashboard requires numeric y), clamped by the
+    // registry's per-widget constraints. ──
+    const baseY = layout.reduce((m, l) => Math.max(m, (l.y || 0) + (l.h || 0)), 0);
+    const fragLayout = fragWidgets.map((w, idx) => {
+      const src = frag.find((f) => remapId(f.id) === w.id);
+      const dl = WIDGET_TYPES[w.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
+      return {
+        i: w.id,
+        x: 0,
+        y: baseY + idx * 2,
+        w: Math.max(dl.minW ?? 2, Math.min(src.w || dl.w, dl.maxW ?? 12, 12)),
+        h: Math.max(dl.minH ?? 2, Math.min(src.h || dl.h || 4, dl.maxH ?? 14, 14)),
+        minW: dl.minW, minH: dl.minH,
+        ...(dl.maxW != null ? { maxW: dl.maxW } : {}),
+        ...(dl.maxH != null ? { maxH: dl.maxH } : {}),
+      };
+    });
+
+    // ── 5. Gate: the FULL resulting board must pass validateDashboard. ──
+    const allWidgets = [...widgets, ...fragWidgets];
+    const allLayout = [...layout, ...fragLayout];
+    const vd = validateDashboard({ version: CONFIG_VERSION, widgets: allWidgets, layout: allLayout, params: mergedBlock });
+    if (!vd.valid) {
+      setAssemblyToast({ message: `Assembled board rejected by validation: ${vd.errors[0]}`, error: true });
+      return;
+    }
+
+    // ── 6. Apply: params state recomputed from the merged block (live
+    // values survive — the block carries each param's chosen value). ──
+    const { specs: newSpecs, values: newValues } = parseParams(mergedBlock);
+    setWidgets(allWidgets);
+    setLayout(allLayout);
+    setParamBlock(Object.keys(mergedBlock).length ? mergedBlock : null);
+    setParamSpecs(newSpecs);
+    setParamValues(newValues);
+    persist(allWidgets, allLayout, mergedBlock);
+    const added = fragWidgets.length;
+    const note = warnings.length ? ` · ${warnings.join(' · ')}` : '';
+    setAssemblyToast({ message: `🧩 Added ${added} widget${added === 1 ? '' : 's'} below this board${note}`, prev });
+  }, [widgets, layout, paramBlock, persist]);
+
   const handleLayoutChange = useCallback((newLayout) => {
     setLayout(newLayout);
     persist(widgets, newLayout);
@@ -559,6 +683,7 @@ const handleAutoHeight = useCallback((id, px) => {
       {showAskPanel && (
         <AskPanel
           onAdd={handleAddWidget}
+          onAddBoard={handleAddAssembly}
           onClose={() => setShowAskPanel(false)}
         />
       )}
@@ -580,6 +705,24 @@ const handleAutoHeight = useCallback((id, px) => {
 
       {showAbout && (
         <AboutPanel onClose={() => setShowAbout(false)} />
+      )}
+
+      {assemblyToast && (
+        <div className={`assembly-toast ${assemblyToast.error ? 'assembly-toast-error' : ''}`}>
+          <span className="assembly-toast-msg">{assemblyToast.message}</span>
+          {assemblyToast.prev && (
+            <button
+              className="assembly-toast-btn"
+              onClick={() => {
+                applyDashboard({ widgets: assemblyToast.prev.widgets, layout: assemblyToast.prev.layout, params: assemblyToast.prev.paramBlock });
+                setAssemblyToast(null);
+              }}
+            >
+              Undo
+            </button>
+          )}
+          <button className="assembly-toast-close" onClick={() => setAssemblyToast(null)}>✕</button>
+        </div>
       )}
 
       {showDiagnostics && (

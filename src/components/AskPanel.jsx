@@ -20,6 +20,13 @@ const SAMPLES = [
   'Chart how popular a category is over time',
 ];
 
+const BOARD_SAMPLES = [
+  'A board where I switch between two museums and see their Commons collection stats',
+  'Show an article intro, translate it to French, and let me hear it',
+  'I paste a list of museums — filter the ones with "art", count them, and show them as a list',
+  'An article deep-dive: summary, pageviews, quality and its images',
+];
+
 const RECENT_KEY = 'wikibento-recent-widgets';
 
 function markRecent(typeId) {
@@ -40,28 +47,26 @@ async function getSessionToken(force) {
   return d.token;
 }
 
-async function askRelay(prompt) {
+async function askRelay(prompt, mode) {
   let token = await getSessionToken(false);
-  let r = await fetch('/api/ask', {
+  const call = () => fetch('/api/ask', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, token }),
+    body: JSON.stringify({ prompt, token, ...(mode === 'board' ? { mode: 'board' } : {}) }),
   });
+  let r = await call();
   if (r.status === 401) { // expired token — refresh once and retry
     token = await getSessionToken(true);
-    r = await fetch('/api/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, token }),
-    });
+    r = await call();
   }
   if (!r.ok) throw new Error(`ask ${r.status}`);
   return r.json();
 }
 
-export default function AskPanel({ onAdd, onClose }) {
+export default function AskPanel({ onAdd, onAddBoard, onClose }) {
   const [prompt, setPrompt] = useState('');
-  const [turns, setTurns] = useState([]); // { role, prompt?, options?, note?, source?, error? }
+  const [mode, setMode] = useState('suggest'); // 'suggest' (widget cards) | 'board' (assemble a wired board)
+  const [turns, setTurns] = useState([]); // { role, prompt?, options?, board?, note?, source?, error? }
   const [busy, setBusy] = useState(false);
   const [manifest, setManifest] = useState(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -108,8 +113,16 @@ export default function AskPanel({ onAdd, onClose }) {
     setBusy(true);
     setTurns((t) => [...t, { role: 'user', prompt: q }]);
     try {
-      const d = await askRelay(q);
-      setTurns((t) => [...t, { role: 'assistant', options: d.options || [], source: 'ml', cached: d.cached, note: d.options.length ? null : 'No good match — try rephrasing, or browse the catalog.' }]);
+      const d = await askRelay(q, mode);
+      if (mode === 'board' && d.board?.widgets?.length) {
+        setTurns((t) => [...t, { role: 'assistant', board: d.board, source: 'ml', cached: d.cached, warnings: d.board.warnings || [] }]);
+      } else if (mode === 'board') {
+        // Board mode but the model returned no (valid) board — show whatever
+        // widget suggestions came back instead of a dead end.
+        setTurns((t) => [...t, { role: 'assistant', options: d.options || [], source: 'ml', cached: d.cached, note: (d.options?.length ? 'No full board fit — here are single widgets instead:' : 'No good match — try rephrasing, or browse the catalog.') }]);
+      } else {
+        setTurns((t) => [...t, { role: 'assistant', options: d.options || [], source: 'ml', cached: d.cached, note: d.options.length ? null : 'No good match — try rephrasing, or browse the catalog.' }]);
+      }
     } catch {
       // Graceful degradation: local matcher (no network, no key).
       const local = await askLocal(q);
@@ -128,6 +141,10 @@ export default function AskPanel({ onAdd, onClose }) {
     markRecent(opt.widgetType);
   };
 
+  const handleAddBoard = (board) => {
+    if (onAddBoard && board?.widgets?.length) onAddBoard(board);
+  };
+
   const configChips = (config) => Object.entries(config || {}).filter(([, v]) => v !== undefined && v !== null && v !== '').slice(0, 4);
 
   return (
@@ -144,7 +161,7 @@ export default function AskPanel({ onAdd, onClose }) {
             <div className="ask-empty">
               <p>Instead of browsing the catalog, tell me what you want to see — I'll suggest the right widgets and fill in their settings.</p>
               <div className="ask-samples">
-                {SAMPLES.map((s) => (
+                {(mode === 'board' ? BOARD_SAMPLES : SAMPLES).map((s) => (
                   <button key={s} className="ask-chip" onClick={() => submit(s)}>{s}</button>
                 ))}
               </div>
@@ -158,7 +175,37 @@ export default function AskPanel({ onAdd, onClose }) {
               ) : (
                 <div className="ask-reply">
                   {t.note && <div className={`ask-note ${t.error ? 'ask-note-error' : ''}`}>{t.note}</div>}
-                  {t.options.map((o, j) => (
+                  {t.board && (
+                    <div className="ask-board">
+                      {t.board.summary && <div className="ask-board-summary">{t.board.summary}</div>}
+                      {(t.warnings || []).length > 0 && (
+                        <div className="ask-board-warnings">
+                          {t.warnings.map((w, k) => <div key={k} className="ask-board-warning">⚠ {w}</div>)}
+                        </div>
+                      )}
+                      <div className="ask-board-chain">
+                        {t.board.widgets.map((w, k) => (
+                          <span key={w.id} className="ask-board-chip" title={`${w.widgetType} · ${w.w}×${w.h}`}>
+                            <span className="add-widget-icon">{iconOf(w.widgetType)}</span>
+                            {nameOf(w.widgetType)}
+                            <span className="ask-board-id">{w.id}</span>
+                            {k < t.board.widgets.length - 1 && <span className="ask-board-arrow">→</span>}
+                          </span>
+                        ))}
+                      </div>
+                      {Object.keys(t.board.params || {}).length > 0 && (
+                        <div className="ask-board-params">
+                          {Object.entries(t.board.params).map(([name, p]) => (
+                            <span key={name} className="ask-config-chip">🎛 {name}: {Array.isArray(p.options) ? p.options.join(' / ') : p.type || 'text'}</span>
+                          ))}
+                        </div>
+                      )}
+                      <button className="ask-board-add" onClick={() => handleAddBoard(t.board)}>
+                        ＋ Add {t.board.widgets.length} widget{t.board.widgets.length === 1 ? '' : 's'} below this board
+                      </button>
+                    </div>
+                  )}
+                  {(t.options || []).map((o, j) => (
                     <div key={j} className="ask-card" onClick={() => handleAdd(o)} title="Click to add this widget">
                       <div className="ask-card-top">
                         <span className="add-widget-icon">{iconOf(o.widgetType)}</span>
@@ -194,7 +241,7 @@ export default function AskPanel({ onAdd, onClose }) {
           <textarea
             className="ask-input"
             rows={1}
-            placeholder="e.g. Random photos from a category…"
+            placeholder={mode === 'board' ? 'e.g. A board where I switch between two museums and see their stats…' : 'e.g. Random photos from a category…'}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -202,7 +249,11 @@ export default function AskPanel({ onAdd, onClose }) {
             }}
             disabled={busy}
           />
-          <button className="widget-btn ask-send" onClick={() => submit()} disabled={busy || !prompt.trim()}>Suggest{'\u00A0'}→</button>
+          <button className="widget-btn ask-send" onClick={() => submit()} disabled={busy || !prompt.trim()}>{mode === 'board' ? 'Build\u00A0→' : 'Suggest\u00A0→'}</button>
+        </div>
+        <div className="ask-mode-row">
+          <button className={`ask-mode-chip ${mode === 'suggest' ? 'ask-mode-active' : ''}`} onClick={() => setMode('suggest')} title="Recommend individual widgets">🔧 Widgets</button>
+          <button className={`ask-mode-chip ${mode === 'board' ? 'ask-mode-active' : ''}`} onClick={() => setMode('board')} title="Assemble a complete wired board — params, widgets and dataflow — added below your current board">🧩 Whole board</button>
         </div>
         <div className="ask-footer">
           Powered by Wikimedia's free ML service (LiftWing) · prompts are not stored · experimental
