@@ -40,6 +40,8 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 
 An **interactive demo** (Board Controls driving galleries via params) is at `?config=/params-demo.json` — press the buttons, move the slider, step the month.
 
+The **translation chain demo** is at `?config=/translate-demo.json` — two scoped Board Controls cards (article buttons, language buttons) drive an Article Excerpt whose emitted text feeds a Translator: pick an article, then pick a language.
+
 A **full-catalog sample** (all 37 widget types, real working assets) is hosted
 with the app itself:
 

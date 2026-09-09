@@ -2631,7 +2631,8 @@ param change affects) remains design (ISSUE-41).
 
 **Constitution:** tests/dataflow.test.mjs +3 (registry declares the `params`
 picker + transform passthrough; empty/missing = all; scoping/order/unknown
-handling) → npm test 163.
+handling) → npm test 163. Shipped demo: **`?config=/translate-demo.json`** —
+the exact 4-widget board (two scoped cards, article + language).
 
 **Verified live (Chromium, built dist):** the exact 4-widget board — cards
 render `["Article"]` and `["Language"]` respectively; the chain

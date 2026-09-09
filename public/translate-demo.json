@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "params": {
+    "topic": {
+      "label": "Article",
+      "type": "buttons",
+      "options": [
+        "Albert Einstein",
+        "Marie Curie",
+        "Ada Lovelace"
+      ],
+      "value": "Albert Einstein"
+    },
+    "targetLang": {
+      "label": "Language",
+      "type": "buttons",
+      "options": [
+        "fr",
+        "es",
+        "de"
+      ],
+      "value": "fr"
+    }
+  },
+  "widgets": [
+    {
+      "id": "ctl-article",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "1 · Pick an article",
+        "show": "topic",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "excerpt-src",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "{{topic}}",
+        "project": "en.wikipedia",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "translate",
+      "widgetType": "translate",
+      "config": {
+        "text": "{{widget:excerpt-src}}",
+        "from": "en",
+        "to": "{{targetLang}}",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ctl-lang",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "4 · Pick a language",
+        "show": "targetLang",
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    { "i": "ctl-article", "x": 0, "y": 0, "w": 3, "h": 4, "minW": 2, "minH": 2 },
+    { "i": "excerpt-src", "x": 3, "y": 0, "w": 5, "h": 6, "minW": 3, "minH": 3 },
+    { "i": "translate", "x": 8, "y": 0, "w": 4, "h": 6, "minW": 3, "minH": 3 },
+    { "i": "ctl-lang", "x": 0, "y": 4, "w": 3, "h": 4, "minW": 2, "minH": 2 }
+  ]
+}
