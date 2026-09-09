@@ -45,9 +45,15 @@ function inline(text, opts) {
       return img;
     }
   );
+  // Links: absolute http(s) open in a new tab; same-origin relative links
+  // (`?config=/demo.json`, `/path`, `#hash`) navigate in place — the demo hub
+  // uses these to jump between boards (ISSUE-63). Protocol-relative `//host`
+  // is deliberately NOT matched (it would navigate off-origin in the same tab).
   s = s.replace(
-    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+|\?(?!\/)[^\s)]*|\/(?!\/)[^\s)]*|#[^\s)]+)\)/g,
+    (m, text, url) => (/^https?:\/\//i.test(url)
+      ? `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`
+      : `<a href="${url}">${text}</a>`)
   );
   return s;
 }

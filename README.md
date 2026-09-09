@@ -27,32 +27,25 @@ Commons, Wikistats) directly from the browser — no backend, no login, no proxy
 
 ---
 
-## Try It (demo file)
+## Try It (demos)
 
-A ready-made 7-widget dashboard config is hosted on Wikimedia Commons. Open
-the app with this URL and the whole dashboard loads immediately:
+**Start here: [`?config=/demos.json`](https://wikibento.toolforge.org/?config=/demos.json)** — an index board linking the whole suite (onboarding → flagships).
 
-```
-https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json
-```
+| demo | what it shows |
+|---|---|
+| 👋 [Article switcher](https://wikibento.toolforge.org/?config=/article-switcher-demo.json) | the simplest board: one param, two cards |
+| 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + widget-to-widget dataflow (excerpt → translator) |
+| 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
+| 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
+| 🏛️ [One template, six institutions](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics), switch collections |
+| 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
+| 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
+| 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 37 widget types on one board |
 
-(Or use a [w.wiki](https://w.wiki) short link for the same config: `?config=https://w.wiki/TR9R` — expanded automatically via the same-origin `/api/resolve` endpoint.)
+Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
 
-An **interactive demo** (Board Controls driving galleries via params) is at `?config=/params-demo.json` — press the buttons, move the slider, step the month.
-
-A **3D / any-page embed demo** is at `?config=/embed-demo.json` — an Objectium GLB model framed in a Wiki Page card (custom URL).
-
-The **translation chain demo** is at `?config=/translate-demo.json` — two scoped Board Controls cards (article buttons, language buttons) drive an Article Excerpt whose emitted text feeds a Translator: pick an article, then pick a language.
-
-A **full-catalog sample** (all 37 widget types, real working assets) is hosted
-with the app itself:
-
-```
-https://wikibento.toolforge.org/?config=/dashboard.json
-```
-
-(The file is plain JSON — see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md). Any
-on-wiki page, GitHub raw file, or CORS-enabled host works the same way.)
+A ready-made dashboard hosted **on Wikimedia Commons** also loads from an on-wiki page — `?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json` (or the short link `?config=https://w.wiki/TR9R`, expanded via the same-origin `/api/resolve` endpoint). Any CORS-enabled host works the same way.
 
 ## Widget Catalog
 

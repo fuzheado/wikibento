@@ -48,20 +48,16 @@ export default function AboutPanel({ onClose }) {
             The
             {' '}<a href="https://github.com/fuzheado/wikibento/blob/main/docs/GUIDE.md" target="_blank" rel="noopener noreferrer">user guide</a>
             {' '}covers the model, worked examples and troubleshooting.
-            Demos: <code>?config=/translate-demo.json</code>,
-            {' '}<code>?config=/flow-demo.json</code>,
-            {' '}<code>?config=/params-demo.json</code>.
+            Demos: <code>?config=/demos.json</code> (start here)
+            {' '}· <code>?config=/translate-demo.json</code>
+            {' '}· <code>?config=/glam-demo.json</code>
+            {' '}· <code>?config=/params-demo.json</code>.
           </p>
 
-          <h4>Try the demo file</h4>
+          <h4>Try the demos</h4>
           <p>
-            A sample config lives on Wikimedia Commons — open this link to load it:
-            <br />
-            <a
-              href="https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json"
-              target="_blank"
-              rel="noopener noreferrer"
-            >Commons:WikiPortraits/Bento-demo.json</a>
+            Open the {' '}<a href="?config=/demos.json">demo hub</a> — a guided index of boards,
+            from the simplest article switcher to the GLAM and SPARQL flagships.
           </p>
 
           <h4>Data &amp; etiquette</h4>

@@ -4,6 +4,8 @@
 for the spec see [JSON-FORMAT.md](JSON-FORMAT.md); for the design rationale see
 [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md).*
 
+**See it first:** open `?config=/demos.json` — a guided index of demo boards, from the simplest article switcher to the GLAM and SPARQL flagships.
+
 ---
 
 ## 1. The model

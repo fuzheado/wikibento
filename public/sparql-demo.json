@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "# \ud83e\udde0 Query power\n\nThree live SPARQL queries, three engines \u2014 no backend, straight from your browser:\n\n- **Collection depth** (WDQS) \u2014 how many Wikidata items link to major museums' collections\n- **Women in Red** (Humaniki) \u2014 % of English Wikipedia biographies about women\n- **Most-depicted subjects** (QLever) \u2014 the top topics in Commons' structured data\n\nEdit any card's \u2699 to change the query, endpoint, or renderer.",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "depth",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "met-collection",
+        "query": "",
+        "endpoint": "wdqs",
+        "renderer": "auto",
+        "maxRows": 100,
+        "refreshSeconds": 1800
+      }
+    },
+    {
+      "id": "women",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "women-in-red",
+        "query": "",
+        "endpoint": "humaniki",
+        "renderer": "auto",
+        "maxRows": 100,
+        "refreshSeconds": 1800
+      }
+    },
+    {
+      "id": "depicts",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "commons-top-depicts",
+        "query": "",
+        "endpoint": "qlever-commons",
+        "renderer": "auto",
+        "maxRows": 100,
+        "refreshSeconds": 1800
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "depth",
+      "x": 0,
+      "y": 3,
+      "w": 6,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "women",
+      "x": 6,
+      "y": 3,
+      "w": 6,
+      "h": 4,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "depicts",
+      "x": 0,
+      "y": 8,
+      "w": 12,
+      "h": 6,
+      "minW": 3,
+      "minH": 3
+    }
+  ]
+}
