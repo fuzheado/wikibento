@@ -52,6 +52,12 @@ async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method 
       });
       if (resp.status >= 500 && attempt < retries) {
         lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
+      } else if (resp.status === 429 && attempt < retries) {
+        // 429 = transient rate limiting, not "no data" — retry with backoff.
+        // (2026-09-08: was terminal with every other 4xx, so the GLAM view
+        // walk's 285+ request burst silently zero-filled throttled pages —
+        // a live check lost ~65% of total views to 429s.)
+        lastErr = new Error(`HTTP 429 (${shortUrl})`);
       } else if (!resp.ok) {
    let errBody = null;
    if (withBody) { try { errBody = (await resp.text()).slice(0, 300); } catch { /* body optional */ } }
@@ -95,8 +101,21 @@ function fetchWikistatsText(url) {
 const GLAM_FILE_BUDGET = 500;       // default file budget
 const GLAM_FILE_BUDGET_MAX = 30000; // ceiling (GLAMorgan's own 30K cap; the 25 MB relay byte-cap is the real valve)
 const GLAM_FALLBACK_CAP = 1000;     // self-walk fallback never walks more than this
-const GLAM_VIEW_BUDGET = 150;   // max pages with pageview fetches
-const GIU_LIMIT = 100;          // usage entries per file (gulimit)
+// Max distinct pages whose monthly pageviews get fetched. 2026-09-08: was 150,
+// which silently undercounted multi-page categories — "top by usage weight"
+// is arbitrary when nearly every page uses exactly one file (MIT OCW: 285
+// distinct pages, the 135 skipped carried 879K of 1.37M views — Economy of
+// India alone was 102K views on a single-file page). 2,000 ≈ GLAMorgan
+// parity (it fetches ALL pages) for real trees, and at pool(6) ≈ ~100 s worst
+// case — inside the widget's stated tolerance. Beyond it the card labels the
+// total "views partial (N of M pages)"; full exactness needs the server-side
+// batched-pageviews relay (GLAMORGAN-WIDGET.md upgrade path).
+const GLAM_VIEW_BUDGET = 2000;
+// Usage entries per file in the SELF-WALK fallback (gulimit). 2026-09-08: was
+// 100 — silently truncated heavily-used files (>100 wikis/pages each); 500 is
+// the Action API's max for gulimit. No gucontinue pagination (fallback-only
+// path); the PetScan relay's `giu` usage has no per-file cap.
+const GIU_LIMIT = 500;
 const MAX_DEPTH = 12;
 
 function cleanCategoryNameForWalk(cat) {
@@ -251,8 +270,11 @@ async function fetchMonthlyViews(wiki, page, year, month) {
   try {
     const d = await fetchJSON(url);
     return (d.items || []).reduce((s, i) => s + (i.views || 0), 0);
-  } catch {
-    return 0; // 404 = no views that month
+  } catch (e) {
+    // 404 = genuinely no views that month → 0. Any other failure (429 after
+    // retries, 5xx, network) → null so the aggregate can count it as a FAILED
+    // page instead of silently treating throttling as "no views".
+    return /^HTTP 404 /.test(e?.message || '') ? 0 : null;
   }
 }
 
@@ -330,7 +352,7 @@ async function fetchSelfWalkUsage(category, depth, budget, negcats, negdepth) {
 /** Shared aggregation (injectable views/thumbs for tests): ns-0 pages map →
  *  bounded monthly views (top GLAM_VIEW_BUDGET by usage weight) → per-file
  *  aggregates → top-N filmstrip → top-file detail. */
-export async function aggregateGlamStats(files, usage, { year, month, topN, showDetail = true, views = fetchMonthlyViews, thumbs = attachThumbs } = {}) {
+export async function aggregateGlamStats(files, usage, { year, month, topN, showDetail = true, views = fetchMonthlyViews, thumbs = attachThumbs, viewBudget = GLAM_VIEW_BUDGET } = {}) {
   // Distinct ns-0 pages, with a usage-weight for prioritization. Self-walk
   // usage entries carry no ns (already article-filtered); PetScan entries
   // carry exact ns — keep only 0.
@@ -344,12 +366,15 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
     }
   });
   const pageKeys = Object.keys(pages);
-  const partialViews = pageKeys.length > GLAM_VIEW_BUDGET;
+  const partialViews = pageKeys.length > viewBudget;
   const keysToFetch = partialViews
-    ? [...pageKeys].sort((a, b) => pages[b].weight - pages[a].weight).slice(0, GLAM_VIEW_BUDGET)
+    ? [...pageKeys].sort((a, b) => pages[b].weight - pages[a].weight).slice(0, viewBudget)
     : pageKeys;
+  let viewsFailed = 0; // pages whose view fetch failed (429 after retries / 5xx / network) — surfaced on the card
   await pool(keysToFetch, 6, async (k) => {
-    pages[k].views = await views(pages[k].wiki, pages[k].page, year, month);
+    const v = await views(pages[k].wiki, pages[k].page, year, month);
+    if (v == null) viewsFailed++;
+    pages[k].views = v || 0;
   });
 
   // Per-file aggregates.
@@ -378,7 +403,9 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
       const k = `${u.wiki}:${u.page}`;
       if (!(k in pages)) pages[k] = { wiki: u.wiki, page: u.page, weight: 0, views: 0 };
       if (!pages[k].viewsFetched) {
-        pages[k].views = await views(u.wiki, u.page, year, month);
+        const v = await views(u.wiki, u.page, year, month);
+        if (v == null) viewsFailed++;
+        pages[k].views = v || 0;
         pages[k].viewsFetched = true;
       }
     });
@@ -401,6 +428,8 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
     wikis,
     totalViews,
     partialViews,
+    viewsFetched: keysToFetch.length, // quantifies the "views partial (N of M pages)" label
+    viewsFailed,
     monthLabel: `${year}-${String(month).padStart(2, '0')}`,
     top: top.map(f => ({ title: f.title.replace(/^File:/, '').replace(/_/g, ' '), views: f.views, thumbUrl: f.thumbUrl })),
     detail,
@@ -409,7 +438,7 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
 
 /** GLAM impact stats: PetScan via /api/petscan relay (primary, ISSUE-46),
  *  bounded self-walk fallback. The user's fileBudget may go up to
- *  GLAM_FILE_BUDGET_MAX (10,000 — the relay truncates server-side); the
+ *  GLAM_FILE_BUDGET_MAX (30,000 — the relay truncates server-side); the
  *  browser self-walk fallback is separately capped at GLAM_FALLBACK_CAP
  *  (1,000) so a relay outage can never trigger a multi-hundred-call walk
  *  from the browser. deps injectable for tests. */
@@ -439,7 +468,7 @@ export async function fetchGlamStats(cfg = {}, deps = {}) {
   if (!files.length) {
     return {
       category, source, files: 0, cappedFiles, usedFiles: 0, viewedFiles: 0, pages: 0, wikis: 0,
-      totalViews: 0, partialViews: false, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
+      totalViews: 0, partialViews: false, viewsFailed: 0, monthLabel: `${year}-${String(month).padStart(2, '0')}`,
       top: [], detail: null,
     };
   }
@@ -2053,4 +2082,73 @@ function writeWaybackCache(key, payload) {
     }
     localStorage.setItem(WAYBACK_LS, JSON.stringify(all));
   } catch { /* storage full/unavailable — cache is best-effort */ }
+}
+
+
+// ── MinT machine translation (Wikimedia Language team) ─────────────
+// POST https://translate.wmcloud.org/api/translate — CORS `*` verified
+// 2026-09-05 (ACAO:* on POST + OPTIONS preflight). Body fields are
+// content / source_language / target_language / format ('text') — NOT
+// text/from/to (422 trap). MinT has NO `auto` source detection: the
+// source language must be known. Test instance translate.wmcloud.org is
+// fine at dashboard scale; keep bulk use ≥1s-paced.
+const MINT_API = 'https://translate.wmcloud.org/api/translate';
+export const MINT_MAX_CHARS = 8000; // soft cap; longer content is truncated + flagged
+const minTCache = createTtlCache(24 * 60 * 60 * 1000); // same text+pair → same translation
+
+export const normalizeLangCode = (s) => String(s || '').trim().toLowerCase().slice(0, 8);
+
+/** Build the MinT POST request — exported for tests (no network). */
+export function buildMinTRequest(text, from, to) {
+  const content = String(text ?? '').trim();
+  const source_language = normalizeLangCode(from) || 'en';
+  const target_language = normalizeLangCode(to) || 'es';
+  const truncated = content.length > MINT_MAX_CHARS;
+  return {
+    url: MINT_API,
+    body: JSON.stringify({
+      content: truncated ? content.slice(0, MINT_MAX_CHARS) : content,
+      source_language,
+      target_language,
+      format: 'text',
+    }),
+    truncated,
+  };
+}
+
+/** Parse a MinT success payload — exported for tests. */
+export function parseMinTResponse(json) {
+  return {
+    translation: String(json?.translation ?? ''),
+    model: json?.model ?? null,
+    from: json?.sourcelanguage ?? null,
+    to: json?.targetlanguage ?? null,
+    seconds: typeof json?.translationtime === 'number' ? json.translationtime : null,
+  };
+}
+
+/** Translate text via MinT (browser-direct; CORS verified 2026-09-05). */
+export async function fetchMinTTranslation(text, from = 'en', to = 'es') {
+  const { url, body, truncated } = buildMinTRequest(text, from, to);
+  return minTCache.get(body, async () => {
+    let raw;
+    try {
+      raw = await fetchTextWithRetry(url, { method: 'POST', body, timeoutMs: 60000, retries: 1, withBody: true });
+    } catch (e) {
+      if (e instanceof Error && /^HTTP 422/.test(e.message)) {
+        throw new Error('MinT: this language pair is not supported — check translate.wmcloud.org/api/languages');
+      }
+      throw e;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('MinT: unexpected response');
+    }
+    const out = parseMinTResponse(parsed);
+    out.truncated = truncated;
+    if (!out.translation) throw new Error('MinT: empty translation returned');
+    return out;
+  });
 }

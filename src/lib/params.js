@@ -89,15 +89,33 @@ export function paramSpecToText(block) {
   }).join('\n');
 }
 
-/** Deep-resolve `{{name}}` placeholders in a widget config against `values`.
- *  Returns a NEW object when anything changed, else the original reference. */
-export function resolveParams(config, values) {
-  if (!config || typeof config !== 'object' || !values || typeof values !== 'object') return config;
+/** Deep-resolve `{{name}}` board-param placeholders — and, with the
+ *  widget-output registry present (ISSUE-51, widget-to-widget dataflow),
+ *  `{{widget:id}}` placeholders that interpolate another widget's emitted
+ *  output. Returns a NEW object when anything changed, else the original
+ *  reference (so React memo works — identity preserved for untouched configs). */
+export function resolveParams(config, values, widgetOutputs) {
+  if (!config || typeof config !== 'object') return config;
+  const hasParams = values && typeof values === 'object' && Object.keys(values).length > 0;
+  const hasOutputs = widgetOutputs && typeof widgetOutputs === 'object' && Object.keys(widgetOutputs).length > 0;
+  if (!hasParams && !hasOutputs) return config;
   let changed = false;
+  // {{name}} → board param · {{widget:id}} → another widget's emitted output.
   const walk = (v) => {
     if (typeof v === 'string') {
-      const out = v.replace(/\{\{\s*([a-zA-Z0-9_-]+)\s*\}\}/g, (m, name) => {
-        if (!(name in values)) {
+      const out = v.replace(/\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?\s*\}\}/g, (m, name, sub) => {
+        if (name === 'widget') {
+          if (hasOutputs && sub != null && sub in widgetOutputs) {
+            changed = true;
+            return stringifyOutput(widgetOutputs[sub]);
+          }
+          if (!warned.has(`widget:${sub}`)) {
+            console.warn(`[params] no widget output named "${sub}" — leaving literal (${m})`);
+            warned.add(`widget:${sub}`);
+          }
+          return m; // unknown widget → left literal (visible, never breaking)
+        }
+        if (!hasParams || !(name in values)) {
           if (!warned.has(name)) {
             console.warn(`[params] no board param named "${name}" — leaving literal (${m})`);
             warned.add(name);
@@ -119,4 +137,34 @@ export function resolveParams(config, values) {
   };
   const resolved = walk(config);
   return changed ? resolved : config;
+}
+
+/** Interpolation string form of an emitted widget output: primitives as-is,
+ *  arrays of lines joined with \n (so a list output can feed a widget's
+ *  multi-line textarea, e.g. articleList.articles), objects JSON-stringified. */
+export function stringifyOutput(v) {
+  if (v === undefined || v === null) return '';
+  if (Array.isArray(v)) {
+    const prim = v.every((x) => x === null || ['string', 'number', 'boolean'].includes(typeof x));
+    return prim ? v.map((x) => (x === null ? '' : String(x))).join('\n') : JSON.stringify(v);
+  }
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+/** Collect the distinct `{{widget:id}}` references in a config (deep) — used
+ *  by WidgetFrame to re-run a consumer when a producer's output changes. */
+export function extractWidgetRefs(config) {
+  const refs = new Set();
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      for (const m of v.matchAll(/\{\{\s*widget\s*:\s*([a-zA-Z0-9_-]+)\s*\}\}/g)) refs.add(m[1]);
+    } else if (Array.isArray(v)) {
+      v.forEach(walk);
+    } else if (v && typeof v === 'object') {
+      Object.values(v).forEach(walk);
+    }
+  };
+  walk(config);
+  return [...refs];
 }

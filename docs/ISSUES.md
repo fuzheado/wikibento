@@ -2242,7 +2242,226 @@ hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
 National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
 delivered; no write access to GitHub).
 
-## ISSUE-54 · Request-serial guard in WidgetFrame.load() — stale writes can't clobber fresh results — **done (branch `supersede-guard`, PR #24)**
+## ISSUE-52 · Widget-to-widget dataflow: `source` picker + `{{widget:id}}` interpolation + the four-Dataflow-widget chain — **done + DEPLOYED 2026-09-08 (bundle index-OJOY0xwd.js)**
+
+**What:** beyond board params (ISSUE-50) — where a Board Controls card drives
+`{{param}}` references — wire widgets to each other: one widget's **output**
+feeds the next. The rudimentary demo the user asked for: a **list → filter →
+count → display** chain (Text List → Filter Lines → Line Count → Value
+Display), plus a Text List feeding a real widget's textarea field
+(Article List titles).
+
+**Why:** interactivity is currently one-way (controls → params → widgets).
+A filter widget that consumes a source and re-emits gives boards the
+"pipeline" feel — the natural next rung on the dataflow ladder in
+MODULARITY-AND-DATAFLOW §Part 3 (inputs → parameters → widget-to-widget
+edges), without a visual DAG.
+
+**Design (2 mechanisms, both additive):**
+- **Emission** — a registry entry may declare `emit(data, config) → value`
+  (string | number | array | object). WidgetFrame publishes it to the App
+  (`widgetOutputs[id]`) after every load — static AND fetch paths (the
+  producers are all static; the first implementation forgot the static
+  return path — caught in browser verification, see the two fixes below).
+- **Consumption** —
+  1. a new `source` **config-field type** (a select of every emitting widget
+     on the board, labeled by its live title); the producer's output is
+     passed to the consumer's `transform`/`fetch` as `opts.sourceOutput`
+     (structured, type-preserving);
+  2. **`{{widget:id}}` interpolation** — the same deep-string mechanism as
+     `{{param}}`, extended in `resolveParams`; arrays join with newlines so
+     a list output can feed a textarea config (`"articles":
+     "{{widget:flow-list}}"`). Unknown refs stay literal + one console.warn
+     (never break a board). `stringifyOutput`/`extractWidgetRefs` are the
+     pure helpers (src/lib/params.js).
+
+**Reload wiring:** WidgetFrame computes a content-based signature of every
+referenced output (`widgetOutputSignature`, src/lib/dataflow.js) and
+re-runs its load only when it changes — identical re-emits are no-ops, so
+no refresh storms and no emit→reload→emit loops. Signature is built from
+the RAW config (resolution replaces the `{{widget:id}}` placeholder with
+the value, hiding the ref — the first implementation used the resolved
+config and the interpolation path never reloaded; caught in browser
+verification).
+
+**The four new Dataflow widgets (category "Dataflow", all static):**
+🧾 **Text List** (pastes lines; emits them) · 🔎 **Filter Lines** (consumes a
+source, keeps lines by contains/equals/starts/ends + case toggle, emits the
+filtered list) · 🔢 **Line Count** (consumes a source, emits the count) ·
+🖨️ **Value Display / echo** (renders number/list/JSON; pass-through emit for
+further piping). Renderers: `ListSourceCard` (numbered scrollable list) +
+`EchoCard`; both registered in the Add-Widget type glyph map + Ask manifest.
+
+**Fix #1 (browser verifier caught it):** the static-widget branch of
+`WidgetFrame.load()` returned before publishing `emit` output — none of the
+four dataflow producers ever emitted. Restructured so `publishOutput` runs
+in both paths.
+
+**Fix #2 (browser verifier caught it):** `widgetOutputSignature` was computed
+from the resolved config — after resolution the `{{widget:id}}` was gone, so
+`extractWidgetRefs` found nothing and interpolation consumers never
+reloaded. Now computed from the raw `widget.config`.
+
+**Constitution:** tests/dataflow.test.mjs (13 tests; npm test now 125):
+params.js `{{widget:}}` resolution + stringifyOutput + extractWidgetRefs;
+dataflow helpers (toLines/countOf/resolveSourceValue/signature — content-
+based, identical re-emits identical); the canonical chain List → Filter
+(contains/starts/ends/equals + case) → Count → Echo numbers; validateDashboard
+warns (never errors) on a `source` pointing off-board; `flow-demo.json` valid.
+Wired into `npm run test` (dataflow-test-bundle.mjs; cleanup list fixed to
+rm all 10 bundles).
+
+**Shipped artifacts:** `public/flow-demo.json` (`?config=/flow-demo.json` —
+the 6-widget chain demo incl. a markdown explainer and the interpolation-fed
+Article List); EXAMPLE_DASHBOARD + `public/dashboard.json` gain the same
+5-widget flow row (now 35 widget types); docs/ISSUES.md (this entry),
+README (catalog + features), HANDOFF, JSON-FORMAT updated. Ask manifest
+regenerated (35 widgets; the LLM sees `source` fields + Dataflow category).
+
+**Verified:** unit 125/125; `npm run test:browsers` flow-demo 6/6 widgets ×
+Chromium/Firefox/WebKit, 0 errors, 0 console errors; full 35-widget catalog
+passes all engines when the pageview API isn't rate-limiting (a local burst
+of live requests trips Wikimedia 429s — the widgets degrade gracefully, 0
+render errors; re-runs clean). Live interaction verified in Chromium: Text
+List 5→7 lines propagates Filter "7 of 7", Count "7", Echo "7" and the
+Article List re-fetches 7 real articles w/ thumbnails + intros via
+`{{widget:flow-list}}`.
+
+## ISSUE-53 · Widget instance names + rename resolution (id chips, editable name, repoint dialog, source combobox) — **done + DEPLOYED 2026-09-08**
+
+**What (user session, dataflow review):** after ISSUE-52 wire-up, three
+consistency gaps: (1) widget *instance ids* (the `flow-list` in JSON — the
+stable name other widgets reference) were **invisible in the UI** — the ⓘ
+panel showed the *type* slug (`listSource`), not the instance id, and headers
+showed computed labels only, so "some boxes have an instance name and some
+don't"; (2) the instance name could only be set by editing JSON — no interface
+path, and no resolution policy for what happens to references when a widget
+is renamed; (3) the source picker was a plain `<select>` only on consumer
+widgets — no manual entry, and no single consistent control.
+
+**Design decisions (answering the user's questions):**
+- **Every widget gets a visible, editable instance name.** Id chip in every
+  header (click opens ⚙; hidden in kiosk/lean with the rest of the chrome);
+  ⓘ shows the instance id prominently + a Type row; the source-picker options
+  are labeled `icon Type · instance-id — label` so identical types and renames
+  stay distinguishable.
+- **Rename resolution = dialog + atomic repoint** (their stronger suggestion):
+  renaming in ⚙ validates (non-empty, `[A-Za-z0-9_-]` — the token grammar,
+  unique on the board) then scans every widget for `source` fields and
+  `{{widget:id}}` tokens pointing at the old id. If any exist → confirm dialog
+  "Rename X → Y? This updates N references in M widgets (…); they will be
+  repointed to Y. Cancel leaves everything unchanged." Confirm rewrites all
+  configs atomically (renameWidgetRefs) + the layout `i`; Cancel changes
+  nothing. Silent auto-repoint rejected (mutates other widgets' configs
+  invisibly); manual-only rejected (silent broken links). **Inline errors**
+  for empty/invalid/duplicate keep the ⚙ panel open (fix: Apply closed the
+  panel in the same tick as the error — error was set then unmounted).
+- **One consistent source control:** the picker is now a **combobox**
+  (`<input list=datalist>`) everywhere — dropdown of emitting widgets (by
+  instance id) AND manual id typing. The dropdown's presence still follows
+  the widget type declaring a `source` config field (only dataflow consumers
+  today); interpolation `{{widget:id}}` remains the manual path on any string
+  field — the combobox makes both discoverable. A per-field binding UI
+  (wire any widget's field to any output) remains the Tier-A visual-wiring
+  design (MODULARITY-AND-DATAFLOW §Part 6).
+- **Display title**: the previously-uneditable `_title` now has a "Display
+  title (optional)" field in ⚙ (header override; defaults to the computed
+  label like "5 lines"). Kills the long-standing known issue.
+
+**Bonus behavior surfaced by verification:** a markdown note whose text
+contains `{{widget:flow-list}}` is a *live* consumer — it renders the resolved
+list, is counted as a reference by the rename dialog, and is repointed with
+everything else. Widgets are referrable from anywhere a string lives.
+
+**Constitution:** tests/dataflow.test.mjs +5 (renameWidgetRefs deep rewrite
+incl. regex-special ids, findWidgetRefs/countWidgetTokens counts, validateDashboard
+warns-not-errors on unreferrable id formats, `source` is a known key on
+consumer types → no unknown-key warning) → npm test 131. validateDashboard
+warns (never blocks) on ids outside `[A-Za-z0-9_-]` — such ids can't be
+referenced via `{{widget:}}`/the picker.
+
+**Verified live in the browser (Chromium + 3-engine matrix):** id chips on all
+6 flow-demo widgets; ✔ rename `flow-list→my-list` → dialog "3 references in 3
+widgets (flow-note, flow-filter, flow-articles)" → confirm → chip + filter
+header (`🔎 my-list`) + source dropdown + note text all repointed, chain still
+renders (5→5→5→5, Article List re-fetches via `{{widget:my-list}}`); ✔ invalid
+name "bad name!" → inline error + panel stays open; ✔ duplicate name →
+"already the name of another widget"; ✔ Cancel → nothing changes. Browser
+matrix: flow-demo 6/6 × Chromium/Firefox/WebKit, 0 errors, 0 console errors.
+
+**Second bug caught by browser verification (rename propagation freeze):**
+the first rename implementation cleared the WHOLE `widgetOutputs` registry on
+rename — consumers' reload signatures compare against a per-frame
+`prevOutputSigRef`, so producers re-emitting IDENTICAL values post-clear made
+`sig === prev` → the reload never fired → the chain froze at stale 0s
+(filter "0 of 0") and stayed dead (only a full page reload recovered it).
+Fix: DON'T clear outputs on rename — only the renamed widget's key goes stale
+(`setWidgetOutputs(prev => drop renamed key)`); its remount re-emits under the
+new id and its consumers re-source, everyone else untouched (no reload storm,
+no stale-prev). Verified: rename → chain stable at 5→5→5→5 within ~2 s, no
+transients, no reload needed.
+
+## ISSUE-55 · Speaker widget: text-to-speech "output" widget (GitHub issue #16) — **done (branch `issue-16-speaker`, PR #17)**
+
+**What:** the first member of the output/effector widget family. `speaker`
+(registry id, category Content & Embeds) is a static widget (no fetch) that
+speaks its resolved `text` aloud via the Web Speech API. Text arrives through
+the ISSUE-50 channel: `text: "{{phrase}}"` re-resolves when Board Controls
+params change (reloadKey bump → static re-transform), so a Controls text/
+buttons param drives what the speaker says. A per-widget voice picker lists
+the device roster (name + lang — the Web Speech API exposes no gender
+metadata); mute is controller-global.
+
+**Safety model (the design center):** *nothing speaks unless a human makes
+it.* The browser only gates speak() until the user's first page click (Chrome
+M71+), so the widget enforces its own gate: `speakOnChange` (default OFF)
+auto-speaks only after ▶ has been clicked on that widget at least once
+("armed"). Speaking is one-at-a-time (cancel-before-speak, also the Chrome
+rate>2 wedge workaround), rate clamped [0.5, 2], volume capped, utterance
+cancelled on unmount/tab-hide. Every speaker card has ▶/⏹ and a 🔊 mute
+toggle writing a shareable `audioMuted` board param. Zero-voice engines
+(headless CI: Chromium `synthesis-failed`, Firefox silent stall — both
+verified 2026-09-05) render a degraded "No voice on this device" state
+showing the text; a 6s stall guard catches engines that queue forever.
+
+**Files:** `src/lib/speech.js` (controller factory + pure helpers, synth
+injected for tests), `src/widgets/index.js` (registry entry),
+`src/widgets/WidgetFrame.jsx` (SpeakerCard), `src/App.css`,
+`tests/speaker.test.mjs` (14 tests → npm test 145 after the dataflow merge), README row + this entry.
+Constitution: static widget precedent (markdown) — `timeScope:'point'`,
+no fetch, `refreshSeconds` present. Verified live on headless Chromium:
+resolved {{param}} text renders, param button re-aims the phrase,
+degraded state shown, speakOnChange does not fire before arming, zero
+console/page errors. Real audio + voices: manual leg on macOS/WebKit.
+
+## ISSUE-56 · Translator (MinT) widget: machine translation via Wikimedia MinT — **done (branch `translate-mint`, PR #21)**
+
+**What:** the first wiki-native AI-node (see WIDGET-IDEAS §Node Algebra, family 8)
+and the natural companion to the speaker (#16) and transformer (#18) work: a
+fetch widget whose `text` (typed or `{{param}}`-driven via ISSUE-50 Board
+Controls) is machine-translated into a target language. Registry id `translate`,
+category Content & Embeds, `timeScope:'point'`.
+
+**Service:** MinT (Wikimedia Language team) — `POST
+https://translate.wmcloud.org/api/translate`, body `{content,
+source_language, target_language, format:'text'}`. **CORS `*` verified
+2026-09-05** (ACAO `*` on POST + clean OPTIONS preflight) → browser-direct,
+**no key, no proxy** (contrast: service TTS voices and LLM summarizers need
+keys/proxies — MinT is the key-free AI demo). MinT has **no `auto` source
+detection**, so `from` defaults `en`, `to` defaults `es` (2-letter codes,
+normalized). Content >8,000 chars is truncated + flagged. Same text+pair is
+cached 24 h (createTtlCache). Serving model surfaced in the card
+(`nllb200-600M` etc.) for transparency.
+
+**Files:** `src/widgets/dataSources.js` (buildMinTRequest/parseMinTResponse/
+fetchMinTTranslation — pure helpers exported for tests), registry entry,
+TranslateCard renderer, App.css, `tests/translate.test.mjs` (10 tests →
+npm test 155 after the dataflow/speaker merges), README row. Live-verified: curl en→es 0.29 s
+(nllb200-600M); headless-Chromium probe: Board Controls phrase button →
+translated text re-aims in the card, zero console/page errors.
+
+
+## ISSUE-57 · Request-serial guard in WidgetFrame.load() — stale writes can't clobber fresh results — **done (branch `supersede-guard`, PR #24)**
 
 **Problem:** `load()` had no request-serial token. A slow fetch started under
 an old config/params (60 s SPARQL, batched imageinfo, MinT round-trips)
@@ -2259,7 +2478,8 @@ Unmount invalidates in-flight loads (`loadSeqRef.current += 1`) so a slow
 fetch can't write state after the widget is removed. ~15 lines, no behavior
 change for the normal single-run path.
 
-**Verified:** npm test 117 pass · lint clean · build green · chromium matrix
+**Verified:** npm test 155 pass · lint clean · build green · chromium matrix
 smoke PASS. (Race itself isn't unit-testable without a React harness — repo
 convention is lib-level tests + browser probes; the guard is covered by
 review + smoke.)
+

@@ -173,8 +173,12 @@ counted as articles). The widget's output carries `source`
 (`'petscan'`/`'selfwalk'`); the card subtitle flags `· self-walk fallback`
 when degraded.
 3. **Pageviews** — `per-article/{project}/all-access/user/{page}/monthly/…`
-   for distinct using pages, **capped at 150 pages** (weight = pages-per-file),
-   6 concurrent. Beyond that, totals are labeled "views partial".
+   for distinct using pages, **capped at 2,000 pages** (2026-09-08: was 150,
+   which silently undercounted multi-page categories — MIT OCW lost 879K of
+   1.37M views to the cap), 6 concurrent. Beyond that, totals are labeled
+   `views partial (N of M pages)` and the Total views stat is marked `partial`.
+   Full exactness for >2,000-page trees needs the server-side batched
+   pageviews relay (GLAMORGAN-WIDGET.md upgrade path).
 4. **Aggregates** — per file: Σ views of its using pages → Files in category ·
    Files viewed (of N used) · Pages using files (on M wikis) · Total views.
    Top-N filmstrip (thumbnail via one batched `imageinfo&iiurlwidth=120` call)

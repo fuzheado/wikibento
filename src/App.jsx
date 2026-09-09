@@ -8,9 +8,11 @@ import AboutPanel from './components/AboutPanel';
 import DiagnosticsPanel from './components/DiagnosticsPanel';
 import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
+import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
+import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -63,6 +65,14 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [paramSpecs, setParamSpecs] = useState({});   // board params (ISSUE-50): { name: { label, type, options } }
   const [paramValues, setParamValues] = useState({}); // board params live values: { name: string }
   const [paramBlock, setParamBlock] = useState(null); // board params RAW (persisted; spec edits rewrite it)
+  // ISSUE-51 (widget-to-widget dataflow): { widgetId → emitted value }. Built
+  // live from each widget's registry `emit`, consumed via the `source` picker
+  // or {{widget:id}} interpolation. Ephemeral — rebuilt from fresh loads,
+  // never persisted.
+  const [widgetOutputs, setWidgetOutputs] = useState({});
+  // ISSUE-53: pending widget rename — resolved via a confirm dialog when other
+  // widgets reference the id (source fields / {{widget:id}} tokens).
+  const [pendingRename, setPendingRename] = useState(null); // { id, newId, refs: [{id, refs}] }
   // Kiosk / presentation mode (ISSUE-18): hides all editing chrome, locks the grid.
   const [kiosk, setKiosk] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
@@ -285,6 +295,7 @@ const handleAutoHeight = useCallback((id, px) => {
     localStorage.removeItem(STORAGE_KEY);
     setWidgets(DEFAULT_WIDGETS);
     setLayout(DEFAULT_LAYOUT);
+    setWidgetOutputs({});
     setReloadKey((k) => k + 1);
   }, []);
 
@@ -296,6 +307,7 @@ const handleAutoHeight = useCallback((id, px) => {
     setParamValues(values);
     setWidgets(dashboard.widgets);
     setLayout(dashboard.layout);
+    setWidgetOutputs({});
     persist(dashboard.widgets, dashboard.layout, dashboard.params);
     setReloadKey((k) => k + 1);
   }, [persist]);
@@ -303,8 +315,7 @@ const handleAutoHeight = useCallback((id, px) => {
   /** ISSUE-50 — write a board param; the reloadKey bump re-resolves every
    *  widget config referencing {{name}} and re-fetches them (config change →
    *  load() is the existing propagation trigger). */
-  const handleSetParam = useCallback((name, value) => {
-    setParamValues((prev) => ({ ...prev, [name]: value }));
+  const handleSetParam = useCallback((name, value) => {    setParamValues((prev) => ({ ...prev, [name]: value }));
     setParamBlock((prev) => {
       const block = prev && typeof prev === 'object' ? { ...prev } : {};
       block[name] = { ...(block[name] || { label: name, type: 'text' }), value };
@@ -317,6 +328,80 @@ const handleAutoHeight = useCallback((id, px) => {
     });
     setReloadKey((k) => k + 1);
   }, []);
+
+  /** ISSUE-51 — a widget published its output. Value-compared so a consumer
+   *  re-emitting an identical value is a no-op (no render storms). */
+  const handleWidgetOutput = useCallback((id, value) => {
+    setWidgetOutputs((prev) => {
+      if (id in prev && JSON.stringify(prev[id]) === JSON.stringify(value)) return prev;
+      return { ...prev, [id]: value };
+    });
+  }, []);
+
+  // The `source` picker options: every widget on the board that can emit,
+  // labeled by its INSTANCE ID + live header title so identical types and
+  // renames stay distinguishable (ISSUE-53 — every widget is referrable by name).
+  const sourceOptions = useMemo(
+    () => widgets
+      .filter((w) => WIDGET_TYPES[w.widgetType]?.emit)
+      .map((w) => {
+        const def = WIDGET_TYPES[w.widgetType];
+        const label = def.labelFromConfig?.(w.config) || def.name || w.widgetType;
+        return { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}` };
+      }),
+    [widgets],
+  );
+
+  /** ISSUE-53 — rename a widget instance. Validates (non-empty, [A-Za-z0-9_-],
+   *  unique), then either renames silently (no references) or opens the
+   *  repoint dialog (references exist). Returns { ok, error?, pending? } so the
+   *  ⚙ panel can surface inline validation errors.
+   *  Resolution model (your question): dialog + atomic repoint — renaming
+   *  repoints every `source` field and {{widget:id}} token across the whole
+   *  board (never silently), and Cancel leaves everything untouched. */
+  const applyRename = useCallback((id, newId) => {
+    const newWidgets = widgets.map((w) =>
+      w.id === id
+        ? { ...w, id: newId, config: renameWidgetRefs(w.config, id, newId) }
+        : { ...w, config: renameWidgetRefs(w.config, id, newId) },
+    );
+    const newLayout = layout.map((l) => (l.i === id ? { ...l, i: newId } : l));
+    setWidgets(newWidgets);
+    setLayout(newLayout);
+    // ISSUE-53 fix: DO NOT clear all outputs on rename — consumers' reload
+    // signatures compare against a per-frame prev ref, so a full clear made
+    // producers re-emit IDENTICAL values post-rename and the signature
+    // equality skipped the reload (chain froze at stale 0s). Only the renamed
+    // widget's key goes stale: drop it; its remount re-emits under the new id
+    // and its consumers re-source. Everyone else's outputs survive untouched.
+    setWidgetOutputs((prev) => { const { [id]: _dropped, ...rest } = prev || {}; return rest; });
+    persist(newWidgets, newLayout, paramBlock);
+    setReloadKey((k) => k + 1);
+  }, [widgets, layout, persist, paramBlock]);
+
+  const handleRenameWidget = useCallback((id, newId) => {
+    const trimmed = String(newId || '').trim();
+    if (!trimmed || trimmed === id) return { ok: false, error: null }; // no-op
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+      return { ok: false, error: 'Use only letters, numbers, - and _ (references use {{widget:name}})' };
+    }
+    if (widgets.some((w) => w.id === trimmed)) {
+      return { ok: false, error: `"${trimmed}" is already the name of another widget on this board` };
+    }
+    const refs = findWidgetRefs(widgets, id);
+    if (refs.length) {
+      setPendingRename({ id, newId: trimmed, refs });
+      return { ok: true, pending: true };
+    }
+    applyRename(id, trimmed);
+    return { ok: true };
+  }, [widgets, applyRename]);
+
+  const confirmRename = useCallback(() => {
+    if (!pendingRename) return;
+    applyRename(pendingRename.id, pendingRename.newId);
+    setPendingRename(null);
+  }, [pendingRename, applyRename]);
 
   const handleLoadExample = useCallback(() => {
     applyDashboard(EXAMPLE_DASHBOARD);
@@ -364,11 +449,15 @@ const handleAutoHeight = useCallback((id, px) => {
   widget={w}
   onRemove={handleRemoveWidget}
   onUpdateConfig={handleUpdateConfig}
+  onRename={handleRenameWidget}
   reloadKey={reloadKey}
  onAutoHeight={handleAutoHeight}
  paramSpecs={paramSpecs}
  paramValues={paramValues}
  onSetParam={handleSetParam}
+ widgetOutputs={widgetOutputs}
+ sourceOptions={sourceOptions}
+ onOutput={handleWidgetOutput}
 />
       </ErrorBoundary>
     </div>
@@ -495,6 +584,16 @@ const handleAutoHeight = useCallback((id, px) => {
 
       {showDiagnostics && (
         <DiagnosticsPanel onClose={() => setShowDiagnostics(false)} />
+      )}
+
+      {pendingRename && (
+        <ConfirmDialog
+          title={`Rename "${pendingRename.id}" to "${pendingRename.newId}"?`}
+          message={`${pendingRename.refs.reduce((a, r) => a + r.refs, 0)} reference${pendingRename.refs.reduce((a, r) => a + r.refs, 0) === 1 ? '' : 's'} in ${pendingRename.refs.length} widget${pendingRename.refs.length === 1 ? '' : 's'} point to it (${pendingRename.refs.map((r) => `"${r.id}"`).join(', ')}) — they will be repointed to "${pendingRename.newId}". Cancel leaves everything unchanged.`}
+          confirmLabel="Rename & repoint"
+          onConfirm={confirmRename}
+          onCancel={() => setPendingRename(null)}
+        />
       )}
 
       {(kiosk || lean) && (

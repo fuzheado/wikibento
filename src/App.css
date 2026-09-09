@@ -1668,6 +1668,27 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   text-align: center;
 }
 .month-current.latest { border-color: var(--accent); color: var(--accent); }
+
+/* Speaker — text-to-speech output widget (GitHub issue #16) */
+.speaker-card { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.speaker-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.speaker-voice { max-width: 240px; }
+.speaker-status { font-size: 12px; color: var(--muted, #888); white-space: nowrap; }
+.speaker-status.speaking { color: var(--accent); font-weight: 600; }
+.speaker-degraded { font-size: 12px; color: var(--muted, #888); font-style: italic; }
+.speaker-note { margin: 0; padding: 4px 8px; font-size: 12px; }
+.speaker-text {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
 .month-resolved { font-size: 11px; color: var(--text-secondary); }
 
 /* Commons description + credit for the now-playing track */
@@ -1830,3 +1851,108 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   opacity: .8;
   border-top: 1px solid var(--border);
 }
+
+/* ── Dataflow (ISSUE-51): Text List / Filter / Echo cards ───── */
+
+.list-source-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list-source-row {
+  display: flex;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: baseline;
+}
+
+.list-source-item {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.echo-card {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.echo-json {
+  margin: 4px 0 0;
+  padding: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: calc(100% - 60px);
+  overflow: auto;
+}
+
+
+/* ── ISSUE-53: instance names + rename resolution ────────── */
+
+.widget-id-chip {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed rgba(255,255,255,0.18);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+  line-height: 14px;
+  vertical-align: 1px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.widget-id-chip:hover { color: var(--accent); border-color: var(--accent); background: rgba(255,255,255,0.1); }
+
+.config-name-field { margin-bottom: 2px; }
+.config-name-field input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+.config-error { color: #e08a7a; opacity: 1; }
+
+.config-source-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.config-source-input {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.config-source-wrap .config-hint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  line-height: 1.3;
+}
+
+.confirm-panel { width: 460px; padding: 18px 20px; gap: 12px; }
+.confirm-title { font-size: 15px; font-weight: 700; }
+.confirm-message { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Translator (MinT) — machine translation card */
+.translate-card { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; overflow: auto; }
+.translate-block { display: flex; flex-direction: column; gap: 2px; }
+.translate-lang { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.translate-original { font-size: 13px; color: var(--text-secondary); }
+.translate-arrow { text-align: center; color: var(--muted, #888); font-size: 12px; line-height: 1; }
+.translate-result { font-size: 14px; line-height: 1.45; }
+.translate-note { font-size: 11px; color: var(--muted, #888); font-style: italic; }

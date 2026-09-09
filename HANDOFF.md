@@ -16,7 +16,92 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
-- ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — branch `issue-3-gallery-all-images`, patch delivered, NOT pushed/merged):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
+- ✅ **Widget instance names + rename resolution (ISSUE-53, 2026-09-08 — DEPLOYED):** every widget
+  now has a visible, editable instance name — an id chip in every header (click → ⚙), the instance id in
+  the ⓘ panel + a Type row, and source-picker options labeled `icon Type · id — label`. ⚙ gains a **Name
+  (instance id)** field + a **Display title (optional)** field (the old uneditable-`_title` known issue is
+  fixed). Renaming validates (non-empty, `[A-Za-z0-9_-]`, unique) and uses **dialog + atomic repoint**: if
+  any widget references the id (source fields or `{{widget:id}}` tokens), a confirm dialog reports
+  "N references in M widgets" and repoints them all (renameWidgetRefs, deep) + the layout `i`; Cancel is
+  a no-op. The source picker is now a **combobox** everywhere (datalist dropdown of emitting widgets by
+  instance id + manual typing). Markdown notes containing `{{widget:flow-list}}` are live consumers —
+  counted + repointed with everything else. Constitution: tests/dataflow.test.mjs +5 → npm test 131;
+  validateDashboard warns (never blocks) on ids outside the reference grammar. Verified live: rename
+  flow-list→my-list dialogs "3 references in 3 widgets" and repoints chip/filter-header/source-
+  dropdown/note uniformly with the chain intact; invalid + duplicate names show inline errors and the
+  panel stays open; Cancel leaves everything untouched; 3-engine matrix clean. **Rename-propagation
+  fix:** the first cut cleared all widget outputs on rename, which froze consumers (sig-equals-prev after
+  identical re-emits) — fixed by dropping only the renamed widget's key; rename now converges in ~2 s with
+  no transients (verified live). Docs: ISSUES.md ISSUE-53,
+  README features/catalog, JSON-FORMAT Dataflow+ids.
+- ✅ **Widget-to-widget dataflow (ISSUE-52, 2026-09-08 — DEPLOYED, bundle index-OJOY0xwd.js):** the next
+  interactivity rung after board params (ISSUE-50). Any widget can **emit** its output (registry `emit`
+  fn; published by WidgetFrame in BOTH static and fetch paths — the producers are all static), and any
+  other widget can consume it via a new **`source` config-field type** (⚙ dropdown of emitting widgets;
+  output arrives as `opts.sourceOutput` to transform/fetch) or **`{{widget:id}}` interpolation**
+  (deep-string, same as `{{param}}`; arrays join with \n so a list feeds a textarea field — e.g.
+  `"articles": "{{widget:flow-list}}"`). Consumers re-fetch on output change via a **content-based
+  signature** (`widgetOutputSignature`, src/lib/dataflow.js) — identical re-emits are no-ops, no
+  refresh storms/loops; built from the RAW config so `{{widget:}}` refs survive the resolution that
+  hides them. **Four new Dataflow widgets** (category "Dataflow", new: 🧾 Text List / 🔎 Filter Lines /
+  🔢 Line Count / 🖨️ Value Display-echo) ship the rudimentary chain the user asked for —
+  **List → Filter → Count → Display** — live at `?config=/flow-demo.json`; EXAMPLE_DASHBOARD + the
+  35-widget `dashboard.json` catalog carry the same row; the Ask manifest sees the new fields/category.
+  Constitution: tests/dataflow.test.mjs (13 tests → npm test 125; wired into `npm test`, cleanup list
+  now rm's all 10 bundles). validateDashboard warns (never errors) on a `source` pointing off-board.
+  **Two bugs caught by browser verification during this work:** (1) the static-widget branch of
+  WidgetFrame.load() returned before publishing emit output — no producer ever emitted; (2)
+  widgetOutputSignature was computed from the resolved config, so interpolation refs were invisible
+  and those consumers never reloaded. Both fixed; verified live in Chromium (Text List 5→7 lines
+  propagates Filter "7 of 7" · Count "7" · Echo "7" · Article List re-fetches 7 real articles via
+  interpolation) and via `npm run test:browsers` (flow-demo 6/6 × 3 engines, 0 errors; full catalog
+  passes when the pageview API isn't rate-limited — a local burst trips Wikimedia 429s, widgets
+  degrade gracefully, re-runs clean). Docs: ISSUES.md ISSUE-52 (full design + fixes), README catalog
+  + features, JSON-FORMAT Dataflow section, this file.
+- ✅ **SPARQL QID → label resolution (Issue #6, merged as PR #11, DEPLOYED 2026-09-08):** QLever can't run
+  `SERVICE wikibase:label` (it federates to a dead host), so QLever queries returned bare QIDs — the widget
+  path now post-processes every SPARQL result: cells whose binding was a Wikidata entity URI (Q or P) are
+  batch-resolved via `wbgetentities` (≤ 50 ids/call, 24 h TTL, `navigator.language` primary subtag with `en`
+  fallback, best-effort — a label failure never fails the query) and render **"Label (QID)"**. Vars with a
+  `?xLabel` sibling (WDQS SERVICE convention) are left alone; literals/non-Wikidata URIs untouched. Pure
+  helpers in `src/lib/sparqlLabels.js`; constitution: tests/sparql-labels.test.mjs (npm test 108).
+- ✅ **Browser matrix: remote engines + esbuild-bundle untracking (PRs #14/#15, DEPLOYED 2026-09-08):**
+  `npm run test:browsers` accepts `PW_WS_ENDPOINTS` for remote engine grids (scripts/remote-browser-daemon);
+  `*-test-bundle.mjs` artifacts untracked + gitignored (the npm test cleanup list had missed three).
+- ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-ejrRtwiS.js):** the 📈 widget's
+  monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
+  a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
+  the tree is shallow (1,956 files at depth 6 AND 12 — depth and the 20K
+  file budget were NOT the issue), but the category has **285 distinct ns-0
+  pages**, and the old top-150-by-weight cut was arbitrary (nearly every
+  page has weight 1), silently dropping **879,082 of 1,375,031 monthly
+  views (64%)** — Economy of India (101,789 views, one file) among them.
+  Reproduced both numbers independently: widget-style top-150 = 495,949,
+  all-pages = 1,375,045 vs GLAMorgan 1,386,218 (residual ≈ agent model + a
+  wikiquote page `wikiToProject` skips). The partial state is now honest:
+  subtitle reads `views partial (150 of 285 pages)`-style with
+  `viewsFetched` in the output, the Total views stat gains a `partial` sub
+  label, and `aggregateGlamStats` takes an injectable `viewBudget` (test
+  regression: a 9999-view weight-1 page beyond an injected 150 cut).
+  Also from the all-widgets clamp audit: self-walk fallback `GIU_LIMIT`
+  100 → **500** (the Action API `gulimit` max — 100 silently truncated
+  heavily-used files; relay path has no per-file cap) and a stale comment
+  (10,000 → 30,000) fixed. Everything else audited is display-only,
+  config-surfaced, or documented against upstream limits. Constitution:
+  updated tests/glam-petscan.test.mjs (npm test 108).
+  **Deploy-verification finding (same day):** live browser checks of the
+  MIT OCW widget exposed a second silent-wrongness bug — the view walk's
+  285-request burst can trip the pageview API's rate limiter, and 429s were
+  terminal in `fetchTextWithRetry` (2026-09-01 rule) AND zero-filled by
+  `fetchMonthlyViews`' catch-all → one live run silently lost ~65% of
+  views; a clean run matched the offline reproduction exactly (1,375,031).
+  Fix: 429 is now transient (retried with backoff like 5xx — 404 stays
+  terminal), `fetchMonthlyViews` returns `null` on non-404 failure (0 stays
+  "genuinely no data"), `aggregateGlamStats` counts `viewsFailed`, and the
+  card subtitle appends `· N pages failed` (GLAMorgan's own warning
+  pattern). Verified live: Total views 1,375,031 / Files viewed 158 —
+  exact match with GLAMorgan-parity expectations.
+- ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — merged as PR #12, DEPLOYED 2026-09-08):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
 - ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
   cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files
   ≥ 10× and ≥ 10k deep files — e.g. UNESCO 575 vs 16.4M) render a two-segment
@@ -288,9 +373,9 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). Current production bundle = index-DClvfKWq.js (CIM gap indicator, 2026-09-03);
-  latest deploy 2026-08-17 (GLAM PetScan relay + 30K budget ceiling +
-  clickable links + depth UX; prior: index-DkcrAAk0.js Lean mode 2026-08-16).
+- ✅ Git repo on GitHub (main). Current production bundle = index-ejrRtwiS.js (full merged main + GLAM view-budget fix + 429 resilience, 2026-09-08);
+  prior same-day deploys: index-BLGokffr.js, index-DHc3p4sT.js; index-DClvfKWq.js CIM gap indicator 2026-09-03,
+  index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
 - ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
   node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
   **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
@@ -420,7 +505,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (~541 KB total / ~154 KB gzip incl. pannellum lazy asset)
+npm run build      # → dist/ (~560 KB total / ~160 KB gzip incl. pannellum lazy asset)
 npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
@@ -519,7 +604,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   counts widget error frames + severe console errors; hatnote-CORS noise,
   404 probes and transient 5xx classified benign). Full 30-widget catalog:
   30/30/30 widgets, 0 errors on all engines.
-- `_title` (custom widget title) isn't editable in the config panel
+- **FIXED — `_title` (custom widget title) isn't editable in the config panel (ISSUE-53, 2026-09-08):** ⚙ now has a "Display title (optional)" field (header override; defaults to the computed label). Renaming the actual instance id works too — see the ISSUE-53 bullet in Current Status.
 - **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
   defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
   share link), a refresh re-applies the URL config (URL > localStorage > defaults
@@ -575,6 +660,7 @@ containment), index.html no-cache.*
 1. ~~SPARQL power widget~~ — **done 2026-08-13**: WDQS/QLever/Humaniki + auto renderer + presets (see Current Status); map + force-graph renderers remain Phase 2
 1. ~~Wiki Page embed~~ — **done 2026-08-13**: static iframe, desktop/mobile toggle, section anchors (see Current Status)
 1. ~~CIM widgets~~ — **done 2026-08-13**: 8 separate precomputed widgets (see Current Status); starter pack / glamorgan merge deferred by design
+1. ~~Widget-to-widget dataflow (ISSUE-52)~~ — **done 2026-09-08**: `source` picker + `{{widget:id}}` + 🧾🔎🔢🖨️ chain (see Current Status); the designed-but-unbuilt Part 5 (per-widget targeting of board params) is now partially delivered — targets are widget outputs rather than params; a visual wiring view remains Tier-A design (MODULARITY-AND-DATAFLOW §Part 6)
 1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
    has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
    and verified endpoints in docs/WIDGET-IDEAS.md
