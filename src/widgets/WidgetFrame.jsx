@@ -43,6 +43,12 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   const [nameError, setNameError] = useState(null);
   useEffect(() => { setInstanceName(widget.id); }, [widget.id]);
   const intervalRef = useRef(null);
+  // Request-serial guard: each load() claims a sequence number; only the
+  // LATEST run may write state. Prevents a slow fetch started under an old
+  // config/params (60 s SPARQL, batched imageinfo…) from landing after a
+  // newer run and clobbering its result — the classic stale-write race that
+  // compounds the moment widgets consume changing {{param}} feeds.
+  const loadSeqRef = useRef(0);
   // Latest onAutoHeight via ref — load()'s closure must not go stale as the
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
   const onAutoHeightRef = useRef(onAutoHeight);
@@ -165,9 +171,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       publishOutput(transformed);
       return;
     }
+    const seq = ++loadSeqRef.current; // this run owns the state until a newer run starts
     setState(s => ({ ...s, loading: true, error: null }));
     try {
       const data = await def.fetch(resolvedConfig, { force, sourceOutput: sourceOutputValue }); // force = bust TTL/SWR caches (manual ↻ / Apply)
+      if (seq !== loadSeqRef.current) return; // superseded — a newer run is in flight
       const transformed = def.transform(data, resolvedConfig, { sourceOutput: sourceOutputValue });
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
@@ -178,6 +186,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   if (autoPx && onAutoHeightRef.current) onAutoHeightRef.current(widget.id, autoPx);
       publishOutput(transformed);
     } catch (e) {
+      if (seq !== loadSeqRef.current) return; // a stale failure must not blank a fresh result
       setState({ loading: false, error: e.message, data: null });
     }
   }, [widget.widgetType, resolvedConfig, def, sourceOutputValue, widget.id, onOutput]);
@@ -215,6 +224,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     intervalRef.current = setInterval(load, secs);
     return () => clearInterval(intervalRef.current);
   }, [load, resolvedConfig.refreshSeconds]);
+
+  // Invalidate any in-flight load on unmount — a slow fetch must not write
+  // state after the widget is removed from the board.
+  useEffect(() => () => { loadSeqRef.current += 1; }, []);
 
   const handleConfigChange = (key, value) => {
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
@@ -492,6 +505,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
     case 'ExcerptCard': return <ExcerptCard data={data} />;
     case 'EditHistoryCard': return <EditHistoryCard data={data} />;
+    case 'TranslateCard': return <TranslateCard data={data} />;
     case 'QualityCard': return <QualityCard data={data} />;
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} />;
@@ -734,6 +748,36 @@ function MarkdownCard({ data }) {
       className="markdown-card"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(data.markdown, { allowExternalImages: data.allowExternalImages }) }}
     />
+  );
+}
+
+/** Translator (MinT) — machine translation via Wikimedia MinT (no key, no
+ *  proxy; CORS verified 2026-09-05). Renders original + translation + the
+ *  serving model. Fetch errors (unsupported pair etc.) surface through the
+ *  widget error path with a friendly message. */
+function TranslateCard({ data }) {
+  const orig = data?.original || '';
+  const tr = data?.translation || '';
+  const lang = (c) => String(c || '').toUpperCase();
+  return (
+    <div className="translate-card">
+      {orig && (
+        <div className="translate-block">
+          <div className="translate-lang">{lang(data?.from)}</div>
+          <div className="translate-original">{orig}</div>
+        </div>
+      )}
+      <div className="translate-arrow">↓</div>
+      <div className="translate-block">
+        <div className="translate-lang">
+          {lang(data?.to)}{data?.model ? ` · ${data.model}` : ''}
+        </div>
+        <div className="translate-result">
+          {tr || <span className="widget-empty">No translation yet.</span>}
+        </div>
+      </div>
+      {data?.truncated && <div className="translate-note">Translated the first 8,000 characters.</div>}
+    </div>
   );
 }
 

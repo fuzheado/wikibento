@@ -1973,3 +1973,12 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .confirm-title { font-size: 15px; font-weight: 700; }
 .confirm-message { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Translator (MinT) — machine translation card */
+.translate-card { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; overflow: auto; }
+.translate-block { display: flex; flex-direction: column; gap: 2px; }
+.translate-lang { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.translate-original { font-size: 13px; color: var(--text-secondary); }
+.translate-arrow { text-align: center; color: var(--muted, #888); font-size: 12px; line-height: 1; }
+.translate-result { font-size: 14px; line-height: 1.45; }
+.translate-note { font-size: 11px; color: var(--muted, #888); font-style: italic; }

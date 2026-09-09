@@ -381,6 +381,16 @@
         "speakOnChange": false,
         "refreshSeconds": 86400
       }
+    },
+    {
+      "id": "translate",
+      "widgetType": "translate",
+      "config": {
+        "text": "Jazz is a music genre that originated in New Orleans.",
+        "from": "en",
+        "to": "es",
+        "refreshSeconds": 86400
+      }
     }
   ],
   "layout": [
@@ -707,6 +717,15 @@
       "i": "speaker",
       "x": 0,
       "y": 94,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "translate",
+      "x": 0,
+      "y": 97,
       "w": 4,
       "h": 3,
       "minW": 3,
