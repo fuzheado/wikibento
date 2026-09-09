@@ -155,6 +155,8 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 ### Building a dashboard
 
+> New here? The [user guide](docs/GUIDE.md) explains the model — board params (shared inputs), widget config (local settings) and dataflow (derived values) — with worked examples.
+
 - **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param), and each card can be **scoped to a subset of params** (⚙ → *Params on this card* checkboxes) — so one card can drive the article and another the target language ([ISSUE-59](docs/ISSUES.md))
 - **🔀 Widget-to-widget dataflow (ISSUE-52, extended ISSUE-58)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`. **Article Excerpt emits its first paragraph**, so `text: "{{widget:<excerpt-id>}}"` feeds a Translator, Speaker or Markdown card; the ⚙ panel lists every emitter as a clickable `{{widget:<id>}}` chip under text fields, and a widget that **fetches** never sends an unresolved `{{…}}` placeholder upstream — it shows *"Waiting for a reference"* and loads automatically once the producer emits
 - **🏷️ Widget instance names + rename resolution (ISSUE-53)** — every widget has a visible, editable instance name: a small id chip in the header (click → ⚙), the id shown in ⓘ, and the `source` picker listing emitters by id. ⚙ edits the name (plus an optional display-title override). Renaming **repoints references via a confirm dialog** — if other widgets reference the id (source fields or `{{widget:...}}` tokens), it says *"N references in M widgets"* and updates them all atomically; Cancel changes nothing. The source control is a **combobox** (dropdown + manual typing) everywhere widget input exists
@@ -520,6 +522,7 @@ wikibento/
 
 ## Documentation
 
+- [docs/GUIDE.md](docs/GUIDE.md) — **user guide**: the widget model, board params vs. widget config vs. dataflow, worked examples, troubleshooting, cookbook
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — component tree, data flow, widget registry pattern, known issues
 - [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — why this project exists: the HyperCard lineage and the malleable-canvas thesis
 - [docs/PARADIGMS.md](docs/PARADIGMS.md) — research companion: presentation paradigms (cards, timelines, canvases, tile grids), the wayfinding question, and the CD-ROM multimedia era's rise and fall
