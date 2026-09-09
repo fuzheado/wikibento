@@ -18,6 +18,14 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **DEPLOYED 2026-09-09 (bundle index-DxO6r8uA.js) — demo suite + hub, embeds, rate-limit guards, guide:**
+  production now serves the whole session: the 8-board demo suite with **`?config=/demos.json`** as the
+  front door (GLAM five-institution switcher · article vitals · query power · article switcher ·
+  translate/params/flow/embed), custom-URL embeds (Objectium 3D), the shared rate-limit HTTP layer,
+  the Ask manifest v3, and the user guide. Deploy verified: bundle hash in index.html, all 10 demo
+  endpoints 200, every demo loaded live with **0 widget errors**, 3-engine matrix on the hub clean,
+  `/api/resolve` OK, startup log `WikiBento serving dist/ on port 8000`. Prior same-day deploy:
+  index-BWKLfppo.js.
 - ✅ **Seminal demo suite + hub (ISSUE-63, 2026-09-09):** 8 boards + a hub. Onboarding:
   `article-switcher-demo` (one param, two cards), `translate-demo`, `params-demo`, `flow-demo`.
   Flagships: `glam-demo` (one template, **five CIM-registered institutions** — Met/LoC/BHL/NGA/
@@ -81,7 +89,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
   title can be mistaken for Wikidata language mapping, so a future title emitter
   must label its output as machine translation. Constitution: tests/dataflow +5
   → npm test 160; `npm run smoke` (222 panel measurements) still green.
-- ✅ **DEPLOYED 2026-09-09 (bundle index-BWKLfppo.js) — the whole session's stack is live:** six
+- ✅ **DEPLOYED 2026-09-09 (bundle index-BWKLfppo.js) — first session deploy:** six
   PRs merged and shipped in one deploy — speaker widget (#17), translator widget (#21),
   request-serial guard (#24), panel reachability (#31), docs research series (#30), ROADMAP
   Phase 2.5 (#29). **37 widget types** now in the registry and in the `?config=/dashboard.json`
@@ -495,10 +503,11 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). **Current production bundle = index-BWKLfppo.js** (deployed
-  2026-09-09 — 37 widget types: speaker + translator widgets, request-serial guard, panel
-  reachability; main = ddba238);
-  prior same-day deploys: index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
+- ✅ Git repo on GitHub (main). **Current production bundle = index-DxO6r8uA.js** (deployed
+  2026-09-09 — 37 widget types: demo suite + hub, custom-URL embeds, rate-limit guards, Ask
+  manifest v3, user guide, plus the day's earlier speaker/translator/guard/panel/param work;
+  main = a71fff4);
+  prior same-day deploys: index-DWKLfppo.js, index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
   index-ejrRtwiS.js / index-BLGokffr.js / index-DHc3p4sT.js (GLAM 2026-09-08);
   index-DClvfKWq.js CIM gap indicator 2026-09-03,
   index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
@@ -631,7 +640,7 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # → dist/ (~576 KB total / ~165 KB gzip incl. pannellum lazy asset)
+npm run build      # → dist/ (~599 KB total / ~173 KB gzip incl. pannellum lazy asset)
 npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
 npm run smoke      # grid geometry + panel reachability (ISSUE-54) — needs dist/ built
 npm run smoke:panels   # panel reachability only (⚙/ⓘ actions at w3 h3 across 3 widths)
@@ -639,8 +648,9 @@ npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (pre-existing warnings only: vendored pannellum + a few legacy nits)
 ```
 
-Demo URL to see the full dashboard:
-`http://localhost:4173/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json`
+Demo URLs:
+`http://localhost:4173/?config=/demos.json` — the hub (all demo boards)
+`http://localhost:4173/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json` — on-wiki config
 
 ## Architecture in One Screen
 
@@ -736,6 +746,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   30/30/30 widgets, 0 errors on all engines.
 - **FIXED — `_title` (custom widget title) isn't editable in the config panel (ISSUE-53, 2026-09-08):** ⚙ now has a "Display title (optional)" field (header override; defaults to the computed label). Renaming the actual instance id works too — see the ISSUE-53 bullet in Current Status.
 - **FIXED — ⚙/ⓘ panels clipped their bottom action on small widgets (ISSUE-54, 2026-09-09):** panels now scroll inside the card with `Apply & Reload` / `Copy debug info` pinned (sticky); guarded by `npm run smoke:panels`. See the Current Status bullet.
+- **Pre-existing dev-only React warnings (found 2026-09-09, cosmetic):** the toolbar's ✨ Ask button is nested inside the + Add Widget button (`App.jsx:489` — invalid HTML; browsers auto-split them and React warns about hydration), and the media player spreads a `key` inside `mediaProps` into `<audio>/<video>` (`WidgetFrame.jsx:1604`). Both are 2-line fixes; neither affects production behaviour today.
 - **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
   defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
   share link), a refresh re-applies the URL config (URL > localStorage > defaults
