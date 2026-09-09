@@ -8,8 +8,9 @@ medium to treat "content + interaction + design" as one artifact. The idea:
 data-linked* boards.*
 
 *Companion to `WIDGET-IDEAS.md` (widget proposals), `ROADMAP.md`
-(prioritized plan), `MODULARITY-AND-DATAFLOW.md` (params + dataflow), and
-`docs/AGENT-MEMO.md` (conventions). Each entry lists what's on the board,
+(prioritized plan), `MODULARITY-AND-DATAFLOW.md` (params + dataflow),
+`docs/BOARD-COMPOSITION.md` (complete wiring reference for all 37 widgets),
+and `docs/AGENT-MEMO.md` (conventions). Each entry lists what's on the board,
 which widgets are shipped vs. needed, and the venue it fits.*
 
 ---
@@ -190,10 +191,203 @@ participation story made geographic.
 Voyager story), **E** (the institutional sale), **B** (cheapest full
 "revisited" demo).
 
+## §5 Voyager CD-ROM Catalog — Full Board Wiring
+
+Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikipedia.org/wiki/Voyager_Company#CD-ROMs), organized by theme, with the WikiBento widgets that would recreate each experience. Each entry includes a **board wiring diagram** (which widgets to chain together) and a **difficulty rating** (S = shipped, M = needs minor work, L = needs new widgets).
+
+### Theme 1: Film & Cinema
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **Beethoven's Symphony No. 9** (1989) | First interactive multimedia CD-ROM; synchronized score + audio; structural analysis | `excerpt` → `translate` + `speaker` + `mediaPlayer` (Commons recordings) + `gallery` (score pages) + `cimTrend` (view trend) + `sparql` (composer/work graph) | S (all shipped) |
+| **Voyager Shakespeare: Macbeth** (1994) | Full play text synced to RSC audio; 8 film extracts; essays; maps; "Shakespeare Karaoke" | `boardControls` (act selector) → `excerpt` → `translate` + `speaker` + `gallery` (performance imagery) + `mediaPlayer` (RSC clips) + `edithistory` + `quality` + `assessments` + `sparql` (character/actor graph) | S (all shipped) |
+| **A Hard Day's Night** (~1994) | Beatles film analyzed frame-by-frame with commentary | `excerpt` → `translate` + `speaker` + `gallery` + `mediaPlayer` (Commons recordings) + `pageviews` + `edithistory` + `sparql` (band/film graph) | S (all shipped) |
+| **Boyz n the Hood** | Film analysis | Same pattern as A Hard Day's Night | S |
+| **Bram Stoker's Dracula** | Film analysis | Same pattern | S |
+| **The Killer** | Film analysis | Same pattern | S |
+| **The Man Who Fell to Earth** | Film analysis | Same pattern | S |
+| **The Player** | Film analysis | Same pattern | S |
+| **Cries and Whispers** | Film analysis | Same pattern | S |
+| **Damage** | Film analysis | Same pattern | S |
+| **Polyester** | Film analysis | Same pattern | S |
+| **Ugetsu** | Film analysis | Same pattern | S |
+| **Painters Painting** | Art film | `excerpt` + `gallery` + `mediaPlayer` + `cimSnapshot` (art images) | S |
+| **Comic Book Confidential** | Comics documentary | `excerpt` + `gallery` + `articleList` (comics titles) | S |
+| **Mystery Science Theater 3000: The CD-ROM** | Riffing on B-movies | `listSource` (films to riff) → `filterLines` → `articleList` → `excerpt` → `translate` + `speaker` + `gallery` | S |
+| **Poetry in Motion** / **Poetry in Motion II** | Poetry on film | `listSource` (poems) → `articleList` → `excerpt` → `speaker` (TTS narration of poems) | S |
+| **This Is Spinal Tap** | Mockumentary | `excerpt` + `gallery` + `mediaPlayer` + `pageviews` | S |
+| **For All Mankind** | Space documentary | `excerpt` + `gallery` + `mediaPlayer` + `cimSnapshot` (space images) | S |
+| **The Day After Trinity** | Nuclear documentary | `excerpt` + `gallery` + `cimSnapshot` + `sparql` (nuclear weapons graph) | S |
+| **The Inland Sea** | Travel documentary | `excerpt` + `gallery` + `panorama360` (if available) | S |
+
+### Theme 2: Music & Performance
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The CD Companion to Beethoven's Ninth Symphony** | Synchronized score + audio; structural analysis | `excerpt` → `translate` + `speaker` + `mediaPlayer` (audio) + `gallery` (score) + `sparql` (composer graph) | S |
+| **The CD Companion to Mozart's Dissonant Quartet** | Classical music companion | Same pattern as Beethoven | S |
+| **The CD Companion to Dvorak's New World Symphony** | Classical music companion | Same pattern | S |
+| **The CD Companion to Stravinsky's The Rite of Spring** | Classical music companion | Same pattern | S |
+| **The Trout Quintet** | Chamber music | `mediaPlayer` (audio) + `excerpt` + `gallery` | S |
+| **All My Hummingbirds Have Alibis** (Morton Subotnick) | Electronic music | `mediaPlayer` + `excerpt` + `gallery` | S |
+| **Devo: The Complete Truth About De-Evolution** | Music documentary | `excerpt` + `gallery` + `mediaPlayer` + `pageviews` | S |
+| **The Residents: Twenty Twisted Questions** | Music documentary | Same pattern | S |
+| **The Residents: Freak Show** | Music/performance | Same pattern | S |
+| **Baseball's Greatest Hits** | Sports compilation | `listSource` (games) → `articleList` → `excerpt` + `mediaPlayer` (audio clips) | S |
+| **The Beat Experience** | Music/culture | `excerpt` + `gallery` + `mediaPlayer` + `pageviews` | S |
+| **A Hard Day's Night** | Beatles film + music | See Film & Cinema above | S |
+
+### Theme 3: Museums & Art
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The National Gallery of Art** | Museum collection on disc | `cimSnapshot` (NGA images) + `cimTrend` + `cimTopFiles` + `cimTopPages` + `cimTopEditors` + `cimLeaderboard` + `gallery` + `fileUsage` + `markdown` (curator's notes) | S (all shipped) |
+| **The Louvre** | Museum collection on disc | Same pattern as NGA, using `Images from the Louvre` category | S |
+| **With Open Eyes: Images from the Art Institute of Chicago** | Art collection | `cimSnapshot` (AIC images) + `cimTrend` + `cimTopFiles` + `gallery` + `articleList` (key artworks) + `sparql` (artist graph) | S |
+| **First Emperor of China** | Historical artifacts | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` | S |
+| **Sacred and Secular: The Aerial Photography of Marilyn Bridges** | Photography | `excerpt` + `gallery` + `cimSnapshot` + `panorama360` | S |
+| **Truths & Fictions – A Journey from Documentary to Digital Photography** | Photography history | `excerpt` + `gallery` + `cimTrend` + `markdown` | S |
+
+### Theme 4: Cities & Cultures
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **De Italia** | Italy exploration | `excerpt` (Italy) + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
+| **Vienna** | City exploration | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `panorama360` + `markdown` | S |
+| **Vancouver** | City exploration | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
+| **Exotic Japan** | Japanese culture | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
+| **The Vancouver Disc** | City exploration | Same pattern as Vancouver | S |
+
+### Theme 5: Literature & Ideas
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The Complete Hitchhiker's Guide to the Galaxy** | Interactive novel | `listSource` (sci-fi works) → `filterLines` → `articleList` → `excerpt` → `translate` + `speaker` + `quality` | S |
+| **The Complete Annotated Alice in Wonderland** | Annotated novel | `excerpt` + `gallery` + `translate` + `speaker` + `edithistory` + `markdown` (annotations) | S |
+| **The Complete Maus** | Graphic novel | `excerpt` + `gallery` + `edithistory` + `quality` + `assessments` + `markdown` | S |
+| **The Complete Stories, Volume 1** (Asimov) | Short stories | `listSource` → `articleList` → `excerpt` → `translate` + `speaker` | S |
+| **Invisible Man** (Ellison) | Novel | `excerpt` + `gallery` + `edithistory` + `quality` | S |
+| **Amusing Ourselves to Death** / **Brave New World** | Media criticism | `excerpt` + `translate` + `speaker` + `edithistory` + `quality` + `markdown` | S |
+| **Who Built America?** | History | `excerpt` + `gallery` + `edithistory` + `cimSnapshot` + `markdown` | S |
+| **The Society of Mind** (Minsky) | AI/philosophy | `excerpt` + `translate` + `speaker` + `edithistory` + `quality` | S |
+| **Genius: The Life and Science of Richard Feynman** | Biography | `excerpt` + `gallery` + `edithistory` + `quality` + `sparql` (scientist graph) | S |
+| **Stephen Jay Gould On Evolution** | Science | `excerpt` + `gallery` + `edithistory` + `quality` + `sparql` (evolution graph) | S |
+| **Understanding McLuhan** | Media theory | `excerpt` + `translate` + `speaker` + `edithistory` + `markdown` | S |
+| **First Person: The Society of Mind** | Interview | `excerpt` + `speaker` + `translate` + `markdown` | S |
+| **First Person: Mumia Abu-Jamal** | Interview | Same pattern | S |
+| **First Person: Donald Norman** | Interview | Same pattern | S |
+| **American Poetry: The Nineteenth Century** | Poetry | `listSource` → `articleList` → `excerpt` → `speaker` | S |
+| **I Photograph To Remember / Fotografio Para Recordar** | Photography | `excerpt` + `gallery` + `cimSnapshot` | S |
+
+### Theme 6: Science & Exploration
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The Invisible Universe** | Astronomy | `excerpt` + `gallery` + `cimSnapshot` + `sparql` (astronomy graph) | S |
+| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimSnapshot` + `wikiPage` (NASA pages) | S |
+| **Dazzleoids** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
+| **Circus!: An Interactive Cartoon** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
+| **Silly Noisy House** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
+| **Rodney's Wonder Window** | Interactive children's | Same pattern | S |
+| **So I've Heard: A Collector's Guide to Compact Discs** | Media history | `excerpt` + `gallery` + `markdown` + `pageviews` | S |
+
+### Theme 7: History & Politics
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The Great Quake of '89** | Earthquake documentary | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
+| **Amnesty Interactive** | Human rights | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
+| **Our Secret Century: The Darker Side of the American Dream** | Archival film | `listSource` → `articleList` → `excerpt` + `gallery` + `cimTrend` | S |
+| **Ephemeral Films 1931–1960** | Sponsored film archive | `listSource` → `articleList` → `excerpt` + `gallery` + `cimTrend` + `markdown` | S |
+| **Salt of the Earth** | Labor history | `excerpt` + `gallery` + `edithistory` + `markdown` | S |
+| **Call It Home: The House That Private Enterprise Built** | Architecture | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
+| **François Truffaut: 25 Years, 25 Films** | Filmography | `listSource` → `articleList` → `excerpt` + `gallery` + `pageviews` | S |
+| **The Voyager Videostack** | Video compilation | `mediaPlayer` (video playlist) + `gallery` + `markdown` | S |
+| **The Voyager Audiostack** | Audio compilation | `mediaPlayer` (audio playlist) + `excerpt` + `markdown` | S |
+
+### Theme 8: Interactive & Games
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **Dazzleoids** | Interactive children's game | `excerpt` + `gallery` + `mediaPlayer` | S |
+| **Circus!: An Interactive Cartoon** | Interactive children's | Same pattern | S |
+| **Silly Noisy House** | Interactive children's | Same pattern | S |
+| **Rodney's Wonder Window** | Interactive children's | Same pattern | S |
+| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimSnapshot` + `wikiPage` | S |
+
+### Theme 9: Criterion Collection (LaserDisc / Film)
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **Criterion Goes to the Movies** | Film criticism | `excerpt` + `gallery` + `mediaPlayer` + `edithistory` + `quality` + `markdown` | S |
+| **Blam! 1 CD-ROM** | Interactive fiction | `excerpt` + `gallery` + `mediaPlayer` + `markdown` | S |
+
+### Theme 10: The Expanded Books Line
+
+| Voyager title | What it did | WikiBento board wiring | Difficulty |
+|---|---|---|---|
+| **The Complete Maus** | Graphic novel with layers | `excerpt` + `gallery` + `edithistory` + `quality` + `assessments` + `markdown` | S |
+| **The Complete Hitchhiker's Guide** | Interactive novel with layers | See Literature & Ideas above | S |
+| **The Complete Annotated Alice in Wonderland** | Annotated novel with layers | See Literature & Ideas above | S |
+| **Virtual Light** (Gibson) | Novel with layers | `excerpt` + `gallery` + `edithistory` + `quality` + `markdown` | S |
+| **Neuromancer / Count Zero / Mona Lisa Overdrive** (Gibson) | Sprawl trilogy | `listSource` → `articleList` → `excerpt` → `translate` + `speaker` | S |
+| **Zen and the Art of Motorcycle Maintenance / Lila** (Pirsig) | Philosophy with layers | `excerpt` + `translate` + `speaker` + `edithistory` + `quality` + `markdown` | S |
+
+### Wiring Legend
+
+| Symbol | Meaning |
+|---|---|
+| `excerpt` | Article Excerpt widget — emits first paragraph |
+| `translate` | Translator widget — consumes excerpt via `{{widget:<id>}}` |
+| `speaker` | Speaker widget — consumes excerpt via `{{widget:<id>}}` |
+| `gallery` | Article Gallery — images from the article |
+| `mediaPlayer` | Video/Media Player — audio/video playback |
+| `cimSnapshot` | CIM Category Snapshot — exact precomputed stats |
+| `cimTrend` | CIM Views Over Time — monthly trend |
+| `cimTopFiles` | CIM Top Files — most-viewed files |
+| `cimTopPages` | CIM Top Pages — pages using the files |
+| `cimTopEditors` | CIM Top Editors — top contributors |
+| `cimLeaderboard` | CIM Global Leaderboard — top 100 categories |
+| `fileUsage` | File Usage Map — cross-wiki usage |
+| `listSource` | Text List — entry point for curated lists |
+| `filterLines` | Filter Lines — refine a list |
+| `articleList` | Article List — clickable rows with thumbnails |
+| `pageviews` | Article Pageviews — traffic stats |
+| `edithistory` | Edit History — editorial activity |
+| `quality` | Article Quality (ORES) — predicted class |
+| `assessments` | WikiProject Assessment — project banners |
+| `sparql` | SPARQL Query — graph/table queries |
+| `boardControls` | Board Controls — param UI (buttons, select, month stepper) |
+| `markdown` | Text/Markdown — curatorial notes |
+| `wikiPage` | Wiki Page — embed external pages |
+| `panorama360` | 360° Panorama Viewer — immersive images |
+
+---
+
 ## §Sources
 
-- Voyager Company (Wikipedia): A Hard Day's Night · The Complete Maus · Who
-  Built America? · Criterion Goes to the Movies, etc.
+- Voyager Company (Wikipedia): https://en.wikipedia.org/wiki/Voyager_Company#CD-ROMs
+- WikiBento manifest: `public/manifest.json` (37 widget types)
+- WikiBento board composition guide: `docs/BOARD-COMPOSITION.md`
+- WikiBento demo ideas: `docs/DEMO-IDEAS.md`
+- WikiBento data sources: `docs/DATA-SOURCES.md`
+- WikiBento JSON format: `docs/JSON-FORMAT.md`
+- WikiBento widget development: `docs/WIDGET-DEVELOPMENT.md`
+- WikiBento guide: `docs/GUIDE.md`
+- WikiBento modularity & dataflow: `docs/MODULARITY-AND-DATAFLOW.md`
+- EESE review of *Voyager Shakespeare: Macbeth* (Braunmuller/Rodes/Cohen):
+  webdoc.sub.gwdg.de/edoc/ia/eese/reviews/bein/mac88.html — RSC audio, film
+  extracts, karaoke, maps, note export.
+- "From Book to Screen: A Window on Renaissance Electronic Texts" (Wikibooks)
+  — Macbeth (Voyager, 1994) edition citation.
+- History of Information: "The Voyager Company Issues Beethoven's Ninth"
+  (historyofinformation.com/detail.php?id=4784); archival video "The first
+  interactive multimedia CD-ROM (1989) — Beethoven's Ninth Symphony by
+  Voyager".
+- The Digital Antiquarian (filfre.net, tag: voyager) — A Hard Day's Night as
+  Voyager's most successful single product; Who Built America?.
+- readonlymemory.net — Voyager discography (First Person, Kerouac ROM-nibus,
+  A Hard Day's Night…).}
 - EESE review of *Voyager Shakespeare: Macbeth* (Braunmuller/Rodes/Cohen):
   webdoc.sub.gwdg.de/edoc/ia/eese/reviews/bein/mac88.html — RSC audio, film
   extracts, karaoke, maps, note export.
