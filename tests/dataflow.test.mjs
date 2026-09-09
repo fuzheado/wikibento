@@ -17,7 +17,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs } from '../src/lib/params.js';
+import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../src/lib/params.js';
 import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
@@ -339,4 +339,34 @@ test('describeUnresolvedRefs: names the widget/param and why', () => {
   assert.match(msg, /widget output “excerpt-1”/);
   assert.match(msg, /board param “topic”/);
   assert.equal(describeUnresolvedRefs([]), '');
+});
+
+// ── ISSUE-59: per-card board-param scoping ──
+
+test('registry: Board Controls declares the params picker (key `show`)', () => {
+  const def = WIDGET_TYPES.boardControls;
+  const field = def.configFields.find((f) => f.key === 'show');
+  assert.ok(field, 'boardControls must declare a `show` config field');
+  assert.equal(field.type, 'params');
+  // transform carries the allow-list to the renderer (default = empty = all)
+  assert.equal(def.transform(null, { title: 'T' }).show, '');
+  assert.equal(def.transform(null, { title: 'T', show: 'topic' }).show, 'topic');
+});
+
+test('selectParamNames: empty/missing = every declared param (backward compatible)', () => {
+  const specs = { topic: {}, targetLang: {} };
+  assert.deepEqual(selectParamNames(specs, ''), ['topic', 'targetLang']);
+  assert.deepEqual(selectParamNames(specs, undefined), ['topic', 'targetLang']);
+  assert.deepEqual(selectParamNames(specs, '   '), ['topic', 'targetLang']);
+  assert.deepEqual(selectParamNames({}, 'topic'), []);
+  assert.deepEqual(selectParamNames(null, 'topic'), []);
+});
+
+test('selectParamNames: scopes to the allow-list in declaration order, ignores unknown names', () => {
+  const specs = { topic: {}, targetLang: {}, month: {} };
+  assert.deepEqual(selectParamNames(specs, 'targetLang'), ['targetLang']);
+  assert.deepEqual(selectParamNames(specs, 'month,topic'), ['topic', 'month']); // declaration order, not input order
+  assert.deepEqual(selectParamNames(specs, ' topic , targetLang '), ['topic', 'targetLang']);
+  assert.deepEqual(selectParamNames(specs, 'nope,topic'), ['topic']); // unknown ignored
+  assert.deepEqual(selectParamNames(specs, 'nope'), []); // nothing valid → empty card
 });

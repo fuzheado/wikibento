@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs } from '../lib/params';
+import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
@@ -28,6 +28,37 @@ function RefChips({ emitters, onInsert }) {
           onClick={() => onInsert(`{{widget:${o.id}}}`)}
         >{`{{widget:${o.id}}}`}</button>
       ))}
+    </div>
+  );
+}
+
+/** ISSUE-59: per-card board-param selection — a checkbox per declared param.
+ *  The value is a comma-separated allow-list; empty = every board param. */
+function ParamPicker({ value, paramSpecs, onChange }) {
+  const entries = Object.entries(paramSpecs || {});
+  if (entries.length === 0) {
+    return (
+      <small className="config-hint">
+        No board params declared — add a <code>params</code> block to the dashboard JSON.
+      </small>
+    );
+  }
+  const current = new Set(String(value || '').split(',').map((s) => s.trim()).filter(Boolean));
+  const toggle = (name) => {
+    const next = new Set(current);
+    if (next.has(name)) next.delete(name); else next.add(name);
+    // store in declaration order for a stable value; empty = all params
+    onChange(Object.keys(paramSpecs).filter((n) => next.has(n)).join(','));
+  };
+  return (
+    <div className="config-param-picker">
+      {entries.map(([name, spec]) => (
+        <label key={name} className="config-param-option">
+          <input type="checkbox" checked={current.has(name)} onChange={() => toggle(name)} />
+          <span>{spec.label || name} <code>{name}</code></span>
+        </label>
+      ))}
+      <small className="config-hint">Only checked params render on this card — none checked shows all.</small>
     </div>
   );
 }
@@ -403,6 +434,12 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   </datalist>
                   {field.hint && <small className="config-hint">{field.hint}</small>}
                 </div>
+              ) : field.type === 'params' ? (
+                <ParamPicker
+                  value={widget.config[field.key] || ''}
+                  paramSpecs={paramSpecs}
+                  onChange={(v) => handleConfigChange(field.key, v)}
+                />
               ) : field.type === 'boolean' ? (
                 <input
                   type="checkbox"
@@ -859,15 +896,23 @@ function TranslateCard({ data }) {
  *  the card's own config (title). */
 function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
   const specs = paramSpecs || {};
-  const names = Object.keys(specs);
+  const declared = Object.keys(specs);
+  // ISSUE-59: a card may render a subset of the board's params (per-widget scoping).
+  const names = selectParamNames(specs, data.show);
   return (
     <div className="board-controls">
       {data.title && <div className="stat-title">{data.title}</div>}
-      {names.length === 0 && (
+      {declared.length === 0 && (
         <div className="widget-empty">
           No board params declared. Add a <code>params</code> block to the
           dashboard JSON, then reference them with <code>{'{{name}}'}</code> in
           any widget config.
+        </div>
+      )}
+      {declared.length > 0 && names.length === 0 && (
+        <div className="widget-empty">
+          None of this card's selected params exist on the board — pick params in ⚙
+          (or clear the selection to show all).
         </div>
       )}
       {names.map((name) => {

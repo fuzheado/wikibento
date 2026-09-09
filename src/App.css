@@ -317,6 +317,33 @@ body {
 }
 .config-ref-chip:hover { border-color: var(--accent); background: rgba(255,255,255,0.04); }
 
+/* ISSUE-59: per-card board-param picker (checkboxes in the ⚙ panel) */
+.config-param-picker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.config-param-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.config-param-option input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.config-param-option code {
+  font-size: 10px;
+  color: var(--accent);
+}
+
 .widget-btn-apply {
   margin-top: 4px;
   color: var(--accent);

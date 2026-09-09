@@ -10,6 +10,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 ```json
 {
   "version": 1,
+  "params": { ... },
   "widgets": [ ... ],
   "layout": [ ... ]
 }
@@ -18,6 +19,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | Field | Type | Required | Rules |
 |---|---|---|---|
 | `version` | integer | optional | Must be `1` (or absent — treated as 1). Reserved for future migrations |
+| `params` | object | optional | Board params (ISSUE-50): `{ name: { label, type, options, value } }`, `type` = `buttons` \| `select` \| `text` \| `number` (options `[min, max, step]`) \| `month`. Widget configs reference them with `{{name}}`; a `boardControls` card renders them |
 | `widgets` | array | ✅ | At least one entry; see [Widget](#widget) |
 | `layout` | array | ✅ | May be empty (widgets auto-place); see [Layout Item](#layout-item) |
 
@@ -75,6 +77,9 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `topN` | number, integer 1–10 (filmstrip size) |
 | | `showDetail` | boolean (top-file per-page usage table) |
 | `markdown` | `text` | string, Markdown (static widget — no fetch) |
+| `boardControls` | `title` | string (card title) |
+| | `spec` | string, one param per line: `name \| type \| Label \| options` — saving rewrites the board `params` block |
+| | `show` | string, comma-separated param names rendered on **this** card (empty/absent = all) — split controls across cards, e.g. one card for the article and one for the language (ISSUE-59) |
 | `topPages` | `lang` | 28 Wikipedia language codes (`en`, `de`, `fr`, …) |
 | | `dateMode` | `latest` \| `day` \| `month` \| `year` (hatnote data updates ~02:00 UTC) |
 | | `topN` | number, integer 1–100 (0/100 = all) |

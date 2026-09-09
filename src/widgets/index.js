@@ -1162,10 +1162,11 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'title', label: 'Title', type: 'text', placeholder: 'Board Controls' },
       { key: 'spec', label: 'Params (one per line: name | type | Label | options)', type: 'textarea', rows: 6, placeholder: 'category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\ncount | number | Photos | 3, 12, 1\nmonth | month | Data month\nyear | select | Year | 2023, 2024\nquery | text | Search', hint: 'One param per line — name | buttons/select/text/number/month | Label | options. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). Saving updates the board params; widgets referencing {{name}} re-fetch.' },
+      { key: 'show', label: 'Params on this card', type: 'params', hint: 'Only the checked params render here — lets you split controls across cards (one for the article, one for the language). None checked = every board param.' },
     ],
     // Static — the spec (params block) + values + setter arrive as WidgetFrame props;
-    // transform just carries the title. Renderer switch passes paramSpecs/paramValues/onSetParam.
-    transform: (data, config) => ({ title: config.title || 'Board Controls' }),
+    // transform carries the title + this card's param allow-list (ISSUE-59).
+    transform: (data, config) => ({ title: config.title || 'Board Controls', show: config.show || '' }),
   },
 
   speaker: {

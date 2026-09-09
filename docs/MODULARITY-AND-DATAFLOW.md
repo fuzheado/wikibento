@@ -392,7 +392,9 @@ WikiBento:
 2. **Progressive disclosure everywhere:** param targeting (P2) behind the ⚙
    panel, collapsed by default; wiring visibility (P3) in ⓘ panels, not on the
    canvas; the only always-visible chrome is the controls the author chose to
-   place.
+   place. **Status 2026-09-09:** the controls-surface half shipped — a Board
+   Controls card can be scoped to a subset of params (ISSUE-59); per-click
+   *target* scoping (which widgets a param change affects) remains design.
 3. **Kiosk mode is the clutter escape valve** — it renders exactly the controls
    the author placed and nothing else; interactive boards for museum walls are
    the flagship use case, and they show N controls, not N×M wiring UI.

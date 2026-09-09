@@ -1551,6 +1551,10 @@ category-focused board.
 
 ## ISSUE-41 · Board templating: Bento-level parameters that ripple through widgets — **open** (design)
 
+> **Status note (2026-09-09):** the controls-surface half shipped — a Board
+> Controls card can be scoped to a subset of params (ISSUE-59). Per-click
+> *target* scoping (which widgets a param change affects) remains design.
+
 **What:** one institution Bento (Met: category metrics, photo gallery, CIM
 trend, top files…) becomes a Smithsonian or Cleveland Bento by changing a
 single value. Board-level template variables referenced by widget configs,
@@ -2604,3 +2608,34 @@ upstream request**; unknown param → the param variant; chips appear only under
 the text field (from/to opt out) and insert the token at the caret. Full
 `npm run smoke` (grid + 222 panel measurements × 37 widgets) still passes — the
 chips increase panel height and the ISSUE-54 scroll contract absorbs it.
+
+## ISSUE-59 · Board Controls: per-card param scoping — **done 2026-09-09**
+
+**What (user session):** a 4-widget board — (1) article buttons → (2) Article
+Excerpt → (3) Translator with `to: "{{targetLang}}"` → (4) language buttons.
+Widgets 1–3 worked (with the ISSUE-58 excerpt emitter), but a *fourth* card
+duplicated the controls: `BoardControlsCard` renders **every** board param
+(the ⚙ `spec` field rewrites the shared board block), so both cards showed
+"Article" and "Language". The user asked for a language-only card.
+
+**Fix:** a `show` config field on `boardControls` (type `params`) — the ⚙ panel
+renders one checkbox per declared board param; the value is a comma-separated
+allow-list stored in the widget config. `transform` carries it to the renderer,
+and `BoardControlsCard` filters via the pure helper
+`selectParamNames(specs, show)` (params.js): empty/absent = all params
+(backward compatible), unknown names ignored, result in declaration order.
+A card whose selection matches no declared param shows an explanatory empty
+state. This is the controls-surface half of "param targeting" (P2) from
+MODULARITY-AND-DATAFLOW §Part 5; per-click *target* scoping (which widgets a
+param change affects) remains design (ISSUE-41).
+
+**Constitution:** tests/dataflow.test.mjs +3 (registry declares the `params`
+picker + transform passthrough; empty/missing = all; scoping/order/unknown
+handling) → npm test 163. Shipped demo: **`?config=/translate-demo.json`** —
+the exact 4-widget board (two scoped cards, article + language).
+
+**Verified live (Chromium, built dist):** the exact 4-widget board — cards
+render `["Article"]` and `["Language"]` respectively; the chain
+Einstein → excerpt → `EN → FR · nllb200-600M`; clicking **de** on the
+language-only card re-translates to `EN → DE · nllb200-600M`; the ⚙ picker
+shows both params with only `topic` checked on the article card.
