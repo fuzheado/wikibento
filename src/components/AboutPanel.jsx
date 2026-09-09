@@ -48,9 +48,10 @@ export default function AboutPanel({ onClose }) {
             The
             {' '}<a href="https://github.com/fuzheado/wikibento/blob/main/docs/GUIDE.md" target="_blank" rel="noopener noreferrer">user guide</a>
             {' '}covers the model, worked examples and troubleshooting.
-            Demos: <code>?config=/translate-demo.json</code>,
-            {' '}<code>?config=/flow-demo.json</code>,
-            {' '}<code>?config=/params-demo.json</code>.
+            Demos: <code>?config=/demos.json</code> (start here)
+            {' '}· <code>?config=/translate-demo.json</code>
+            {' '}· <code>?config=/glam-demo.json</code>
+            {' '}· <code>?config=/params-demo.json</code>.
           </p>
 
           <h4>Try the demo file</h4>

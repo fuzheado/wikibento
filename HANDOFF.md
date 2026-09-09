@@ -18,6 +18,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Seminal demo suite + hub (ISSUE-63, 2026-09-09):** 8 boards + a hub. Onboarding:
+  `article-switcher-demo` (one param, two cards), `translate-demo`, `params-demo`, `flow-demo`.
+  Flagships: `glam-demo` (one template, **six CIM-registered institutions** — Met/LoC/BHL/NGA/
+  Smithsonian/Rijksmuseum, collection + month switcher), `article-vitals-demo` (excerpt · views ·
+  quality · assessments · edits · gallery), `sparql-demo` (WDQS + Humaniki + QLever). Extras:
+  `embed-demo`, `dashboard`. **`demos.json`** is the hub — its Markdown index links every board;
+  the markdown renderer gained same-origin links (`?config=/x.json`, `/path`, `#hash` render as
+  in-place anchors; absolute still new-tab; protocol-relative/`javascript:` stay inert).
+  Constitution: tests/demos.test.mjs +5 (validate · unique ids/types · refs resolve · hub links
+  exist · link safety) → npm test 190. Verified live: all 10 boards 0 widget errors, hub click
+  navigates.
 - ✅ **Wiki Page custom-URL embed (ISSUE-62, 2026-09-09):** the `wikiPage` widget can now embed
   **any http(s) page** via a `url` field (custom mode) — e.g. an Objectium 3D model
   (`?config` board card: `{"widgetType":"wikiPage","config":{"url":"https://objectium.toolforge.org/uploads/213"}}`).

@@ -2750,3 +2750,36 @@ regenerating it.
 
 **Verified live:** an Objectium card in a board (sandboxed iframe) renders the
 3D viewer with zero console errors.
+
+## ISSUE-63 · Seminal demo suite + hub board + demo constitution — **done 2026-09-09**
+
+**What (user session):** after the interactivity and output widgets landed, the
+user asked for "a good seminal set of demos/examples", explicitly keeping simple
+onboarding examples next to the flagships. Baseline: every-widget catalog, flow,
+params, translate. Requested additions: GLAM (seeded by a Meta-hosted Met board,
+`w.wiki/TT2g`), article vitals, query power.
+
+**Shipped (8 boards + hub):**
+- **Onboarding:** `article-switcher-demo` (one param, two cards — the gentlest
+  entry), `translate-demo`, `params-demo`, `flow-demo`
+- **Flagships:** `glam-demo` — one template, **six CIM-registered institutions**
+  (Met 389,030 · LoC 630,933 · BHL 305,868 · NGA 54,167 · Smithsonian 17,160 ·
+  Rijksmuseum 6,863 files, verified 2026-07), switching collection + month;
+  `article-vitals-demo` (excerpt · views · ORES quality · assessments · edits ·
+  gallery, one article param); `sparql-demo` (WDQS + Humaniki + QLever presets)
+- **Extras:** `embed-demo`, `dashboard` (full catalog)
+- **`demos.json`** — a hub board whose Markdown index links every board in place
+
+**Markdown renderer:** same-origin links (`?config=/x.json`, `/path`, `#hash`)
+now render as in-place anchors — absolute URLs still open a new tab;
+protocol-relative and `javascript:` stay inert text. This is what makes the hub
+a navigable index (and a lightweight answer to ISSUE-35 board-to-board nav).
+
+**Constitution:** `tests/demos.test.mjs` +5 — every board validates; ids unique,
+types registered, layout/widget counts match; every `{{widget:id}}`/`{{param}}`
+resolves inside its board; the hub links every demo and each target exists;
+markdown link safety → npm test 190.
+
+**Verified live (built dist):** all 10 boards load with **0 widget errors**
+(SPARQL included); the hub renders 9 links and clicking one navigates to that
+board; `embed-demo` frames Objectium; `dashboard` renders 37 widgets.
