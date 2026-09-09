@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-09T14:23:02.829Z",
+ "generatedAt": "2026-09-09T14:26:20.868Z",
  "widgetCount": 37,
  "widgets": [
   {
@@ -1357,7 +1357,7 @@
    "id": "wikiPage",
    "name": "Wiki Page",
    "icon": "📄",
-   "description": "Embed any MediaWiki page — desktop or mobile view, links browse inside",
+   "description": "Embed a MediaWiki page (desktop or mobile) — or any embeddable URL, e.g. an Objectium 3D model",
    "dataSource": "static (iframe to the wiki)",
    "category": "Content & Embeds",
    "type": "embed",
@@ -1367,6 +1367,13 @@
    "nodeKind": "display",
    "consumesSource": false,
    "configFields": [
+    {
+     "key": "url",
+     "type": "text",
+     "label": "Custom URL (overrides the wiki page below)",
+     "hint": "http(s) only — embeddable sites (no X-Frame-Options). The wiki fields below are ignored when set.",
+     "placeholder": "https://objectium.toolforge.org/uploads/213"
+    },
     {
      "key": "page",
      "type": "text",
@@ -1394,6 +1401,7 @@
     }
    ],
    "defaults": [
+    "url",
     "page",
     "project",
     "mobile",

@@ -1795,7 +1795,7 @@ function BarCard({ data }) {
  *  Wikimedia pages send no X-Frame-Options / frame-ancestors (verified
  *  2026-08-13), so a direct embed works; links browse inside the widget. */
 function WikiPageCard({ data }) {
-  if (!data?.url) return <div className="widget-empty">Enter a page title</div>;
+  if (!data?.url) return <div className="widget-empty">{data?.error || 'Enter a page title'}</div>;
   return (
     <div className="wikipage-card">
       <iframe
@@ -1804,6 +1804,12 @@ function WikiPageCard({ data }) {
         title={data.page}
         referrerPolicy="no-referrer"
         loading="lazy"
+        // ISSUE-62: custom URLs are untrusted third-party pages — sandbox them
+        // (scripts + their own origin so their app works; no top-navigation or
+        // popups-escape). Wikimedia pages stay unsandboxed as before.
+        {...(data.external
+          ? { sandbox: 'allow-scripts allow-same-origin allow-forms allow-presentation', allow: 'fullscreen' }
+          : {})}
       />
     </div>
   );

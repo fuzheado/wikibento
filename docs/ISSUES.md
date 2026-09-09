@@ -2716,3 +2716,37 @@ wait ~2s, then Retry (…)"*. The config path shows the same message prefixed
 **Not fixable app-side:** if an IP is throttled, every request 429s regardless —
 the app now backs off and explains instead of hammering. Mitigations for the
 user: leave the VPN/shared network, wait a few minutes, close duplicate tabs.
+
+## ISSUE-62 · Wiki Page: custom-URL embed mode (Objectium 3D and any embeddable page) — **done 2026-09-09**
+
+**What (user session):** *"Are you able to frame or show content from a site
+like https://objectium.toolforge.org/uploads/213 for 3D?"* — Objectium is a
+Toolforge tool (Laravel/Inertia) serving GLB models; upload 213 is a CC0
+Smithsonian model ("Spirit of St. Louis", 8.29 MB).
+
+**Feasibility (verified 2026-09-09):**
+- The Objectium page sends **no `X-Frame-Options`** and only a **report-only
+  CSP** → iframe-embeddable. Verified in a real browser: the frame loads,
+  renders its WebGL canvas, shows *"Spirit of St. Louis · GLB CC0 · 99,888
+  triangles · Drag to rotate"* — zero console errors.
+- The model file (`/uploads/213/file`, `model/gltf-binary`) and the thumbnail
+  send **no `Access-Control-Allow-Origin`** → a native three.js loader cannot
+  fetch them cross-origin. The planned `model3D` widget (ISSUE-43) would need
+  CORS on Objectium's routes or a same-origin proxy.
+
+**Fix (framing path):** the `wikiPage` widget gains a **`url`** config field
+(custom mode) — http(s) only, bare domains get `https://`, unsafe schemes
+(`javascript:`, `data:`, `file:`, `ftp:`) are rejected with a visible error
+state, and the URL takes precedence over the wiki fields. External frames are
+**sandboxed** (`allow-scripts allow-same-origin allow-forms
+allow-presentation` + `allow="fullscreen"`); Wikimedia pages stay unsandboxed.
+`labelFromConfig` shows the host.
+
+**Constitution:** `tests/embed.test.mjs` +6 (https embed + external flag; bare
+domain → https; unsafe/malformed rejected; URL precedence over wiki fields; wiki
+mode regression incl. mobile + fragment; label) → npm test 174. The Ask manifest
+was regenerated — which also picks up the `show` field #33 added without
+regenerating it.
+
+**Verified live:** an Objectium card in a board (sandboxed iframe) renders the
+3D viewer with zero console errors.

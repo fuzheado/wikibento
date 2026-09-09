@@ -116,6 +116,24 @@ const NOISE_RE = [
   /^x{3,4}(\s*\([^)]*\))?$/i,  // bare/sponsored XXX variants: xxx, XXXX (beer)
 ];
 
+/** ISSUE-62: normalize a custom embed URL — http(s) only, bare domains get
+ *  https://. Returns null for anything unsafe (javascript:, data:, file:, …). */
+function safeEmbedUrl(raw) {
+  const t = String(raw || '').trim();
+  if (!t || /\s/.test(t)) return null;
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(t) ? t : (/^[^/]+\.[^/]/.test(t) ? `https://${t}` : null);
+  if (!withScheme) return null;
+  try {
+    const u = new URL(withScheme);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return u.href;
+  } catch { return null; }
+}
+
+function embedLabel(raw) {
+  try { return new URL(raw).hostname.replace(/^www\./, ''); } catch { return String(raw || '').slice(0, 40); }
+}
+
 export const WIDGET_TYPES = {
   pageviews: {
     id: 'pageviews',
@@ -1206,9 +1224,13 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Wiki Page',
     icon: '📄',
-    description: 'Embed any MediaWiki page — desktop or mobile view, links browse inside',
-    labelFromConfig: (c) => (c.page || '').trim().replace(/_/g, ' '),
+    description: 'Embed a MediaWiki page (desktop or mobile) — or any embeddable URL, e.g. an Objectium 3D model',
+    labelFromConfig: (c) => {
+      const u = safeEmbedUrl(c.url);
+      return u ? embedLabel(u) : (c.page || '').trim().replace(/_/g, ' ');
+    },
     defaults: {
+      url: '',
       page: 'Help:Introduction',
       project: 'en.wikipedia',
       mobile: false,       // true = the m. site (mobile skin)
@@ -1218,6 +1240,7 @@ export const WIDGET_TYPES = {
     renderer: 'WikiPageCard',
     dataSource: 'static (iframe to the wiki)',
     configFields: [
+      { key: 'url', label: 'Custom URL (overrides the wiki page below)', type: 'text', placeholder: 'https://objectium.toolforge.org/uploads/213', hint: 'http(s) only — embeddable sites (no X-Frame-Options). The wiki fields below are ignored when set.' },
       { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
       { key: 'project', label: 'Project', type: 'select', options: WIKI_PAGE_PROJECTS },
       { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
@@ -1228,6 +1251,13 @@ export const WIDGET_TYPES = {
     transform: (data, config) => {
       const project = config.project || 'en.wikipedia';
       const mobile = !!config.mobile;
+      // ISSUE-62: custom-URL mode — embed any http(s) page (Objectium, maps, …).
+      const rawUrl = String(config.url || '').trim();
+      if (rawUrl) {
+        const url = safeEmbedUrl(rawUrl);
+        if (!url) return { url: null, page: '', project, error: 'Enter an http(s) URL' };
+        return { url, page: embedLabel(url), external: true };
+      }
       const page = String(config.page || '').trim();
       if (!page) return { url: null, page: '', project };
       const title = page.replace(/ /g, '_');
