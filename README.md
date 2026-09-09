@@ -12,7 +12,7 @@ can click through and act on, like recent changes and usage trails.
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈541 KB total (~154 KB
+(the same grid engine used by Grafana and Kibana), ≈560 KB total (~160 KB
 gzipped), hostable as static files on Toolforge or anywhere.
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
@@ -98,12 +98,13 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 
-### Content & Embeds (5)
+### Content & Embeds (6)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
 | **Board Controls** | 🎛️ | (static — writes board params) | Buttons / number sliders / month steppers / menus / text fields that drive `{{param}}` references in other widgets — the interactivity primitive; params editable in ⚙ |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
+| **Speaker (text-to-speech)** | 🔊 | (static — Web Speech synthesis) | **Output widget** — speaks its text aloud; voice picker from the device roster; mute all + auto-speak-on-change (default off, only after one ▶ click); degrades gracefully on zero-voice devices |
 | **Translator (MinT)** | 🌐 | [MinT translate API](https://translate.wmcloud.org) (Wikimedia, CORS ✓) | Machine-translates its text (typed or a `{{param}}`) into another language — 200+ languages, open NMT models; shows source + translation + serving model |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
 | **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor |
@@ -112,7 +113,16 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
-| **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
+| **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); Wikidata entity cells render **"Label (QID)"** (QLever can't run the label SERVICE — labels resolved via `wbgetentities`); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
+
+### Dataflow (4) — widget-to-widget connections (ISSUE-52)
+
+| Widget | Icon | Data Source | Shows |
+|---|---|---|---|
+| **Text List** | 🧾 | (static — a list you paste) | A numbered list whose lines are **published to the board**: any widget can consume them via its `source` picker or `{{widget:<id>}}` interpolation |
+| **Filter Lines** | 🔎 | another widget's output (`source`) | Keeps only the lines matching a pattern (contains/equals/starts-with/ends-with, case toggle) — emits the filtered list downstream |
+| **Line Count** | 🔢 | another widget's output (`source`) | Counts the lines/elements of any emitted output — emits the number (chain it into a Value Display) |
+| **Value Display** | 🖨️ | another widget's output (`source`) | Prints whatever a widget outputs — number, lines, or JSON — the debug/pipe endpoint of a chain; passes the value through (`emit`) |
 
 ### Web & History (1)
 
@@ -143,6 +153,8 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 ### Building a dashboard
 
 - **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param); per-widget targeting is designed (docs/MODULARITY-AND-DATAFLOW.md §Part 5) but not yet built
+- **🔀 Widget-to-widget dataflow (ISSUE-52)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four new Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`
+- **🏷️ Widget instance names + rename resolution (ISSUE-53)** — every widget has a visible, editable instance name: a small id chip in the header (click → ⚙), the id shown in ⓘ, and the `source` picker listing emitters by id. ⚙ edits the name (plus an optional display-title override). Renaming **repoints references via a confirm dialog** — if other widgets reference the id (source fields or `{{widget:...}}` tokens), it says *"N references in M widgets"* and updates them all atomically; Cancel changes nothing. The source control is a **combobox** (dropdown + manual typing) everywhere widget input exists
 
 - **Add Widget panel** — searchable catalog; click to add
 - **✨ Ask (ML advisor)** — type what you want in plain language ("random
@@ -180,7 +192,9 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
   files, pages on wikis, total views, top-image filmstrip, and per-page usage of
   the top file (GLAMorgan-style); PetScan-relay powered (budget up to 30,000
-  files), clickable category/page links, depth-aware zero-state
+  files, monthly pageviews for every using page up to 2,000 — beyond that the
+  card says `views partial (N of M pages)`, and `N pages failed` appears if
+  any view fetch fails), clickable category/page links, depth-aware zero-state
 - **Commons media previews** — File Usage Map can show the image itself + its
   summary caption; Category Size can show a **random sample** of the category's photos
 
@@ -279,7 +293,18 @@ wikibento/
 
 ## Verified Working (smoke-tested 2026-08-12, updated 2026-09-03)
 
-### GLAM & CIM — impact metrics (2026-08-13 → 09-01)
+### GLAM & CIM — impact metrics (2026-08-13 → 09-08)
+
+- ✅ **GLAM view-budget + 429-resilience fix (2026-09-08, verified live):** the 📈 widget's
+  monthly pageview budget rose 150 → **2,000 pages** — the old top-150-by-weight cut was
+  arbitrary (nearly every page has weight 1) and silently dropped high-traffic single-file
+  pages: `Media from MIT OpenCourseWare` 2026-05 showed 495,949 views while the true total
+  was 1,375,031 (GLAMorgan: 1,386,218 — 64% silently missing, Economy of India's 101,789
+  views among the skipped). Live-verified after deploy: **1,375,031 / 158 files viewed — exact**.
+  The partial state is quantified (`views partial (N of M pages)`; Total views stat marked
+  `partial`) and rate-limited (429) fetches are now retried, with `· N pages failed` on the
+  card if any view fetch still fails — never silently zeroed. Self-walk fallback `gulimit`
+  also raised 100 → 500 (the Action API max)
 
 - ✅ **CIM month-lag fix (2026-09-01):** the calendar's previous month isn't
   published until CIM's monthly job runs, so at month start every default-month
@@ -380,6 +405,13 @@ wikibento/
 - ✅ Expanded view (⚙ checkbox): 120px thumbnails + intro extracts via the
   MediaWiki API (prop=pageimages|extracts) — Spider-Man poster, Lucy Davis
   photo; non-article pages (Main_Page, Special:*) filtered from both sources
+- ✅ **SPARQL label resolution (2026-09-05, issue #6):** 🧠 QLever can't run `SERVICE
+  wikibase:label` (it federates to a dead host), so QLever queries returned bare QIDs —
+  every SPARQL result cell whose binding was a Wikidata entity URI now renders
+  **"Label (QID)"** (e.g. `road (Q34442)`), batch-resolved via `wbgetentities`
+  (≤ 50 ids/call, 24 h TTL, user-language-first with `en` fallback, best-effort — a label
+  failure never fails the query). Works for any endpoint and any user query; vars with a
+  `?xLabel` sibling (WDQS SERVICE convention) are left as bare QIDs
 - ✅ **SPARQL Query (2026-08-13):** 🧠 verified live — Met collection depth 72,433 (StatCard); multi-institution bars (Met > Rijksmuseum > British Museum > Smithsonian); Women-in-Red **20.13%** via Humaniki (its bias_labels are authoritative — hardcoded QIDs give a wrong 79.7%); Commons top-depicts via QLever (25 bars, prefix block required); multi-column → table; bad query → themed error + Retry; preset select fills query+endpoint atomically; renderer override forces stat/bar/line/table
 - ✅ **Wiki Page (2026-08-13):** 📄 static iframe embed — Wikimedia sends no X-Frame-Options / frame-ancestors (verified), so pages embed directly; desktop + mobile toggle (`?useformat=mobile` — MobileFrontend's preview param; the m. subdomains are retired and 301 to desktop, verified), section anchors, links browse inside the widget; verified live in browser (Help:Introduction desktop + mobile render, Albert_Einstein#Biography URL)
 
