@@ -204,6 +204,18 @@ export function findUnresolvedRefs(config) {
   return out;
 }
 
+/** Which board-param names a Board Controls card renders (ISSUE-59).
+ *  `show` is a comma-separated allow-list stored in the widget config; empty or
+ *  missing = every declared param (backward compatible). Unknown names are
+ *  ignored and the result keeps the spec declaration order, so a card can be
+ *  scoped to a subset (e.g. one card for the article, one for the language). */
+export function selectParamNames(specs, show) {
+  const all = Object.keys(specs || {});
+  const want = String(show || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (want.length === 0) return all;
+  return all.filter((n) => want.includes(n));
+}
+
 /** Human one-liner for the waiting card — e.g.
  *  `widget output "excerpt-1" (not emitted yet — or the id is unknown)`. */
 export function describeUnresolvedRefs(refs) {

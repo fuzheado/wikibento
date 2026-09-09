@@ -109,6 +109,8 @@ myWidget: {
     // type: 'number'  → parsed with parseInt (use 0 as the "off" value)
     // type: 'boolean' → renders a checkbox
     // type: 'textarea' → multi-line text (rows: N, default 6) — e.g. Markdown content
+    // type: 'params'   → checkboxes for the board's declared params (Board Controls,
+    //                    ISSUE-59) — the value is a comma-separated allow-list
     // Panels scroll inside the card and pin "Apply & Reload" to the bottom
     // (ISSUE-54), so a long field list never makes settings unreachable on a
     // small widget — no per-widget work needed. `npm run smoke:panels` guards it.

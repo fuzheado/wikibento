@@ -18,6 +18,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Board Controls per-card param scoping (ISSUE-59, 2026-09-09):** a Board Controls card can
+  now render a **subset** of the board's params — ⚙ → *Params on this card* (a checkbox per
+  declared param, stored as a comma-separated `show` allow-list; empty = all, backward
+  compatible). `selectParamNames(specs, show)` (params.js) filters in declaration order and
+  ignores unknown names; a card whose selection matches nothing shows an explanatory empty
+  state. This makes the 4-widget board real: article buttons → Article Excerpt (emits) →
+  Translator `to: "{{targetLang}}"` → **language-only buttons card**. Verified live: cards render
+  `["Article"]` / `["Language"]`; the chain gives `EN → FR · nllb200-600M` and clicking **de**
+  on the language card re-translates to `EN → DE · nllb200-600M`. Constitution: tests/dataflow +3
+  → npm test 163. Controls-surface half of P2 (MODULARITY §Part 5); per-click target scoping
+  remains design (ISSUE-41).
 - ✅ **Article Excerpt emitter + unresolved-reference guard + reference chips (ISSUE-58, 2026-09-09):**
   the excerpt card now declares `emit: (data) => data.extract`, so
   `text: "{{widget:<excerpt-id>}}"` feeds a Translator (verified: EN extract →
