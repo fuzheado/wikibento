@@ -98,12 +98,13 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 
-### Content & Embeds (4)
+### Content & Embeds (5)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
 | **Board Controls** | 🎛️ | (static — writes board params) | Buttons / number sliders / month steppers / menus / text fields that drive `{{param}}` references in other widgets — the interactivity primitive; params editable in ⚙ |
 | **Text / Markdown** | 📝 | (static content) | Free-form Markdown note — headings, lists, links, code, images (Wikimedia-hosted by default); a starting card or explanatory card (no fetch) |
+| **Speaker (text-to-speech)** | 🔊 | (static — Web Speech synthesis) | **Output widget** — speaks its text aloud; voice picker from the device roster; mute all + auto-speak-on-change (default off, only after one ▶ click); degrades gracefully on zero-voice devices |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
 | **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor |
 

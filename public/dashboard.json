@@ -372,6 +372,15 @@
         "enrich": true,
         "refreshSeconds": 3600
       }
+    },
+    {
+      "id": "speaker",
+      "widgetType": "speaker",
+      "config": {
+        "text": "Welcome to WikiBento — a composable dashboard for Wikimedia. Press play to hear me.",
+        "speakOnChange": false,
+        "refreshSeconds": 86400
+      }
     }
   ],
   "layout": [
@@ -693,6 +702,15 @@
       "h": 5,
       "minW": 3,
       "minH": 3
+    },
+    {
+      "i": "speaker",
+      "x": 0,
+      "y": 94,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
     }
   ]
 }
