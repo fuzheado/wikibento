@@ -184,7 +184,7 @@ Beyond board params, a widget can **emit** its output and another widget can
 - Every widget's **id** is its stable instance name — the header shows a
   small id chip (click → ⚙), the ⓘ panel shows it, and the source picker
   lists emitters by id.
-- ⚙ edits it under **Name (instance id)**: validates non-empty,
+- ⚙ edits it under **Name**: validates non-empty,
   `[A-Za-z0-9_-]` (the reference grammar), and unique on the board.
 - Renaming a referenced id opens a **confirm dialog** — "N references in M
   widgets" — and confirm **repoints all of them** (source fields + every

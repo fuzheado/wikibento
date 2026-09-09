@@ -2401,6 +2401,76 @@ new id and its consumers re-source, everyone else untouched (no reload storm,
 no stale-prev). Verified: rename → chain stable at 5→5→5→5 within ~2 s, no
 transients, no reload needed.
 
+## ISSUE-54 · ⚙/ⓘ panels clip their bottom action on small widgets (Apply unreachable) — **done 2026-09-09**
+
+**What (user session):** on a widget shorter than its config panel, opening ⚙
+leaves **"Apply & Reload" below the card's bottom edge** — invisible and
+unclickable, with no scrollbar anywhere. The only workarounds were resizing the
+widget or abandoning the edit. The ⓘ panel has the identical defect for
+"Copy debug info".
+
+**Root cause (three CSS declarations):** the panel lives in a fixed-height grid
+cell — `.grid-item { height: 100%; overflow: hidden }` — and
+`.widget-config`/`.widget-info` were `flex-shrink: 0` with no `overflow`. A
+panel taller than its card was therefore *clipped* at the card boundary: the
+fields below the fold were unreachable and so was the action button.
+
+**Audit (`scripts/smoke-panels.mjs`, 2026-09-09):** every widget on the
+35-widget catalog, cards forced to the **w3 h3** size a widget lands at when
+added from the Add Widget panel (264px tall):
+
+| viewport | ⚙ clipped (pre-fix) | of those, Apply fully invisible |
+|---|---|---|
+| 1440×900 | 21/35 | 17 |
+| 1280×800 | 21/35 | 19 |
+| 1024×768 | 25/35 | 21 |
+| 820×900 | 27/35 | 23 |
+| 600×900 (mobile stack) | 0/35 | — |
+
+The catalog *as authored* mostly passes (2/35 at 1024) — this is mostly a
+fresh-add/shrink bug, which is why the browser matrix (loads the catalog,
+never opens ⚙) missed it. ⓘ measured identically (21/35). Worst panels:
+sparql 488px (+250 clipped), mediaplayer 468 (+230), filegallery 441 (+203).
+Below 768px the mobile stack sets `.grid-item { height: auto }`, so cards grow
+and nothing clips — desktop grid only.
+
+**Fix (CSS-only, 2026-09-09):**
+- `.widget-config`, `.widget-info` → `flex-shrink: 1; min-height: 0;
+  overflow-y: auto` — the panel shrinks to the card and the fields scroll.
+- Pinned action: `.widget-config > .widget-btn-apply` and
+  `.widget-info > .widget-info-actions` → `position: sticky; bottom: 0` with an
+  opaque background (card surface composited with the panel's 15% black tint)
+  and a top border. The action stays clickable while fields scroll under it.
+- **Rejected alternatives:** *Apply at top and bottom* — the **fields**, not
+  the button, are the unreachable part (a 488px panel in a 232px card shows
+  ~2 fields; a top button would let you commit a form you can't finish
+  editing); *DOM scroll-wrapper + footer* — functionally equivalent but a
+  larger JSX diff (sticky on the panel's direct child works for both panels,
+  verified 0/35 each); *popout/popover* — still the right **polish**
+  follow-up (comfortable editing on 2-row cards, settings not constrained by
+  card size), but not needed for reachability; *auto-expand the card on ⚙* —
+  reflows the board, can't fit on a full board, fights the user's layout.
+
+**Hint trim (same session):** the universal "Name (instance id)" hint wrapped
+to ~7 lines on a 3-column card and cost **67–93px per panel** (10,274 → 8,107px
+across the catalog). It is now one line — `{{widget:sparql}}` — with the full
+sentence in the tooltip; the label shortened to "Name". This alone flipped 12
+of the 21 pre-fix ⚙ clips to ok; the scroll contract handles the rest.
+
+**Constitution:** `npm run smoke:panels` (`scripts/smoke-panels.mjs --assert`) —
+every widget × {⚙, ⓘ} × {1440, 1024, 600}px, cards forced to w3 h3, requests
+to Wikimedia blocked so auto-height can't grow a card and mask a too-tall
+panel: **210 measurements**, exit 1 on any clipped action. Wired into
+`npm run smoke` after the grid-geometry check. **Negative-tested:** with the
+fix reverted the run fails (⚙ 9/35 @1440, ⓘ 21/35 @1440, 14/35 and 33/35
+@1024; 600px mobile unaffected) and exits 1; restored → pass.
+
+**Verified live (Chromium, built dist):** sparql at w3 h3 — panel scrolls
+(414px of fields in 203px), Apply pinned and visible, scrolling reaches the
+last field ("Max rows"), Apply commits and closes the panel; short panel
+(topwikis) shows the action inline with no forced scroll; ⓘ on filegallery
+scrolls with "Copy debug info" pinned; hint renders one line.
+
 ## ISSUE-55 · Speaker widget: text-to-speech "output" widget (GitHub issue #16) — **done (branch `issue-16-speaker`, PR #17)**
 
 **What:** the first member of the output/effector widget family. `speaker`
