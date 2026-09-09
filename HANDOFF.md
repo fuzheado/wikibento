@@ -7,7 +7,7 @@
 ### Ask benchmark: prompt-variant comparison + board-construction suite (2026-09-09, afternoon)
 
 Continued the "is the Ask prompt enough" benchmark (`bench-README.md` has the
-full write-up; raw results in `bench-*.json`):
+full write-up; raw results in `bench/results/`):
 
 - **Prompt-variant comparison is a clean null:** baseline vs +compact wiring
   reference vs +expanded dataflow manual score **identically** on all 15
@@ -26,7 +26,7 @@ full write-up; raw results in `bench-*.json`):
   `summarizeChain`/`assertBoardFixtureSchema` in `tests/intent-benchmark-lib.mjs`
   + `--boards` / `--variants` modes in the variants runner + offline schema
   constitution in `tests/intent-benchmark.test.mjs` (npm test 191). Results
-  (`bench-boards-2026-09-09.json`): chain 83% · keys 100% · subject 100% —
+  (`bench/results/2026-09-09-boards-v1.json`): chain 83% · keys 100% · subject 100% —
   3-widget chains (`excerpt → translate → speaker`, `listSource → filterLines →
   lineCount`) come back in correct order with correct configs.
 - **Both prompt fixes verified for RELIABILITY** (the `--via toolforge` option
@@ -94,7 +94,7 @@ The guide is structured for both human reading and LLM parsing — consistent he
 
 Added a full Voyager CD-ROM catalog organized by 10 themes (Film & Cinema, Music & Performance, Museums & Art, Cities & Cultures, Literature & Ideas, Science & Exploration, History & Politics, Interactive & Games, Criterion Collection, Expanded Books), with specific board wiring diagrams for each title and a wiring legend.
 
-### Live Benchmark (`bench-baseline-2026-09-09.json`)
+### Live Benchmark (`bench/results/2026-09-09-baseline-single-widget.json`)
 
 Ran the Ask advisor benchmark against 15 ground-truth fixtures:
 - **top1: 93%** (14/15 correct on first try)

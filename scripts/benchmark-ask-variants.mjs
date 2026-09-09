@@ -6,7 +6,7 @@
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --limit 5
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --model llm-qwen3-14b
- *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --out results.json
+ *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --out 2026-09-10-run.json
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --gate 0.8
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --via toolforge   # bypass the public 100 req/h cap
  *   WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --temp 0.0        # determinism check
@@ -35,6 +35,9 @@ const MODEL = argVal('--model', 'llm-qwen36-27b');
 const PACE_MS = parseInt(argVal('--pace', '1500'), 10) || 1500;
 const TEMP = parseFloat(argVal('--temp', '0.3'));
 const OUT = argVal('--out', '');
+// Results land in bench/results/ by convention — a bare --out filename is
+// joined with that directory (an absolute or slash-bearing path is honored).
+const OUT_PATH = OUT && !OUT.includes('/') ? join('bench/results', OUT) : OUT;
 const ONLY = argVal('--only', ''); // comma-separated fixture ids (diagnostic re-runs)
 const BOARDS = args.includes('--boards'); // board-construction fixtures (chain scoring)
 const ONLY_VARIANTS = argVal('--variants', ''); // comma list; e.g. --variants baseline (rate-limit-friendly)
@@ -335,8 +338,8 @@ console.log(headers.map((_, i) => '-'.repeat(colWidths[i])).join('-+-'));
 rows.forEach((row) => console.log(fmtRow(row)));
 
 // Save
-if (OUT) {
-  const outPath = resolve(process.cwd(), OUT);
+if (OUT_PATH) {
+  const outPath = resolve(process.cwd(), OUT_PATH);
   await writeFile(outPath, JSON.stringify(allResults, null, 2));
   console.log(`\nSaved to ${outPath}`);
 }
