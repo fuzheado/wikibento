@@ -168,3 +168,49 @@ export function extractWidgetRefs(config) {
   walk(config);
   return [...refs];
 }
+
+/** Placeholder grammar — the SAME pattern resolveParams substitutes. */
+const REF_RE = /\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?\s*\}\}/g;
+
+/** Find unresolved `{{...}}` placeholders in a RESOLVED config (deep).
+ *
+ *  resolveParams leaves unknown names literal on purpose (visible, never
+ *  breaking) — but a widget that FETCHES must never send such a placeholder to
+ *  an API as if it were content: MinT literally translated
+ *  `{{widget:excerpt-…}}` to "¿Qué es esto?" before this guard existed.
+ *  WidgetFrame refuses to fetch while any remain and shows a waiting state; the
+ *  load re-runs automatically when the producer emits (content-based signature).
+ *
+ *  Returns [{ raw, kind: 'widget' | 'param', name }], deduped by raw token. */
+export function findUnresolvedRefs(config) {
+  const out = [];
+  const seen = new Set();
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      for (const m of v.matchAll(REF_RE)) {
+        const raw = m[0];
+        if (seen.has(raw)) continue;
+        seen.add(raw);
+        out.push(m[1] === 'widget' && m[2] != null
+          ? { raw, kind: 'widget', name: m[2] }
+          : { raw, kind: 'param', name: m[1] });
+      }
+      return;
+    }
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (v && typeof v === 'object') Object.values(v).forEach(walk);
+  };
+  walk(config);
+  return out;
+}
+
+/** Human one-liner for the waiting card — e.g.
+ *  `widget output "excerpt-1" (not emitted yet — or the id is unknown)`. */
+export function describeUnresolvedRefs(refs) {
+  if (!Array.isArray(refs) || refs.length === 0) return '';
+  return refs
+    .map((r) => (r.kind === 'widget'
+      ? `widget output “${r.name}” (not emitted yet — or the id is unknown)`
+      : `board param “${r.name}” (not defined)`))
+    .join(' · ');
+}

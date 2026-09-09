@@ -277,6 +277,46 @@ body {
   padding-top: 0;
 }
 
+/* ISSUE-58: input + reference chips stacked in the field's input column */
+.config-input-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.config-input-wrap > input,
+.config-input-wrap > textarea {
+  flex: 0 0 auto;
+  width: 100%;
+}
+.config-refs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.config-refs-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+.config-ref-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--accent);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.config-ref-chip:hover { border-color: var(--accent); background: rgba(255,255,255,0.04); }
+
 .widget-btn-apply {
   margin-top: 4px;
   color: var(--accent);
@@ -463,6 +503,26 @@ body {
   color: var(--accent);
   font-size: 12px;
 }
+
+/* ISSUE-58: unresolved `{{widget:id}}`/`{{param}}` reference — no fetch is
+   sent; the widget loads automatically once the reference resolves. */
+.widget-waiting {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  max-width: 100%;
+  padding: 4px 2px;
+}
+.widget-waiting-icon { font-size: 16px; line-height: 1.2; }
+.widget-waiting-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.widget-waiting-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.widget-waiting-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.widget-waiting-hint { font-size: 11px; color: var(--text-secondary); opacity: 0.7; }
 
 /* Error boundary fallback (one crashing widget can't kill the dashboard) */
 .widget-crash-message {

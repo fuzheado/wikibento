@@ -18,6 +18,19 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Article Excerpt emitter + unresolved-reference guard + reference chips (ISSUE-58, 2026-09-09):**
+  the excerpt card now declares `emit: (data) => data.extract`, so
+  `text: "{{widget:<excerpt-id>}}"` feeds a Translator (verified: EN extract →
+  Spanish; a board-param change re-emits and the consumer re-fetches). A widget
+  that FETCHES no longer sends an unresolved `{{widget:id}}`/`{{param}}` upstream —
+  `findUnresolvedRefs`/`describeUnresolvedRefs` (params.js) make `load()` show a
+  **"Waiting for a reference"** card and re-run when the producer emits (verified:
+  zero MinT/REST requests while unresolved). ⚙ lists emitters as clickable
+  `{{widget:<id>}}` chips under text fields (`noRefs: true` opts out — Translator
+  `from`/`to`). Deliberately NOT emitting article-title lists yet: a translated
+  title can be mistaken for Wikidata language mapping, so a future title emitter
+  must label its output as machine translation. Constitution: tests/dataflow +5
+  → npm test 160; `npm run smoke` (222 panel measurements) still green.
 - ✅ **DEPLOYED 2026-09-09 (bundle index-BWKLfppo.js) — the whole session's stack is live:** six
   PRs merged and shipped in one deploy — speaker widget (#17), translator widget (#21),
   request-serial guard (#24), panel reachability (#31), docs research series (#30), ROADMAP

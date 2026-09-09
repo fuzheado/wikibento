@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { resolveParams } from '../lib/params';
+import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs } from '../lib/params';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
@@ -11,6 +11,26 @@ import '../vendor/pannellum.css';
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
  */
+
+/** ISSUE-58: clickable `{{widget:id}}` reference chips under text/textarea
+ *  config fields — the emitter list, precise and one click to insert. */
+function RefChips({ emitters, onInsert }) {
+  if (!emitters || emitters.length === 0) return null;
+  return (
+    <div className="config-refs">
+      <span className="config-refs-label">Insert a reference</span>
+      {emitters.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          className="config-ref-chip"
+          title={`Insert a reference to ${o.label}`}
+          onClick={() => onInsert(`{{widget:${o.id}}}`)}
+        >{`{{widget:${o.id}}}`}</button>
+      ))}
+    </div>
+  );
+}
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
   // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
   // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
@@ -167,12 +187,20 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       const transformed = WIDGET_TYPES[widget.widgetType]?.transform
         ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig, { sourceOutput: sourceOutputValue })
         : null;
-      setState({ loading: false, error: null, data: transformed });
+      setState({ loading: false, error: null, data: transformed, waiting: null });
       publishOutput(transformed);
       return;
     }
+    // ISSUE-58: NEVER send an unresolved `{{…}}` placeholder to an API as if it
+    // were content (MinT used to translate the literal token). Wait for the
+    // producer; the output signature re-runs this load the moment it emits.
+    const unresolved = findUnresolvedRefs(resolvedConfig);
+    if (unresolved.length) {
+      setState({ loading: false, error: null, data: null, waiting: unresolved });
+      return;
+    }
     const seq = ++loadSeqRef.current; // this run owns the state until a newer run starts
-    setState(s => ({ ...s, loading: true, error: null }));
+    setState(s => ({ ...s, loading: true, error: null, waiting: null }));
     try {
       const data = await def.fetch(resolvedConfig, { force, sourceOutput: sourceOutputValue }); // force = bust TTL/SWR caches (manual ↻ / Apply)
       if (seq !== loadSeqRef.current) return; // superseded — a newer run is in flight
@@ -231,6 +259,28 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 
   const handleConfigChange = (key, value) => {
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
+  };
+
+  // ISSUE-58: emitter chips — every OTHER widget on the board that can emit,
+  // shown under text/textarea config fields so `{{widget:id}}` references are
+  // discoverable and inserted precisely (no typing ids from memory).
+  const fieldRefs = useRef({});
+  const refEmitters = useMemo(
+    () => (sourceOptions || []).filter((o) => o.id !== widget.id),
+    [sourceOptions, widget.id],
+  );
+  const insertRef = (key, token) => {
+    const el = fieldRefs.current[key];
+    const current = widget.config[key] || '';
+    const start = el && typeof el.selectionStart === 'number' ? el.selectionStart : current.length;
+    const end = el && typeof el.selectionEnd === 'number' ? el.selectionEnd : current.length;
+    handleConfigChange(key, current.slice(0, start) + token + current.slice(end));
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = start + token.length;
+      try { el.setSelectionRange(pos, pos); } catch { /* inputs always support it */ }
+    });
   };
 
   // ISSUE-53: commit the ⚙ name field — validation, then onRename (which may
@@ -379,19 +429,27 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   )}
                 </div>
               ) : field.type === 'textarea' ? (
-                <textarea
-                  value={widget.config[field.key] || ''}
-                  onChange={e => handleConfigChange(field.key, e.target.value)}
-                  placeholder={field.placeholder}
-                  rows={field.rows || 6}
-                />
+                <div className="config-input-wrap">
+                  <textarea
+                    ref={(el) => { fieldRefs.current[field.key] = el; }}
+                    value={widget.config[field.key] || ''}
+                    onChange={e => handleConfigChange(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    rows={field.rows || 6}
+                  />
+                  {!field.noRefs && <RefChips emitters={refEmitters} onInsert={(token) => insertRef(field.key, token)} />}
+                </div>
               ) : (
-                <input
-                  type="text"
-                  value={widget.config[field.key] || ''}
-                  onChange={e => handleConfigChange(field.key, e.target.value)}
-                  placeholder={field.placeholder}
-                />
+                <div className="config-input-wrap">
+                  <input
+                    type="text"
+                    ref={(el) => { fieldRefs.current[field.key] = el; }}
+                    value={widget.config[field.key] || ''}
+                    onChange={e => handleConfigChange(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                  />
+                  {!field.noRefs && <RefChips emitters={refEmitters} onInsert={(token) => insertRef(field.key, token)} />}
+                </div>
               )}
             </div>
           ))}
@@ -476,6 +534,18 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
           <div className="widget-error">
             <span>⚠ {state.error}</span>
             <button className="widget-btn" onClick={load}>Retry</button>
+          </div>
+        )}
+        {state.waiting && !state.loading && !state.data && (
+          <div className="widget-waiting">
+            <span className="widget-waiting-icon" aria-hidden="true">⏳</span>
+            <div className="widget-waiting-text">
+              <div className="widget-waiting-title">Waiting for a reference</div>
+              <div className="widget-waiting-detail">{describeUnresolvedRefs(state.waiting)}</div>
+              <div className="widget-waiting-hint">
+                No request was sent — this widget loads automatically once the reference resolves.
+              </div>
+            </div>
           </div>
         )}
         {state.data && !state.loading && (

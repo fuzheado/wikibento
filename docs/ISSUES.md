@@ -2553,3 +2553,54 @@ smoke PASS. (Race itself isn't unit-testable without a React harness — repo
 convention is lib-level tests + browser probes; the guard is covered by
 review + smoke.)
 
+
+## ISSUE-58 · Article Excerpt emitter + unresolved-reference guard + reference chips — **done 2026-09-09**
+
+**What (user session):** "Can I take the output of a widget like Article Excerpt
+and feed it to another one like the Translator (MinT)?" — they had typed
+`text: "{{widget:excerpt-1788946116785}}"` correctly, but the translator showed
+the **literal token** as its source and MinT translated it into *"¿Qué es
+esto?"*. Diagnosis: `{{widget:id}}` interpolation only resolves ids in the
+`widgetOutputs` registry, and `WidgetFrame.publishOutput` publishes only when
+the producer's registry entry declares **`emit`** — which only the four
+Dataflow widgets did. The user was doing it right; the producer half was
+missing.
+
+**Fix (three parts):**
+1. **Producer — Article Excerpt emits its first paragraph**
+   (`emit: (data) => data.extract`). With that one line the chain works, and
+   the existing content-based `widgetOutputSignature` re-runs the consumer
+   automatically when the excerpt's article changes (verified: param switch
+   Einstein → Marie Curie re-emitted and re-translated).
+2. **Guard — a fetch widget never sends an unresolved placeholder upstream.**
+   New pure helpers `findUnresolvedRefs(config)` / `describeUnresolvedRefs(refs)`
+   (params.js) scan the RESOLVED config for remaining `{{widget:id}}` /
+   `{{param}}` tokens; `WidgetFrame.load()` returns a **"Waiting for a
+   reference"** state instead of fetching, and the signature effect reloads it
+   the moment the producer emits. Verified: zero MinT/REST requests while
+   unresolved; distinct copy for unknown widget vs unknown param.
+3. **Discoverability — reference chips.** Every OTHER emitting widget on the
+   board is listed as a clickable `{{widget:<id>}}` chip under text/textarea
+   config fields; clicking inserts the token at the caret. Fields where a
+   reference is meaningless opt out via `noRefs: true` (Translator `from`/`to`
+   language codes).
+
+**Deliberate scope limit (user decision):** article *title* lists are NOT
+emitted yet. A machine-translated title can be mistaken for a Wikidata language
+mapping (the actual article name in that language) rather than a MinT
+translation — if a title-list emitter is added later, the card must label the
+output as machine translation. Recorded in JSON-FORMAT's dataflow section.
+
+**Constitution:** tests/dataflow.test.mjs +5 (excerpt emits its extract and
+emits `undefined` without one; findUnresolvedRefs detects widget+param refs
+deeply and dedupes; empty once resolveParams substituted everything incl. an
+emitted empty string; unknown refs stay literal AND are reported;
+describeUnresolvedRefs copy) → npm test 160.
+
+**Verified live (Chromium, built dist):** excerpt → translator renders the
+translated extract; unknown widget ref → "Waiting for a reference — widget
+output “does-not-exist” (not emitted yet — or the id is unknown)" with **no
+upstream request**; unknown param → the param variant; chips appear only under
+the text field (from/to opt out) and insert the token at the caret. Full
+`npm run smoke` (grid + 222 panel measurements × 37 widgets) still passes — the
+chips increase panel height and the ISSUE-54 scroll contract absorbs it.

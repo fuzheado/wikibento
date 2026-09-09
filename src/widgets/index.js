@@ -554,6 +554,9 @@ export const WIDGET_TYPES = {
       thumbnailUrl: data.thumbnailUrl,
       pageUrl: data.pageUrl,
     }),
+    // ISSUE-58: emit the excerpt text so other widgets can consume it — e.g. a
+    // Translator with text: "{{widget:<this id>}}", or a Filter/Count chain.
+    emit: (data) => data.extract,
   },
 
   edithistory: {
@@ -1260,8 +1263,8 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
       { key: 'text', label: 'Text to translate ({{params}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Jazz is a music genre…' },
-      { key: 'from', label: 'Source language (2-letter code)', type: 'text', placeholder: 'en' },
-      { key: 'to', label: 'Target language (2-letter code)', type: 'text', placeholder: 'es' },
+      { key: 'from', label: 'Source language (2-letter code)', type: 'text', placeholder: 'en', noRefs: true },
+      { key: 'to', label: 'Target language (2-letter code)', type: 'text', placeholder: 'es', noRefs: true },
     ],
     fetch: (config) => fetchMinTTranslation(config.text, config.from, config.to),
     transform: (data, config) => ({

@@ -9,12 +9,15 @@
  *    widgetOutputSignature (content-based → identical re-emits are no-ops);
  *  - the four Dataflow widgets transform + emit correctly, and the canonical
  *    chain List → Filter → Count → Echo yields the expected numbers;
- *  - validateDashboard warns (never errors) on a `source` pointing off-board.
+ *  - validateDashboard warns (never errors) on a `source` pointing off-board;
+ *  - ISSUE-58: the Article Excerpt emitter, and the unresolved-reference guard
+ *    (findUnresolvedRefs / describeUnresolvedRefs) that stops a fetch widget
+ *    from sending a literal `{{widget:id}}`/`{{param}}` placeholder upstream.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { resolveParams, stringifyOutput, extractWidgetRefs } from '../src/lib/params.js';
+import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs } from '../src/lib/params.js';
 import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
@@ -285,4 +288,55 @@ test('validateDashboard: the shipped flow demo is valid', async () => {
   const dash = JSON.parse(await readFile('public/flow-demo.json', 'utf8'));
   const r = validateDashboard(JSON.stringify(dash));
   assert.ok(r.valid, `flow-demo must be valid: ${r.errors.join('; ')}`);
+});
+// ── ISSUE-58: producer emitter + unresolved-reference guard ──
+
+test('registry: Article Excerpt declares emit and emits its extract text', () => {
+  const def = WIDGET_TYPES.excerpt;
+  assert.ok(def, 'excerpt registry entry missing');
+  assert.equal(typeof def.emit, 'function', 'excerpt must declare emit');
+  const view = def.transform({ title: 'T', description: 'D', extract: 'The extract.', thumbnailUrl: 'u', pageUrl: 'p' });
+  assert.equal(def.emit(view), 'The extract.');
+  // a summary without an extract (edge) must not throw and must emit undefined
+  assert.equal(def.emit(def.transform({ title: 'T' })), undefined);
+});
+
+test('findUnresolvedRefs: detects {{widget:id}} and {{param}} deeply, deduped', () => {
+  const cfg = {
+    text: '{{widget:excerpt-1}} and {{widget:excerpt-1}}',
+    nested: { list: ['ok', '{{topic}}'] },
+    n: 3,
+  };
+  const refs = findUnresolvedRefs(cfg);
+  assert.equal(refs.length, 2, JSON.stringify(refs));
+  assert.deepEqual(refs.map((r) => r.kind).sort(), ['param', 'widget']);
+  assert.deepEqual(refs.find((r) => r.kind === 'widget'), { raw: '{{widget:excerpt-1}}', kind: 'widget', name: 'excerpt-1' });
+  assert.deepEqual(refs.find((r) => r.kind === 'param'), { raw: '{{topic}}', kind: 'param', name: 'topic' });
+});
+
+test('findUnresolvedRefs: empty once resolveParams has substituted everything', () => {
+  const cfg = { text: '{{widget:excerpt-1}}', article: '{{topic}}' };
+  const resolved = resolveParams(cfg, { topic: 'Albert Einstein' }, { 'excerpt-1': 'The extract.' });
+  assert.deepEqual(findUnresolvedRefs(resolved), []);
+  // an emitted EMPTY string is resolved too (no placeholder left)
+  const empty = resolveParams({ text: 'x{{widget:e}}y' }, {}, { e: '' });
+  assert.deepEqual(findUnresolvedRefs(empty), []);
+});
+
+test('findUnresolvedRefs: unknown refs stay literal AND are reported (the guard case)', () => {
+  const resolved = resolveParams({ text: '{{widget:missing}}' }, {}, { other: 'v' });
+  assert.equal(resolved.text, '{{widget:missing}}'); // unchanged, visible
+  const refs = findUnresolvedRefs(resolved);
+  assert.equal(refs.length, 1);
+  assert.equal(refs[0].name, 'missing');
+});
+
+test('describeUnresolvedRefs: names the widget/param and why', () => {
+  const msg = describeUnresolvedRefs([
+    { raw: '{{widget:excerpt-1}}', kind: 'widget', name: 'excerpt-1' },
+    { raw: '{{topic}}', kind: 'param', name: 'topic' },
+  ]);
+  assert.match(msg, /widget output “excerpt-1”/);
+  assert.match(msg, /board param “topic”/);
+  assert.equal(describeUnresolvedRefs([]), '');
 });
