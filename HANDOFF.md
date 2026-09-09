@@ -18,6 +18,15 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Rate-limit guards (ISSUE-61, 2026-09-09):** new shared HTTP layer `src/lib/httpRetry.js` —
+  concurrency capped at 4, adaptive 500 ms pacing after any 429, **`Retry-After` honored** (seconds
+  or HTTP-date, capped 10 s, default 1 s; Wikimedia exposes it via
+  `Access-Control-Expose-Headers`), **at most one 429 retry** (5xx keep the normal budget), and an
+  actionable message — *"HTTP 429 — Wikimedia is rate-limiting this browser — wait ~Ns, then Retry
+  (…)"*. The config load now uses the same helper (it had no retry). Triggered by a user hitting
+  persistent 429s on a throttled IP (VPN/shared NAT — the same pattern from another IP returned
+  200s). Constitution: tests/http-retry.test.mjs +5 → npm test 168; live-verified with an
+  intercepted `Retry-After: 2` (2 requests, 2.0 s apart).
 - ✅ **User guide + config-URL error handling (ISSUE-60, 2026-09-09):** `docs/GUIDE.md` — a tight
   user-facing manual (three-layer model: board params / widget config / dataflow; params
   definitions-vs-values and `show` scoping; dataflow + the waiting guard; three worked examples;
