@@ -137,7 +137,8 @@ freely; just don't duplicate a value that several widgets must agree on.
 | A widget changed when I clicked another card | it references the same `{{param}}` (broadcast) |
 | *views partial* / *N pages failed* | a budget or rate-limit guard — the number is a floor; refresh later |
 | Stale page after a deploy | hard refresh (⌘⇧R); `index.html` is `no-cache`, assets are immutable |
-| Widget shows an error | the API refused or rate-limited; the card names the error and **Retry** re-runs it |
+| *HTTP 429 — rate-limiting this browser* | the app already backed off (paced, honored `Retry-After`, retried once). Wait ~a minute, then **Retry**. If *everything* 429s, your network (VPN / shared NAT) is throttled — try another network |
+| Widget shows another error | the API refused; the card names the error and **Retry** re-runs it |
 
 ## 8. Cookbook
 
