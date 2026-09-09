@@ -31,7 +31,7 @@ export default function AboutPanel({ onClose }) {
 
           <h4>Basics</h4>
           <ul>
-            <li><strong>+ Add Widget</strong> — the catalog covers metrics today (pageviews, link counts, category stats, GLAM impact, file usage, rankings), with more widget types to come.</li>
+            <li><strong>+ Add Widget</strong> — the catalog spans metrics, galleries, GLAM impact, queries, dataflow and output widgets (speech, translation).</li>
             <li><strong>Drag</strong> a widget's title bar to move it; drag the corner to resize.</li>
             <li><strong>⚙</strong> configures each widget (article, domain, category, file, month…).</li>
             <li>Widgets <strong>auto-refresh</strong> (hourly by default) and remember your layout.</li>
@@ -39,6 +39,19 @@ export default function AboutPanel({ onClose }) {
             <li><strong>🔗 Share</strong> copies a link with the dashboard embedded — or use <code>?config=&lt;url&gt;</code> to load a hosted config.</li>
             <li><strong>✨ Example</strong> loads a showcase dashboard with all {Object.keys(WIDGET_TYPES).length} widget types.</li>
           </ul>
+
+          <h4>Concepts &amp; guide</h4>
+          <p>
+            <strong>Board params</strong> (<code>{'{{name}}'}</code>) are shared inputs: one click re-aims every
+            widget that references them. Widgets can also feed each other
+            (<code>{'{{widget:id}}'}</code>) — e.g. an Article Excerpt into a Translator.
+            The
+            {' '}<a href="https://github.com/fuzheado/wikibento/blob/main/docs/GUIDE.md" target="_blank" rel="noopener noreferrer">user guide</a>
+            {' '}covers the model, worked examples and troubleshooting.
+            Demos: <code>?config=/translate-demo.json</code>,
+            {' '}<code>?config=/flow-demo.json</code>,
+            {' '}<code>?config=/params-demo.json</code>.
+          </p>
 
           <h4>Try the demo file</h4>
           <p>
