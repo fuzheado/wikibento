@@ -2,6 +2,103 @@
 
 *Last updated: 2026-09-09 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
+## Recent Work (2026-09-09)
+
+### Ask benchmark: prompt-variant comparison + board-construction suite (2026-09-09, afternoon)
+
+Continued the "is the Ask prompt enough" benchmark (`bench-README.md` has the
+full write-up; raw results in `bench-*.json`):
+
+- **Prompt-variant comparison is a clean null:** baseline vs +compact wiring
+  reference vs +expanded dataflow manual score **identically** on all 15
+  single-widget fixtures (top1 100% · keys 93% · subject 85%) — the single-widget
+  suite is saturated, so wiring knowledge can't move it. `scripts/benchmark-ask-variants.mjs`
+  (fixed: was never run — scoreOptions arg swap + missing `fixture` in rows
+  crashed every row).
+- **Two real prompt bugs found + fixed in `deploy/server.js` VALUE RULES:**
+  (1) the model truncated `Wiki Loves Monuments 2024 in the United States` →
+  category rule now says "copied VERBATIM … keep the FULL span" (re-verified ✓);
+  (2) the model dropped `url` from a waybackGallery config while filling
+  `dates` → new SUBJECT COMPLETENESS rule ("pre-fill EVERY subject field the
+  user explicitly gave"). npm test 190 ✓ after the prompt edit.
+- **Board-construction fixtures + chain scoring (NEW):**
+  `tests/board-fixtures.mjs` (6 chain prompts) + `scoreChainOptions`/
+  `summarizeChain`/`assertBoardFixtureSchema` in `tests/intent-benchmark-lib.mjs`
+  + `--boards` / `--variants` modes in the variants runner + offline schema
+  constitution in `tests/intent-benchmark.test.mjs` (npm test 191). Results
+  (`bench-boards-2026-09-09.json`): chain 83% · keys 100% · subject 100% —
+  3-widget chains (`excerpt → translate → speaker`, `listSource → filterLines →
+  lineCount`) come back in correct order with correct configs.
+- **Both prompt fixes verified for RELIABILITY** (the `--via toolforge` option
+  made repeat runs cheap — no more hourly 429 ceiling): `wayback-snapshots`
+  passed only **1/5** with the SUBJECT COMPLETENESS rule alone — a rule
+  doesn't reliably make the model pre-fill config fields. Adding a wayback
+  few-shot (url + dates, different site than the fixture) to the ASK_RULES
+  EXAMPLES block → **5/5**. `glam-category-impact` verbatim category holds
+  **3/3**. Lesson recorded: for config pre-fill, one targeted few-shot beats
+  a general rule.
+- **The model wants to wire:** it volunteers `{{widget:<invented-id>}}` tokens
+  in ~20% of chain options despite ASK_MANUAL's never-invent-ids rule — the
+  evidence for ISSUE-44 Phase 3 (board-assembly output schema: the advisor
+  generates a NEW board's ids/params/wiring deterministically).
+- **LiftWing rate window:** direct ~90 calls/IP/hour before persistent 429s;
+  the variants runner now honors Retry-After, supports `--variants` /
+  `--only` for targeted runs, and gained **`--via toolforge`** — calls go
+  over SSH to the bastion whose egress is on WMF's higher tier (effectively
+  unlimited, ~140 ms/req; per the `wikimedia-ml-services` skill). Use it for
+  all repeat measurements.
+
+### Round 2 — experiments unlocked by `--via toolforge` (2026-09-09, later)
+
+Five experiments ran once the rate cap was gone (full table in
+`bench-README.md`):
+
+- **Board suite saturated:** all 3 prompt variants now score chain/keys/subject
+  **100%** — no ordering few-shot needed; earlier failures were the transient
+  503 + an ambiguous fixture.
+- **Fallback model benchmarked:** `llm-qwen3-14b` scores **100%** on all 15
+  single-widget fixtures — the production fallback degrades nothing.
+- **Temp 0.0 = temp 0.3** on the board suite — keep 0.3.
+- **Out-of-scope probe** (`scripts/probe-ask-edge.mjs`): 5/6 strict, 6/6 no
+  invented ids — for "write a poem" the model returns a valid markdown widget
+  with the poem in it (creative, legitimate).
+- **Board-assembly prototype (ISSUE-44 Phase 3): the model fills a complete
+  params + widgets + `{{widget:id}}` wiring schema 3/3 with zero dangling
+  refs** — museum switcher (params block + `{{category}}`), transitive
+  excerpt→translate→speaker chain, 4-widget list/filter/count/display pipeline
+  with correct source-picker semantics. Phase 3 is now a product build, not a
+  model-capability risk. Probe: `scripts/probe-ask-edge.mjs --assembly`.
+
+### Board Composition Guide (`docs/BOARD-COMPOSITION.md`)
+
+Created a comprehensive, LLM-parseable reference guide covering:
+- **Part 1 — Widget Registry**: all 37 widgets with full capabilities (id, type, dataSource, configFields, defaults, emit behavior, renderer)
+- **Part 2 — Communication Patterns**: board params, dataflow (emit/consume, source picker, `{{widget:<id>}}` interpolation), reference grammar
+- **Part 3 — Board Composition Patterns**: layout guidelines, responsive behavior, kiosk/lean modes, composition strategies
+- **Part 4 — LLM Prompt Guide**: how to use the guide to generate board configs, common patterns, anti-patterns, widget ID reference
+
+The guide is structured for both human reading and LLM parsing — consistent headings, machine-readable tables, JSON examples.
+
+### Voyager CD-ROM Catalog Expansion (`docs/DEMO-IDEAS.md` §5)
+
+Added a full Voyager CD-ROM catalog organized by 10 themes (Film & Cinema, Music & Performance, Museums & Art, Cities & Cultures, Literature & Ideas, Science & Exploration, History & Politics, Interactive & Games, Criterion Collection, Expanded Books), with specific board wiring diagrams for each title and a wiring legend.
+
+### Live Benchmark (`bench-baseline-2026-09-09.json`)
+
+Ran the Ask advisor benchmark against 15 ground-truth fixtures:
+- **top1: 93%** (14/15 correct on first try)
+- **top3: 93%**
+- **keys: 87%**
+- **subject: 73%**
+- **1 error**: sparql-count (HTTP 503 upstream, transient)
+
+Follow-on script saved: `scripts/benchmark-ask-variants.mjs` — compares baseline vs. compact reference vs. expanded ASK_MANUAL prompt variants.
+
+### Documentation Updates
+
+- `README.md` — added reference to `docs/BOARD-COMPOSITION.md`
+- `DEMO-IDEAS.md` intro — added reference to the board composition guide
+
 ## What This Is
 
 WikiBento is a dark-themed, drag-and-drop widget dashboard for Wikimedia —
@@ -834,6 +931,13 @@ the usual process. `docs/ISSUES.md` remains the canonical internal tracker.
 
 ## Session Notes for AI Agents
 
+- **LiftWing LLM testing (benchmarks, scoring loops): use the "Toolforge
+  trick"** — the public endpoint is 100 req/h per IP, but running the same
+  call from `ssh alih@dev.toolforge.org` (bastion egress = WMF high tier) is
+  effectively unlimited. Base64-encode the payload over the SSH hop.
+  Ready-made: `scripts/benchmark-ask-variants.mjs --via toolforge` and
+  `scripts/probe-ask-edge.mjs`; the canonical write-up is the
+  `wikimedia-ml-services` skill + docs/DATA-SOURCES.md §23.
 - The LLM wiki (`~/.llm-wiki`) has observations/insights from this project's
   development (search `wikiwidget`, `wikibento`, `commons-impact-metrics`).
 - Relevant skills: `toolforge-nodejs` (**deployments — read before any webservice

@@ -47,3 +47,17 @@ test('local tier: expected widget surfaces in top-3 (floor, rising)', async () =
     `local tier top-3 floor: ${hits}/${s.n} < ${LOCAL_TOP3_FLOOR} (raise the floor as the matcher improves)`
   );
 });
+
+// ── Board-construction fixtures (2026-09-09) ──
+// Schema constitution only (the live chain benchmark runs via
+// scripts/benchmark-ask-variants.mjs --boards): every chain entry and config
+// key must exist in the real manifest, prompts must be meaningful, chains
+// must have ≥ 2 widgets. This keeps tests/board-fixtures.mjs from drifting
+// from the widget registry the same way assertFixtureSchema guards the
+// single-widget fixtures.
+import { BOARD_FIXTURES } from './board-fixtures.mjs';
+import { assertBoardFixtureSchema } from './intent-benchmark-lib.mjs';
+
+test('board fixture schema: every chain is well-formed against the manifest', () => {
+  assertBoardFixtureSchema(BOARD_FIXTURES, defs);
+});

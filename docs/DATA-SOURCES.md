@@ -503,9 +503,22 @@ wikitech.wikimedia.org/wiki/Machine_Learning/LiftWing/Large_Language_Models/Wiki
   2026-08-16), up to 32K context. **Does NOT support:** tool/function
   calling, RAG, web search, vision.
 - **Rate limits:** anonymous = **100 requests/hour shared across all models,
-  per client** (HTTP 429 over). Running from **Toolforge = effectively
-  unlimited** (no request needed). The 429 body may be plain text; honor
-  Retry-After.
+  per client IP** (measured 2026-09-09: ~90 calls then persistent 429s until
+  the window resets; the 429 body is plain text — honor Retry-After).
+  Running from **Toolforge = effectively unlimited** (no request needed,
+  no API key — bastion/tool egress IPs sit on WMF's higher tier
+  automatically; verified there 2026-09-09 with a 100-request burst,
+  0×429 in ~14 s, ~140 ms/req).
+  **How to use the Toolforge tier (the "Toolforge trick"):** send the SAME
+  curl from a bastion over SSH — `ssh alih@dev.toolforge.org` — with the JSON
+  payload **base64-encoded** so shell quoting can never break across the hop
+  (decode with `base64 -d` remotely, curl from there). Reference
+  implementation: the `wikimedia-ml-services` skill
+  (`scripts/llm-toolforge.sh`, burst mode); WikiBento's benchmark runner
+  wires the same pattern via `--via toolforge`
+  (`scripts/benchmark-ask-variants.mjs`, `scripts/probe-ask-edge.mjs`).
+  Use it for ALL repeat/burst LLM work (benchmarks, scoring loops, fixture
+  generation); keep direct calls only for reproducing user-facing behavior.
 - **CORS: none** on the endpoint (verified) → browsers cannot call it
   directly; **any tool use must relay server-side** (the `/api/ask` pattern,
   same as `/api/proxy`).

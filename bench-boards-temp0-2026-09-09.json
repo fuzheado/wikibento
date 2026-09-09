@@ -1,0 +1,269 @@
+{
+  "baseline": {
+    "systemPromptLength": 33182,
+    "results": [
+      {
+        "id": "chain-translate-article",
+        "prompt": "Take the first paragraph of the article Albert Einstein and translate it to Spanish",
+        "expected": {
+          "chain": [
+            "excerpt",
+            "translate"
+          ],
+          "config": {
+            "excerpt": {
+              "article": "Albert Einstein"
+            },
+            "translate": {
+              "to": "es"
+            }
+          }
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "ids": [
+          "excerpt",
+          "translate"
+        ],
+        "perWidget": [
+          {
+            "type": "excerpt",
+            "found": true,
+            "missing": [],
+            "subjectOk": true,
+            "config": {
+              "article": "Albert Einstein",
+              "project": "en.wikipedia"
+            }
+          },
+          {
+            "type": "translate",
+            "found": true,
+            "missing": [],
+            "subjectOk": true,
+            "config": {
+              "text": "{{widget:excerpt_id}}",
+              "from": "en",
+              "to": "es"
+            }
+          }
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein",
+            "project": "en.wikipedia"
+          },
+          "reason": "Extracts the first paragraph and summary of the article."
+        },
+        "error": null,
+        "returned": "excerpt, translate"
+      },
+      {
+        "id": "chain-speak-article",
+        "prompt": "Show me the intro of the article Marie Curie and read it out loud",
+        "expected": {
+          "chain": [
+            "excerpt",
+            "speaker"
+          ],
+          "config": {
+            "excerpt": {
+              "article": "Marie Curie"
+            }
+          }
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "ids": [
+          "excerpt",
+          "speaker"
+        ],
+        "perWidget": [
+          {
+            "type": "excerpt",
+            "found": true,
+            "missing": [],
+            "subjectOk": true,
+            "config": {
+              "article": "Marie Curie",
+              "project": "en.wikipedia"
+            }
+          }
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Marie Curie",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Excerpt fetches the first paragraph and description of the Marie Curie article."
+        },
+        "error": null,
+        "returned": "excerpt, speaker"
+      },
+      {
+        "id": "chain-filter-count",
+        "prompt": "I'll paste a list of museum names. Keep only the ones containing 'art' and tell me how many are left",
+        "expected": {
+          "chain": [
+            "listSource",
+            "filterLines",
+            "lineCount"
+          ],
+          "config": {
+            "filterLines": {
+              "pattern": "art"
+            }
+          }
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "listSource",
+          "filterLines",
+          "lineCount"
+        ],
+        "perWidget": [
+          {
+            "type": "filterLines",
+            "found": true,
+            "missing": [],
+            "subjectOk": true,
+            "config": {
+              "title": "Art Museums",
+              "pattern": "art",
+              "match": "contains",
+              "caseSensitive": false
+            }
+          }
+        ],
+        "matchedOption": {
+          "widgetType": "listSource",
+          "config": {
+            "title": "Museum List",
+            "items": "Paste your museum names here, one per line"
+          },
+          "reason": "This widget holds your pasted list of museum names for processing."
+        },
+        "error": null,
+        "returned": "listSource, filterLines, lineCount"
+      },
+      {
+        "id": "chain-list-display",
+        "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+        "expected": {
+          "chain": [
+            "listSource",
+            "articleList"
+          ],
+          "config": {}
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "listSource",
+          "articleList"
+        ],
+        "perWidget": [],
+        "matchedOption": {
+          "widgetType": "listSource",
+          "config": {
+            "title": "My Favorites",
+            "items": "Article 1\nArticle 2\nArticle 3"
+          },
+          "reason": "Paste your list of article titles here; this widget acts as the single source of truth that other widgets can reference."
+        },
+        "error": null,
+        "returned": "listSource, articleList"
+      },
+      {
+        "id": "chain-summary-translate-speak",
+        "prompt": "Build me a card that shows an article summary, translates it to French, and can speak the translation aloud",
+        "expected": {
+          "chain": [
+            "excerpt",
+            "translate",
+            "speaker"
+          ],
+          "config": {
+            "translate": {
+              "to": "fr"
+            }
+          }
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "excerpt",
+          "translate",
+          "speaker"
+        ],
+        "perWidget": [
+          {
+            "type": "translate",
+            "found": true,
+            "missing": [],
+            "subjectOk": true,
+            "config": {
+              "text": "{{widget:excerpt_id}}",
+              "from": "en",
+              "to": "fr"
+            }
+          }
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Main_Page",
+            "project": "en.wikipedia"
+          },
+          "reason": "Fetches the article summary to serve as the source text for translation."
+        },
+        "error": null,
+        "returned": "excerpt, translate, speaker"
+      },
+      {
+        "id": "board-switcher-institutions",
+        "prompt": "Make a dashboard where I can switch between the Metropolitan Museum of Art and the Library of Congress and see their Commons collection stats",
+        "expected": {
+          "chain": [
+            "boardControls",
+            "cimSnapshot"
+          ],
+          "config": {}
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "boardControls",
+          "glamorgan",
+          "cimSnapshot"
+        ],
+        "perWidget": [],
+        "matchedOption": {
+          "widgetType": "boardControls",
+          "config": {
+            "title": "Collection Selector",
+            "spec": "category | buttons | Collection | Images from the Metropolitan Museum of Art, Images from the Library of Congress\nmonth | month | Data month"
+          },
+          "reason": "Board Controls lets you toggle between the two institutions and select the reporting month."
+        },
+        "error": null,
+        "returned": "boardControls, glamorgan, cimSnapshot"
+      }
+    ],
+    "summary": {
+      "n": 6,
+      "chainRate": 1,
+      "keysRate": 1,
+      "subjectRate": 1
+    }
+  }
+}

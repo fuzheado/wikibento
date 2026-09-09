@@ -1,0 +1,932 @@
+{
+  "baseline": {
+    "systemPromptLength": 32450,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "How many pageviews has the article Ada Lovelace gotten in the last 30 days?",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Ada Lovelace"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "How many English Wikipedia articles link to example.org?",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Show me a random sampling of images from the category Featured pictures on Wikimedia Commons",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Featured pictures on Wikimedia Commons"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "How many articles, edits and active users does the German Wikipedia have?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Which wikis and pages use the file File:Earth from space.jpg?",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Earth from space.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage",
+          "cimFileSpotlight"
+        ],
+        "error": null,
+        "returned": "fileUsage, cimFileSpotlight"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Wiki Loves Monuments 2024 in the United States"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "glamorgan",
+          "cimSnapshot"
+        ],
+        "error": null,
+        "returned": "glamorgan, cimSnapshot"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "What are the ten largest Wikipedias by article count?",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "What were the most visited articles on the German Wikipedia yesterday?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Display the first paragraph and short description of the article Albert Einstein",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Show me the recent edits to Albert Einstein with the byte changes",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What is the predicted quality class of the article Albert Einstein?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Show me the significant images with captions from the article Mona Lisa",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Mona Lisa"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Run a SPARQL query on Wikidata that counts all human beings",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "Show me the 360 degree panorama of the Commons file File:Example.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Example.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Show me archived snapshots of https://example.org from 2015, 2018 and 2020",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": false,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 0.9333333333333333,
+      "subjectRate": 0.8461538461538461
+    }
+  },
+  "compact": {
+    "systemPromptLength": 33660,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "How many pageviews has the article Ada Lovelace gotten in the last 30 days?",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Ada Lovelace"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "How many English Wikipedia articles link to example.org?",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Show me a random sampling of images from the category Featured pictures on Wikimedia Commons",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Featured pictures on Wikimedia Commons"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "How many articles, edits and active users does the German Wikipedia have?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Which wikis and pages use the file File:Earth from space.jpg?",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Earth from space.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage",
+          "cimFileSpotlight"
+        ],
+        "error": null,
+        "returned": "fileUsage, cimFileSpotlight"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Wiki Loves Monuments 2024 in the United States"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "glamorgan",
+          "cimSnapshot"
+        ],
+        "error": null,
+        "returned": "glamorgan, cimSnapshot"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "What are the ten largest Wikipedias by article count?",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "What were the most visited articles on the German Wikipedia yesterday?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Display the first paragraph and short description of the article Albert Einstein",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Show me the recent edits to Albert Einstein with the byte changes",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What is the predicted quality class of the article Albert Einstein?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Show me the significant images with captions from the article Mona Lisa",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Mona Lisa"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Run a SPARQL query on Wikidata that counts all human beings",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "Show me the 360 degree panorama of the Commons file File:Example.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Example.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Show me archived snapshots of https://example.org from 2015, 2018 and 2020",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": false,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 0.9333333333333333,
+      "subjectRate": 0.8461538461538461
+    }
+  },
+  "expanded": {
+    "systemPromptLength": 33453,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "How many pageviews has the article Ada Lovelace gotten in the last 30 days?",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Ada Lovelace"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "How many English Wikipedia articles link to example.org?",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Show me a random sampling of images from the category Featured pictures on Wikimedia Commons",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Featured pictures on Wikimedia Commons"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "How many articles, edits and active users does the German Wikipedia have?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Which wikis and pages use the file File:Earth from space.jpg?",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Earth from space.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage",
+          "cimFileSpotlight"
+        ],
+        "error": null,
+        "returned": "fileUsage, cimFileSpotlight"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Wiki Loves Monuments 2024 in the United States"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "glamorgan",
+          "cimSnapshot"
+        ],
+        "error": null,
+        "returned": "glamorgan, cimSnapshot"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "What are the ten largest Wikipedias by article count?",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "What were the most visited articles on the German Wikipedia yesterday?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Display the first paragraph and short description of the article Albert Einstein",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Show me the recent edits to Albert Einstein with the byte changes",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What is the predicted quality class of the article Albert Einstein?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Show me the significant images with captions from the article Mona Lisa",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Mona Lisa"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Run a SPARQL query on Wikidata that counts all human beings",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "Show me the 360 degree panorama of the Commons file File:Example.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Example.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Show me archived snapshots of https://example.org from 2015, 2018 and 2020",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://example.org"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": false,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 0.9333333333333333,
+      "subjectRate": 0.8461538461538461
+    }
+  }
+}

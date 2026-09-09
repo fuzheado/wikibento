@@ -191,6 +191,55 @@ Notes:
    scorecard's subject column; the rate is computed only over fixtures where
    a subject applies.
 
+## Board-construction fixtures (2026-09-09)
+
+Single-widget fixtures saturate (LLM top1 100%) and can no longer measure
+prompt enrichment — a 3-variant comparison (baseline / +compact wiring ref /
++expanded manual) scored **identically** on all 15 fixtures. The second half
+of the Ask question — "is the info enough for BOARD construction" — is
+measured by a second fixture set and scorer:
+
+| Artifact | What it does |
+|---|---|
+| `tests/board-fixtures.mjs` | 6 multi-widget chain prompts: `{id, prompt, expected:{chain:[…], config:{widgetType:{…}}}, requireSubject, note}` |
+| `scoreChainOptions` / `summarizeChain` / `assertBoardFixtureSchema` (in `tests/intent-benchmark-lib.mjs`) | chain scoring: expected chain appears as an in-order SUBSEQUENCE of the returned options; keys/subject per chain entry |
+| `scripts/benchmark-ask-variants.mjs --boards` | the live runner (also compares prompt variants; 429-aware) |
+| `tests/intent-benchmark.test.mjs` | offline schema constitution for the board fixtures (chain ≥ 2, ids/keys exist in the manifest) — wired into `npm test` |
+
+Chain scoring semantics: **chain** = the expected widget sequence appears
+in order (extra alternatives allowed — the model may add a precomputed/live
+pair); **keys** = every declared config entry's keys are present; **subject**
+same token rule as single-widget, applied per chain entry. Wiring is NOT
+gated as literal `{{widget:…}}` tokens — ASK_MANUAL (correctly) tells the
+model never to invent board ids; the scorer records volunteered tokens
+informationally.
+
+Findings (2026-09-09, llm-qwen36-27b, `bench-boards-2026-09-09.json`):
+
+1. **Chains work:** 3-widget chains (`excerpt → translate → speaker`,
+   `listSource → filterLines → lineCount`) are recommended in correct order
+   with correct subjects/configs; board-switcher chains (`boardControls →
+   cimSnapshot`) too. chain 83% · keys 100% · subject 100% (5/6; the one
+   baseline failure was a transient 503).
+2. **Prompt fixes from the single-widget residuals** (deploy/server.js VALUE
+   RULES): categories are now "copied VERBATIM … keep the FULL span" (fixed
+   the `glam-category-impact` truncation ✓ re-verified) and a new SUBJECT
+   COMPLETENESS rule fills every subject the user named (fixes
+   `wayback-snapshots` dropping `url` ✓ re-verified after the rate window).
+3. **The model wants to wire:** it volunteered `{{widget:<invented-id>}}`
+   tokens in ~20% of chain options despite the never-invent-ids rule. That is
+   the case for ISSUE-44 Phase 3 (a board-assembly output schema): for a NEW
+   board the advisor could generate ids + params + wiring deterministically,
+   turning recommendations into one-click board construction.
+4. **Rules alone don't make the model pre-fill config fields:** the SUBJECT
+   COMPLETENESS rule fixed `wayback-snapshots` (dropped `url`) only 1/5
+   repeat runs; adding ONE targeted few-shot to the EXAMPLES block (url +
+   dates, different site than the fixture) fixed it 5/5. For value-level
+   behavior, few-shots are the reliable lever; rules set intent only.
+5. **LiftWing rate window:** direct ~90 calls/IP/hour before persistent 429s
+   — run benchmarks with `--via toolforge` (bastion egress = higher tier,
+   effectively unlimited; ~140 ms/req). Full write-up in `bench-README.md`.
+
 ## Coverage
 
 Current: **15/30 widgets covered** (15 fixtures). Uncovered — interview

@@ -1,0 +1,123 @@
+{
+  "baseline": {
+    "systemPromptLength": 32883,
+    "results": [
+      {
+        "id": "chain-list-display",
+        "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+        "expected": {
+          "chain": [
+            "listSource",
+            "articleList"
+          ],
+          "config": {}
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "listSource",
+          "articleList"
+        ],
+        "perWidget": [],
+        "matchedOption": {
+          "widgetType": "listSource",
+          "config": {
+            "title": "My Favorites",
+            "items": "Article 1\nArticle 2\nArticle 3"
+          },
+          "reason": "Paste your list of article titles here; this widget acts as the single source of truth that other widgets can reference."
+        },
+        "error": null,
+        "returned": "listSource, articleList"
+      }
+    ],
+    "summary": {
+      "n": 1,
+      "chainRate": 1,
+      "keysRate": 1,
+      "subjectRate": null
+    }
+  },
+  "compact": {
+    "systemPromptLength": 34093,
+    "results": [
+      {
+        "id": "chain-list-display",
+        "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+        "expected": {
+          "chain": [
+            "listSource",
+            "articleList"
+          ],
+          "config": {}
+        },
+        "chainOk": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "listSource",
+          "articleList"
+        ],
+        "perWidget": [],
+        "matchedOption": {
+          "widgetType": "listSource",
+          "config": {
+            "title": "My Favorite Articles",
+            "items": "Main_Page\nAlbert Einstein\nAda Lovelace"
+          },
+          "reason": "Paste your article titles here (one per line); this widget acts as the single source of truth that other widgets can subscribe to."
+        },
+        "error": null,
+        "returned": "listSource, articleList"
+      }
+    ],
+    "summary": {
+      "n": 1,
+      "chainRate": 1,
+      "keysRate": 1,
+      "subjectRate": null
+    }
+  },
+  "expanded": {
+    "systemPromptLength": 33886,
+    "results": [
+      {
+        "id": "chain-list-display",
+        "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+        "expected": {
+          "chain": [
+            "listSource",
+            "articleList"
+          ],
+          "config": {}
+        },
+        "chainOk": false,
+        "keysOk": true,
+        "subjectOk": false,
+        "ids": [
+          "articleList",
+          "listSource"
+        ],
+        "perWidget": [],
+        "matchedOption": {
+          "widgetType": "articleList",
+          "config": {
+            "articles": "Ada Lovelace\nAlbert Einstein",
+            "project": "en.wikipedia",
+            "enrich": true
+          },
+          "reason": "Article List displays clickable titles with thumbnails and intros, updating automatically when the source list changes."
+        },
+        "error": null,
+        "returned": "articleList, listSource"
+      }
+    ],
+    "summary": {
+      "n": 1,
+      "chainRate": 0,
+      "keysRate": 1,
+      "subjectRate": null
+    }
+  }
+}
