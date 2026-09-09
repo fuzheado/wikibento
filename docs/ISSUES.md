@@ -2762,9 +2762,9 @@ params, translate. Requested additions: GLAM (seeded by a Meta-hosted Met board,
 **Shipped (8 boards + hub):**
 - **Onboarding:** `article-switcher-demo` (one param, two cards — the gentlest
   entry), `translate-demo`, `params-demo`, `flow-demo`
-- **Flagships:** `glam-demo` — one template, **six CIM-registered institutions**
-  (Met 389,030 · LoC 630,933 · BHL 305,868 · NGA 54,167 · Smithsonian 17,160 ·
-  Rijksmuseum 6,863 files, verified 2026-07), switching collection + month;
+- **Flagships:** `glam-demo` — one template, **five CIM-registered institutions**
+  (Met 389,030 · LoC 630,933 · BHL 305,868 · NGA 54,167 · Rijksmuseum 6,863
+  files, verified 2026-07), switching collection + month;
   `article-vitals-demo` (excerpt · views · ORES quality · assessments · edits ·
   gallery, one article param); `sparql-demo` (WDQS + Humaniki + QLever presets)
 - **Extras:** `embed-demo`, `dashboard` (full catalog)

@@ -20,8 +20,8 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
 - ✅ **Seminal demo suite + hub (ISSUE-63, 2026-09-09):** 8 boards + a hub. Onboarding:
   `article-switcher-demo` (one param, two cards), `translate-demo`, `params-demo`, `flow-demo`.
-  Flagships: `glam-demo` (one template, **six CIM-registered institutions** — Met/LoC/BHL/NGA/
-  Smithsonian/Rijksmuseum, collection + month switcher), `article-vitals-demo` (excerpt · views ·
+  Flagships: `glam-demo` (one template, **five CIM-registered institutions** — Met/LoC/BHL/NGA/
+  Rijksmuseum, collection + month switcher), `article-vitals-demo` (excerpt · views ·
   quality · assessments · edits · gallery), `sparql-demo` (WDQS + Humaniki + QLever). Extras:
   `embed-demo`, `dashboard`. **`demos.json`** is the hub — its Markdown index links every board;
   the markdown renderer gained same-origin links (`?config=/x.json`, `/path`, `#hash` render as

@@ -9,8 +9,7 @@
         "Files from the Biodiversity Heritage Library",
         "Images from the Library of Congress",
         "Images from the National Gallery of Art",
-        "Images from the Rijksmuseum",
-        "Images from the Smithsonian Institution"
+        "Images from the Rijksmuseum"
       ],
       "value": "Images from Metropolitan Museum of Art"
     },
@@ -24,7 +23,7 @@
       "id": "note",
       "widgetType": "markdown",
       "config": {
-        "text": "# 🏛️ One template, six institutions\n\nEvery card is driven by the **Collection** buttons. The stats are **exact** — precomputed monthly by [Commons Impact Metrics](https://commons.wikimedia.org/wiki/Commons:Commons_Impact_Metrics), not sampled or estimated.\n\n*Views* = pageviews of the wiki pages that **use** the collection's files. Switch the collection and watch every card re-aim; step the month to see history.",
+        "text": "# \ud83c\udfdb\ufe0f One template, five institutions\n\nEvery card is driven by the **Collection** buttons. The stats are **exact** \u2014 precomputed monthly by [Commons Impact Metrics](https://commons.wikimedia.org/wiki/Commons:Commons_Impact_Metrics), not sampled or estimated.\n\n*Views* = pageviews of the wiki pages that **use** the collection's files. Switch the collection and watch every card re-aim; step the month to see history.",
         "refreshSeconds": 86400
       }
     },
