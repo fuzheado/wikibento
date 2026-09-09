@@ -404,6 +404,13 @@ argument: `{ includeAll = false, hideDecorative = true, groupBy = 'none' }`
 - Batch queries instead of looping; the current fetchers already do this.
 - Respect 429s — the Action API and RESTBase throttle aggressively. Widget
   auto-refresh (1–2 h defaults) is well within limits, but watch any new fetcher.
+  The shared HTTP layer (`src/lib/httpRetry.js`, ISSUE-61) now caps concurrency
+  (4), paces after any 429, honors `Retry-After` (Wikimedia exposes it via
+  `Access-Control-Expose-Headers`; capped at 10 s, default 1 s when absent),
+  retries a 429 at most once, and fails with an actionable message
+  ("Wikimedia is rate-limiting this browser — wait ~Ns, then Retry"). A
+  throttled **IP** (VPN/shared NAT) can still 429 every request — the app backs
+  off rather than hammering.
 - For browser apps, add `origin=*` to Action API queries to unlock CORS.
 
 ## Adding a New Data Source
@@ -432,7 +439,7 @@ describe it in the docs above, done.
 - **Transport:** GET for queries ≤ ~1,800 chars (WDQS GET URLs cap ~2,000), else **POST `application/x-www-form-urlencoded`** — a "simple" content type, so **no CORS preflight** (`application/sparql-query` would preflight). Always send `Accept: application/sparql-results+json` + `format=json`.
 - **Parsing rules:** SPARQL JSON literals are **always strings** — coerce numerics via the `datatype` field (`…XMLSchema#integer|decimal|double|float|int|long|nonNegativeInteger|positiveInteger`); shorten entity URIs to IDs (`Q160236`, `M37200540`); return `{ vars, rows }`, never the raw bindings envelope.
 - **Label resolution (Issue #6, post-processing in `fetchSparql`):** QLever **cannot** run `SERVICE wikibase:label` (it tries to federate to a dead host), so QLever queries like the most-depicted-subjects preset returned **bare QIDs**. The widget path now passes `{ resolveLabels: true }` and every cell whose raw binding was a Wikidata entity URI (`http://www.wikidata.org/entity/Q34442`, Q *or* P ids) is batch-resolved via the Action API `wbgetentities` (`props=labels`, chunked ≤ 50 ids/call) and rendered **"Label (QID)"** — e.g. `road (Q34442)` — keeping the QID visible for traceability. General: works for any endpoint and any user query, WDQS included. Heuristics: vars that already have a `?xLabel` sibling (the WDQS SERVICE convention) are left as bare QIDs — no duplicated labels; literals and non-Wikidata URIs are never touched (detection happens on the raw uri-typed binding, before shortening). Language = `navigator.language` primary subtag with `en` fallback (labels fetched in `xx|en`, user language first — no picker yet); 24 h TTL cache; **best-effort** — a label failure never fails the query, raw QIDs stay. Pure helpers in `src/lib/sparqlLabels.js`; tests in `tests/sparql-labels.test.mjs`.
-- **Reliability:** 60 s timeout + one retry (WDQS SLO is 95%; live 502/504 seen); 10-min TTL cache keyed `endpoint::query` (a ↻ refresh inside the TTL returns cached — by design). 4xx fails fast — the widget shows a themed error + Retry. `Retry-After` honoring on 429 is a future enhancement (the shared retry helper doesn't read it).
+- **Reliability:** 60 s timeout + one retry (WDQS SLO is 95%; live 502/504 seen); 10-min TTL cache keyed `endpoint::query` (a ↻ refresh inside the TTL returns cached — by design). 4xx fails fast — the widget shows a themed error + Retry. `Retry-After` on 429 is honored by the shared HTTP layer (ISSUE-61).
 - **Humaniki gotcha (the big one):** interpret value keys via the API's OWN `meta.bias_labels`. Humaniki's QID convention is **swapped vs Wikidata** (verified: its map says 6581097→male / 6581072→female; Wikidata says the opposite). Hardcoding `Q6581097=female` yields a wrong **79.7%**; the label lookup yields the correct **~20.1%** (matches Women in Red). `?project=enwiki&label_lang=en`; sum all `values` = total humans, sum the female-key bucket = women.
 - **Renderer detection (transform):** 1 row + numeric → StatCard · label→value rows → BarCard · date-ish var + numeric → TrendCard (index-x) · else TableCard. Manual ⚙ override: `auto|stat|bar|line|table`.
 - **Presets** (`src/lib/sparqlPresets.js`): met-collection (72,433), multi-institution (Met > Rijksmuseum > British Museum > Smithsonian — Europeana returns no rows), women-in-red (Humaniki), commons-top-depicts (QLever). Picking a preset atomically sets query + endpoint.

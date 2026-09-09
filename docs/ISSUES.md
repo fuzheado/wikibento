@@ -2639,3 +2639,44 @@ render `["Article"]` and `["Language"]` respectively; the chain
 Einstein → excerpt → `EN → FR · nllb200-600M`; clicking **de** on the
 language-only card re-translates to `EN → DE · nllb200-600M`; the ⚙ picker
 shows both params with only `topic` checked on the article card.
+
+## ISSUE-61 · Rate-limit guards: pacer, Retry-After, bounded 429 retries — **done 2026-09-09**
+
+**What (user session):** persistent `HTTP 429` from the Action API — the config
+load (`Wiki fetch failed: HTTP 429`) and every widget. Diagnosis: the same
+request pattern from another IP returned 200s (even a 20-parallel + 10-sequential
+burst), so the throttle was **IP-level** (VPN / shared NAT), not app-induced. But
+the app handled it badly: `fetchTextWithRetry` retried 429s after 500/1000 ms
+without reading `Retry-After`, the config fetch had **no** retry, and nothing
+capped the board-load burst (one parallel request per widget).
+
+**Fix — new `src/lib/httpRetry.js`** (the shared HTTP layer; `dataSources.js` and
+`share.js` import it):
+
+- **Pacer** — max **4 concurrent** requests; the gap is 0 until a 429 is seen,
+  then **500 ms** for the session. A board load can no longer stampede an API.
+- **`Retry-After` honored** — parsed (seconds or HTTP-date; capped at 10 s;
+  default 1 s when absent) and applied as a *global* cool-down, so every queued
+  widget backs off together, not just the one that saw 429. Wikimedia exposes the
+  header via `Access-Control-Expose-Headers` (verified live).
+- **Bounded 429 retries** — at most **one** (5xx keep the normal budget): a
+  sustained throttle is not met with a retry storm.
+- **Actionable failure** — `HTTP 429 — Wikimedia is rate-limiting this browser —
+  wait ~Ns, then Retry (…)` instead of a bare `HTTP 429`.
+- **Config load** goes through the same helper (`retries: 2`), so a throttled
+  boot retries and reports clearly instead of failing instantly.
+
+**Constitution:** `tests/http-retry.test.mjs` +5 (parseRetryAfter
+seconds/date/cap/invalid; concurrency ≤ 4; a 429 retries once then succeeds and
+raises the gap; exhausted 429 → actionable message carrying `retryAfterMs`;
+non-429 4xx stays terminal) → npm test 168.
+
+**Verified live (built dist, route-intercepted 429 with `Retry-After: 2`):** the
+linkcount card made exactly **2 requests** (initial + one retry) spaced
+**2,011 ms**, and showed *"HTTP 429 — Wikimedia is rate-limiting this browser —
+wait ~2s, then Retry (…)"*. The config path shows the same message prefixed
+`Wiki fetch failed: …`.
+
+**Not fixable app-side:** if an IP is throttled, every request 429s regardless —
+the app now backs off and explains instead of hammering. Mitigations for the
+user: leave the VPN/shared network, wait a few minutes, close duplicate tabs.
