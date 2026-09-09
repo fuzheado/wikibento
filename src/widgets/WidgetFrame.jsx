@@ -43,6 +43,12 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   const [nameError, setNameError] = useState(null);
   useEffect(() => { setInstanceName(widget.id); }, [widget.id]);
   const intervalRef = useRef(null);
+  // Request-serial guard: each load() claims a sequence number; only the
+  // LATEST run may write state. Prevents a slow fetch started under an old
+  // config/params (60 s SPARQL, batched imageinfo…) from landing after a
+  // newer run and clobbering its result — the classic stale-write race that
+  // compounds the moment widgets consume changing {{param}} feeds.
+  const loadSeqRef = useRef(0);
   // Latest onAutoHeight via ref — load()'s closure must not go stale as the
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
   const onAutoHeightRef = useRef(onAutoHeight);
@@ -165,9 +171,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       publishOutput(transformed);
       return;
     }
+    const seq = ++loadSeqRef.current; // this run owns the state until a newer run starts
     setState(s => ({ ...s, loading: true, error: null }));
     try {
       const data = await def.fetch(resolvedConfig, { force, sourceOutput: sourceOutputValue }); // force = bust TTL/SWR caches (manual ↻ / Apply)
+      if (seq !== loadSeqRef.current) return; // superseded — a newer run is in flight
       const transformed = def.transform(data, resolvedConfig, { sourceOutput: sourceOutputValue });
 
       transformed._fetchedAt = Date.now(); // freshness constitution: every live widget stamps its last run
@@ -178,6 +186,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   if (autoPx && onAutoHeightRef.current) onAutoHeightRef.current(widget.id, autoPx);
       publishOutput(transformed);
     } catch (e) {
+      if (seq !== loadSeqRef.current) return; // a stale failure must not blank a fresh result
       setState({ loading: false, error: e.message, data: null });
     }
   }, [widget.widgetType, resolvedConfig, def, sourceOutputValue, widget.id, onOutput]);
@@ -215,6 +224,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     intervalRef.current = setInterval(load, secs);
     return () => clearInterval(intervalRef.current);
   }, [load, resolvedConfig.refreshSeconds]);
+
+  // Invalidate any in-flight load on unmount — a slow fetch must not write
+  // state after the widget is removed from the board.
+  useEffect(() => () => { loadSeqRef.current += 1; }, []);
 
   const handleConfigChange = (key, value) => {
     onUpdateConfig(widget.id, { ...widget.config, [key]: value });
