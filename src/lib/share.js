@@ -11,6 +11,8 @@
  *                     (self-contained link; no hosting needed).
  */
 
+import { fetchTextWithRetry } from './httpRetry';
+
 const WIKI_HOST_RE = /(wikipedia|wikimedia|wiktionary|wikisource|wikiquote|wikibooks|wikiversity|wikinews|wikivoyage|wikispecies)\.org$/;
 
 /** Bare w.wiki/XXXX (no scheme) — the Wikimedia URL shortener. */
@@ -140,9 +142,14 @@ async function fetchWikiPageText(u) {
     format: 'json',
     origin: '*',
   });
-  const resp = await fetch(api);
-  if (!resp.ok) throw new Error(`Wiki fetch failed: HTTP ${resp.status}`);
-  const d = await resp.json();
+  let raw;
+  try {
+    raw = await fetchTextWithRetry(api.href, { timeoutMs: 15000, retries: 2 });
+  } catch (e) {
+    throw new Error(`Wiki fetch failed: ${e.message}`);
+  }
+  if (looksLikeHtml(raw)) throw new Error('Wiki fetch failed: the API returned an HTML page, not JSON');
+  const d = JSON.parse(raw);
   let text = d?.parse?.wikitext?.['*'];
   if (text === undefined) throw new Error(d?.error?.info || 'Wiki page not found or not parseable');
   // Strip a single top-level syntaxhighlight/pre wrapper, if present.

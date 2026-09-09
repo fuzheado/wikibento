@@ -9,6 +9,7 @@ const WIKISTATS_API = 'https://wikistats.wmcloud.org/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
+import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import {
   wikidataEntityId,
@@ -21,71 +22,6 @@ import {
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
 const wikistatsCache = createTtlCache(5 * 60 * 1000);
-
-/**
- * fetch() with a timeout and retry-with-backoff for transient failures
- * (network errors, 5xx). 4xx errors fail fast (retrying won't help).
- * Returns the response text.
- */
-async function fetchTextWithRetry(url, { timeoutMs = 15000, retries = 2, method = 'GET', body = null, contentType = null, withBody = false } = {}) {
-  const shortUrl = url.replace(/^https?:\/\//, '').slice(0, 80); // for error messages
-  let lastErr;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const resp = await fetch(url, {
-        method,
-        // NOTE: no custom User-Agent here. In browsers, User-Agent is a FORBIDDEN
-        // header — Chromium strips it before the CORS preflight check, but Firefox
-        // and WebKit include it in the preflight, and Wikimedia's REST endpoints
-        // reject `user-agent` in Access-Control-Allow-Headers (RESTBase allows only
-        // `api-user-agent`; the CIM service 405s OPTIONS outright). Net effect with
-        // the header set: every RESTBase/CIM fetch dies with NetworkError in
-        // Firefox/Safari while Chrome works (verified 2026-09-03, fixed by removing
-        // it). The header was also a no-op — browsers always send their own UA.
-        // Server-side code (deploy/server.js relays) sends the descriptive UA;
-        // browser requests are identified by the browser's own UA + Origin.
-        headers: body ? { 'Content-Type': contentType || 'application/json' } : undefined,
-        body,
-        signal: controller.signal,
-      });
-      if (resp.status >= 500 && attempt < retries) {
-        lastErr = new Error(`HTTP ${resp.status} (${shortUrl})`);
-      } else if (resp.status === 429 && attempt < retries) {
-        // 429 = transient rate limiting, not "no data" — retry with backoff.
-        // (2026-09-08: was terminal with every other 4xx, so the GLAM view
-        // walk's 285+ request burst silently zero-filled throttled pages —
-        // a live check lost ~65% of total views to 429s.)
-        lastErr = new Error(`HTTP 429 (${shortUrl})`);
-      } else if (!resp.ok) {
-   let errBody = null;
-   if (withBody) { try { errBody = (await resp.text()).slice(0, 300); } catch { /* body optional */ } }
-   const err = new Error(`HTTP ${resp.status} (${shortUrl})`);
-   if (errBody) err.body = errBody;
-   throw err;
-  } else {
-   return await resp.text();
-  }
- } catch (e) {
-      // 4xx are terminal (bad title, not-loaded, auth) — never retry them; only
-      // 5xx / timeouts / network errors are transient. (Was: HTTP errors landed
-      // here and got retried with backoff, adding 1.5 s to every 404 path.)
-      if (e instanceof Error && /^HTTP 4\d\d /.test(e.message)) throw e;
-      if (e.name === 'AbortError') {
-        lastErr = new Error(`timed out after ${timeoutMs / 1000}s (${shortUrl})`);
-      } else if (!(e instanceof Error && e.message.startsWith('HTTP '))) {
-        lastErr = e.message.includes(shortUrl) ? e : new Error(`${e.message} (${shortUrl})`);
-      } else {
-        lastErr = e;
-      }
-    } finally {
-      clearTimeout(timer);
-    }
-    if (attempt < retries) await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-  }
-  throw lastErr;
-}
 
 function fetchWikistatsText(url) {
   return wikistatsCache.get(url, () => fetchTextWithRetry(url));

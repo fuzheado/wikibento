@@ -525,6 +525,7 @@ export const WIDGET_TYPES = {
 
   markdown: {
     id: 'markdown',
+    nodeKind: 'display',
     category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Text / Markdown',
@@ -574,6 +575,7 @@ export const WIDGET_TYPES = {
     }),
     // ISSUE-58: emit the excerpt text so other widgets can consume it — e.g. a
     // Translator with text: "{{widget:<this id>}}", or a Filter/Count chain.
+    outputs: { kind: 'extract' }, // emitted: the article extract (plain text)
     emit: (data) => data.extract,
   },
 
@@ -1169,6 +1171,7 @@ export const WIDGET_TYPES = {
 
   boardControls: {
     id: 'boardControls',
+    nodeKind: 'controller',
     category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Board Controls',
@@ -1189,6 +1192,7 @@ export const WIDGET_TYPES = {
 
   speaker: {
     id: 'speaker',
+    nodeKind: 'effector',
     category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Speaker (text-to-speech)',
@@ -1215,6 +1219,7 @@ export const WIDGET_TYPES = {
   },
   wikiPage: {
     id: 'wikiPage',
+    nodeKind: 'display',
     category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Wiki Page',
@@ -1277,6 +1282,7 @@ export const WIDGET_TYPES = {
 
   translate: {
     id: 'translate',
+    nodeKind: 'ai',
     category: 'Content & Embeds', intensity: 'low',
 
     timeScope: 'point',    name: 'Translator (MinT)',
@@ -1590,11 +1596,13 @@ export const WIDGET_TYPES = {
       };
     },
     // Emitted value: the plain list (interpolation joins it with newlines).
+    outputs: { kind: 'lines' }, // emitted: the pasted list, one line per element
     emit: (data) => data.lines,
   },
 
   filterLines: {
     id: 'filterLines',
+    nodeKind: 'transformer',
     category: 'Dataflow', intensity: 'low',
 
     timeScope: 'point',    name: 'Filter Lines',
@@ -1645,11 +1653,13 @@ export const WIDGET_TYPES = {
       };
     },
     // Emits the FILTERED list — downstream count/echo widgets chain off this.
+    outputs: { kind: 'lines' }, // emitted: the filtered list
     emit: (data) => data.lines,
   },
 
   lineCount: {
     id: 'lineCount',
+    nodeKind: 'reducer',
     category: 'Dataflow', intensity: 'low',
 
     timeScope: 'point',    name: 'Line Count',
@@ -1677,11 +1687,13 @@ export const WIDGET_TYPES = {
       };
     },
     // Emits the numeric count — e.g. a downstream echo displays it.
+    outputs: { kind: 'count' }, // emitted: the count (number)
     emit: (data) => data.count,
   },
 
   echo: {
     id: 'echo',
+    nodeKind: 'display',
     category: 'Dataflow', intensity: 'low',
 
     timeScope: 'point',    name: 'Value Display',
@@ -1710,6 +1722,7 @@ export const WIDGET_TYPES = {
       };
     },
     // Pass-through — you can pipe an output through Echo into another widget.
+    outputs: { kind: 'value' }, // emitted: whatever the source widget emitted
     emit: (data) => (data.value === undefined ? undefined : data.value),
   },
 };

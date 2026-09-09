@@ -1,6 +1,6 @@
 {
- "version": 2,
- "generatedAt": "2026-09-09T13:20:11.519Z",
+ "version": 3,
+ "generatedAt": "2026-09-09T14:26:20.868Z",
  "widgetCount": 37,
  "widgets": [
   {
@@ -13,14 +13,20 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "range",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Main_Page"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -31,6 +37,7 @@
     {
      "key": "displayMode",
      "type": "select",
+     "label": "Display",
      "options": [
       "stat",
       "trend"
@@ -54,14 +61,20 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "domain",
-     "type": "text"
+     "type": "text",
+     "label": "Domain",
+     "placeholder": "example.org"
     },
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -71,6 +84,7 @@
     {
      "key": "namespace",
      "type": "select",
+     "label": "Namespace",
      "options": [
       "",
       "0",
@@ -98,14 +112,20 @@
    "type": "stat",
    "intensity": "medium",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Category",
+     "placeholder": "Images from X"
     },
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "commons.wikimedia",
       "en.wikipedia"
@@ -113,7 +133,9 @@
     },
     {
      "key": "sampleCount",
-     "type": "number"
+     "type": "number",
+     "label": "Sample imgs",
+     "placeholder": "0 = off, max 24"
     }
    ],
    "defaults": [
@@ -133,10 +155,14 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "lang",
      "type": "select",
+     "label": "Language",
      "options": [
       "en",
       "de",
@@ -153,6 +179,7 @@
     {
      "key": "table",
      "type": "select",
+     "label": "Project Type",
      "options": [
       "wikipedias",
       "wiktionaries",
@@ -176,22 +203,31 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "filename",
-     "type": "text"
+     "type": "text",
+     "label": "Commons Filename",
+     "placeholder": "Example.jpg"
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N wikis",
+     "placeholder": "10"
     },
     {
      "key": "showImage",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Show image"
     },
     {
      "key": "showCaption",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Show caption"
     }
    ],
    "defaults": [
@@ -212,42 +248,64 @@
    "type": "stat",
    "intensity": "high",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Category",
+     "placeholder": "Images from X"
     },
     {
      "key": "depth",
-     "type": "number"
+     "type": "number",
+     "label": "Depth",
+     "hint": "0 = category only, 1 = + direct subcats",
+     "placeholder": "0-12"
     },
     {
      "key": "year",
-     "type": "number"
+     "type": "number",
+     "label": "Year",
+     "placeholder": "2026"
     },
     {
      "key": "month",
-     "type": "number"
+     "type": "number",
+     "label": "Month",
+     "placeholder": "1-12"
     },
     {
      "key": "negcats",
-     "type": "text"
+     "type": "text",
+     "label": "Exclude cats",
+     "placeholder": "Cat A|Cat B"
     },
     {
      "key": "negdepth",
-     "type": "number"
+     "type": "number",
+     "label": "Excl depth",
+     "hint": "0 = excluded cats only, 1 = + their subcats",
+     "placeholder": "0"
     },
     {
      "key": "fileBudget",
-     "type": "number"
+     "type": "number",
+     "label": "File budget",
+     "placeholder": "500"
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top images",
+     "placeholder": "5"
     },
     {
      "key": "showDetail",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Top file detail"
     }
    ],
    "defaults": [
@@ -273,6 +331,9 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [],
    "defaults": [
     "refreshSeconds"
@@ -288,10 +349,14 @@
    "type": "table",
    "intensity": "medium",
    "experimental": false,
+   "timeScope": "day",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "lang",
      "type": "select",
+     "label": "Language",
      "options": [
       "en",
       "de",
@@ -326,6 +391,7 @@
     {
      "key": "dateMode",
      "type": "select",
+     "label": "Date",
      "options": [
       "latest",
       "date"
@@ -333,27 +399,37 @@
     },
     {
      "key": "year",
-     "type": "number"
+     "type": "number",
+     "label": "Year",
+     "placeholder": "2026"
     },
     {
      "key": "month",
-     "type": "number"
+     "type": "number",
+     "label": "Month",
+     "placeholder": "1-12"
     },
     {
      "key": "day",
-     "type": "number"
+     "type": "number",
+     "label": "Day",
+     "placeholder": "1-31"
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N (0 = default 10, 100 = all)",
+     "placeholder": "10"
     },
     {
      "key": "filterNoise",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Filter TLD/spam noise (.xxx, XXX…)"
     },
     {
      "key": "showExpanded",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Expanded view (thumbnail + summary)"
     }
    ],
    "defaults": [
@@ -378,14 +454,20 @@
    "type": "embed",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "text",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Markdown content",
+     "placeholder": "# Heading\\n\\nSome **bold** text…"
     },
     {
      "key": "allowExternalImages",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Allow external images (any https host)"
     }
    ],
    "defaults": [
@@ -404,14 +486,20 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Albert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -423,7 +511,10 @@
     "article",
     "project",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "extract"
+   }
   },
   {
    "id": "edithistory",
@@ -435,14 +526,20 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Albert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -451,7 +548,9 @@
     },
     {
      "key": "limit",
-     "type": "number"
+     "type": "number",
+     "label": "Edits to show",
+     "placeholder": "10 (max 50)"
     }
    ],
    "defaults": [
@@ -471,14 +570,20 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Albert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -502,14 +607,20 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Albert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -518,7 +629,9 @@
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Projects to show",
+     "placeholder": "12 (max 50)"
     }
    ],
    "defaults": [
@@ -538,14 +651,20 @@
    "type": "media",
    "intensity": "medium",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "article",
-     "type": "text"
+     "type": "text",
+     "label": "Article",
+     "placeholder": "Albert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -555,6 +674,7 @@
     {
      "key": "displayMode",
      "type": "select",
+     "label": "Display",
      "options": [
       "grid",
       "list"
@@ -563,6 +683,7 @@
     {
      "key": "iconSize",
      "type": "select",
+     "label": "Grid size",
      "options": [
       "small",
       "medium",
@@ -572,6 +693,7 @@
     {
      "key": "imageFit",
      "type": "select",
+     "label": "Grid image fit",
      "options": [
       "contain",
       "cover"
@@ -579,23 +701,30 @@
     },
     {
      "key": "minSize",
-     "type": "number"
+     "type": "number",
+     "label": "Min image size (px)",
+     "placeholder": "200"
     },
     {
      "key": "maxItems",
-     "type": "number"
+     "type": "number",
+     "label": "Max images (0 = all)",
+     "placeholder": "0"
     },
     {
      "key": "includeAll",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "All images (also caption-less gallery/table images)"
     },
     {
      "key": "hideDecorative",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)"
     },
     {
      "key": "groupBy",
      "type": "select",
+     "label": "Group by",
      "options": [
       "none",
       "section",
@@ -627,14 +756,20 @@
    "type": "media",
    "intensity": "medium",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "files",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Commons files (one per line)",
+     "placeholder": "File:Example.jpg\\nFile:Another photo.png"
     },
     {
      "key": "order",
      "type": "select",
+     "label": "Order",
      "options": [
       "listed",
       "random",
@@ -645,6 +780,7 @@
     {
      "key": "displayMode",
      "type": "select",
+     "label": "Display",
      "options": [
       "grid",
       "list"
@@ -653,6 +789,7 @@
     {
      "key": "iconSize",
      "type": "select",
+     "label": "Grid size",
      "options": [
       "small",
       "medium",
@@ -662,6 +799,7 @@
     {
      "key": "imageFit",
      "type": "select",
+     "label": "Grid image fit",
      "options": [
       "contain",
       "cover"
@@ -669,7 +807,9 @@
     },
     {
      "key": "maxItems",
-     "type": "number"
+     "type": "number",
+     "label": "Max files (0 = all)",
+     "placeholder": "0"
     }
    ],
    "defaults": [
@@ -692,14 +832,20 @@
    "type": "table",
    "intensity": "medium",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "articles",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Article titles (one per line)",
+     "placeholder": "Ada Lovelace\\nAlbert Einstein"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "en.wikipedia",
       "de.wikipedia",
@@ -708,11 +854,14 @@
     },
     {
      "key": "enrich",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Thumbnails + intros"
     },
     {
      "key": "maxItems",
-     "type": "number"
+     "type": "number",
+     "label": "Max articles (0 = all)",
+     "placeholder": "0"
     }
    ],
    "defaults": [
@@ -733,10 +882,14 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -759,16 +912,20 @@
    "id": "cimTrend",
    "name": "CIM Views Over Time",
    "icon": "📈",
-   "description": "Monthly pageview trend of pages using a CIM category\\",
+   "description": "Monthly pageview trend of pages using a CIM category's files",
    "dataSource": "CIM pageviews-per-category-monthly",
    "category": "Categories & GLAM",
    "type": "trend",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "range",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -777,13 +934,16 @@
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "months",
-     "type": "number"
+     "type": "number",
+     "label": "Months (2–24)",
+     "placeholder": "6"
     },
     {
      "key": "category",
@@ -808,10 +968,14 @@
    "type": "media",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -820,13 +984,16 @@
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N",
+     "placeholder": "10"
     },
     {
      "key": "category",
@@ -845,16 +1012,20 @@
    "id": "cimTopWikis",
    "name": "CIM Top Wikis",
    "icon": "🌍",
-   "description": "Which wikis use a CIM category\\",
+   "description": "Which wikis use a CIM category's files most",
    "dataSource": "CIM top-wikis-per-category-monthly",
    "category": "Categories & GLAM",
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -862,7 +1033,9 @@
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N",
+     "placeholder": "10"
     },
     {
      "key": "category",
@@ -881,16 +1054,20 @@
    "id": "cimTopPages",
    "name": "CIM Top Pages",
    "icon": "📄",
-   "description": "Pages that use a CIM category\\",
+   "description": "Pages that use a CIM category's files, by views",
    "dataSource": "CIM top-pages-per-category-monthly",
    "category": "Categories & GLAM",
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -899,13 +1076,16 @@
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N",
+     "placeholder": "10"
     },
     {
      "key": "category",
@@ -930,10 +1110,14 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -942,6 +1126,7 @@
     {
      "key": "editType",
      "type": "select",
+     "label": "Edit type",
      "options": [
       "all-edit-types",
       "create",
@@ -950,7 +1135,9 @@
     },
     {
      "key": "topN",
-     "type": "number"
+     "type": "number",
+     "label": "Top N",
+     "placeholder": "10"
     },
     {
      "key": "category",
@@ -975,10 +1162,14 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "scope",
      "type": "select",
+     "label": "Scope",
      "options": [
       "deep",
       "shallow"
@@ -987,13 +1178,16 @@
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "highlight",
-     "type": "text"
+     "type": "text",
+     "label": "Highlight category (optional)",
+     "placeholder": "Wiki Loves Monuments 2024"
     },
     {
      "key": "month",
@@ -1014,21 +1208,28 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "month",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "filename",
-     "type": "text"
+     "type": "text",
+     "label": "Commons file",
+     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg"
     },
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "showImage",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Show image preview"
     },
     {
      "key": "month",
@@ -1049,21 +1250,29 @@
    "type": "trend",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "range",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "filename",
-     "type": "text"
+     "type": "text",
+     "label": "Commons file",
+     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg"
     },
     {
      "key": "wiki",
      "type": "select",
+     "label": "Wiki",
      "options": [
       "all-wikis"
      ]
     },
     {
      "key": "months",
-     "type": "number"
+     "type": "number",
+     "label": "Fetch window (3–24 months)",
+     "placeholder": "12"
     },
     {
      "key": "month",
@@ -1084,18 +1293,28 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "controller",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "title",
-     "type": "text"
+     "type": "text",
+     "label": "Title",
+     "placeholder": "Board Controls"
     },
     {
      "key": "spec",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Params (one per line: name | type | Label | options)",
+     "hint": "One param per line — name | buttons/select/text/number/month | Label | options. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). Saving updates the board params; widgets referencing {{name}} re-fetch.",
+     "placeholder": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\\ncount | number | Photos | 3, 12, 1\\nmonth | month | Data month\\nyear | select | Year | 2023, 2024\\nquery | text | Search"
     },
     {
      "key": "show",
-     "type": "params"
+     "type": "params",
+     "label": "Params on this card",
+     "hint": "Only the checked params render here — lets you split controls across cards (one for the article, one for the language). None checked = every board param."
     }
    ],
    "defaults": [
@@ -1112,14 +1331,20 @@
    "type": "embed",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "effector",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "text",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Text to speak ({{params}} resolve here)",
+     "placeholder": "Hello — point a Board Controls {{phrase}} at me, or type anything."
     },
     {
      "key": "speakOnChange",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Auto-speak when the text changes (only after one ▶ click)"
     }
    ],
    "defaults": [
@@ -1138,29 +1363,41 @@
    "type": "embed",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "url",
-     "type": "text"
+     "type": "text",
+     "label": "Custom URL (overrides the wiki page below)",
+     "hint": "http(s) only — embeddable sites (no X-Frame-Options). The wiki fields below are ignored when set.",
+     "placeholder": "https://objectium.toolforge.org/uploads/213"
     },
     {
      "key": "page",
-     "type": "text"
+     "type": "text",
+     "label": "Page",
+     "placeholder": "Help:Introduction"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "commons.wikimedia"
      ]
     },
     {
      "key": "mobile",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Mobile view (?useformat=mobile)"
     },
     {
      "key": "fragment",
-     "type": "text"
+     "type": "text",
+     "label": "Section anchor (optional)",
+     "placeholder": "History"
     }
    ],
    "defaults": [
@@ -1182,18 +1419,27 @@
    "type": "query",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "ai",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "text",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Text to translate ({{params}} resolve here)",
+     "placeholder": "Jazz is a music genre…"
     },
     {
      "key": "from",
-     "type": "text"
+     "type": "text",
+     "label": "Source language (2-letter code)",
+     "placeholder": "en"
     },
     {
      "key": "to",
-     "type": "text"
+     "type": "text",
+     "label": "Target language (2-letter code)",
+     "placeholder": "es"
     }
    ],
    "defaults": [
@@ -1210,21 +1456,28 @@
    "description": "Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, or trend",
    "dataSource": "WDQS / QLever SPARQL + Humaniki API",
    "category": "Queries & Power",
-   "type": "stat",
+   "type": "query",
    "intensity": "high",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "preset",
-     "type": "preset"
+     "type": "preset",
+     "label": "Preset (fills the query)"
     },
     {
      "key": "query",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "SPARQL query",
+     "placeholder": "SELECT ..."
     },
     {
      "key": "endpoint",
      "type": "select",
+     "label": "Endpoint",
      "options": [
       "wdqs",
       "qlever-commons",
@@ -1234,6 +1487,7 @@
     {
      "key": "renderer",
      "type": "select",
+     "label": "Renderer (auto-detects)",
      "options": [
       "auto",
       "stat",
@@ -1244,7 +1498,9 @@
     },
     {
      "key": "maxRows",
-     "type": "number"
+     "type": "number",
+     "label": "Max rows",
+     "placeholder": "100"
     }
    ],
    "defaults": [
@@ -1266,21 +1522,28 @@
    "type": "media",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "filename",
-     "type": "text"
+     "type": "text",
+     "label": "Commons file (360° / equirectangular)",
+     "placeholder": "File:Example 360.jpg"
     },
     {
      "key": "project",
      "type": "select",
+     "label": "Project",
      "options": [
       "commons.wikimedia"
      ]
     },
     {
      "key": "autoRotate",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Auto-rotate"
     }
    ],
    "defaults": [
@@ -1300,14 +1563,20 @@
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "files",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Commons files (one per line)",
+     "placeholder": "File:Example.webm\\nFile:Spoken article.ogg"
     },
     {
      "key": "mediaType",
      "type": "select",
+     "label": "Media type",
      "options": [
       "auto",
       "video",
@@ -1317,6 +1586,7 @@
     {
      "key": "quality",
      "type": "select",
+     "label": "Video quality",
      "options": [
       "auto",
       "240",
@@ -1327,23 +1597,29 @@
     },
     {
      "key": "loopPlaylist",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Loop playlist"
     },
     {
      "key": "shuffle",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Shuffle order"
     },
     {
      "key": "autoplay",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Autoplay (browsers need one click first)"
     },
     {
      "key": "showDescription",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Show Commons description (now playing)"
     },
     {
      "key": "annotation",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Your annotation (Markdown)",
+     "placeholder": "Free-form caption for this board — **bold**, [links](https://…), credit lines…"
     }
    ],
    "defaults": [
@@ -1368,18 +1644,27 @@
    "type": "media",
    "intensity": "high",
    "experimental": true,
+   "timeScope": "range",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "url",
-     "type": "text"
+     "type": "text",
+     "label": "Website",
+     "placeholder": "example.org"
     },
     {
      "key": "dates",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Dates (one per line)",
+     "placeholder": "2010-06-15"
     },
     {
      "key": "toleranceDays",
-     "type": "number"
+     "type": "number",
+     "label": "Tolerance (days)",
+     "placeholder": "30"
     }
    ],
    "defaults": [
@@ -1399,48 +1684,69 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
    "configFields": [
     {
      "key": "title",
-     "type": "text"
+     "type": "text",
+     "label": "Title (optional)",
+     "placeholder": "Curated articles"
     },
     {
      "key": "items",
-     "type": "textarea"
+     "type": "textarea",
+     "label": "Items (one per line)",
+     "hint": "Lines are emitted to the board: any widget can reference this list via the `source` picker or {{widget:<this widget id>}} interpolation.",
+     "placeholder": "Ada Lovelace\\nAlbert Einstein"
     }
    ],
    "defaults": [
     "title",
     "items",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "lines"
+   }
   },
   {
    "id": "filterLines",
    "name": "Filter Lines",
    "icon": "🔎",
-   "description": "Consume another widget\\",
+   "description": "Consume another widget's output and keep only the lines matching a pattern — downstream widgets see the filtered list",
    "dataSource": "widget output (source) — no fetch",
    "category": "Dataflow",
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "transformer",
+   "consumesSource": true,
    "configFields": [
     {
      "key": "source",
-     "type": "source"
+     "type": "source",
+     "label": "Input source",
+     "hint": "The widget feeding this filter — pick any emitting widget on the board."
     },
     {
      "key": "title",
-     "type": "text"
+     "type": "text",
+     "label": "Title (optional)",
+     "placeholder": "Matches"
     },
     {
      "key": "pattern",
-     "type": "text"
+     "type": "text",
+     "label": "Match",
+     "placeholder": "einstein"
     },
     {
      "key": "match",
      "type": "select",
+     "label": "Match mode",
      "options": [
       "contains",
       "equals",
@@ -1450,7 +1756,8 @@
     },
     {
      "key": "caseSensitive",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Case-sensitive matching"
     }
    ],
    "defaults": [
@@ -1460,33 +1767,46 @@
     "match",
     "caseSensitive",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "lines"
+   }
   },
   {
    "id": "lineCount",
    "name": "Line Count",
    "icon": "🔢",
-   "description": "Count the lines/elements of another widget\\",
+   "description": "Count the lines/elements of another widget's output — a number downstream widgets can consume ({{widget:id}} or a `source` picker)",
    "dataSource": "widget output (source) — no fetch",
    "category": "Dataflow",
    "type": "stat",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "reducer",
+   "consumesSource": true,
    "configFields": [
     {
      "key": "source",
-     "type": "source"
+     "type": "source",
+     "label": "Input source",
+     "hint": "Count the lines/elements of this widget's output."
     },
     {
      "key": "label",
-     "type": "text"
+     "type": "text",
+     "label": "Label (optional)",
+     "placeholder": "articles"
     }
    ],
    "defaults": [
     "source",
     "label",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "count"
+   }
   },
   {
    "id": "echo",
@@ -1498,21 +1818,31 @@
    "type": "table",
    "intensity": "low",
    "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": true,
    "configFields": [
     {
      "key": "source",
-     "type": "source"
+     "type": "source",
+     "label": "Input source",
+     "hint": "The widget whose output you want to inspect."
     },
     {
      "key": "title",
-     "type": "text"
+     "type": "text",
+     "label": "Title (optional)",
+     "placeholder": "Counted value"
     }
    ],
    "defaults": [
     "source",
     "title",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   }
  ]
 }
