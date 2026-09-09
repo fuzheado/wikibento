@@ -133,6 +133,79 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **i18n** — widget names/labels are hardcoded English; the registry makes this a
   message-table swap when wanted
 
+## Phase 2.5 — Board-to-board + Stage & Scene (immersion layer, 2026-09-08)
+
+> Banked from the demo-ideas work (`docs/DEMO-IDEAS.md` — "Voyager,
+> revisited"). Two stacked layers turn WikiBento from a *reading surface*
+> into an *experience surface*:
+>
+> - **Instant board-to-board navigation** — the enabler. Board-hopping is
+>   only immersive if it is near-instant; a full page load + re-layout kills
+>   the illusion (CYOA / Myst-style demos need <~100 ms perceived hops).
+>   Assessment (2026-09-08): config loading is boot-only today (App.jsx
+>   boot effect → `fetchRemoteConfig`); `applyDashboard` already swaps
+>   widgets/layout in place; no pushState/popstate/hashchange listeners yet.
+>   The ISSUE-35 "~90% present" analysis stands. The dominant cost is NOT
+>   layout (trivial for ≤30 widgets) — it is **widget data fetches**, so the
+>   seamlessness budget is a *cache-warmth* problem, not a rendering problem.
+> - **Stage & Scene layer** — the presentation vocabulary (full-bleed scenes,
+>   focus/spotlight, sequencing, atmosphere) that makes the hopping *mean*
+>   something narratively. See DEMO-IDEAS concepts A–K and the Tapestry
+>   evaluation's presentation-steps-as-data borrowing.
+
+**Ship order within this phase: 1 → 2 → 3 (the "first slice"), then 4–5 as
+polish, 6 when Level-2 wiring lands.**
+
+1. **Instant board-to-board nav (SPA loader)** — ISSUE-35 Approach B, now a
+   prerequisite: refactor the boot loader into reusable
+   `loadDashboardFromUrl()`; ~30-line mini-router (`history.pushState` on
+   nav click + `popstate` for back/forward — **browser history = free
+   "undo" in an adventure**); config cache (localStorage keyed by config
+   URL, versioned); keep the URL as the source of truth so `?config` +
+   context params (ISSUE-40) still deep-link. Effort M.
+2. **Prefetch & stale-while-revalidate** — the seamlessness budget: warm the
+   TTL fetch cache by (a) prefetching *configs* for manifest/Bento-Links
+   siblings (ISSUE-36) in idle, (b) hover/focus prefetch on nav cards,
+   (c) `preconnect` to API hosts (wikimedia.org, upload.wikimedia.org,
+   commons.wikimedia.org), (d) on board arrival show cached data instantly
+   and refresh in the background per the ⏱ constitution (never freeze data
+   silently — the footer states age). Respect API etiquette: prefetch light
+   widgets only; never bulk-prefetch CIM/SPARQL/copyvio-class fetches for
+   unvisited boards. Effort S–M.
+3. **Spotlight / stage mode + full-bleed background** — extends ISSUE-18
+   kiosk/lean: click a widget → smooth CSS transform to fill the viewport;
+   optional full-bleed scene background image (Commons via `{{param}}`)
+   behind translucent cards ("the diorama trick" — the Macbeth-parchment
+   instinct). Effort S (CSS + a kiosk interaction).
+4. **Scenes / steps as data** — additive config `steps[]` (borrowed from
+   Tapestry presentation steps): each step = focus target (board/widget) +
+   optional param set + auto-advance or reader next/back; kiosk walks the
+   steps; a guided narrative stays JSON + shareable URL. Effort M (format
+   additive, no v2 break).
+5. **Atmosphere** — per-scene ambient audio loop (mediaPlayer),
+   TTS narration (Speaker widget, PR #17), fade/zoom transitions between
+   steps (respect `prefers-reduced-motion`), cursor auto-hide + zero chrome
+   in kiosk. Effort S–M.
+6. **Narrative flow + spatial primitives (Level-2 territory)** — option-set
+   controllers that WRITE params (Path B: click → set param; the missing
+   CYOA control), conditional gates (Router family — widget visible when
+   `{{param}} == X`), then hotspot primitives: image-map widget (click
+   regions on a Commons image → param/scene) and panorama multi-scene tours
+   (Pannellum `sceneId` hotspots — banked in WIDGET-IDEAS). Myst-like
+   "worlds" = scenes + hotspots + gates; deliberately capped per
+   MODULARITY Part 3 (Path C) — never a visual wiring canvas. Effort L.
+7. **Keep-mounted board instances** *(optional, later)* — hide (not unmount)
+   the previous board's widget tree so backtracking in an adventure is
+   zero-cost; watch memory with 30+ widget instances. Effort M.
+
+**Honest constraints:** (a) data freshness is constitution-grade — instant
+swaps show *cached* data with the ⏱ age visible, refreshed in background;
+(b) Wikimedia API etiquette bounds prefetching — cache hard (TTL ≥
+refreshSeconds), prefetch on hints only; (c) the theoretical limit of
+seamlessness is the network for a *cold* board (copyvio-class fetches can
+take 30 s); a *warm* board should swap in well under one animation frame of
+layout + cache reads (~<100 ms perceived).
+
 ## Phase 3 — Stretch
 
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
