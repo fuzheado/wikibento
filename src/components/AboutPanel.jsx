@@ -54,15 +54,10 @@ export default function AboutPanel({ onClose }) {
             {' '}· <code>?config=/params-demo.json</code>.
           </p>
 
-          <h4>Try the demo file</h4>
+          <h4>Try the demos</h4>
           <p>
-            A sample config lives on Wikimedia Commons — open this link to load it:
-            <br />
-            <a
-              href="https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json"
-              target="_blank"
-              rel="noopener noreferrer"
-            >Commons:WikiPortraits/Bento-demo.json</a>
+            Open the {' '}<a href="?config=/demos.json">demo hub</a> — a guided index of boards,
+            from the simplest article switcher to the GLAM and SPARQL flagships.
           </p>
 
           <h4>Data &amp; etiquette</h4>
