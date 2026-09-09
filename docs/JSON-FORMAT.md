@@ -106,7 +106,8 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` |
 | | `enrich` | boolean (batched thumbs + intros) |
 | | `maxItems` | number (0 = all) |
-| `wikiPage` | `page` | string, any namespace (e.g. `Help:Introduction`) |
+| `wikiPage` | `url` | string, any embeddable http(s) URL (custom mode — overrides the page fields; framed with `sandbox`; ISSUE-62) |
+| | `page` | string, any namespace (e.g. `Help:Introduction`) |
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
 | | `mobile` | boolean (`?useformat=mobile` — MobileFrontend mobile view on the same domain) |
 | | `fragment` | string, optional `#anchor` |

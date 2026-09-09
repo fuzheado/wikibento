@@ -40,6 +40,8 @@ https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/Commo
 
 An **interactive demo** (Board Controls driving galleries via params) is at `?config=/params-demo.json` — press the buttons, move the slider, step the month.
 
+A **3D / any-page embed demo** is at `?config=/embed-demo.json` — an Objectium GLB model framed in a Wiki Page card (custom URL).
+
 The **translation chain demo** is at `?config=/translate-demo.json` — two scoped Board Controls cards (article buttons, language buttons) drive an Article Excerpt whose emitted text feeds a Translator: pick an article, then pick a language.
 
 A **full-catalog sample** (all 37 widget types, real working assets) is hosted
@@ -110,7 +112,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Speaker (text-to-speech)** | 🔊 | (static — Web Speech synthesis) | **Output widget** — speaks its text aloud; voice picker from the device roster; mute all + auto-speak-on-change (default off, only after one ▶ click); degrades gracefully on zero-voice devices |
 | **Translator (MinT)** | 🌐 | [MinT translate API](https://translate.wmcloud.org) (Wikimedia, CORS ✓) | Machine-translates its text (typed or a `{{param}}`) into another language — 200+ languages, open NMT models; shows source + translation + serving model |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
-| **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor |
+| **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor — or set a **Custom URL** to embed any http(s) page (e.g. an [Objectium](https://objectium.toolforge.org) 3D model, sandboxed) |
 
 ### Queries & Power (1)
 

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "embed-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "# 📄 Embed any page\n\nA **Wiki Page** card can embed any embeddable http(s) page, not just a wiki page — set **Custom URL** in ⚙.\n\nThis board frames an [Objectium](https://objectium.toolforge.org) 3D model (GLB, CC0, Smithsonian). Drag inside the card to rotate it.\n\n```json\n{ \"widgetType\": \"wikiPage\",\n  \"config\": { \"url\": \"https://objectium.toolforge.org/uploads/213\" } }\n```\n\nSites that send `X-Frame-Options: DENY` (or an enforced `frame-ancestors`) can't be framed — everything else can.",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "objectium",
+      "widgetType": "wikiPage",
+      "config": {
+        "url": "https://objectium.toolforge.org/uploads/213",
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    { "i": "embed-note", "x": 0, "y": 0, "w": 4, "h": 4, "minW": 2, "minH": 2 },
+    { "i": "objectium", "x": 4, "y": 0, "w": 8, "h": 6, "minW": 3, "minH": 3 }
+  ]
+}

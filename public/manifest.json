@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generatedAt": "2026-09-09T09:11:27.514Z",
+ "generatedAt": "2026-09-09T13:20:11.519Z",
  "widgetCount": 37,
  "widgets": [
   {
@@ -1092,6 +1092,10 @@
     {
      "key": "spec",
      "type": "textarea"
+    },
+    {
+     "key": "show",
+     "type": "params"
     }
    ],
    "defaults": [
@@ -1128,13 +1132,17 @@
    "id": "wikiPage",
    "name": "Wiki Page",
    "icon": "📄",
-   "description": "Embed any MediaWiki page — desktop or mobile view, links browse inside",
+   "description": "Embed a MediaWiki page (desktop or mobile) — or any embeddable URL, e.g. an Objectium 3D model",
    "dataSource": "static (iframe to the wiki)",
    "category": "Content & Embeds",
    "type": "embed",
    "intensity": "low",
    "experimental": false,
    "configFields": [
+    {
+     "key": "url",
+     "type": "text"
+    },
     {
      "key": "page",
      "type": "text"
@@ -1156,6 +1164,7 @@
     }
    ],
    "defaults": [
+    "url",
     "page",
     "project",
     "mobile",

@@ -18,6 +18,17 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Wiki Page custom-URL embed (ISSUE-62, 2026-09-09):** the `wikiPage` widget can now embed
+  **any http(s) page** via a `url` field (custom mode) — e.g. an Objectium 3D model
+  (`?config` board card: `{"widgetType":"wikiPage","config":{"url":"https://objectium.toolforge.org/uploads/213"}}`).
+  http(s) only (bare domains get `https://`; `javascript:`/`data:`/`file:` rejected with an
+  error state), URL wins over the wiki fields, external frames are **sandboxed**
+  (`allow-scripts allow-same-origin allow-forms allow-presentation` + `allow=fullscreen`),
+  Wikimedia pages stay unsandboxed. Objectium is iframe-safe (no X-Frame-Options, report-only
+  CSP) — verified live: the sandboxed card renders the WebGL viewer, 0 errors. Constitution:
+  tests/embed.test.mjs +6 → npm test 174; Ask manifest regenerated (also catches up the `show`
+  field #33 missed). Native three.js viewing (ISSUE-43 `model3D`) still needs CORS on Objectium's
+  `/file` + `/thumbnail` routes (no ACAO today) or a proxy.
 - ✅ **User guide + config-URL error handling (ISSUE-60, 2026-09-09):** `docs/GUIDE.md` — a tight
   user-facing manual (three-layer model: board params / widget config / dataflow; params
   definitions-vs-values and `show` scoping; dataflow + the waiting guard; three worked examples;

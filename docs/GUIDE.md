@@ -147,6 +147,7 @@ freely; just don't duplicate a value that several widgets must agree on.
 - **Translate/speak an article** — excerpt emits its first paragraph; point a Translator or Speaker at it.
 - **Chain onward** — a Translator's output can feed another consumer once it emits.
 - **Paste a list** — Text List / Commons File Gallery / Article List take one item per line.
+- **Embed a 3D model or any page** — Wiki Page → *Custom URL* (e.g. `https://objectium.toolforge.org/uploads/213`); http(s) only, framed with a sandbox.
 
 ## Where to go deeper
 
