@@ -1,6 +1,6 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-09-03 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-09-09 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
 ## What This Is
 
@@ -16,6 +16,24 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 ## Current Status
 
 **Feature-complete for v1, Phase 0 cleanup done, deployed live.**
+- ✅ **Panel reachability — ⚙/ⓘ actions can never clip (ISSUE-54, 2026-09-09):** a widget shorter
+  than its config panel guillotined the panel bottom — `.grid-item{overflow:hidden}` plus
+  `.widget-config/.widget-info{flex-shrink:0}` with no internal overflow meant **"Apply & Reload"**
+  (and ⓘ's "Copy debug info") sat below the card edge with no scrollbar anywhere; the only
+  workaround was resizing the widget. Audited with a new measurement script: **21/35 widget types
+  clip at the fresh-add w3 h3 size** (25/35 @1024px, 27/35 @820px, 0/35 below 768px where the
+  mobile stack auto-heights — desktop-grid-only bug; the catalog's authored sizes mostly pass,
+  which is why the browser matrix missed it). Fix is **CSS-only**: panels
+  `flex-shrink:1; min-height:0; overflow-y:auto`, action pinned with `position:sticky; bottom:0`
+  + an opaque composited background + top border (sticky on `.widget-info-actions` — the panel's
+  direct child — works where the nested button did not). The 7-line "Name (instance id)" hint
+  (67–93px of panel height on a 3-column card) became one line + tooltip; label → "Name".
+  Rejected: dual Apply (the **fields**, not the button, are unreachable — a 488px panel in a 232px
+  card shows ~2 fields), popout (right *polish* follow-up, not the fix), auto-expand the card
+  (reflows the board). Constitution: **`npm run smoke:panels`** — 210 measurements (⚙+ⓘ ×
+  1440/1024/600px × 35 widgets at w3 h3, Wikimedia requests blocked so auto-height can't mask a
+  too-tall panel), exit 1 on any clipped action, negative-tested against the pre-fix CSS; wired
+  into `npm run smoke`. Docs: ISSUES.md ISSUE-54, README features/quickstart.
 - ✅ **Widget instance names + rename resolution (ISSUE-53, 2026-09-08 — DEPLOYED):** every widget
   now has a visible, editable instance name — an id chip in every header (click → ⚙), the instance id in
   the ⓘ panel + a Type row, and source-picker options labeled `icon Type · id — label`. ⚙ gains a **Name
@@ -507,6 +525,8 @@ npm install
 npm run dev        # http://localhost:5173
 npm run build      # → dist/ (~560 KB total / ~160 KB gzip incl. pannellum lazy asset)
 npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
+npm run smoke      # grid geometry + panel reachability (ISSUE-54) — needs dist/ built
+npm run smoke:panels   # panel reachability only (⚙/ⓘ actions at w3 h3 across 3 widths)
 npx vite preview   # http://localhost:4173
 npm run lint       # oxlint (5 pre-existing warnings, all benign)
 ```
@@ -588,7 +608,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
 
 ## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
 
-**Tracked bugs & fixes: `docs/ISSUES.md`** — ISSUE-01 (leaderboard double rank numerals), ISSUE-02 (clickable category names), ISSUE-03 (ⓘ info button on every widget).
+**Tracked bugs & fixes: `docs/ISSUES.md`** — ISSUE-01 (leaderboard double rank numerals), ISSUE-02 (clickable category names), ISSUE-03 (ⓘ info button on every widget), ISSUE-54 (⚙/ⓘ panel bottom actions clipped on small widgets).
 
 - **FIXED — Firefox/Safari/WebKit network errors (2026-09-03):** the "iOS Safari
   Load failed" bug (docs/BUG-REPORT-ios-safari-fetch.md) and the Firefox
@@ -605,6 +625,7 @@ Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
   404 probes and transient 5xx classified benign). Full 30-widget catalog:
   30/30/30 widgets, 0 errors on all engines.
 - **FIXED — `_title` (custom widget title) isn't editable in the config panel (ISSUE-53, 2026-09-08):** ⚙ now has a "Display title (optional)" field (header override; defaults to the computed label). Renaming the actual instance id works too — see the ISSUE-53 bullet in Current Status.
+- **FIXED — ⚙/ⓘ panels clipped their bottom action on small widgets (ISSUE-54, 2026-09-09):** panels now scroll inside the card with `Apply & Reload` / `Copy debug info` pinned (sticky); guarded by `npm run smoke:panels`. See the Current Status bullet.
 - **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
   defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
   share link), a refresh re-applies the URL config (URL > localStorage > defaults

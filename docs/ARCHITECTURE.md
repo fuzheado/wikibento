@@ -196,7 +196,7 @@ config objects; old names are ignored, not rejected). The two incidents:
 | 4 | ~~`public/favicon.svg` / `icons.svg` dead assets~~ | public/ | **Fixed 2026-08-12** — deleted; index.html uses an inline emoji data-URI favicon |
 | 5 | Wikistats CSV parser splits on commas without quote handling | dataSources.js `fetchWikistats` | Works for the current s23 format; a field containing a comma would misalign columns |
 | 6 | `exturlusage` count capped at 10 × 500 = 5,000 (API clamps `eulimit` to 500 for non-bots) | dataSources.js `countExtUrlUsage` | Matches Special:LinkSearch's displayed cap; bigger domains show "(5,000+ total)". Exact counts require DB replicas (SCALABILITY.md) |
-| 7 | `_title` is not editable in the config panel | WidgetFrame.jsx | No configField renders it; users can't rename widgets |
+| 7 | ~~`_title` is not editable in the config panel~~ | WidgetFrame.jsx | **Fixed 2026-09-08 (ISSUE-53)** — "Display title (optional)" field in ⚙ |
 | 8 | ~~Export only — no import~~ | App.jsx | **Fixed 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()` |
 | 9 | ~~No React error boundary~~ | main.jsx | **Fixed 2026-08-12** — `ErrorBoundary` wraps each grid item (auto-resets on config change, Try Again button) |
 | 10 | Browser strips the `User-Agent` header set via `fetch` (forbidden header) | dataSources.js | Harmless no-op: Wikimedia API etiquette is satisfied by the browser's own UA; keep it for non-browser reuse (tests, curl) |
@@ -208,3 +208,4 @@ config objects; old names are ignored, not rejected). The two incidents:
 | 15 | `handleLayoutChange` persists on every drag tick | App.jsx | Synchronous `localStorage.setItem` per mousemove — fine at this payload size, but debounce if dashboards grow |
 | 16 | Long dashboards can't QR-share: `#/d/` links > ~1,500 chars are too dense for phones | SharePanel.jsx | The Share modal QR-encodes the current `?config=` URL when present; otherwise caps at 1,500 chars and shows a friendly notice |
 | 17 | Wikistats fetch had no timeout/retry — transient network failures (Safari "Load failed") killed both widgets | dataSources.js | **Fixed 2026-08-12** — 15 s AbortController timeout, retry ×2 with backoff, 5xx retried / 4xx fail-fast; clear "timed out" message |
+| 18 | ~~⚙/ⓘ panels clipped their bottom action on cards shorter than the panel~~ | App.css `.widget-config`/`.widget-info` | **Fixed 2026-09-09 (ISSUE-54)** — panels `flex-shrink:1; min-height:0; overflow-y:auto`; action pinned `position:sticky; bottom:0` (21/35 widget types clipped at w3 h3 before; guarded by `npm run smoke:panels`) |

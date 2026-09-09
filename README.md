@@ -162,7 +162,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   keyword fallback when the ML service is unavailable
 - **Asset-aware titles** — every box headline and title bar shows *what it's
   analyzing* (article, category, file, domain), updating live when you change it
-- **Per-widget config** — ⚙️ gear → edit article, domain, wiki, category, etc., with live re-fetch
+- **Per-widget config** — ⚙️ gear → edit article, domain, wiki, category, etc., with live re-fetch. Panels scroll inside the card and keep **Apply & Reload pinned** at the bottom, so every setting stays reachable no matter how small the widget (the same applies to the ⓘ info panel's action) — [ISSUE-54](docs/ISSUES.md)
 - **Text / Markdown cards** — 📝 free-form Markdown (headings, lists, links,
   code, images). Images are https-only with a **Wikimedia-host default
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
@@ -234,7 +234,8 @@ npm run dev          # dev server at http://localhost:5173
 npm run build        # production build → dist/
 npx vite preview     # serve dist/ at http://localhost:4173
 npm run lint # oxlint
-npm run smoke # grid-geometry smoke test (catches silently-ignored dependency props)
+npm run smoke # grid-geometry smoke test (catches silently-ignored dependency props) + panel-reachability constitution (ISSUE-54)
+npm run smoke:panels # panel reachability only: every ⚙/ⓘ action reachable at w3 h3 across 3 widths
 npm run test:browsers # cross-browser matrix: the dashboard in Chromium + Firefox + WebKit (see scripts/browser-matrix.mjs)
 ```
 
@@ -443,6 +444,16 @@ wikibento/
 ### Constitutions, config loading & plumbing
 
 - ✅ **Freshness constitution (2026-08-14):** all 26 live-querying widgets stamp their last-run time — `⏱ updated 10:17:27 AM · auto-refresh 1h` footer on every fetch widget (updates on every load incl. auto-refresh); verified live on the sample dashboard (26 stamped, markdown + Wiki Page exempt, 0 errors)
+- ✅ **Panel reachability (ISSUE-54, 2026-09-09):** ⚙ config and ⓘ info panels
+  scroll inside their card and pin their action (`Apply & Reload` / `Copy debug
+  info`) to the bottom — previously a panel taller than its card was clipped by
+  `.grid-item { overflow: hidden }` with no scrollbar, hiding the button and
+  every field below the fold (21/35 widget types at the fresh-add w3 h3 size,
+  25/35 at 1024px, 27/35 at 820px). The long "Name (instance id)" hint (7 lines
+  on a 3-column card, 67–93px per panel) is now one line with a tooltip.
+  Constitution: `npm run smoke:panels` — 210 measurements (⚙+ⓘ × 1440/1024/600
+  × 35 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
+  against the pre-fix CSS. Wired into `npm run smoke`
 - ✅ All 29 data-driven widget types render live data in the browser; the
   29th (Text/Markdown) and 30th (Wiki Page — a static iframe) are static —
   no fetch, renders from config

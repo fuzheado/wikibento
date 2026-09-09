@@ -108,6 +108,9 @@ myWidget: {
     // type: 'number'  → parsed with parseInt (use 0 as the "off" value)
     // type: 'boolean' → renders a checkbox
     // type: 'textarea' → multi-line text (rows: N, default 6) — e.g. Markdown content
+    // Panels scroll inside the card and pin "Apply & Reload" to the bottom
+    // (ISSUE-54), so a long field list never makes settings unreachable on a
+    // small widget — no per-widget work needed. `npm run smoke:panels` guards it.
   ],
   fetch: (config) => fetchMyData(config.param),
   transform: (data) => ({

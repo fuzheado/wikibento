@@ -276,15 +276,25 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
               id (dialog + repoint when others reference it); the title is the
               optional display override (config._title, header only). */}
           <div className="config-field config-name-field">
-            <label>Name (instance id)</label>
+            <label>Name</label>
             <input
               type="text"
               value={instanceName}
               onChange={(e) => { setInstanceName(e.target.value); setNameError(null); }}
               placeholder="my-widget"
             />
-            {nameError && <small className="config-hint config-error">{nameError}</small>}
-            {!nameError && <small className="config-hint">How other widgets reference this box ({'{{widget:' + widget.id + '}}'} or the source picker). Renaming repoints references.</small>}
+            {/* ISSUE-54: one short line only — the old sentence wrapped to ~7
+                lines on a 3-column card and cost 67–93px of panel height.
+                The full explanation lives in the tooltip (and the rename
+                dialog restates it when references actually need repointing). */}
+            {nameError
+              ? <small className="config-hint config-error">{nameError}</small>
+              : (
+                <small
+                  className="config-hint"
+                  title="How other widgets reference this box: {{widget:name}} in any config field, or the source picker. Renaming repoints references automatically."
+                >{'{{widget:' + widget.id + '}}'}</small>
+              )}
           </div>
           <div className="config-field">
             <label>Display title (optional)</label>

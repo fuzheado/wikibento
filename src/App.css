@@ -196,7 +196,14 @@ body {
   padding: 8px 10px;
   background: rgba(0,0,0,0.15);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  /* ISSUE-54: the panel lives in a fixed-height grid cell (.grid-item has
+     overflow:hidden). flex-shrink:0 + no overflow meant a panel taller than
+     its card was guillotined at the card edge — the Apply button was simply
+     unreachable, with no scrollbar anywhere. Shrink to the card and scroll
+     the fields instead; the action row below stays pinned (sticky). */
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .config-field {
@@ -276,13 +283,32 @@ body {
   font-size: 12px;
 }
 
+/* ISSUE-54: pin the panel's action to the bottom of the visible panel area
+   while the fields above scroll, so it is always clickable no matter how
+   small the card is. The background is the card surface composited with the
+   panel's 15% black tint (opaque, so scrolled fields don't show through). */
+.widget-config > .widget-btn-apply,
+.widget-info > .widget-info-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background-color: var(--surface);
+  background-image: linear-gradient(rgba(0,0,0,0.15), rgba(0,0,0,0.15));
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
 /* ── Widget Info (ⓘ) ───────────────────────────────────── */
 
 .widget-info {
   padding: 8px 10px;
   background: rgba(0,0,0,0.15);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  /* ISSUE-54: same shrink-and-scroll contract as .widget-config above. */
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
   font-size: 12px;
   display: flex;
   flex-direction: column;
