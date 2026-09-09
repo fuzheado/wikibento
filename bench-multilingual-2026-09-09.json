@@ -1,0 +1,192 @@
+{
+  "baseline": {
+    "systemPromptLength": 33182,
+    "results": [
+      {
+        "id": "pageviews-article-es",
+        "prompt": "¿Cuántas visitas ha tenido el artículo Ada Lovelace en los últimos 30 días?",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Ada Lovelace"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "matchedOption": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Ada Lovelace",
+            "project": "en.wikipedia",
+            "displayMode": "stat"
+          },
+          "reason": "Article Pageviews shows the 30-day view count for the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "excerpt-article-fr",
+        "prompt": "Montre-moi le résumé de l'article Albert Einstein avec sa description",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Albert Einstein",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Excerpt displays the first paragraph, description, and thumbnail for the specified article."
+        },
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "wikistats-language-de",
+        "prompt": "Wie viele Artikel, Bearbeitungen und aktive Benutzer hat die italienische Wikipedia?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "it"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "matchedOption": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "it",
+            "table": "wikipedias"
+          },
+          "reason": "Wiki Stats zeigt aggregierte Metriken wie Artikelanzahl, Bearbeitungen und aktive Benutzer für eine spezifische Wikipedia-Sprachausgabe."
+        },
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "gallery-article-it",
+        "prompt": "Mostra le immagini utilizzate nella voce Albert Einstein",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Albert Einstein"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "matchedOption": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Albert Einstein",
+            "project": "en.wikipedia",
+            "displayMode": "grid",
+            "iconSize": "medium",
+            "imageFit": "contain",
+            "minSize": 200,
+            "maxItems": 0,
+            "includeAll": false,
+            "hideDecorative": true,
+            "groupBy": "none"
+          },
+          "reason": "Article Gallery displays all images used in the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "category-sample-photos-pt",
+        "prompt": "Mostre uma amostra aleatória de imagens da categoria Featured pictures on Wikimedia Commons",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Featured pictures on Wikimedia Commons"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "matchedOption": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Featured pictures on Wikimedia Commons",
+            "wiki": "commons.wikimedia",
+            "sampleCount": 12
+          },
+          "reason": "Category Size displays the category statistics and a random sample of images from it."
+        },
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "quality-article-es",
+        "prompt": "¿Qué clase de calidad predice el modelo ORES para el artículo Marie Curie?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Curie"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "matchedOption": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Curie",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Quality (ORES) shows the predicted quality class for the specified article."
+        },
+        "error": null,
+        "returned": "quality"
+      }
+    ],
+    "summary": {
+      "n": 6,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 1,
+      "subjectRate": 1
+    }
+  }
+}

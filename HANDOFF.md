@@ -69,6 +69,17 @@ Five experiments ran once the rate cap was gone (full table in
   with correct source-picker semantics. Phase 3 is now a product build, not a
   model-capability risk. Probe: `scripts/probe-ask-edge.mjs --assembly`.
 
+- **Round 3 (same day, evening):** paraphrase robustness 100% (no overfitting
+  to fixture/few-shot phrasing), multilingual prompts 6/6 (es/fr/de/it/pt —
+  including German-prompt→Italian-edition cross-extraction), 14b fallback on
+  boards 5/6 (confusable-widget weakness) + semantically weaker assembly,
+  and manifest ablation: trim `defaults`/`placeholders`/`hints` freely,
+  NEVER widget `description`s (they drive the confusable-pair discrimination).
+  Noise floor: single-shot runs wobble ±7% — repeat before claiming a
+  regression. Fixtures: `tests/fixture-paraphrases.mjs`,
+  `tests/fixture-multilingual.mjs`; ablation probe:
+  `scripts/probe-ask-ablate.mjs`.
+
 ### Board Composition Guide (`docs/BOARD-COMPOSITION.md`)
 
 Created a comprehensive, LLM-parseable reference guide covering:

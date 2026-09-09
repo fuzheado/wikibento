@@ -126,6 +126,27 @@ Phase 3 constitution.
 Files: `bench-boards-v2-2026-09-09.json`, `bench-model-14b-2026-09-09.json`,
 `bench-boards-temp0-2026-09-09.json`, `scripts/probe-ask-edge.mjs`.
 
+## Round 3 — robustness + ablation experiments (2026-09-09, evening)
+
+With repeats cheap, four more experiments (all via `--via toolforge`):
+
+| # | Experiment | Result |
+|---|---|---|
+| 6 | **Paraphrase robustness** (`tests/fixture-paraphrases.mjs` — same 15 intents, re-worded prompts, changed subjects) | **100% top1/keys/subject on all 3 prompt variants** — no overfitting to fixture phrasing or to the 2026-09-09 few-shots; `Category:` prefix stripping and "March 2012"-style dates both handled |
+| 7 | **Multilingual prompts** (`tests/fixture-multilingual.mjs` — es/fr/de/it/pt) | **6/6**, including a German prompt asking about the *Italian* edition (cross-language extraction works). The advisor is language-robust out of the box |
+| 8 | **14b fallback on boards + probes** | boards 5/6 (confused `articleList` → `gallery` on the list fixture — confusable-widget discrimination is the 14b weak spot); assembly 3/3 structurally valid but semantically weaker (wired two CIM cards to the SAME switcher param; over-declared derived params). Fallback verdict: safe for discovery, weaker for assembly |
+| 9 | **Manifest ablation** (`scripts/probe-ask-ablate.mjs`) | Dropping display-only fields (`defaults`/`placeholders`/`hints`) is safe — 100% in the clean run, saves ~5.3K chars ≈ 1.3–1.8K tokens. Dropping widget **`description`s is NOT safe**: the `glamorgan` vs `cimSnapshot` confusable-pair miss returns (top1 93%) — descriptions drive intent discrimination |
+| 10 | Noise floor characterization | single-shot runs wobble ±7% (a fixture flips between runs — e.g. `file-usage-map`'s long-filename subject). Repeat measurements (3×) before claiming a regression; that's now affordable |
+
+Conclusions: (a) the shipped prompt generalizes (paraphrase + multilingual at
+100%); (b) if prompt budget gets tight as the catalog grows, trim
+`defaults`/`placeholders`/`hints` FIRST — never `description`s; (c) the
+27b flagship should stay the primary model — 14b is a fine availability
+fallback but weaker on confusable pairs and board-assembly semantics.
+
+Files: `bench-paraphrase-2026-09-09.json`, `bench-multilingual-2026-09-09.json`,
+`bench-boards-14b-2026-09-09.json`, `scripts/probe-ask-ablate.mjs`.
+
 ## Follow-on work
 
 1. ~~Verify the two VALUE RULES fixes~~ — **done 2026-09-09, with reliability

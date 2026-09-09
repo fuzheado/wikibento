@@ -1,0 +1,1341 @@
+{
+  "baseline": {
+    "systemPromptLength": 33182,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "I'm curious how much traffic the Grace Hopper article gets — daily views over the past month",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "matchedOption": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper",
+            "project": "en.wikipedia",
+            "displayMode": "trend"
+          },
+          "reason": "Article Pageviews in trend mode displays the daily view count for the specified article over the last 30 days."
+        },
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "Do a count of en.wikipedia articles that link to bbc.co.uk",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "matchedOption": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk",
+            "wiki": "en.wikipedia"
+          },
+          "reason": "External Link Count reports how many pages on a specific Wikipedia edition link to a given domain."
+        },
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Give me a random selection of pictures out of Category:Images from Wiki Loves Africa 2024",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "matchedOption": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024",
+            "wiki": "commons.wikimedia",
+            "sampleCount": 12
+          },
+          "reason": "Category Size displays the count of files in the category and shows a random sample of images from it."
+        },
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "Which statistics does the French language edition of Wikipedia show — articles, edits, users?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "matchedOption": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr",
+            "table": "wikipedias"
+          },
+          "reason": "Wiki Stats provides aggregate metrics for the French Wikipedia, including article counts, active editors, and pageviews."
+        },
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Where on the wikis is File:Blue Marble, AS17-227-8998.jpeg used? List the pages per wiki",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage"
+        ],
+        "matchedOption": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg",
+            "topN": 50,
+            "showImage": true,
+            "showCaption": true
+          },
+          "reason": "File Usage Map lists the wikis and specific pages that use this Commons file."
+        },
+        "error": null,
+        "returned": "fileUsage"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "For the category Photographs by Alex Stoen, tell me its GLAM statistics: number of files, how many pages they appear on, and total pageviews",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "glamorgan"
+        ],
+        "matchedOption": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen",
+            "depth": 0,
+            "year": 2026,
+            "month": 1,
+            "negcats": "",
+            "negdepth": 0,
+            "fileBudget": 500,
+            "topN": 5,
+            "showDetail": false
+          },
+          "reason": "GLAM Category Usage provides the exact impact stats requested: file count, used files, page count, and total pageviews for the specified category."
+        },
+        "error": null,
+        "returned": "glamorgan"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "Rank the biggest Wikipedia language versions by how many articles they have",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "matchedOption": {
+          "widgetType": "topWikipedias",
+          "config": {},
+          "reason": "Top 10 Wikipedias lists the largest Wikipedia language editions by article count."
+        },
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "Which German Wikipedia pages got the most hits last week?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "matchedOption": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de",
+            "dateMode": "latest",
+            "topN": 10,
+            "filterNoise": true
+          },
+          "reason": "Top Wikipedia Articles lists the most-visited pages on a specific language edition, with 'latest' showing the most recent available daily data."
+        },
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Give me a card with the lead section and short description of the article Katherine Johnson",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Excerpt provides the first paragraph, description, and thumbnail for the specified article."
+        },
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Who has been editing the Douglas Adams page lately? Show the recent revisions",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "matchedOption": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams",
+            "project": "en.wikipedia",
+            "limit": 10
+          },
+          "reason": "Edit History lists the most recent edits to the article, showing editors and byte changes."
+        },
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What quality class does the ORES model predict for the article Marie Tharp?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "matchedOption": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Quality (ORES) shows the predicted quality class for the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Display all the pictures used in the Rosalind Franklin article",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "matchedOption": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin",
+            "project": "en.wikipedia",
+            "displayMode": "grid",
+            "includeAll": true,
+            "hideDecorative": false
+          },
+          "reason": "Article Gallery displays all images embedded in the article, including those in galleries and tables."
+        },
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Count the number of instance-of-human items in Wikidata with a SPARQL query",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "matchedOption": {
+          "widgetType": "sparql",
+          "config": {
+            "query": "SELECT (COUNT(?item) AS ?count) WHERE { ?item wdt:P31 wd:Q5. }",
+            "endpoint": "wdqs",
+            "renderer": "stat",
+            "maxRows": 1
+          },
+          "reason": "This SPARQL query counts all Wikidata items that have 'human' (Q5) as their instance-of value."
+        },
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "I want to look around inside this 360 photo from Commons: File:Liberty Island panorama 2.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "matchedOption": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg",
+            "project": "commons.wikimedia",
+            "autoRotate": false
+          },
+          "reason": "360° Panorama Viewer provides an interactive viewer for equirectangular images from Commons."
+        },
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Archive views of bbc.com — one capture each from March 2012, March 2016 and March 2021",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "matchedOption": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com",
+            "dates": "2012-03-01\n2016-03-01\n2021-03-01",
+            "toleranceDays": 30
+          },
+          "reason": "Wayback Snapshot Gallery displays archived screenshots for the specific dates requested."
+        },
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 1,
+      "subjectRate": 1
+    }
+  },
+  "compact": {
+    "systemPromptLength": 34392,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "I'm curious how much traffic the Grace Hopper article gets — daily views over the past month",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "matchedOption": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper",
+            "project": "en.wikipedia",
+            "displayMode": "trend"
+          },
+          "reason": "Article Pageviews in trend mode shows the daily view count over the past 30 days."
+        },
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "Do a count of en.wikipedia articles that link to bbc.co.uk",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "matchedOption": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk",
+            "wiki": "en.wikipedia",
+            "namespace": "0"
+          },
+          "reason": "External Link Count shows how many pages on a specific wiki link to a given domain."
+        },
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Give me a random selection of pictures out of Category:Images from Wiki Loves Africa 2024",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "matchedOption": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024",
+            "wiki": "commons.wikimedia",
+            "sampleCount": 12
+          },
+          "reason": "Category Size displays the total count and a random sample of images from the specified Commons category."
+        },
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "Which statistics does the French language edition of Wikipedia show — articles, edits, users?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "matchedOption": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr",
+            "table": "wikipedias"
+          },
+          "reason": "Wiki Stats provides aggregate metrics for the French Wikipedia, including article counts, active editors, and total edits."
+        },
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Where on the wikis is File:Blue Marble, AS17-227-8998.jpeg used? List the pages per wiki",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage"
+        ],
+        "matchedOption": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg",
+            "topN": 50,
+            "showImage": false,
+            "showCaption": false
+          },
+          "reason": "File Usage Map lists the wikis and specific pages that use this Commons file."
+        },
+        "error": null,
+        "returned": "fileUsage"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "For the category Photographs by Alex Stoen, tell me its GLAM statistics: number of files, how many pages they appear on, and total pageviews",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "glamorgan"
+        ],
+        "matchedOption": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen",
+            "depth": 0,
+            "year": 2026,
+            "month": 1,
+            "negcats": "",
+            "negdepth": 0,
+            "fileBudget": 500,
+            "topN": 5,
+            "showDetail": false
+          },
+          "reason": "GLAM Category Usage provides the exact impact stats (files, used files, pages, total views) for a Commons category."
+        },
+        "error": null,
+        "returned": "glamorgan"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "Rank the biggest Wikipedia language versions by how many articles they have",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "matchedOption": {
+          "widgetType": "topWikipedias",
+          "config": {},
+          "reason": "Top 10 Wikipedias lists the largest Wikipedia language editions by article count."
+        },
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "Which German Wikipedia pages got the most hits last week?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "matchedOption": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de",
+            "dateMode": "latest",
+            "topN": 10,
+            "filterNoise": true,
+            "showExpanded": true
+          },
+          "reason": "Top Wikipedia Articles lists the most-visited pages on a specific language edition, here German (de)."
+        },
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Give me a card with the lead section and short description of the article Katherine Johnson",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Excerpt provides the first paragraph, description, and thumbnail for the specified article."
+        },
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Who has been editing the Douglas Adams page lately? Show the recent revisions",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "matchedOption": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams",
+            "project": "en.wikipedia",
+            "limit": 10
+          },
+          "reason": "Edit History lists the most recent edits to the article, showing editors and byte changes."
+        },
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What quality class does the ORES model predict for the article Marie Tharp?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "matchedOption": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Quality (ORES) displays the predicted quality class for the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Display all the pictures used in the Rosalind Franklin article",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "matchedOption": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin",
+            "project": "en.wikipedia",
+            "displayMode": "grid",
+            "includeAll": true,
+            "hideDecorative": false
+          },
+          "reason": "Article Gallery displays all images embedded in the article, including those in galleries and tables."
+        },
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Count the number of instance-of-human items in Wikidata with a SPARQL query",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "matchedOption": {
+          "widgetType": "sparql",
+          "config": {
+            "query": "SELECT (COUNT(?item) AS ?count) WHERE { ?item wdt:P31 wd:Q5. }",
+            "endpoint": "wdqs",
+            "renderer": "stat",
+            "maxRows": 1
+          },
+          "reason": "This SPARQL query counts all Wikidata items that have 'human' (Q5) as their instance of value."
+        },
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "I want to look around inside this 360 photo from Commons: File:Liberty Island panorama 2.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "matchedOption": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg",
+            "project": "commons.wikimedia",
+            "autoRotate": false
+          },
+          "reason": "360° Panorama Viewer renders an interactive equirectangular viewer for the specified Commons file."
+        },
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Archive views of bbc.com — one capture each from March 2012, March 2016 and March 2021",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "matchedOption": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com",
+            "dates": "2012-03-01\n2016-03-01\n2021-03-01",
+            "toleranceDays": 30
+          },
+          "reason": "Wayback Snapshot Gallery shows one archived screenshot per requested date."
+        },
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 1,
+      "subjectRate": 1
+    }
+  },
+  "expanded": {
+    "systemPromptLength": 34185,
+    "results": [
+      {
+        "id": "pageviews-article",
+        "prompt": "I'm curious how much traffic the Grace Hopper article gets — daily views over the past month",
+        "expected": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "pageviews"
+        ],
+        "matchedOption": {
+          "widgetType": "pageviews",
+          "config": {
+            "article": "Grace Hopper",
+            "project": "en.wikipedia",
+            "displayMode": "trend"
+          },
+          "reason": "Article Pageviews with trend display shows the daily view count over the last 30 days."
+        },
+        "error": null,
+        "returned": "pageviews"
+      },
+      {
+        "id": "linkcount-domain",
+        "prompt": "Do a count of en.wikipedia articles that link to bbc.co.uk",
+        "expected": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "linkcount"
+        ],
+        "matchedOption": {
+          "widgetType": "linkcount",
+          "config": {
+            "domain": "bbc.co.uk",
+            "wiki": "en.wikipedia"
+          },
+          "reason": "External Link Count shows how many pages on a specific Wikipedia link to a given domain."
+        },
+        "error": null,
+        "returned": "linkcount"
+      },
+      {
+        "id": "category-sample-photos",
+        "prompt": "Give me a random selection of pictures out of Category:Images from Wiki Loves Africa 2024",
+        "expected": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "categorySize"
+        ],
+        "matchedOption": {
+          "widgetType": "categorySize",
+          "config": {
+            "category": "Images from Wiki Loves Africa 2024",
+            "wiki": "commons.wikimedia",
+            "sampleCount": 12
+          },
+          "reason": "Category Size displays the total count and a random sample of images from the specified Commons category."
+        },
+        "error": null,
+        "returned": "categorySize"
+      },
+      {
+        "id": "wikistats-language",
+        "prompt": "Which statistics does the French language edition of Wikipedia show — articles, edits, users?",
+        "expected": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "wikistats"
+        ],
+        "matchedOption": {
+          "widgetType": "wikistats",
+          "config": {
+            "lang": "fr",
+            "table": "wikipedias"
+          },
+          "reason": "Wiki Stats provides aggregate statistics for the French Wikipedia, including article counts, active editors, and page views."
+        },
+        "error": null,
+        "returned": "wikistats"
+      },
+      {
+        "id": "file-usage-map",
+        "prompt": "Where on the wikis is File:Blue Marble, AS17-227-8998.jpeg used? List the pages per wiki",
+        "expected": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "fileUsage"
+        ],
+        "matchedOption": {
+          "widgetType": "fileUsage",
+          "config": {
+            "filename": "File:Blue Marble, AS17-227-8998.jpeg",
+            "topN": 50,
+            "showImage": false,
+            "showCaption": false
+          },
+          "reason": "File Usage Map lists the wikis and specific pages that use a given Commons file."
+        },
+        "error": null,
+        "returned": "fileUsage"
+      },
+      {
+        "id": "glam-category-impact",
+        "prompt": "For the category Photographs by Alex Stoen, tell me its GLAM statistics: number of files, how many pages they appear on, and total pageviews",
+        "expected": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "glamorgan"
+        ],
+        "matchedOption": {
+          "widgetType": "glamorgan",
+          "config": {
+            "category": "Photographs by Alex Stoen",
+            "depth": 0,
+            "year": 2026,
+            "month": 1,
+            "fileBudget": 500,
+            "topN": 5,
+            "showDetail": false
+          },
+          "reason": "GLAM Category Usage provides the exact impact stats requested: file count, used pages, and total pageviews for a Commons category."
+        },
+        "error": null,
+        "returned": "glamorgan"
+      },
+      {
+        "id": "top-wikipedias",
+        "prompt": "Rank the biggest Wikipedia language versions by how many articles they have",
+        "expected": {
+          "widgetType": "topWikipedias",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "topWikipedias"
+        ],
+        "matchedOption": {
+          "widgetType": "topWikipedias",
+          "config": {},
+          "reason": "This widget displays the largest Wikipedias by article count in a table."
+        },
+        "error": null,
+        "returned": "topWikipedias"
+      },
+      {
+        "id": "top-articles-de",
+        "prompt": "Which German Wikipedia pages got the most hits last week?",
+        "expected": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "topPages"
+        ],
+        "matchedOption": {
+          "widgetType": "topPages",
+          "config": {
+            "lang": "de",
+            "dateMode": "latest",
+            "topN": 10,
+            "filterNoise": true,
+            "showExpanded": true
+          },
+          "reason": "Top Wikipedia Articles shows the most-visited articles on a specific language edition, with 'latest' mode providing the most recent daily rankings."
+        },
+        "error": null,
+        "returned": "topPages"
+      },
+      {
+        "id": "excerpt-article",
+        "prompt": "Give me a card with the lead section and short description of the article Katherine Johnson",
+        "expected": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "excerpt"
+        ],
+        "matchedOption": {
+          "widgetType": "excerpt",
+          "config": {
+            "article": "Katherine Johnson",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Excerpt provides the first paragraph, short description, and thumbnail for the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "excerpt"
+      },
+      {
+        "id": "edit-history-article",
+        "prompt": "Who has been editing the Douglas Adams page lately? Show the recent revisions",
+        "expected": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "edithistory"
+        ],
+        "matchedOption": {
+          "widgetType": "edithistory",
+          "config": {
+            "article": "Douglas Adams",
+            "project": "en.wikipedia",
+            "limit": 10
+          },
+          "reason": "Edit History lists the most recent edits to the article, including editor names and byte changes."
+        },
+        "error": null,
+        "returned": "edithistory"
+      },
+      {
+        "id": "quality-article",
+        "prompt": "What quality class does the ORES model predict for the article Marie Tharp?",
+        "expected": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "quality"
+        ],
+        "matchedOption": {
+          "widgetType": "quality",
+          "config": {
+            "article": "Marie Tharp",
+            "project": "en.wikipedia"
+          },
+          "reason": "Article Quality (ORES) displays the predicted quality class for the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "quality"
+      },
+      {
+        "id": "gallery-article",
+        "prompt": "Display all the pictures used in the Rosalind Franklin article",
+        "expected": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "gallery"
+        ],
+        "matchedOption": {
+          "widgetType": "gallery",
+          "config": {
+            "article": "Rosalind Franklin",
+            "project": "en.wikipedia",
+            "displayMode": "grid",
+            "includeAll": true,
+            "hideDecorative": false
+          },
+          "reason": "Article Gallery lists and displays all images used in the specified Wikipedia article."
+        },
+        "error": null,
+        "returned": "gallery"
+      },
+      {
+        "id": "sparql-count",
+        "prompt": "Count the number of instance-of-human items in Wikidata with a SPARQL query",
+        "expected": {
+          "widgetType": "sparql",
+          "config": {}
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": false,
+        "matched": true,
+        "ids": [
+          "sparql"
+        ],
+        "matchedOption": {
+          "widgetType": "sparql",
+          "config": {
+            "query": "SELECT (COUNT(?item) AS ?count) WHERE { ?item wdt:P31 wd:Q5. }",
+            "endpoint": "wdqs",
+            "renderer": "stat",
+            "maxRows": 1
+          },
+          "reason": "This SPARQL query counts all Wikidata items that have 'human' (Q5) as their instance-of property."
+        },
+        "error": null,
+        "returned": "sparql"
+      },
+      {
+        "id": "panorama-360",
+        "prompt": "I want to look around inside this 360 photo from Commons: File:Liberty Island panorama 2.jpg",
+        "expected": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "panorama360"
+        ],
+        "matchedOption": {
+          "widgetType": "panorama360",
+          "config": {
+            "filename": "File:Liberty Island panorama 2.jpg",
+            "project": "commons.wikimedia",
+            "autoRotate": false
+          },
+          "reason": "360° Panorama Viewer provides an interactive viewer for equirectangular images from Commons."
+        },
+        "error": null,
+        "returned": "panorama360"
+      },
+      {
+        "id": "wayback-snapshots",
+        "prompt": "Archive views of bbc.com — one capture each from March 2012, March 2016 and March 2021",
+        "expected": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com"
+          }
+        },
+        "top1": true,
+        "top3": true,
+        "keysOk": true,
+        "subjectOk": true,
+        "matched": true,
+        "ids": [
+          "waybackGallery"
+        ],
+        "matchedOption": {
+          "widgetType": "waybackGallery",
+          "config": {
+            "url": "https://bbc.com",
+            "dates": "2012-03-01\n2016-03-01\n2021-03-01",
+            "toleranceDays": 30
+          },
+          "reason": "Wayback Snapshot Gallery shows one archived screenshot per requested date."
+        },
+        "error": null,
+        "returned": "waybackGallery"
+      }
+    ],
+    "summary": {
+      "n": 15,
+      "top1Rate": 1,
+      "top3Rate": 1,
+      "keysRate": 1,
+      "subjectRate": 1
+    }
+  }
+}
