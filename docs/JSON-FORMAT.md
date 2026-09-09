@@ -177,7 +177,12 @@ Beyond board params, a widget can **emit** its output and another widget can
    join with newlines, so a Text List's lines can feed a multi-line textarea
    field directly:
    `"config": { "articles": "{{widget:flow-list}}", ... }`
-   Unknown widget ids are left literal (never break a board).
+   Unknown widget ids are left literal (never break a board) — but a widget
+   that **fetches** will not send an unresolved placeholder upstream: it shows
+   a **"Waiting for a reference"** state instead and loads automatically once
+   the producer emits (ISSUE-58). Under text/textarea config fields the ⚙
+   panel lists the available emitters as clickable `{{widget:<id>}}` chips, so
+   references are inserted precisely instead of typed from memory.
 
 ### Instance ids and renaming (ISSUE-53)
 
@@ -195,9 +200,16 @@ Beyond board params, a widget can **emit** its output and another widget can
   warning (they can't be referenced via interpolation/the picker).
 
 Emitting widget types (current): `listSource` (the lines), `filterLines`
-(the filtered lines), `lineCount` (the number), `echo` (pass-through). The
-canonical demo chain lives at `?config=/flow-demo.json`:
+(the filtered lines), `lineCount` (the number), `echo` (pass-through), and
+`excerpt` (the article's first paragraph — feed it to Translator, Speaker or
+Markdown via `text: "{{widget:<excerpt-id>}}"`). The canonical demo chain
+lives at `?config=/flow-demo.json`:
 **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display**.
+
+Deliberately **not** emitting yet: article *title* lists. Machine-translated
+titles can be mistaken for Wikidata language mapping (an actual per-language
+article name) rather than an MinT translation — if added, the card must label
+the output as machine translation (ISSUE-58).
 
 ## Validation Behavior
 

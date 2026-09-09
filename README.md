@@ -59,7 +59,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
 | **Article Pageviews** | 📊 | [RESTBase Pageviews API](https://wikimedia.org/api/rest_v1/) | 30-day total + daily sparkline + avg/day for any article |
-| **Article Excerpt** | 📄 | [REST `/page/summary`](https://en.wikipedia.org/api/rest_v1/page/summary/Ada_Lovelace) | First paragraph + short description + thumbnail for any article, linked to the page |
+| **Article Excerpt** | 📄 | [REST `/page/summary`](https://en.wikipedia.org/api/rest_v1/page/summary/Ada_Lovelace) | First paragraph + short description + thumbnail for any article, linked to the page — **emits its first paragraph** so other widgets can consume it (e.g. `text: "{{widget:<id>}}"` in a Translator) |
 | **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
 | **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
 | **WikiProject Assessment** | 🧭 | MediaWiki API `prop=pageassessments` | Quality class + importance per WikiProject banner (enwiki and other PageAssessments wikis) |
@@ -154,7 +154,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 ### Building a dashboard
 
 - **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param); per-widget targeting is designed (docs/MODULARITY-AND-DATAFLOW.md §Part 5) but not yet built
-- **🔀 Widget-to-widget dataflow (ISSUE-52)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four new Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`
+- **🔀 Widget-to-widget dataflow (ISSUE-52, extended ISSUE-58)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`. **Article Excerpt emits its first paragraph**, so `text: "{{widget:<excerpt-id>}}"` feeds a Translator, Speaker or Markdown card; the ⚙ panel lists every emitter as a clickable `{{widget:<id>}}` chip under text fields, and a widget that **fetches** never sends an unresolved `{{…}}` placeholder upstream — it shows *"Waiting for a reference"* and loads automatically once the producer emits
 - **🏷️ Widget instance names + rename resolution (ISSUE-53)** — every widget has a visible, editable instance name: a small id chip in the header (click → ⚙), the id shown in ⓘ, and the `source` picker listing emitters by id. ⚙ edits the name (plus an optional display-title override). Renaming **repoints references via a confirm dialog** — if other widgets reference the id (source fields or `{{widget:...}}` tokens), it says *"N references in M widgets"* and updates them all atomically; Cancel changes nothing. The source control is a **combobox** (dropdown + manual typing) everywhere widget input exists
 
 - **Add Widget panel** — searchable catalog; click to add
@@ -466,6 +466,16 @@ wikibento/
   an old config/param can no longer clobber a newer result. Verified with a
   controlled race probe (first response delayed 15 s): with the guard the fresh
   result survives; with the guard removed the stale response wins
+- ✅ **Article Excerpt emitter + unresolved-reference guard (ISSUE-58, 2026-09-09):**
+  the excerpt card emits its first paragraph, so `text: "{{widget:<excerpt-id>}}"`
+  feeds a Translator (verified live: EN extract → *"Albert Einstein fue un físico
+  teórico nacido en Alemania…"*), Speaker or Markdown; changing the excerpt's
+  article (e.g. via a board param) re-emits and the consumer re-fetches
+  automatically. A widget that **fetches** now refuses to send an unresolved
+  `{{widget:id}}`/`{{param}}` placeholder upstream — it shows a **"Waiting for a
+  reference"** card and loads once the producer emits (verified: zero MinT/REST
+  requests while unresolved). ⚙ lists the emitters as clickable
+  `{{widget:<id>}}` chips under text fields (language-code fields opt out)
 
 ### Constitutions, config loading & plumbing
 

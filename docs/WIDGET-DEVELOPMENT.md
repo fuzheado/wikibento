@@ -52,12 +52,13 @@ Every widget is defined by 5 things:
 | Piece | Where | What it does |
 |---|---|---|
 | `defaults` | registry entry | Starting config, merged when added from the catalog |
-| `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea) |
+| `configFields` | registry entry | Renders the ⚙ config form (text / number / select / boolean / textarea / source). Fields where a `{{widget:id}}` reference makes no sense (e.g. language codes) set `noRefs: true` — the reference chips are hidden there |
 | `fetch(config)` | registry entry → dataSources.js | Async API call, returns data or throws. **Omit for static widgets** (e.g. Text/Markdown) — WidgetFrame then renders `transform(null, config)` directly, no network, no refresh interval |
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
 | `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `BoardControlsCard` \| `SpeakerCard` \| `TranslateCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `MediaPlayerCard` \| `PanoramaCard` \| `WaybackGalleryCard` \| `ArticleListCard` \| `ListSourceCard` \| `EchoCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` \| `FileTrafficCard` |
 | `defaultLayout` | registry entry (optional) | Grid size when added from the catalog: `{ w, h, minW, minH, maxW?, maxH? }` — `w: 12` = full width. Gallery-family widgets default to full-width; the 360° viewer constrains its minimum |
 | `autoHeight(view, config)` | registry entry (optional) | Content-based auto-fit: return a pixel height for the loaded content (e.g. rows × tile height); WidgetFrame calls `onAutoHeight` after a successful load, App fits the grid row count (clamp 3–14) — and stops once the user resizes manually. See the `gallery`/`fileGallery` entries |
+| `emit(data, config)` | registry entry (optional) | Publishes this widget's output to the board so other widgets can consume it via a `source` field or `{{widget:<id>}}` interpolation (ISSUE-52/58). Return the widget's primary payload — a string/number/array of lines (e.g. `excerpt` → `data.extract`). Consumers re-fetch when the value changes (content-based signature). Omit to stay a pure sink; do NOT emit ambiguously-interpretable data without labeling it in the card (see ISSUE-58 on article titles) |
 
 ## Step-by-Step
 
