@@ -19,7 +19,7 @@ recommendations and board construction?**
 
 (An earlier partial run same day scored top1 93%; the full clean run is 100%.
 The "subject ✗" console rows for `top-wikipedias` / `sparql-count` in
-`bench-baseline-2026-09-09.json` are a display artifact — those fixtures are
+`bench/results/2026-09-09-baseline-single-widget.json` are a display artifact — those fixtures are
 `requireSubject: false` and are excluded from the subject denominator.)
 
 ### Residual failures (diagnosed 2026-09-09)
@@ -63,7 +63,7 @@ building — the single-widget suite was saturated and could not.
 
 \* baseline's one failure was a transient LiftWing 503, not a model miss.
 
-Results (`bench-boards-2026-09-09.json`):
+Results (`bench/results/2026-09-09-boards-v1.json`):
 
 - ✅ 3-widget chains work: `excerpt → translate → speaker` and
   `listSource → filterLines → lineCount` recommended in correct order with
@@ -76,7 +76,7 @@ Results (`bench-boards-2026-09-09.json`):
   variant returned `articleList, listSource` (right widgets, wrong ORDER —
   the chain subsequence check is strict about dataflow direction). Ordering
   is the remaining board-construction wobble; a 1-shot chain example in
-  ASK_MANUAL is the likely fix (see `bench-fixcheck-2026-09-09.json`)
+  ASK_MANUAL is the likely fix (see `bench/results/2026-09-09-fixcheck.json`)
 - ⚠️ **Wiring-token behavior:** the model volunteered
   `{{widget:<invented-id>}}` tokens in ~4/18 chain options despite ASK_MANUAL's
   "never invent ids" rule (e.g. `text: "{{widget:excerpt_id}}"` — a plausible
@@ -123,8 +123,8 @@ capability. The probe asserts the invariants (unique ids, known types,
 no dangling `{{widget:}}`/`{{param:}}` refs) and is the template for the
 Phase 3 constitution.
 
-Files: `bench-boards-v2-2026-09-09.json`, `bench-model-14b-2026-09-09.json`,
-`bench-boards-temp0-2026-09-09.json`, `scripts/probe-ask-edge.mjs`.
+Files: `bench/results/2026-09-09-boards-v2-postfix.json`, `bench/results/2026-09-09-model-14b.json`,
+`bench/results/2026-09-09-boards-temp0.json`, `scripts/probe-ask-edge.mjs`.
 
 ## Round 3 — robustness + ablation experiments (2026-09-09, evening)
 
@@ -144,8 +144,8 @@ Conclusions: (a) the shipped prompt generalizes (paraphrase + multilingual at
 27b flagship should stay the primary model — 14b is a fine availability
 fallback but weaker on confusable pairs and board-assembly semantics.
 
-Files: `bench-paraphrase-2026-09-09.json`, `bench-multilingual-2026-09-09.json`,
-`bench-boards-14b-2026-09-09.json`, `scripts/probe-ask-ablate.mjs`.
+Files: `bench/results/2026-09-09-paraphrase.json`, `bench/results/2026-09-09-multilingual.json`,
+`bench/results/2026-09-09-boards-model-14b.json`, `scripts/probe-ask-ablate.mjs`.
 
 ## Follow-on work
 
@@ -172,18 +172,21 @@ Files: `bench-paraphrase-2026-09-09.json`, `bench-multilingual-2026-09-09.json`,
 
 | File | Purpose |
 |---|---|
-| `bench-baseline-2026-09-09.json` | Original single-widget baseline (15 fixtures) |
-| `bench-variants-2026-09-09.json` | 3-variant prompt comparison (single-widget) |
-| `bench-boards-2026-09-09.json` | Board-construction chain benchmark (6 fixtures × 3 variants) |
-| `bench-fixcheck-2026-09-09.json` | Post-fix verification (glam ✓; wayback pending) |
-| `tests/board-fixtures.mjs` | Ground-truth chain fixtures |
+| `bench/README.md` | this file — the results write-up + methods |
+| `bench/results/*.json` | raw result snapshots, date-prefixed (longitudinal record) |
+| `scripts/benchmark-ask.mjs` | original single-variant scorer |
+| `scripts/benchmark-ask-variants.mjs` | variant + `--boards` runner (429-aware w/ Retry-After, `--via toolforge`) |
+| `scripts/probe-ask-edge.mjs` | out-of-scope + board-assembly probes |
+| `scripts/probe-ask-ablate.mjs` | prompt ablation runner |
+| `tests/board-fixtures.mjs` | ground-truth chain fixtures |
 | `tests/intent-benchmark-lib.mjs` | + scoreChainOptions / summarizeChain / assertBoardFixtureSchema |
-| `scripts/benchmark-ask-variants.mjs` | Variant + `--boards` runner (429-aware w/ Retry-After) |
-| `scripts/benchmark-ask.mjs` | Original single-variant scorer |
 | `tests/intent-fixtures.mjs` | 15 single-widget fixtures |
-| `docs/BOARD-COMPOSITION.md` | Full wiring reference (compact variant source) |
+| `docs/BOARD-COMPOSITION.md` | full wiring reference (compact variant source) |
 
 ### Run
+
+Raw results land in `bench/results/` — date-prefixed JSON snapshots, one per
+run (a bare `--out` filename is joined with `bench/results/`).
 
 ```bash
 WIKIBENTO_TEST=1 node scripts/benchmark-ask.mjs                      # single-widget, current prompt
@@ -192,6 +195,7 @@ WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --boards    # board-con
 WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --only wayback-snapshots          # one fixture
 WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --variants baseline               # one variant
 WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --via toolforge                   # high tier (recommended)
+WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --out 2026-09-10-run.json --via toolforge
 # pace 1500ms default; --pace 250 is fine via toolforge; 429s honor Retry-After automatically
 ```
 

@@ -214,7 +214,7 @@ gated as literal `{{widget:…}}` tokens — ASK_MANUAL (correctly) tells the
 model never to invent board ids; the scorer records volunteered tokens
 informationally.
 
-Findings (2026-09-09, llm-qwen36-27b, `bench-boards-2026-09-09.json`):
+Findings (2026-09-09, llm-qwen36-27b, `bench/results/2026-09-09-boards-v1.json`):
 
 1. **Chains work:** 3-widget chains (`excerpt → translate → speaker`,
    `listSource → filterLines → lineCount`) are recommended in correct order

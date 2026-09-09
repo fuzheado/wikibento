@@ -36,6 +36,9 @@ const MODEL = argVal('--model', 'llm-qwen36-27b');
 const PACE_MS = parseInt(argVal('--pace', '1500'), 10) || 1500;
 const GATE = parseFloat(argVal('--gate', '0'));
 const OUT = argVal('--out', '');
+// Results land in bench/results/ by convention — a bare --out filename is
+// joined with that directory (an absolute or slash-bearing path is honored).
+const OUT_PATH = OUT && !OUT.includes('/') ? join('bench/results', OUT) : OUT;
 const FIXTURE_PATH = argVal('--fixtures', './tests/intent-fixtures.mjs');
 const ASK_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) benchmark';
 const UPSTREAM = `https://api.wikimedia.org/service/lw/inference/v1/models/${MODEL}/openai/v1/chat/completions`;
@@ -99,7 +102,7 @@ for (let i = 0; i < fixtures.length; i++) {
 
 printScorecard(rows, `LIVE LLM TIER (${MODEL}) — benchmark`);
 const s = summarizeScorecard(rows);
-if (OUT) await writeFile(OUT, JSON.stringify({ model: MODEL, at: new Date().toISOString(), fixtures: rows.map((r) => {
+if (OUT_PATH) await writeFile(OUT_PATH, JSON.stringify({ model: MODEL, at: new Date().toISOString(), fixtures: rows.map((r) => {
   const matched = r.options.find((o) => o.widgetType === r.fixture.expected.widgetType) || null;
   return { id: r.fixture.id, prompt: r.fixture.prompt, expected: r.fixture.expected, ...r.score, matchedOption: matched, error: r.error || null };
 }), summary: s }, null, 2));
