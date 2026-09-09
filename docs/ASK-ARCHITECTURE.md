@@ -185,15 +185,25 @@ shot, one answer). Mature fixes, in order of leverage:
   marketplace or per-widget doc growth can be served by retrieval instead of
   a fatter prompt.
 
-## Follow-ups (suggested work items)
+## Follow-ups (work items)
+
+**Status 2026-09-09:** plan items 1–4 implemented in `ask-manifest-v3` (PR #36)
+— truncation fix + test, dataflow metadata → manifest v3, richer config
+fields, `ASK_MANUAL` system manual. Verified: 169/169 tests; live
+`llm-qwen36-27b` functional test — the compound "article text → filter →
+translate" query now recommends the `excerpt → filterLines → translate` chain
+with wiring explained, no invented board ids. Static prefix grew ≈6K → ≈8.5K
+tokens, still under the 12–14K ceiling. Also: `npm test` now regenerates the
+manifest before running (stale-manifest false passes eliminated).
 
 | Item | Effort | Status |
 |---|---|---|
-| Fix F2 truncation + test | S | not started |
-| F1 dataflow metadata → manifest v3 (plan items 2–3) | S–M | not started |
-| Items 4–5 (manual + chain few-shots) | S | not started |
+| Fix F2 truncation + test | S | done (PR #36) |
+| F1 dataflow metadata → manifest v3 (plan items 2–3) | S–M | done (PR #36) |
+| Item 4 system manual | S | done (PR #36, `ASK_MANUAL`) |
+| Item 5 curated few-shots incl. chains | S | not started |
 | Item 6 chain contract (client+server) | M | ISSUE-44 phase 2/3 |
-| Item 7 token constitution | S | not started |
+| Item 7 token constitution | S | not started (test wiring landed; budget test still open) |
 | Item 8 compound benchmark fixtures | S | not started |
 | Verify vLLM prefix caching on LiftWing | S | open question |
 | Embedding retrieval prototype (qwen3-embedding) | M–L | research |
