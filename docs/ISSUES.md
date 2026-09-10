@@ -2828,3 +2828,55 @@ index-D9wl_Ty8.js): re-verified on https://wikibento.toolforge.org/ —
 Einstein trend ticks `12K / 10K / 8K` live, the zero-based toggle flips the
 production card to `12K / 6K / 0` after ⚙ → Apply & Reload. GitHub #42
 closed by the merge.
+
+## ISSUE-65 · QR widget: encode a URL/text as a scannable QR card (GitHub issue #45) — **open**
+
+**What:** a `qrCode` card that renders any text — a URL first — as a scannable
+QR code **on the board itself** (not only in the Share panel), with `ecLevel`,
+`margin` (quiet zone) and an optional `caption`, plus a client-side **Save SVG**
+for signage/print. Requested by fuzheado 2026-09-10; filed as GitHub issue #45
+(labels: `enhancement`, `good first issue`).
+
+**Why:** the Share panel already encodes the board's own link, but as a *card*
+the QR becomes a physical-world bridge sitting next to whatever it points at —
+GLAM signage, editathon stations, print handouts, kiosk walls. The payload is a
+direct link to a free-knowledge resource: no shortener, no redirect hop, no scan
+analytics, with all encoding local (ISO/IEC 18004).
+
+**Feasibility (verified 2026-09-10, measured against the installed library):**
+`qrcode-generator@^2.0.4` is already a dependency (MIT, zero-dep, client-side,
+no network) and `src/lib/qr.js` → `qrSvg(text)` already returns inline SVG
+(Byte mode, `type 0` auto-size, EC `M` fixed, no quiet zone); `SharePanel.jsx`
+is the working precedent (white padded container, 1,500-char cap,
+>1,000-char density warning). Byte-mode capacity measured on the installed
+build: **L 2953 / M 2331 / Q 1663 / H 1273 bytes**. Real payloads at EC `M`:
+`https://w.wiki/ABC123` (21 chars) → 25×25 modules; Commons category URL (82) →
+37×37; board `?config=` permalink (90–138) → 41×41…49×49. Capacity is therefore
+not the limit — module density in a small card is.
+
+**Proposed fix:** registry entry `qrCode` (`nodeKind: 'display'`,
+`timeScope: 'point'`, `intensity: 'low'`, zero network calls) + a `QrCard`
+renderer; extend `qrSvg(text, { ecLevel, margin })` keeping SharePanel's
+defaults byte-identical. The `text` field takes the standard interpolation
+(`{{param}}`, `{{widget:<id>}}`), so a QR can encode a *derived* value — the
+article a pageviews card is currently showing, or the live board permalink.
+Optional emitter (`outputs: { kind: 'value' }`, `echo`-shaped) to decide in
+review.
+
+**Density rules (never render an unscannable code silently):** auto-ladder the
+EC level `H` → `M` → `L` as the payload grows, warn relative to card size, and
+hard-cap at ~1,500 chars (matching SharePanel); confirm the on-screen threshold
+with a couple of real phone scans during implementation.
+
+**Phase 2 (no new dependencies — typed payloads are formatted strings):**
+`mailto:`, `tel:`, `geo:lat,lon`, Wi-Fi (`WIFI:T:WPA;S:…;P:…;;`), vCard, plus
+wiki-native deep links (Commons / Wikidata / PetScan); needs the documented
+`; , : \` escaping rules.
+
+**Tests:** payload→SVG structural test (module count / finder patterns),
+manifest-compliance green for the new entry (`npm test` now regenerates the
+manifest first), and a SharePanel regression check.
+
+**Out of scope:** camera scanning/decoding (separate widget; browser
+`BarcodeDetector` API), logo overlays and coloured/gradient codes, and
+commercial shorteners or tracked redirect links.
