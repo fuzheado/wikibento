@@ -48,6 +48,7 @@ for, not a claim about behaviour today.
 
 | date | bundle | commit | ships |
 |---|---|---|---|
+| 2026-09-10 | `index-6udjc6im.js` *(unchanged)* | `b0ef076` | Config-only deploy, third that day: the glam demo's 🏆 CIM Global Leaderboard switches to `scope: shallow` (direct category attribution instead of the diffusion-inflated tree rollup — deep and shallow share only 39 of their top 100), the demo hub's markdown count is corrected to 38 widget types, and the README's demo table to five institutions |
 | 2026-09-10 | `index-6udjc6im.js` | `e658dab` | Second deploy: finally ships the 🔳 **QR widget** (PR #47 — merged earlier the same day, never deployed) together with the new `deploy/server.js` (the Ask dataflow manual is now *derived from the manifest*, so a new emitter can't be silently missing from the prompt), the complete **39-widget showcase catalog** (🛒 Board Controls driving an `article` param that re-aims five cards, 🔳 QR), the `docs-facts` constitution and the HANDOFF now-document split |
 | 2026-09-10 | `index-D9wl_Ty8.js` | `534cff7` | ISSUE-64: TrendCard Y-axis ticks + gridlines + `zeroY` scale toggle (Article Pageviews trend, CIM Views Over Time) — GitHub #42, PR #43 |
 | 2026-09-10 | `index-TTSz7Lkm.js` | `edd68f0` | ISSUE-44 Phase 3a: Ask **board assembly** (describe a board → wired params + widgets + `{{widget:id}}`, added below the current board with Undo). Superseded same day by the ISSUE-64 deploy |
@@ -88,6 +89,16 @@ The lessons that only showed up *after* deploying — worth keeping because each
 one changed the code or the procedure. Nothing here is a current to-do; it is
 the record of what deploying taught us.
 
+- **A deploy can be real while the bundle hash stays the same** (2026-09-10). The
+  third deploy shipped only `public/*.json` changes (a board's widget config, a
+  markdown count) — Vite copies `public/` verbatim instead of bundling it, so the
+  JS hash was identical before and after. Verifying "the bundle hash changed"
+  would have proved nothing; the serve-side check has to read the shipped JSON
+  (`/glam-demo.json`, `/demos.json`) and, best of all, the rendered result. For
+  the leaderboard scope change the decisive check was comparing the live card's
+  rows against the shallow API response for the resolved month — the card read
+  `1. Uploaded with VicuñaUploader 4,978,286,576`, matching shallow, where deep
+  would have shown UNESCO 6.1B.
 - **`dist/` is not the whole deploy — check `deploy/` too** (2026-09-10). The
   second deploy needed `deploy/server.js` as well as `dist/`, because the Ask
   dataflow manual had moved from a hardcoded list to one derived from the
