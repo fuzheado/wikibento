@@ -203,12 +203,39 @@ if (widgets.length < 25) {
   process.exit(1);
 }
 
+const manifestPath = join(root, 'public/manifest.json');
+const stamp = new Date().toISOString();
 const manifest = {
   version: 3,
-  generatedAt: new Date().toISOString(),
+  generatedAt: stamp,
   widgetCount: widgets.length,
   widgets,
 };
+const serialise = (m) => JSON.stringify(m, null, 1);
 
-await writeFile(join(root, 'public/manifest.json'), JSON.stringify(manifest, null, 1));
-console.log(`manifest.json v${manifest.version}: ${widgets.length} widgets → public/manifest.json`);
+// Ship the catalog, not the clock: rewrite the file only when the *content*
+// actually differs. `generatedAt` then reads as "when the catalog last
+// changed" rather than "when someone last ran the tests" — and since `npm test`
+// regenerates the manifest first, a test run no longer leaves a spurious diff.
+let previous = null;
+try {
+  previous = JSON.parse(await readFile(manifestPath, 'utf8'));
+} catch {
+  // no manifest yet (or unreadable): fall through and write one
+}
+
+const unchanged =
+  previous !== null
+  && typeof previous.generatedAt === 'string'
+  && serialise({ ...previous, generatedAt: stamp }) === serialise(manifest);
+
+if (unchanged) {
+  console.log(
+    `manifest.json v${manifest.version}: ${widgets.length} widgets — unchanged `
+    + `(last change ${previous.generatedAt})`,
+  );
+} else {
+  await writeFile(manifestPath, serialise(manifest));
+  const why = previous ? 'widget catalog changed' : 'no existing manifest';
+  console.log(`manifest.json v${manifest.version}: ${widgets.length} widgets → public/manifest.json (${why})`);
+}
