@@ -208,6 +208,13 @@ layout + cache reads (~<100 ms perceived).
 
 ## Phase 3 — Stretch
 
+- **Media / typed outputs in the dataflow** — the direction is written down in
+  `docs/MEDIA-DATAFLOW.md` (2026-09-10): Tier 1 `rows`/reference outputs → an
+  export effector → a capped inline `image` kind → a board-scoped handle store
+  for real binaries. Gated on a consumer (effector/compositor, WIDGET-IDEAS
+  family 7); the current rule for widget authors is the *Emitter Contract* in
+  `docs/WIDGET-DEVELOPMENT.md`.
+
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
 
 > The vision: one widget's output feeds another's input — a text box that

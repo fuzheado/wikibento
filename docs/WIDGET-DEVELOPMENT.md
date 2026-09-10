@@ -40,6 +40,94 @@ A number without its time context is useless.
   subtitle lacks the date pattern — a non-compliant widget cannot be built,
   so it cannot be deployed. This is the "constitutional" gate.
 
+# The Emitter Contract (read before wiring a widget to others)
+
+The two sections above are **constitutions** — build-breaking. This one is a
+**convention** with a single automated guard, and it exists because the dataflow
+wire has non-obvious constraints: getting them wrong produces boards that are
+subtly broken rather than loudly broken.
+
+## The rule
+
+**An emitter publishes DATA, never PRESENTATION.** The value must be the thing
+the widget is *about*, in a form another widget can consume as content — never
+the widget's rendered output: not its markup, not its SVG, not its screenshot,
+not its pixels, not its DOM.
+
+Corollaries:
+
+1. **Text is the wire format** (today): scalars, or arrays of lines. Kinds in
+   use: `extract` (prose), `lines` (lists), `count` (numbers), `value`
+   (pass-through). Consumers are text-shaped.
+2. **Emit the smallest true value.** An emitted value is copied into board
+   state, persisted (`localStorage` / `?config=` URLs), hashed for the
+   change-detection signature, and — for boards the Ask path assembles —
+   counted against the prompt budget. Measured 2026-09-10: a QR's SVG is
+   3.1–9.3 KB while the text it encodes is 21–138 chars. The QR widget emits
+   the text.
+3. **Emit only if something can consume it.** A widget whose output nothing can
+   draw or read should stay a **sink**. Speculative emitters are not harmless:
+   they take a slot in the source picker and in the Ask prompt's emitter list,
+   and they invite boards wired to nothing.
+4. **The card must show what it emits** (or label it explicitly). If a widget
+   emits its first paragraph, that paragraph is on the card; if it emits a
+   number, the number is visible. Ambiguity is the failure mode ISSUE-58
+   recorded — do not emit a value a viewer cannot identify.
+5. **Never emit something that cannot round-trip through JSON.** No DOM nodes,
+   no `File`/`Blob`/`ImageBitmap` handles, no functions. If it is not text (or
+   an array of text), it does not belong on the wire yet — `docs/MEDIA-DATAFLOW.md`
+   lays out what that would take.
+
+## Current emitters (the reference set)
+
+| id | kind | emits | typical consumers |
+|---|---|---|---|
+| `excerpt` | `extract` | the article's first paragraph | `translate`, `speaker`, `markdown`, `echo` |
+| `listSource` | `lines` | the pasted lines | `filterLines`, `articleList`, `fileGallery`, `mediaPlayer`, `echo` |
+| `filterLines` | `lines` | the filtered lines | `articleList`, `lineCount`, `echo` |
+| `lineCount` | `count` | a number | `echo`, `markdown` |
+| `echo` | `value` | pass-through | any text field |
+| `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
+
+## Anti-patterns (with the concrete reason)
+
+| Tempting emitter | Why it breaks |
+|---|---|
+| A rendered SVG/HTML string ("emit the graphic") | Nothing renders markup: `echo` prints a multi-KB XML blob as text, `lineCount` "counts" SVG lines, `filterLines` mangles it, and `markdown`'s image path is https-allowlisted so a `data:` URL does not draw. Adds KBs to state and persistence for zero live use. |
+| A screenshot / raster | Same, plus it cannot be persisted and it taints canvases cross-origin. |
+| `data:` URLs for real images | They are text, so they *appear* to work — and bloat every saved board, change signature and `?config=` URL. |
+| A blob / file handle | Not JSON-serializable, and the board JSON is the persistence format. |
+| The widget's card/state object | Consumers receive JSON text and can do nothing with it. |
+| A convenience duplicate of an upstream value | Redundant edges; the same data reachable two ways invites divergent boards. |
+
+## Adding a new output kind
+
+A new `kind` is a design act, not a one-line change. It needs:
+
+1. a **consumer** that understands it — at least one shipping card, not a plan;
+2. an entry in the reference table above **and** in
+   `docs/BOARD-COMPOSITION.md` §4.4 (the LLM-facing emitter table);
+3. a phrase arm in `askManual()`'s `what` map (`deploy/server.js`), or the Ask
+   prompt will describe the kind as "a `<kind>`" or mislabel it;
+4. the allowlist updated in `tests/manifest-compliance.test.mjs` (the guard);
+5. a **size/transfer policy** if values can be large, plus a line here about what
+   happens on persistence.
+
+For anything non-text, read `docs/MEDIA-DATAFLOW.md` first: it costs out
+Tier 1 (`rows` references), Tier 2 (capped inline `data:` encodings) and
+Tier 3 (real binaries + a board-scoped handle store).
+
+## Worked example — the QR widget (2026-09-10)
+
+`qrCode` renders a graphic and emits **its text**. Because the payload is
+composed from `{{param}}`/`{{widget:<id>}}`, the emitted string is the only
+readable form of a composed URL — a human can check what the code says next to
+the code itself (the kiosk/print verification pattern). Emitting the SVG was
+rejected: 3.1–9.3 KB per card (measured), renderable by nothing in the catalog,
+and it would have been the first emitter to put *presentation* on the wire. The
+image output is filed as a future direction in `docs/MEDIA-DATAFLOW.md`, gated
+on an effector/compositor consumer (WIDGET-IDEAS family 7).
+
 # Adding a New Widget
 
 The registry pattern means a new widget is **one entry in `WIDGET_TYPES`** plus
@@ -58,7 +146,7 @@ Every widget is defined by 5 things:
 | `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `BoardControlsCard` \| `SpeakerCard` \| `TranslateCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `MediaPlayerCard` \| `PanoramaCard` \| `WaybackGalleryCard` \| `ArticleListCard` \| `ListSourceCard` \| `EchoCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` \| `FileTrafficCard` |
 | `defaultLayout` | registry entry (optional) | Grid size when added from the catalog: `{ w, h, minW, minH, maxW?, maxH? }` — `w: 12` = full width. Gallery-family widgets default to full-width; the 360° viewer constrains its minimum |
 | `autoHeight(view, config)` | registry entry (optional) | Content-based auto-fit: return a pixel height for the loaded content (e.g. rows × tile height); WidgetFrame calls `onAutoHeight` after a successful load, App fits the grid row count (clamp 3–14) — and stops once the user resizes manually. See the `gallery`/`fileGallery` entries |
-| `emit(data, config)` | registry entry (optional) | Publishes this widget's output to the board so other widgets can consume it via a `source` field or `{{widget:<id>}}` interpolation (ISSUE-52/58). Return the widget's primary payload — a string/number/array of lines (e.g. `excerpt` → `data.extract`). Consumers re-fetch when the value changes (content-based signature). Omit to stay a pure sink; do NOT emit ambiguously-interpretable data without labeling it in the card (see ISSUE-58 on article titles) |
+| `emit(data, config)` | registry entry (optional) | **Read *The Emitter Contract* (below) first.** Publishes this widget's output to the board so other widgets can consume it via a `source` field or `{{widget:<id>}}` interpolation (ISSUE-52/58). Return the widget's primary payload — a string/number/array of lines (e.g. `excerpt` → `data.extract`). Consumers re-fetch when the value changes (content-based signature). Omit to stay a pure sink; do NOT emit ambiguously-interpretable data without labeling it in the card (see ISSUE-58 on article titles) |
 
 ## Step-by-Step
 
