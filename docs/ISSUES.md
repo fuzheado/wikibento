@@ -2783,3 +2783,42 @@ markdown link safety → npm test 190.
 **Verified live (built dist):** all 10 boards load with **0 widget errors**
 (SPARQL included); the hub renders 9 links and clicking one navigates to that
 board; `embed-demo` frames Objectium; `dashboard` renders 37 widgets.
+
+## ISSUE-64 · TrendCard charts have no Y-axis values (Article Pageviews trend, CIM Views Over Time) — **done 2026-09-10** (GitHub #42)
+
+**What (GitHub issue #42):** trend-style charts rendered a min–max normalized
+sparkline with zero Y information — no ticks, no min/max, no current value —
+so a 50→55 series looked identical to a 5M→5.5M series. Affected: `pageviews`
+in trend mode and `cimTrend` (the two widgets rendering the bare `TrendCard`).
+
+**Fix:** `src/lib/format.js` (new) holds the shared chart helpers:
+`compactNum` (the `254K`/`1.2M` tick format — extracted from
+FileTrafficCard, which now reuses it) and `trendYScale(values)` — the
+min–max tick spec (top tick = max, mid = (min+max)/2, bottom = min, viewBox
+fractions `TREND_Y_TOP`=12 / `TREND_Y_BOT`=96; flat series collapse to two
+ticks). The scale is deliberately **not zero-based** — pageview series live
+far from zero and a zero baseline would flatten them; ISSUE-42 makes the
+existing implicit scale explicit.
+
+`TrendCard` now draws 3 gridlines at those fractions plus an HTML tick-label
+column (absolutely positioned at the same fractions of the plot height, so
+labels align with gridlines under `preserveAspectRatio="none"` — SVG text
+would distort), and an `aria-label` + native `<title>` tooltip carrying the
+exact values ("latest 10,089 · min 7,747 · max 12,310"). Narrow cards
+(`<230px` container width) hide the label column via a container query — the
+sparkline + tooltip carry the info (ISSUE-54-family constraint).
+
+**Follow-up (same PR):** the scale is now a per-widget toggle — ⚙ **"Y axis
+starts at 0"** (boolean, `zeroY`) on both affected widgets. Off (default) =
+min–max, variation stays visible; on = zero-based, honest magnitude
+comparison (`trendYScale(values, { zero })`, ticks become e.g. 12K/6K/0;
+floors at the data min for negative-capable data).
+
+**Constitution:** `tests/trend-axis.test.mjs` (11 tests — tick values/positions,
+linear inverted mapping, flat/single-point/empty series, unsorted + non-finite
+inputs, zero-based option) → npm test 212.
+
+**Verified live (built dist, Chromium):** Einstein trend shows `12K / 10K / 8K`
+ticks + gridlines; switching the article via Board Controls (Marie Curie)
+re-aims the ticks (max 20,937); a Wikimedia 429 mid-check surfaced the
+ISSUE-61 rate-limit message and Retry recovered cleanly.

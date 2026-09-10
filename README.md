@@ -55,7 +55,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
-| **Article Pageviews** | 📊 | [RESTBase Pageviews API](https://wikimedia.org/api/rest_v1/) | 30-day total + daily sparkline + avg/day for any article |
+| **Article Pageviews** | 📊 | [RESTBase Pageviews API](https://wikimedia.org/api/rest_v1/) | 30-day total + daily sparkline with Y-axis ticks (ISSUE-64) + avg/day for any article |
 | **Article Excerpt** | 📄 | [REST `/page/summary`](https://en.wikipedia.org/api/rest_v1/page/summary/Ada_Lovelace) | First paragraph + short description + thumbnail for any article, linked to the page — **emits its first paragraph** so other widgets can consume it (e.g. `text: "{{widget:<id>}}"` in a Translator) |
 | **Edit History** | 🕓 | MediaWiki API `prop=revisions` | Recent edits newest-first — user, time, comment, and byte delta per edit |
 | **Article Quality (ORES)** | 🏅 | [Lift Wing](https://api.wikimedia.org/) `enwiki-articlequality` (falls back to the modern continuous `articlequality` model) | Predicted FA/GA/B/C/Start/Stub class with per-class probability distribution for any article |
