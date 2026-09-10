@@ -20,7 +20,7 @@ App  (state: widgets[], layout[], panel visibility)
 │           │   ├── title (icon + _title)
 │           │   └── ⚙ config · ↻ refresh · ✕ remove
 │           ├── .widget-config      ← rendered from def.configFields
-│           └── WidgetContent  (dispatch on def.renderer — ~24 named cards,
+│           └── WidgetContent  (dispatch on def.renderer — ~25 named cards,
 │                                shared across widgets; full list in
 │                                WIDGET-DEVELOPMENT.md)
 │               ├── StatCard        ← big number + detail + sparkline

@@ -2829,7 +2829,7 @@ Einstein trend ticks `12K / 10K / 8K` live, the zero-based toggle flips the
 production card to `12K / 6K / 0` after ⚙ → Apply & Reload. GitHub #42
 closed by the merge.
 
-## ISSUE-65 · QR widget: encode a URL/text as a scannable QR card (GitHub issue #45) — **open**
+## ISSUE-65 · QR widget: encode a URL/text as a scannable QR card (GitHub issue #45) — **done (branch `feature-qr-widget`)**
 
 **What:** a `qrCode` card that renders any text — a URL first — as a scannable
 QR code **on the board itself** (not only in the Share panel), with `ecLevel`,
@@ -2880,3 +2880,28 @@ manifest first), and a SharePanel regression check.
 **Out of scope:** camera scanning/decoding (separate widget; browser
 `BarcodeDetector` API), logo overlays and coloured/gradient codes, and
 commercial shorteners or tracked redirect links.
+
+**Implemented 2026-09-10 (`feature-qr-widget`):** `qrCode` registry entry
+(`nodeKind: display`, static, emits its encoded text) + `QrCard` renderer in
+`WidgetFrame.jsx` + `.qr-*` styles; `src/lib/qr.js` extended with
+`ecLevel`/`margin`/`label` options (defaults byte-identical to the SharePanel
+output — hash-guarded) plus `qrModuleCount`/`qrFits`/`fitEcLevel` and the
+measured capacity table; offline-matcher intent + a derived Ask-manual line;
+and the widget added to README, DATA-SOURCES §26, BOARD-COMPOSITION §1.5
+(registry + emitter tables), WIDGET-DEVELOPMENT, JSON-FORMAT and GUIDE.
+
+**Constitution:** `tests/qr-widget.test.mjs` (18 tests — registry contract,
+EC ladder/density/overflow, encoding + capacity, SharePanel regression
+hashes, validator, offline Ask tier) → **npm test 228 green**, `npm run build`
+clean.
+
+**Verified live (2026-09-10, built dist + real Chromium):** a four-card board
+(fixed link / `{{target}}` board param / empty / 1,600 chars) rendered with 0
+console errors; **both codes decoded from rendered pixels by an independent
+decoder** (OpenCV `QRCodeDetector`) — fixed link → `https://w.wiki/QRtest`,
+param card → the interpolated Commons category URL; a ~1% white smear still
+decoded at EC H; the over-cap card shows the refusal message; **Save SVG**
+downloaded a byte-identical standalone file (5,975 B, quiet zone included).
+Live Ask (`llm-qwen36-27b`): QR intents return `qrCode` with the named URL,
+and "follow whichever article my pageviews card shows" uses
+`{{widget:…}}` interpolation per the new guidance.

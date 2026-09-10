@@ -83,7 +83,7 @@ Five experiments ran once the rate cap was gone (full table in
 ### Board Composition Guide (`docs/BOARD-COMPOSITION.md`)
 
 Created a comprehensive, LLM-parseable reference guide covering:
-- **Part 1 — Widget Registry**: all 37 widgets with full capabilities (id, type, dataSource, configFields, defaults, emit behavior, renderer)
+- **Part 1 — Widget Registry**: all 38 widgets with full capabilities (id, type, dataSource, configFields, defaults, emit behavior, renderer)
 - **Part 2 — Communication Patterns**: board params, dataflow (emit/consume, source picker, `{{widget:<id>}}` interpolation), reference grammar
 - **Part 3 — Board Composition Patterns**: layout guidelines, responsive behavior, kiosk/lean modes, composition strategies
 - **Part 4 — LLM Prompt Guide**: how to use the guide to generate board configs, common patterns, anti-patterns, widget ID reference

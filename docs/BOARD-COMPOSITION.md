@@ -4,7 +4,7 @@
 
 WikiBento is a drag-and-drop dashboard for Wikimedia — a single reactive layout for keeping an eye on content and interacting with it. Wikimedia's content and activity live across many places: pageview and stats APIs, wiki pages, recent changes, Commons. WikiBento brings what you care about into one place.
 
-This guide is the **complete reference for wiring widgets into boards**. It covers all 37 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
+This guide is the **complete reference for wiring widgets into boards**. It covers all 38 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
 
 Think of it as the assembly manual for WikiBento's Lego set: each widget is a brick, and this guide tells you what every brick looks like, how they snap together, and what you can build.
 
@@ -28,7 +28,7 @@ Think of it as the assembly manual for WikiBento's Lego set: each widget is a br
 
 ## Table of Contents
 
-1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 37 widgets with full capabilities
+1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 38 widgets with full capabilities
 2. [Part 2 — Communication Patterns](#part-2--communication-patterns) — params, dataflow, source picker, interpolation
 3. [Part 3 — Board Composition Patterns](#part-3--board-composition-patterns) — layout, sizing, responsive, kiosk/lean
 4. [Part 4 — LLM Prompt Guide](#part-4--llm-prompt-guide) — how to use this guide to generate board configs
@@ -341,7 +341,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `RankingCard` (with optional `TopPagesExpandedCard` when `showExpanded`)
 
-### 1.5 Content & Embeds (6 widgets)
+### 1.5 Content & Embeds (7 widgets)
 
 #### `boardControls` — Board Controls (params)
 - **dataSource:** static (writes board params)
@@ -365,6 +365,16 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `MarkdownCard`
 - **⚠️ LLM note:** Images in Markdown are https-only; `*.wikimedia.org` is the default allowlist. Other hosts need the per-widget "Allow external images" opt-in.
+
+#### `qrCode` — QR Code
+- **dataSource:** static (no fetch — encoded locally with `qrcode-generator`; ISO/IEC 18004)
+- **configFields:**
+  - `text` (textarea — the payload; `{{param}}` and `{{widget:<id>}}` resolve before encoding)
+- **defaults:** `text`, `ecLevel`, `margin`, `caption`, `refreshSeconds`
+- **timeScope:** `point`
+- **emit:** the encoded text (kind: `value`) — downstream cards can reuse it
+- **renderer:** `QrCard`
+- **⚠️ LLM note:** For a QR request, pre-fill `text` with the URL the user named (e.g. `https://commons.wikimedia.org/wiki/Category:<Category>` or `https://<lang>.wikipedia.org/wiki/<Article>`). The encoder is local: no shortener and no third-party service is involved, and nothing must be fetched. Density is the real limit — a payload over ~1,000 chars needs a larger card or print, and over 1,500 chars the widget refuses rather than drawing an unscannable code.
 
 #### `speaker` — Speaker (text-to-speech)
 - **dataSource:** static (Web Speech synthesis)
@@ -710,7 +720,7 @@ When asked to create a board, follow this workflow:
 | Using `{{param}}` in a widget that doesn't support it | Config field doesn't accept interpolation | Check the widget's configFields — only text/textarea/select fields support `{{...}}` |
 | Emitting article titles without labeling | Translated titles can be mistaken for Wikidata language mappings | Use `excerpt` as the emitter (first paragraph only), not the title |
 | Forgetting `refreshSeconds` on fetch widgets | Freshness constitution violation; build fails | All fetch widgets MUST declare `refreshSeconds ≥ 30` |
-| Using `source` on a non-emitting widget | No output to consume | Only Text List, Filter Lines, Line Count, and Echo emit |
+| Using `source` on a non-emitting widget | No output to consume | Only Text List, Filter Lines, Line Count, Echo, Article Excerpt and QR Code emit |
 | Overlapping widget ids | Layout conflict; duplicate references | Use descriptive, unique ids like `excerpt-src`, `film-list` |
 | Ignoring CIM 404 ambiguity | Unregistered categories and months with no data both 404 | Use `latestCimMonth()` for default months; the disambiguation probe separates these cases |
 
@@ -725,6 +735,7 @@ When wiring dataflow chains, reference the emitter's `id`:
 | `filterLines` | `data.filtered` (array of filtered lines) | `articleList`, `fileGallery`, `lineCount`, `echo` |
 | `lineCount` | `data.count` (number) | `echo`, `markdown` |
 | `echo` | `data.value` (pass-through) | Any text field |
+| `qrCode` | `data.text` (the encoded string) | `echo`, `markdown`, or any text field (rare — a QR is usually a leaf) |
 
 ### 4.5 Quick Reference: Board Patterns → Widget Mapping
 
@@ -751,7 +762,7 @@ When wiring dataflow chains, reference the emitter's `id`:
 
 ## Sources
 
-- WikiBento manifest: `public/manifest.json` (37 widget types)
+- WikiBento manifest: `public/manifest.json` (38 widget types)
 - WikiBento JSON format: `docs/JSON-FORMAT.md`
 - WikiBento widget development: `docs/WIDGET-DEVELOPMENT.md`
 - WikiBento guide: `docs/GUIDE.md`
