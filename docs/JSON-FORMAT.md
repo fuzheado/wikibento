@@ -190,6 +190,16 @@ Beyond board params, a widget can **emit** its output and another widget can
    panel lists the available emitters as clickable `{{widget:<id>}}` chips, so
    references are inserted precisely instead of typed from memory.
 
+### Output kinds — the text-first rule
+
+An emitter publishes **data, not presentation**: text (a scalar, or an array of
+lines), never its own markup, SVG, screenshot or pixels. The manifest declares
+the kind (`outputs.kind` ∈ `extract` | `lines` | `count` | `value`); the source
+picker and the Ask prompt both read it from there. The rule, its corollaries and
+the anti-patterns live in **docs/WIDGET-DEVELOPMENT.md → The Emitter Contract**;
+the design direction for non-text outputs (references, capped inline encodings,
+real binaries) is scoped in **docs/MEDIA-DATAFLOW.md**.
+
 ### Instance ids and renaming (ISSUE-53)
 
 - Every widget's **id** is its stable instance name — the header shows a

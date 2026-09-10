@@ -109,3 +109,19 @@ test('config fields are well-formed and documented', () => {
     }
   }
 });
+
+
+test('emitter output kinds stay within the documented set (emitter contract)', () => {
+  // docs/WIDGET-DEVELOPMENT.md -> "The Emitter Contract": a new output kind is a
+  // design act (a real consumer, doc entries, an askManual() phrase, a size
+  // policy) — this allowlist makes that decision loud instead of accidental.
+  const DOCUMENTED = ['extract', 'lines', 'count', 'value'];
+  for (const w of manifest.widgets) {
+    if (!w.outputs) continue;
+    assert.ok(
+      DOCUMENTED.includes(w.outputs.kind),
+      `${w.id}: output kind "${w.outputs.kind}" is not in the documented set [${DOCUMENTED.join(', ')}] — `
+      + 'see docs/WIDGET-DEVELOPMENT.md "The Emitter Contract" (and docs/MEDIA-DATAFLOW.md for non-text outputs)',
+    );
+  }
+});
