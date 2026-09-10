@@ -1065,6 +1065,14 @@ body {
  gap: 8px;
  padding: 0 16px;
 }
+
+/* Share mode toggle (ISSUE-67) — one choice drives both the QR and the copyable
+   link, so what you scan is exactly what you can paste. */
+.share-mode-row { display: flex; gap: 8px; margin: 14px 0 6px; }
+.share-mode-btn { flex: 1; justify-content: center; font-size: 13px; }
+.share-mode-btn.active { background: #36c; border-color: #36c; color: #fff; }
+.share-mode-hint { margin: 0 0 10px; opacity: .85; }
+
 .share-link-input {
  flex: 1;
  padding: 8px 10px;

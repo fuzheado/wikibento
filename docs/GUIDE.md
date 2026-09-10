@@ -127,6 +127,10 @@ freely; just don't duplicate a value that several widgets must agree on.
 - **🔗 Share** gives a QR code + link. `?config=<url>` loads a hosted config
   (any CORS-enabled URL, an on-wiki page, or a `w.wiki/…` short link);
   `#/d/…` embeds the whole config in the link.
+- **Share modes:** the panel picks what the link *and* the QR open — **📱 Lean
+  mode** (`?lean=1`: chrome-free, app-like) or **🖥 Full board** (editable).
+  Both variants always carry the same mode, and the caption names it. Leave a
+  lean link with ✕ Exit or Esc.
 - **⛶ Present** (kiosk, fullscreen) and **▣ Lean** (chrome-free, resizable)
   give a clean display; Esc or ✕ exits.
 

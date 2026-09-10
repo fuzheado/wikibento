@@ -699,6 +699,7 @@ const handleAutoHeight = useCallback((id, px) => {
         <SharePanel
           widgets={widgets}
           layout={layout}
+          lean={lean}
           onClose={() => setShowShare(false)}
         />
       )}

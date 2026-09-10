@@ -2953,3 +2953,34 @@ dependency in the unit tier.
 **Out of scope:** server-side filtering, persisting events, per-widget
 connections, and high-traffic public deployment (the service is for
 small-scale external tools).
+
+## ISSUE-67 · Share panel: explicit share mode (lean vs full) for the QR + link (GitHub issue #59) — **done**
+
+**What:** the 🔗 Share panel now chooses what a scanned/pasted link *opens*:
+**📱 Lean mode** (`?lean=1`) or **🖥 Full board**. Requested by Andrew
+2026-09-10: "the QR code that it generates is just loading up the normal
+board… I would like a QR code that when you load it, loads it in Lean mode …
+so that it feels like a seamless web app".
+
+**Why:** the panel previously shared the current URL verbatim, so a share from
+the toolbar could never carry `?lean=1`, and the presenter's own present mode
+could leak into the link. The QR and the copyable link could also disagree.
+
+**Fix:** `presentModeUrl(url, mode)` (`src/lib/share.js`) normalizes the URL —
+both modes strip any `?lean`/`?kiosk`, then lean adds `lean=1`; one choice in
+the panel drives **both** the QR and the link (the QR is an encoding of the
+link, so they cannot diverge); the caption names the mode; the panel defaults
+to the mode the presenter is in. `?kiosk=1` is never encoded — fullscreen needs
+a user gesture and the kiosk boot path must not attempt it (`App.jsx`).
+
+**Verified (2026-09-10):** `tests/share-lean.test.mjs` (10 unit tests, wired
+into `npm test` → **239/239**); `npm run smoke:share`
+(`scripts/share-lean-e2e.mjs`, 14 browser assertions) boots the URL the QR
+encodes and asserts `class="app lean"`, `app-header` `display: none`, ✕ Exit
+present, and that the Full link boots editable — 0 page errors. The rendered QR
+was decoded with an independent reader (OpenCV) and returned exactly the lean
+URL. Leaving a lean link: ✕ Exit / Esc (already strips the param).
+
+**Status:** done (`src/lib/share.js`, `src/components/SharePanel.jsx`,
+`src/App.jsx`, `src/App.css`, `tests/share-lean.test.mjs`,
+`scripts/share-lean-e2e.mjs`).
