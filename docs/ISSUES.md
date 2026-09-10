@@ -2784,7 +2784,7 @@ markdown link safety → npm test 190.
 (SPARQL included); the hub renders 9 links and clicking one navigates to that
 board; `embed-demo` frames Objectium; `dashboard` renders 37 widgets.
 
-## ISSUE-64 · TrendCard charts have no Y-axis values (Article Pageviews trend, CIM Views Over Time) — **done 2026-09-10** (GitHub #42)
+## ISSUE-64 · TrendCard charts have no Y-axis values (Article Pageviews trend, CIM Views Over Time) — **done + DEPLOYED 2026-09-10** (GitHub #42)
 
 **What (GitHub issue #42):** trend-style charts rendered a min–max normalized
 sparkline with zero Y information — no ticks, no min/max, no current value —
@@ -2822,3 +2822,9 @@ inputs, zero-based option) → npm test 212.
 ticks + gridlines; switching the article via Board Controls (Marie Curie)
 re-aims the ticks (max 20,937); a Wikimedia 429 mid-check surfaced the
 ISSUE-61 rate-limit message and Retry recovered cleanly.
+
+**DEPLOYED 2026-09-10** (merged via PR #43; production bundle
+index-D9wl_Ty8.js): re-verified on https://wikibento.toolforge.org/ —
+Einstein trend ticks `12K / 10K / 8K` live, the zero-based toggle flips the
+production card to `12K / 6K / 0` after ⚙ → Apply & Reload. GitHub #42
+closed by the merge.
