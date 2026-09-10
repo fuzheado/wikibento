@@ -108,7 +108,7 @@
       "id": "leaderboard",
       "widgetType": "cimLeaderboard",
       "config": {
-        "scope": "deep",
+        "scope": "shallow",
         "wiki": "all-wikis",
         "month": "{{month}}",
         "refreshSeconds": 3600

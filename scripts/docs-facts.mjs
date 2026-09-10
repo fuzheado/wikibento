@@ -13,7 +13,8 @@
  *
  *   - Counts are DERIVED here from the registry and the catalog, so adding a
  *     widget fails this gate until the prose is updated. That is the point —
- *     it is a reminder, not a nuisance.
+ *     it is a reminder, not a nuisance. Checked in README + HANDOFF *and* in the
+ *     board configs under public/ (a markdown card can carry a stale count too).
  *   - Byte sizes are BOUND-checked in magnitude, never pinned to decimals: exact
  *     bytes change with every source change, and a README number would need
  *     hand-maintenance on each build. (Corollary, learned the hard way: never
@@ -99,6 +100,18 @@ const INTERNAL_DOCS = {
 const DOCS = ['README.md', 'HANDOFF.md'];
 const prose = Object.fromEntries(DOCS.map((d) => [d, read(d)]));
 
+// Board configs carry user-visible prose too (markdown cards, board titles) and
+// drift the same way: the demo hub's markdown claimed "37 widget types" while
+// the registry held 38, and nothing checked it because it lives in JSON. Count
+// claims are verified there as well; the volatile-facts rules are not (a board
+// may legitimately embed a hash in a QR payload or a URL).
+const COUNT_SOURCES = [
+  ...Object.entries(prose),
+  ...readdirSync(join(ROOT, 'public'))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => [`public/${f}`, read(`public/${f}`)]),
+];
+
 console.log('\ndocs-facts constitution — docs may not contradict the code\n');
 console.log(
   `derived: ${REGISTRY} registry types (${FETCHING} data-driven + ${STATIC} static) · ` +
@@ -149,19 +162,18 @@ const COUNT_RULES = [
 
 check('claimed widget counts match the registry and catalog', () => {
   const bad = [];
-  for (const [doc, text] of Object.entries(prose)) {
+  for (const [doc, text] of COUNT_SOURCES) {
     for (const rule of COUNT_RULES) {
       for (const m of text.matchAll(rule.re)) {
         const claimed = Number(m[1]);
         if (!rule.expect().includes(claimed)) {
-          const line = text.slice(0, m.index).split('\n').length;
-          bad.push(`${doc}:${line} claims "${m[0]}" but truth is ${rule.why}`);
+          bad.push(`${doc} claims "${m[0]}" but truth is ${rule.why}`);
         }
       }
     }
   }
   if (bad.length) fail(bad.join('\n    '));
-  return `${DOCS.length} docs agree with ${REGISTRY} types / ${CATALOG_WIDGETS} catalog widgets`;
+  return `${COUNT_SOURCES.length} sources (docs + board configs) agree with ${REGISTRY} types / ${CATALOG_WIDGETS} catalog widgets`;
 });
 
 // ── 2. the prose static-widget list names every static widget ────────────────
@@ -187,6 +199,31 @@ check('the README static-widget list matches the registry exactly', () => {
     );
   }
   return `${STATIC} static widgets named: ${listed.join(', ')}`;
+});
+
+// ── 2b. prose counts derivable from a board config ──────────────────────────
+// The glam demo's prose states how many institutions it switches between, and
+// the number of options in its `collection` param states how many there are.
+// README said "six institutions" while the param held five.
+check("the glam demo's institution count matches its collection param", () => {
+  const glam = JSON.parse(read('public/glam-demo.json'));
+  const options = glam?.params?.collection?.options;
+  if (!Array.isArray(options) || !options.length) {
+    fail('public/glam-demo.json no longer declares a collection param with options');
+  }
+  const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+  const bad = [];
+  for (const [doc, text] of COUNT_SOURCES) {
+    for (const m of text.matchAll(/([A-Za-z]+)\s+(?:CIM-registered\s+)?institutions\b/gi)) {
+      const n = WORDS[m[1].toLowerCase()];
+      if (n === undefined) continue; // e.g. the literal placeholder "N institutions"
+      if (n !== options.length) {
+        bad.push(`${doc} claims "${m[0]}" but the collection param has ${options.length} options`);
+      }
+    }
+  }
+  if (bad.length) fail(bad.join('\n    '));
+  return `prose agrees with the ${options.length} collection options`;
 });
 
 // ── 3. the showcase catalog really shows every widget type ───────────────────
