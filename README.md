@@ -69,7 +69,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 | **Category Size** | 📁 | MediaWiki API `categoryinfo` | File/page/subcat breakdown for any category (Commons or enwiki), with optional **random photo sample** |
 | **GLAM Category Usage** | 📈 | PetScan via same-origin `/api/petscan` relay + WMF pageviews (GLAMorgan-style) | Files/used/pages/views for a category tree + month (file budget up to 30,000), top-image filmstrip, per-page usage detail — clickable category & page links |
 | **CIM Category Snapshot** | 🎯 | [CIM](https://wikimedia.org/api/rest_v1/metrics/commons-analytics/) `category-metrics-snapshot` | Exact **precomputed** stats for a CIM-registered category: files · used · wikis · pages (deep/shallow) |
-| **CIM Views Over Time** | 📈 | CIM `pageviews-per-category-monthly` | Monthly pageview trend of pages using the category's files (2–24 months) |
+| **CIM Views Over Time** | 📈 | CIM `pageviews-per-category-monthly` | Monthly pageview trend of pages using the category's files (2–24 months) — Y-axis ticks + gridlines, ⚙ zero-based toggle (ISSUE-64) |
 | **CIM Top Files** | 🖼️ | CIM `top-viewed-media-files-monthly` + `imageinfo` | Most-viewed files with thumbnails + views |
 | **CIM Top Wikis** | 🌍 | CIM `top-wikis-per-category-monthly` | Which wikis use the category's files most |
 | **CIM Top Pages** | 📄 | CIM `top-pages-per-category-monthly` | Pages using the files, by views |
@@ -296,7 +296,28 @@ wikibento/
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
 
-## Verified Working (smoke-tested 2026-08-12, updated 2026-09-09)
+## Verified Working (smoke-tested 2026-08-12, updated 2026-09-10)
+
+### Trend chart Y-axis + scale toggle (ISSUE-64, 2026-09-10 — GitHub #42)
+
+- ✅ **TrendCard Y-axis ticks + gridlines:** Article Pageviews (trend mode) and
+  CIM Views Over Time previously rendered a min–max normalized sparkline with
+  zero Y information — a 50→55 series looked identical to a 5M→5.5M series.
+  Now: 3 gridlines + tick labels (top = max, mid = (min+max)/2, bottom = min),
+  exact values on hover ("latest 10,089 · min 7,747 · max 12,310"), labels
+  hidden on very narrow cards via container query. Scale is deliberately
+  min–max (NOT zero-based — a zero baseline would flatten pageview series);
+  shared helpers in `src/lib/format.js` (`compactNum` + `trendYScale`, also
+  used by CIM File Traffic). Constitution: `tests/trend-axis.test.mjs`.
+- ✅ **Y-scale toggle:** ⚙ **"Y axis starts at 0"** on both widgets — zero-based
+  (honest magnitude: Einstein reads `12K / 6K / 0` instead of `12K / 10K / 8K`)
+  vs the default min–max view. Persists, exports, and round-trips like any
+  config field.
+- ✅ **Ask board assembly (ISSUE-44 Phase 3a, 2026-09-09):** 🧩 Whole board mode
+  — describe a multi-widget need, get a complete wired board (params block +
+  widgets + `{{param}}`/`{{widget:id}}` wiring) added **below** the current
+  board with one-click Undo. See `docs/ISSUES.md` → ISSUE-44 Phase 3a and
+  PR #40.
 
 ### GLAM & CIM — impact metrics (2026-08-13 → 09-08)
 
