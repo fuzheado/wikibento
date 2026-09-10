@@ -2905,3 +2905,51 @@ downloaded a byte-identical standalone file (5,975 B, quiet zone included).
 Live Ask (`llm-qwen36-27b`): QR intents return `qrCode` with the named URL,
 and "follow whichever article my pageviews card shows" uses
 `{{widget:…}}` interpolation per the new guidance.
+
+
+## ISSUE-66 · Live edit stream from EventStreams (subscriber-once) (GitHub issue #56) — **open**
+
+**What:** the first "live" aspect of WikiBento — widgets consuming the
+Wikimedia EventStreams `recentchange` SSE feed, so a board shows what is
+happening *now* rather than a polled snapshot. Requested by Andrew,
+2026-09-10, with the design questions: is the event rate feasible, can
+several widgets share one subscription, and does this belong in the
+standard emitter framework or need different wiring for performance?
+
+**Why:** it is the missing "live" dimension of the tool, and the engine
+behind demo G — "The Living Encyclopedia Wall" (`docs/DEMO-IDEAS.md:122`).
+Also the only path to a genuine "happening now" signal
+(`docs/AGENT-MEMO.md:80`, `docs/WIDGET-IDEAS.md:414`).
+
+**Feasibility (verified 2026-09-10, measured — not taken from docs):**
+- Rate **67.4 events/sec** (20 s curl window; 4,046/min), browser
+  `EventSource` **41.8/sec** over 15 s from a real page origin, 0 errors.
+- Payload mean 1,396 B → **5.4 MB/min, 323 MB/hour** per open board.
+- `JSON.parse` in Chromium: median **0.1 ms** → parsing is NOT the
+  bottleneck; rendering/persistence is.
+- CORS `access-control-allow-origin: *` → browser-direct, no proxy, no key
+  (same happy category as MinT, `references/mint-translate-2026-09.md`).
+- Composition: **categorize 59 %**, bot-flagged **23 %**, ns0 only **25 %**,
+  commonswiki 56 % by volume → filtering is a product requirement.
+- Constraints: no server-side filtering; **15-min server-enforced
+  connection timeout** (auto-reconnect + `Last-Event-ID` resume); discard
+  `meta.domain === 'canary'`; composite streams comma-separated.
+
+**Proposed fix:** `src/lib/liveStream.js` — a refcounted subscription
+registry (ONE EventSource per stream per board, closed with the last
+subscriber), a windowed reduction layer (fixed-size ring buffer + counters,
+UI coalesced to ~1 Hz), and an **optional reduced emitter** (`lines` =
+top-N pages, `count` = edits/min) published on a throttle — i.e. the
+emitter framework carries the *reduction*, never the feed. Add a
+`live: true` registry declaration, pause-on-hidden-tab and a reconnecting
+badge. Candidates: `liveEdits`, `editSpike` (vs. the ISSUE-28 baseline),
+`liveWall`.
+
+**Tests:** a fake-stream unit test for the registry (one connection for N
+subscribers, refcount teardown, canary discard, windowed aggregates) plus a
+browser probe asserting one connection and a live count. No live-network
+dependency in the unit tier.
+
+**Out of scope:** server-side filtering, persisting events, per-widget
+connections, and high-traffic public deployment (the service is for
+small-scale external tools).
