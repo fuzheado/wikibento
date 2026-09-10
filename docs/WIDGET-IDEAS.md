@@ -738,3 +738,85 @@ Sequencing note: 1–3 exist or are filed (#16/#18/#19). Reducers and the
 QID↔label enricher slot in as cheap Phase-1.5 follow-ups to #18; MinT
 translate is the recommended first service-backed AI node after the
 Summarizer because it needs no keys and no proxy.
+
+
+## Screen-output widgets — the display/output genre (2026-09-10 brainstorm)
+
+**Trigger:** the QR Code widget (ISSUE-65, PR #47) turned out to be the first
+member of a family the registry had never named: nodes whose job is to move
+something **out** of the board — to a hand, a room, or paper. None of them fetch
+or compute much; all are `nodeKind: display`, all inherit kiosk mode and
+config-as-URL, and per the *Emitter Contract* (docs/WIDGET-DEVELOPMENT.md) they
+mostly **emit nothing** — cheap to build and safe to compose. Two exceptions are
+noted where a text output is the natural second act.
+
+**Verified before writing this (2026-09-10, built dist + real Chromium):** the
+demo pattern the family is built around works today — Board Controls buttons
+writing a `target` param into a QR card whose text is `{{target}}`; each click
+re-encoded the code in **49–69 ms** (37×37 → 49×49 → 37×37 modules), and all
+four rendered states were decoded from their pixels by an independent decoder
+(OpenCV) to exactly the clicked targets. So "click a card, the room scans the
+code that appears" needs no new machinery — only `{{param}}` / `{{widget:<id>}}`.
+
+### A. Bridges — screen → hand
+
+- **QR Wall** *(S, top pick)* — a grid of small code + caption pairs, one row
+  per line of a `listSource` / `articleList` feed. The "pick your article"
+  board: six titles, six codes, audience chooses. Pure dataflow consumer of an
+  existing emitter; no new fetchers. Natural extension of the single-code card.
+- **Short-link companion (`w.wiki`)** *(S–M)* — show the Wikimedia short URL for
+  the current selection and feed *that* into a QR: 25×25 modules instead of
+  49×49 scans from across a room. ⚠ Auth caveat: expansion is open, but
+  **creating** short URLs needs OAuth (meta.wikimedia.org `action=shortenurl`) —
+  so v1 is "paste/param a short link", full automation only if we adopt auth.
+  Stays inside the movement: no commercial shortener, no scan analytics.
+- **Attribution / credit card** *(S)* — for the Commons file on screen, the exact
+  credit line + license + source link, one-click copy. License compliance is a
+  recurring failure mode in GLAM/Wikipedia reuse; this is the most mission-aligned
+  member of the family. Could **emit** its text (`kind: 'value'`) so a QR or
+  Markdown card can consume it (credit line → QR of the license URL).
+- **Cite-this card** *(S–M)* — generate `{{cite web}}` / citation wikitext for the
+  displayed article → copy. Text output; no new fetchers (needs a citation
+  builder); emits like `echo` for reuse in a Markdown/"how to cite" panel.
+- **Embed-snippet card** *(S)* — emits/offers the `<iframe src="…?config=…">` for
+  the current board, so a demo can be dropped into a wiki page or a blog. The
+  cheap distribution win for outreach (already listed as an effector in the Node
+  Algebra family 7).
+
+### B. Room-scale presenters — screen → audience
+
+- **Stage / Spotlight** *(M)* — the "slide" of a live demo: big image + title +
+  extract for whatever is selected, other cards dimmed. The demo centrepiece;
+  the dimming/sequencing half is **Phase 2.5 Stage & Scene** (already scoped in
+  ROADMAP), the card itself is straightforward.
+- **Marquee / Ticker** *(S)* — oversized scrolling headline from a param or a
+  feed ("Ada Lovelace · 12,345 views today"). Fills a projector, reuses existing
+  data, no new API. Broadcast look for editathon rooms.
+- **Live activity wall** *(M–L)* — recent edits streaming in as they happen
+  (EventStreams; public stream, no key). The classic editathon wall: the most
+  impressive and the most work (streaming, throttling, backpressure in a card).
+- **Full-bleed photo wall** *(M)* — auto-advancing Commons images with attribution
+  burned in; kiosk eye-candy that also demonstrates CC-BY compliance. Reuses the
+  gallery fetchers; needs full-bleed/hide-chrome (kiosk mode exists).
+- **Countdown / session clock** *(XS)* — "sprint ends in 12:34". Trivial, and
+  genuinely useful at editathons.
+- **Presenter cue card** *(S)* — the script for the next step, driven by the same
+  sequence/params; pairs with Stage (hide-chrome on the audience screen).
+
+### C. Paper — screen → physical
+
+- **Print / label card** *(S–M)* — print-ready panel: image + title + attribution
+  + **QR as an ingredient** (this widget's output consumed by a layout card) with
+  a print stylesheet. GLAM wall labels, editathon tables, sticker sheets.
+- **Poster / one-pager** *(L)* — compose title + image + credit + QR into one
+  artifact. This is the family-7 compositor, and the **first real customer for
+  docs/MEDIA-DATAFLOW.md** (text+image composition = Tier 3 or a print-stylesheet
+  Tier 2 hack).
+
+### Why these are cheap (and why they belong together)
+
+They are display nodes: no `fetch`, no `timeScope` date obligations, no emitter
+contract to satisfy — they read `{{param}}` / `{{widget:<id>}}` and put something
+on the screen. That means every one of them is **one registry entry + one card +
+one widget-test**, the shape the QR widget just proved end to end. The open
+design work is the *Stage* (dimming/sequencing), not the individual cards.
