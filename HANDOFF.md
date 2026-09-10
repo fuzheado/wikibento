@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-D9wl_Ty8.js` |
-| deployed | 2026-09-10 |
+| production bundle | `index-6udjc6im.js` (+ `index-C-pGdSgK.css`) |
+| deployed | 2026-09-10 (second deploy that day) |
 | registry | 38 widget types — 29 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | **🔳 QR widget code (PR #47 — merged, never deployed: live has no QR)**, the 39-widget showcase catalog (🛒 Board Controls added, 🔳 QR now included), and the docs log split + `docs-facts` gate |
+| pending deploy | none — this branch's tip is live; only docs changed after it (PR [#58](https://github.com/fuzheado/wikibento/pull/58) is open, so `main` is one merge behind production) |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered

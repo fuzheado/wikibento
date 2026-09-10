@@ -48,6 +48,7 @@ for, not a claim about behaviour today.
 
 | date | bundle | commit | ships |
 |---|---|---|---|
+| 2026-09-10 | `index-6udjc6im.js` | `e658dab` | Second deploy: finally ships the 🔳 **QR widget** (PR #47 — merged earlier the same day, never deployed) together with the new `deploy/server.js` (the Ask dataflow manual is now *derived from the manifest*, so a new emitter can't be silently missing from the prompt), the complete **39-widget showcase catalog** (🛒 Board Controls driving an `article` param that re-aims five cards, 🔳 QR), the `docs-facts` constitution and the HANDOFF now-document split |
 | 2026-09-10 | `index-D9wl_Ty8.js` | `534cff7` | ISSUE-64: TrendCard Y-axis ticks + gridlines + `zeroY` scale toggle (Article Pageviews trend, CIM Views Over Time) — GitHub #42, PR #43 |
 | 2026-09-10 | `index-TTSz7Lkm.js` | `edd68f0` | ISSUE-44 Phase 3a: Ask **board assembly** (describe a board → wired params + widgets + `{{widget:id}}`, added below the current board with Undo). Superseded same day by the ISSUE-64 deploy |
 | 2026-09-09 | `index-DxO6r8uA.js` | `e29fe77`, `e75dd19` | Demo suite + `?config=/demos.json` hub (ISSUE-63), custom-URL embeds (ISSUE-62), rate-limit guards (ISSUE-61), user guide + config-URL error handling (ISSUE-60), Ask manifest v3 |
@@ -87,6 +88,22 @@ The lessons that only showed up *after* deploying — worth keeping because each
 one changed the code or the procedure. Nothing here is a current to-do; it is
 the record of what deploying taught us.
 
+- **`dist/` is not the whole deploy — check `deploy/` too** (2026-09-10). The
+  second deploy needed `deploy/server.js` as well as `dist/`, because the Ask
+  dataflow manual had moved from a hardcoded list to one derived from the
+  manifest. Shipping only the new `dist/` would have left production running the
+  old server that still claimed "only these five widgets emit" — wrong for the
+  first time a sixth emitter (qrCode) existed. Before deploying, diff the
+  deployed commit against `HEAD` and include `deploy/` when it changed:
+  `git diff --stat <deployed-commit>..HEAD -- deploy/`.
+- **A deploy can carry several sessions' merged work.** This one shipped the QR
+  widget (PR #47), the derived-manual server change, and the catalog/docs work
+  together, because `main` had accumulated merged-but-undeployed commits. Verify
+  the *live* result, not just the deploy commands — the checklist used here was:
+  served bundle hash, `/api/resolve` → 200, `/manifest.json` (v3, `widgetCount`,
+  emitters present), `/dashboard.json` (39 widgets / 38 types / `params.article`),
+  and a browser pass on the live board (frames rendered, 0 error frames, the QR
+  card's inline SVG, and the param switcher re-aiming all five cards).
 - **`main` SHA and running test totals do not belong in prose** (2026-09-10).
   HANDOFF's `main = afd308a` was already stale, and its `npm test 212` was 229 by
   the time anyone read it. Now enforced by `scripts/docs-facts.mjs`.
