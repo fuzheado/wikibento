@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-10T08:56:13.826Z",
- "widgetCount": 37,
+ "generatedAt": "2026-09-10T11:37:57.057Z",
+ "widgetCount": 38,
  "widgets": [
   {
    "id": "pageviews",
@@ -481,6 +481,65 @@
     "allowExternalImages",
     "refreshSeconds"
    ]
+  },
+  {
+   "id": "qrCode",
+   "name": "QR Code",
+   "icon": "🔳",
+   "description": "Turns any text or URL into a scannable QR code — a phone-readable bridge from a board, a printed handout or a kiosk screen to a Commons category, PetScan query, Wikidata item or board permalink. Encodes locally (ISO/IEC 18004): no shortener, no redirect, no analytics, no network",
+   "dataSource": "static (no fetch — local encoding, qrcode-generator)",
+   "category": "Content & Embeds",
+   "type": "embed",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "text",
+     "type": "textarea",
+     "label": "Text or URL to encode ({{params}} / {{widget:id}} resolve here)",
+     "hint": "Any text works; a URL is the common case. Board params ({{param}}) and other widgets' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews card has selected).",
+     "placeholder": "https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons"
+    },
+    {
+     "key": "ecLevel",
+     "type": "select",
+     "label": "Error correction",
+     "hint": "Auto starts at H and steps down (H → Q → M → L) until the payload fits. Higher levels survive damage but make the code denser.",
+     "options": [
+      "auto",
+      "L",
+      "M",
+      "Q",
+      "H"
+     ]
+    },
+    {
+     "key": "margin",
+     "type": "number",
+     "label": "Quiet zone (modules)",
+     "hint": "White border around the code. The spec asks for 4 modules — needed to scan a saved SVG on its own. Use 0 only inside an already-white padded container.",
+     "placeholder": "4"
+    },
+    {
+     "key": "caption",
+     "type": "text",
+     "label": "Caption (optional)",
+     "placeholder": "Scan for the Commons category"
+    }
+   ],
+   "defaults": [
+    "text",
+    "ecLevel",
+    "margin",
+    "caption",
+    "refreshSeconds"
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   },
   {
    "id": "excerpt",

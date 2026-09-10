@@ -37,6 +37,7 @@ import {
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
 import { toLines, countOf } from '../lib/dataflow';
+import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
 const NAMESPACE_LABELS = {
   '0': 'articles only',
@@ -546,6 +547,94 @@ export const WIDGET_TYPES = {
     ],
     // No fetch — a static widget: WidgetFrame renders transform(null, config)
     transform: (data, config) => ({ markdown: config.text, allowExternalImages: config.allowExternalImages }),
+  },
+
+  qrCode: {
+    id: 'qrCode',
+    nodeKind: 'display',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'QR Code',
+    icon: '🔳',
+    description: 'Turns any text or URL into a scannable QR code — a phone-readable bridge from a board, a printed handout or a kiosk screen to a Commons category, PetScan query, Wikidata item or board permalink. Encodes locally (ISO/IEC 18004): no shortener, no redirect, no analytics, no network',
+    labelFromConfig: (c) => (c.caption || '').trim() || undefined,
+    defaults: {
+      text: 'https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons',
+      ecLevel: 'auto',
+      margin: 4,
+      caption: '',
+      refreshSeconds: 86400,
+    },
+    renderer: 'QrCard',
+    dataSource: 'static (no fetch — local encoding, qrcode-generator)',
+    defaultLayout: { w: 4, h: 6, minW: 2, minH: 4 },
+    configFields: [
+      {
+        key: 'text',
+        label: 'Text or URL to encode ({{params}} / {{widget:id}} resolve here)',
+        type: 'textarea',
+        rows: 4,
+        placeholder: 'https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons',
+        hint: 'Any text works; a URL is the common case. Board params ({{param}}) and other widgets\' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews card has selected).',
+      },
+      {
+        key: 'ecLevel',
+        label: 'Error correction',
+        type: 'select',
+        options: [
+          { value: 'auto', label: 'Auto — strongest level that fits (recommended)' },
+          { value: 'L', label: 'L — ~7% recovery (densest payloads)' },
+          { value: 'M', label: 'M — ~15% (the Share panel\'s level)' },
+          { value: 'Q', label: 'Q — ~25%' },
+          { value: 'H', label: 'H — ~30% (best for print, glare, smudges)' },
+        ],
+        hint: 'Auto starts at H and steps down (H → Q → M → L) until the payload fits. Higher levels survive damage but make the code denser.',
+      },
+      {
+        key: 'margin',
+        label: 'Quiet zone (modules)',
+        type: 'number',
+        placeholder: '4',
+        hint: 'White border around the code. The spec asks for 4 modules — needed to scan a saved SVG on its own. Use 0 only inside an already-white padded container.',
+      },
+      { key: 'caption', label: 'Caption (optional)', type: 'text', placeholder: 'Scan for the Commons category' },
+    ],
+    // No fetch — static: WidgetFrame renders transform(null, config). Encoding
+    // is local, so a QR renders instantly and works offline / on a kiosk.
+    transform: (data, config) => {
+      const text = String(config.text ?? '');
+      const requested = String(config.ecLevel || 'auto');
+      const tooLong = text.length > QR_MAX_CHARS;
+      let ecLevel = null;
+      let note = '';
+      if (text && !tooLong) {
+        if (requested === 'auto') {
+          ecLevel = fitEcLevel(text);
+          if (ecLevel && ecLevel !== 'H') note = `error correction stepped down to ${ecLevel} to fit`;
+          if (!ecLevel) note = 'too long for any QR version';
+        } else {
+          ecLevel = fitEcLevel(text, requested);
+          if (ecLevel && ecLevel !== requested) note = `error correction reduced from ${requested} to ${ecLevel} to fit`;
+          if (!ecLevel) note = 'too long for any QR version';
+        }
+      }
+      return {
+        text,
+        ecLevel,
+        requestedEc: requested,
+        note,
+        tooLong,
+        dense: !tooLong && text.length > QR_DENSE_CHARS,
+        maxChars: QR_MAX_CHARS,
+        maxBytes: QR_BYTE_CAPACITY.L,
+        margin: Number.isFinite(Number(config.margin)) ? Math.max(0, Math.min(16, Number(config.margin))) : 4,
+        caption: String(config.caption ?? ''),
+      };
+    },
+    // The encoded string is the widget's payload — downstream cards (Value
+    // Display, Filter, Translator) can reuse it via {{widget:<this id>}}.
+    outputs: { kind: 'value' }, // emitted: the encoded text exactly as shown
+    emit: (data) => (data?.text ? data.text : undefined),
   },
 
   excerpt: {

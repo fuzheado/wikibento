@@ -26,7 +26,7 @@ const SSH_TARGET = process.env.TOOLFORGE_SSH || `${process.env.USER || 'alih'}@d
 const ASK_UA = process.env.WIKIMEDIA_USER_AGENT || 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) ablation';
 const UPSTREAM = `https://api.wikimedia.org/service/lw/inference/v1/models/${MODEL}/openai/v1/chat/completions`;
 
-const { ASK_SYSTEM, ASK_MANUAL, ASK_RULES } = await import('../deploy/server.js');
+const { ASK_SYSTEM, askManual, ASK_RULES } = await import('../deploy/server.js');
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const { INTENT_FIXTURES } = await import(pathToFileURL(resolve(process.cwd(), 'tests/intent-fixtures.mjs')).href);
 const { scoreOptions, summarizeScorecard } = await import('../tests/intent-benchmark-lib.mjs');
@@ -74,7 +74,7 @@ function callLlm(system, user) {
 
 const summary = {};
 for (const v of VARIANTS) {
-  const system = ASK_SYSTEM(v.manifest) + ASK_MANUAL + ASK_RULES;
+  const system = ASK_SYSTEM(v.manifest) + askManual(v.manifest) + ASK_RULES;
   const rows = [];
   for (const f of INTENT_FIXTURES) {
     let options = [];

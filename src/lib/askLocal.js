@@ -33,6 +33,7 @@ const INTENT_PATTERNS = [
   { re: /panorama|360/, w: 'panorama360', reason: 'Panorama Viewer renders an equirectangular Commons file as a 360° view.' },
   { re: /3d|three.dimension|model/, w: 'panorama360', reason: 'Panorama Viewer is the closest current fit for 3D-like content (a 360° panorama).' },
   { re: /top.{0,20}(article|page)/, w: 'topPages', reason: 'Top Wikipedia Articles lists the most-visited articles of a language edition.' },
+  { re: /\bqr\b|qr ?code|qrcode/, w: 'qrCode', reason: 'QR Code turns the link into a scannable code, encoded locally (no shortener, no tracking).' },
   { re: /(quality|fa|ga|class)/, w: 'quality', reason: 'Article Quality predicts an article\'s FA/GA/B/C/Start/Stub class.' },
   { re: /(edit|history|recent).{0,20}(edit|change)/, w: 'edithistory', reason: 'Edit History lists recent edits with byte deltas.' },
   { re: /(category|collection).{0,30}(size|how many|count)/, w: 'categorySize', reason: 'Category Size shows a category\'s file/page/subcat breakdown.' },
