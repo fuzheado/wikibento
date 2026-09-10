@@ -1,8 +1,53 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-09-09 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*Last updated: 2026-09-10 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
 
-## Recent Work (2026-09-09)
+## Recent Work (2026-09-10)
+
+### ISSUE-64: TrendCard Y-axis + scale toggle — **DEPLOYED** (PR #43, GitHub #42)
+
+- **The gap (GitHub #42):** trend charts (Article Pageviews trend mode, CIM
+  Views Over Time) rendered a min–max normalized sparkline with zero Y
+  information — a 50→55 series looked identical to a 5M→5.5M series.
+- **The fix:** `src/lib/format.js` (new) — `compactNum` (the 254K/1.2M tick
+  format, extracted from FileTrafficCard which now reuses it) +
+  `trendYScale(values, { zero })` (pure tick spec: top = max, mid =
+  (min+max)/2, bottom = min; viewBox fractions 12/96). TrendCard draws 3
+  gridlines + an HTML tick-label column aligned at the same fractions
+  (SVG text would distort under preserveAspectRatio="none") + aria-label/
+  `<title>` tooltip with exact values. Narrow cards (<230px) hide labels via
+  a container query. Scale deliberately NOT zero-based by default — a zero
+  baseline would flatten pageview series; **the scale is now a ⚙ toggle**
+  ("Y axis starts at 0", `zeroY`) on both widgets — verified live: zero mode
+  reads 12K/6K/0.
+- **Deployed:** production bundle index-D9wl_Ty8.js; ticks + toggle
+  re-verified live on wikibento.toolforge.org. GitHub #42 closed by PR #43.
+- Constitution: tests/trend-axis.test.mjs (11 tests) → npm test 212.
+
+### Ask board assembly — ISSUE-44 Phase 3a **DEPLOYED** (PR #40)
+
+- 🧩 **Whole board mode** in the Ask advisor: describe a multi-widget need →
+  a complete wired board fragment (params block + widgets with model-assigned
+  ids + {{param}}/{{widget:id}} wiring) validated by the new server-side
+  `validateAssembly` (iterative dangling-ref pruning, caps 8 widgets/4 params)
+  and added **below the current board** (additive, never supplants) with a
+  one-click Undo toast. Client merge handles id collisions (atomic repoint,
+  ISSUE-53 machinery) and param collisions (incompatible → rename + repoint,
+  never reinterpret). Constitution: tests/assembly.test.mjs (10 tests).
+  Verified end-to-end in the browser incl. param-driven re-aim and reload
+  persistence; **deployed** (same session, bundle index-TTSz7Lkm.js, then
+  superseded by today's second deploy).
+- De-risked by the benchmark's board-assembly probe (3/3 coherent boards,
+  zero dangling refs — `scripts/probe-ask-edge.mjs --assembly`).
+
+### Benchmark artifacts reorganized under `bench/` (PR #41)
+
+- The 11 root-level `bench-*` files moved to `bench/README.md` +
+  `bench/results/*.json` (date-prefixed, chronological); `--out` now joins
+  `bench/results/` for bare filenames. Rounds 1–3 of the Ask benchmark
+  (prompt-variant null result, board fixtures + chain scoring, paraphrase +
+  multilingual + ablation experiments, the Toolforge high-tier trick) were
+  committed to main the same day — full write-up in `bench/README.md`.
 
 ### Ask benchmark: prompt-variant comparison + board-construction suite (2026-09-09, afternoon)
 
@@ -611,11 +656,12 @@ on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
 - ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
 - ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
 - ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). **Current production bundle = index-DxO6r8uA.js** (deployed
-  2026-09-09 — 37 widget types: demo suite + hub, custom-URL embeds, rate-limit guards, Ask
-  manifest v3, user guide, plus the day's earlier speaker/translator/guard/panel/param work;
-  main = a71fff4);
-  prior same-day deploys: index-DWKLfppo.js, index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
+- ✅ Git repo on GitHub (main). **Current production bundle = index-D9wl_Ty8.js** (deployed
+  2026-09-10 — ISSUE-64 TrendCard Y-axis + zero-based toggle on top of 2026-09-09's
+  board-assembly deploy index-TTSz7Lkm.js — Ask board assembly, ISSUE-64 axes,
+  bench/ reorg; main = afd308a);
+  prior deploys: index-DxO6r8uA.js (demo suite + hub 2026-09-09);
+  index-DWKLfppo.js, index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
   index-ejrRtwiS.js / index-BLGokffr.js / index-DHc3p4sT.js (GLAM 2026-09-08);
   index-DClvfKWq.js CIM gap indicator 2026-09-03,
   index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
