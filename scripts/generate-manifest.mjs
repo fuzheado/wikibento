@@ -39,7 +39,7 @@ const TYPE_BY_RENDERER = {
   GalleryGridCard: 'media', GalleryListCard: 'media', CimTopFilesCard: 'media',
   WaybackGalleryCard: 'media', PanoramaCard: 'media',
   SparqlCard: 'query', TranslateCard: 'query',
-  MarkdownCard: 'embed', WikiPageCard: 'embed', SpeakerCard: 'embed',
+  MarkdownCard: 'embed', WikiPageCard: 'embed', SpeakerCard: 'embed', QrCard: 'embed',
   ListSourceCard: 'table', EchoCard: 'table',
 };
 

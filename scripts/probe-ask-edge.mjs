@@ -27,7 +27,7 @@ const SSH_TARGET = process.env.TOOLFORGE_SSH || `${process.env.USER || 'alih'}@d
 const ASK_UA = process.env.WIKIMEDIA_USER_AGENT || 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) probe';
 const UPSTREAM = `https://api.wikimedia.org/service/lw/inference/v1/models/${MODEL}/openai/v1/chat/completions`;
 
-const { ASK_SYSTEM, ASK_MANUAL, ASK_RULES, manifestIds } = await import('../deploy/server.js');
+const { ASK_SYSTEM, askManual, ASK_RULES, manifestIds } = await import('../deploy/server.js');
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const defs = manifestIds(manifest);
 
@@ -67,7 +67,7 @@ const OOS_PROMPTS = [
 
 if (!args.includes('--assembly')) {
   console.log(`OUT-OF-SCOPE REJECTION (${MODEL}) — expect {"options": []} and no invented widget ids\n`);
-  const system = ASK_SYSTEM(manifest) + ASK_MANUAL + ASK_RULES;
+  const system = ASK_SYSTEM(manifest) + askManual(manifest) + ASK_RULES;
   let pass = 0;
   for (const p of OOS_PROMPTS) {
     let raw = '';
@@ -115,7 +115,7 @@ const ASSEMBLY_PROMPTS = [
 ];
 
 console.log(`BOARD-ASSEMBLY SCHEMA PROBE (${MODEL})\n`);
-const system = ASK_SYSTEM(manifest) + ASK_MANUAL + ASSEMBLY_MANUAL + ASK_RULES;
+const system = ASK_SYSTEM(manifest) + askManual(manifest) + ASSEMBLY_MANUAL + ASK_RULES;
 for (const p of ASSEMBLY_PROMPTS) {
   let raw = '';
   try { raw = stripThink(callLlm(system, p)); } catch (e) { console.log(`  ✗ "${p.slice(0, 40)}" → ${e.message.slice(0, 100)}`); continue; }

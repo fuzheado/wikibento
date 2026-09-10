@@ -206,7 +206,8 @@ Beyond board params, a widget can **emit** its output and another widget can
   warning (they can't be referenced via interpolation/the picker).
 
 Emitting widget types (current): `listSource` (the lines), `filterLines`
-(the filtered lines), `lineCount` (the number), `echo` (pass-through), and
+(the filtered lines), `lineCount` (the number), `echo` (pass-through),
+`qrCode` (the encoded text), and
 `excerpt` (the article's first paragraph — feed it to Translator, Speaker or
 Markdown via `text: "{{widget:<excerpt-id>}}"`). The canonical demo chain
 lives at `?config=/flow-demo.json`:

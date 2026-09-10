@@ -5,6 +5,7 @@ import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
+import { qrSvg, qrModuleCount } from '../lib/qr';
 import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import '../vendor/pannellum.css';
@@ -608,6 +609,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
     case 'TrendCard': return <TrendCard data={data} />;
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
+    case 'QrCard': return <QrCard data={data} />;
     case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />;
     case 'SpeakerCard': return <SpeakerCard data={data} onSetParam={onSetParam} />;
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
@@ -873,6 +875,87 @@ function MarkdownCard({ data }) {
       className="markdown-card"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(data.markdown, { allowExternalImages: data.allowExternalImages }) }}
     />
+  );
+}
+
+/** QR Code (ISSUE-65) — encodes any text/URL locally and renders it as inline
+ *  SVG. White code area + quiet zone: a QR needs a light background and a
+ *  margin to scan, and this one must also scan as a printed or saved file
+ *  (Save SVG). The payload never leaves the page — no shortener, no redirect
+ *  hop, no scan analytics, which is the whole point of the widget. */
+function QrCard({ data }) {
+  const text = data?.text || '';
+  const ecLevel = data?.ecLevel || null;
+  const margin = data?.margin ?? 4;
+  const [saved, setSaved] = useState(false);
+  const svg = useMemo(() => {
+    if (!text.trim() || !ecLevel) return null;
+    try {
+      const label = `QR code: ${text.length > 80 ? `${text.slice(0, 80)}…` : text}`;
+      return qrSvg(text, { ecLevel, margin, label });
+    } catch {
+      return null; // encoder refused (payload too large for any version)
+    }
+  }, [text, ecLevel, margin]);
+  const modules = svg ? qrModuleCount(text, ecLevel) : null;
+
+  // Client-side download: the SVG carries its own white quiet zone, so the
+  // saved file scans on its own (print it, paste it into a sign).
+  const saveSvg = () => {
+    if (!svg) return;
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'qr-code.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  if (!text.trim()) {
+    return <div className="widget-empty">Nothing to encode yet — add a URL or some text in ⚙.</div>;
+  }
+  if (data?.tooLong) {
+    return (
+      <div className="widget-empty">
+        ⚠ {text.length.toLocaleString()} characters is too long for a scannable QR code
+        (max {(data.maxChars || 1500).toLocaleString()}). Shorten the URL — a wiki short link
+        (w.wiki) or a category/PetScan URL stays scannable.
+      </div>
+    );
+  }
+  if (!svg) {
+    return (
+      <div className="widget-empty">
+        ⚠ This text does not fit any QR version (max {(data?.maxBytes || 2953).toLocaleString()} bytes).
+      </div>
+    );
+  }
+  return (
+    <div className="qr-card">
+      <div className="qr-code-wrap" dangerouslySetInnerHTML={{ __html: svg }} />
+      {data.caption ? <div className="qr-caption">{data.caption}</div> : null}
+      <div className="qr-meta">
+        <span>EC {ecLevel}</span>
+        <span>{modules}×{modules}</span>
+        <span>{text.length.toLocaleString()} chars</span>
+        <button
+          className="qr-save"
+          onClick={saveSvg}
+          title="Download this QR as a standalone SVG (white quiet zone included)"
+        >{saved ? '✓ Saved' : 'Save SVG'}</button>
+      </div>
+      {(data.note || data.dense) && (
+        <div className="qr-notes">
+          {data.note ? <span className="qr-warn">{data.note}</span> : null}
+          {data.dense ? <span className="qr-warn">dense — scan from a larger card, or print it</span> : null}
+        </div>
+      )}
+    </div>
   );
 }
 

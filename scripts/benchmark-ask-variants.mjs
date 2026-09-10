@@ -49,7 +49,7 @@ const UPSTREAM = `https://api.wikimedia.org/service/lw/inference/v1/models/${MOD
 
 process.env.WIKIBENTO_TEST = '1';
 
-const { ASK_SYSTEM, ASK_MANUAL, ASK_RULES, validateOptions, manifestIds } = await import('../deploy/server.js');
+const { ASK_SYSTEM, askManual, ASK_RULES, validateOptions, manifestIds } = await import('../deploy/server.js');
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const defs = manifestIds(manifest);
 const { INTENT_FIXTURES } = await import(pathToFileURL(resolve(process.cwd(), FIXTURE_PATH)).href);
@@ -144,7 +144,7 @@ async function callLlmJson(system, user) {
 
 // ── Variant 1: baseline (current prompt) ──
 function systemBaseline(m) {
-  return ASK_SYSTEM(m) + ASK_MANUAL + ASK_RULES;
+  return ASK_SYSTEM(m) + askManual(m) + ASK_RULES;
 }
 
 // ── Variant 2: compact wiring reference ──
@@ -169,7 +169,7 @@ WIRING PATTERNS (how widgets connect):
 4. BOARDS are JSON configs with version, params, widgets[], layout[]. Widgets reference each other via {{param}} and {{widget:<id>}}.`;
 
 function systemCompact(m) {
-  return ASK_SYSTEM(m) + ASK_MANUAL + COMPACT_REFERENCE + ASK_RULES;
+  return ASK_SYSTEM(m) + askManual(m) + COMPACT_REFERENCE + ASK_RULES;
 }
 
 // ── Variant 3: expanded ASK_MANUAL ──

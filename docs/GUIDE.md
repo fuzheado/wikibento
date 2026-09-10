@@ -70,7 +70,8 @@ A widget can **emit** an output; others consume it two ways:
 Rules:
 
 - The producer must emit. Today: **Text List, Filter Lines, Line Count, Value
-  Display**, and **Article Excerpt** (its first paragraph).
+  Display**, **Article Excerpt** (its first paragraph), and **QR Code** (the
+  text it encodes).
 - Consumers reload automatically when the producer's value changes; identical
   re-emits are no-ops.
 - **An unresolved reference never reaches an API.** A fetching widget shows
@@ -151,6 +152,7 @@ freely; just don't duplicate a value that several widgets must agree on.
 - **Chain onward** — a Translator's output can feed another consumer once it emits.
 - **Paste a list** — Text List / Commons File Gallery / Article List take one item per line.
 - **Embed a 3D model or any page** — Wiki Page → *Custom URL* (e.g. `https://objectium.toolforge.org/uploads/213`); http(s) only, framed with a sandbox.
+- **Print a sign** — a **QR Code** card encodes any URL (or a `{{param}}`/`{{widget:<id>}}` value, so it can follow the board), carries its own white quiet zone, and offers **Save SVG** for a handout, a GLAM label or a kiosk panel. Nothing leaves the page: no shortener, no redirect, no scan tracking.
 
 ## Where to go deeper
 

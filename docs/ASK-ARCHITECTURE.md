@@ -196,6 +196,16 @@ with wiring explained, no invented board ids. Static prefix grew ≈6K → ≈8.
 tokens, still under the 12–14K ceiling. Also: `npm test` now regenerates the
 manifest before running (stale-manifest false passes eliminated).
 
+**Follow-up landed 2026-09-10 (qrCode widget):** the dataflow manual is now
+**derived from the manifest** (`askManual(m)` in `deploy/server.js`) instead of
+hardcoding "only these five emit" — the emitter list, the `source`-field
+consumer list and the free-text-field list are read out of the catalog, so a
+new widget appears in the Ask prompt automatically. Verified with the first
+widget added after the change (QR Code, the 6th emitter): the live
+`llm-qwen36-27b` answers a QR request with `qrCode` and uses the new
+`{{widget:…}}` guidance for "follow whatever my pageviews card shows".
+Static prefix ≈9.3K tokens (38 widgets).
+
 | Item | Effort | Status |
 |---|---|---|
 | Fix F2 truncation + test | S | done (PR #36) |

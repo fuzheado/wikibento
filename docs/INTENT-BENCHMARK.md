@@ -210,7 +210,7 @@ Chain scoring semantics: **chain** = the expected widget sequence appears
 in order (extra alternatives allowed — the model may add a precomputed/live
 pair); **keys** = every declared config entry's keys are present; **subject**
 same token rule as single-widget, applied per chain entry. Wiring is NOT
-gated as literal `{{widget:…}}` tokens — ASK_MANUAL (correctly) tells the
+gated as literal `{{widget:…}}` tokens — askManual(manifest) (correctly) tells the
 model never to invent board ids; the scorer records volunteered tokens
 informationally.
 

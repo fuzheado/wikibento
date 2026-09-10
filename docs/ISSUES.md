@@ -2828,3 +2828,80 @@ index-D9wl_Ty8.js): re-verified on https://wikibento.toolforge.org/ —
 Einstein trend ticks `12K / 10K / 8K` live, the zero-based toggle flips the
 production card to `12K / 6K / 0` after ⚙ → Apply & Reload. GitHub #42
 closed by the merge.
+
+## ISSUE-65 · QR widget: encode a URL/text as a scannable QR card (GitHub issue #45) — **done (branch `feature-qr-widget`)**
+
+**What:** a `qrCode` card that renders any text — a URL first — as a scannable
+QR code **on the board itself** (not only in the Share panel), with `ecLevel`,
+`margin` (quiet zone) and an optional `caption`, plus a client-side **Save SVG**
+for signage/print. Requested by fuzheado 2026-09-10; filed as GitHub issue #45
+(labels: `enhancement`, `good first issue`).
+
+**Why:** the Share panel already encodes the board's own link, but as a *card*
+the QR becomes a physical-world bridge sitting next to whatever it points at —
+GLAM signage, editathon stations, print handouts, kiosk walls. The payload is a
+direct link to a free-knowledge resource: no shortener, no redirect hop, no scan
+analytics, with all encoding local (ISO/IEC 18004).
+
+**Feasibility (verified 2026-09-10, measured against the installed library):**
+`qrcode-generator@^2.0.4` is already a dependency (MIT, zero-dep, client-side,
+no network) and `src/lib/qr.js` → `qrSvg(text)` already returns inline SVG
+(Byte mode, `type 0` auto-size, EC `M` fixed, no quiet zone); `SharePanel.jsx`
+is the working precedent (white padded container, 1,500-char cap,
+>1,000-char density warning). Byte-mode capacity measured on the installed
+build: **L 2953 / M 2331 / Q 1663 / H 1273 bytes**. Real payloads at EC `M`:
+`https://w.wiki/ABC123` (21 chars) → 25×25 modules; Commons category URL (82) →
+37×37; board `?config=` permalink (90–138) → 41×41…49×49. Capacity is therefore
+not the limit — module density in a small card is.
+
+**Proposed fix:** registry entry `qrCode` (`nodeKind: 'display'`,
+`timeScope: 'point'`, `intensity: 'low'`, zero network calls) + a `QrCard`
+renderer; extend `qrSvg(text, { ecLevel, margin })` keeping SharePanel's
+defaults byte-identical. The `text` field takes the standard interpolation
+(`{{param}}`, `{{widget:<id>}}`), so a QR can encode a *derived* value — the
+article a pageviews card is currently showing, or the live board permalink.
+Optional emitter (`outputs: { kind: 'value' }`, `echo`-shaped) to decide in
+review.
+
+**Density rules (never render an unscannable code silently):** auto-ladder the
+EC level `H` → `M` → `L` as the payload grows, warn relative to card size, and
+hard-cap at ~1,500 chars (matching SharePanel); confirm the on-screen threshold
+with a couple of real phone scans during implementation.
+
+**Phase 2 (no new dependencies — typed payloads are formatted strings):**
+`mailto:`, `tel:`, `geo:lat,lon`, Wi-Fi (`WIFI:T:WPA;S:…;P:…;;`), vCard, plus
+wiki-native deep links (Commons / Wikidata / PetScan); needs the documented
+`; , : \` escaping rules.
+
+**Tests:** payload→SVG structural test (module count / finder patterns),
+manifest-compliance green for the new entry (`npm test` now regenerates the
+manifest first), and a SharePanel regression check.
+
+**Out of scope:** camera scanning/decoding (separate widget; browser
+`BarcodeDetector` API), logo overlays and coloured/gradient codes, and
+commercial shorteners or tracked redirect links.
+
+**Implemented 2026-09-10 (`feature-qr-widget`):** `qrCode` registry entry
+(`nodeKind: display`, static, emits its encoded text) + `QrCard` renderer in
+`WidgetFrame.jsx` + `.qr-*` styles; `src/lib/qr.js` extended with
+`ecLevel`/`margin`/`label` options (defaults byte-identical to the SharePanel
+output — hash-guarded) plus `qrModuleCount`/`qrFits`/`fitEcLevel` and the
+measured capacity table; offline-matcher intent + a derived Ask-manual line;
+and the widget added to README, DATA-SOURCES §26, BOARD-COMPOSITION §1.5
+(registry + emitter tables), WIDGET-DEVELOPMENT, JSON-FORMAT and GUIDE.
+
+**Constitution:** `tests/qr-widget.test.mjs` (18 tests — registry contract,
+EC ladder/density/overflow, encoding + capacity, SharePanel regression
+hashes, validator, offline Ask tier) → **npm test 228 green**, `npm run build`
+clean.
+
+**Verified live (2026-09-10, built dist + real Chromium):** a four-card board
+(fixed link / `{{target}}` board param / empty / 1,600 chars) rendered with 0
+console errors; **both codes decoded from rendered pixels by an independent
+decoder** (OpenCV `QRCodeDetector`) — fixed link → `https://w.wiki/QRtest`,
+param card → the interpolated Commons category URL; a ~1% white smear still
+decoded at EC H; the over-cap card shows the refusal message; **Save SVG**
+downloaded a byte-identical standalone file (5,975 B, quiet zone included).
+Live Ask (`llm-qwen36-27b`): QR intents return `qrCode` with the named URL,
+and "follow whichever article my pageviews card shows" uses
+`{{widget:…}}` interpolation per the new guidance.
