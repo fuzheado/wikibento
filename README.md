@@ -13,8 +13,10 @@ output nodes that speak (🔊 Speaker) or translate (🌐 Translator) what they 
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈599 KB total (~173 KB
-gzipped), hostable as static files on Toolforge or anywhere.
+(the same grid engine used by Grafana and Kibana), ≈0.6 MB total (~175 KB
+gzipped), hostable as static files on Toolforge or anywhere. (Run
+`npm run build` for exact figures — byte counts change with the source, so the
+README quotes a magnitude rather than a number to hand-maintain.)
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
 Commons, Wikistats) directly from the browser — no backend, no login, no proxy.
@@ -41,7 +43,7 @@ Commons, Wikistats) directly from the browser — no backend, no login, no proxy
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 37 widget types on one board |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 38 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
 
@@ -173,7 +175,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
-- **Example dashboard** — ✨ loads a showcase dashboard with all 37 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
+- **Example dashboard** — ✨ loads a showcase dashboard with all 38 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
 
 ### Widget highlights
 
@@ -524,18 +526,20 @@ wikibento/
   every field below the fold (21/35 widget types at the fresh-add w3 h3 size,
   25/35 at 1024px, 27/35 at 820px). The long "Name (instance id)" hint (7 lines
   on a 3-column card, 67–93px per panel) is now one line with a tooltip.
-  Constitution: `npm run smoke:panels` — 222 measurements (⚙+ⓘ × 1440/1024/600
-  × 37 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
+  Constitution: `npm run smoke:panels` — 234 measurements (⚙+ⓘ × 1440/1024/600
+  × 39 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
   against the pre-fix CSS. Wired into `npm run smoke`
-- ✅ **All 32 data-driven widget types render live data in the browser; the 5
-  static ones (Text/Markdown, Board Controls, Speaker, Wiki Page, Text List)
-  render from config — no fetch**
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 37 widgets
+- ✅ **All 29 data-driven widget types render live data in the browser; the 9
+  static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page,
+  Text List, Filter Lines, Line Count, Value Display) render from config — no fetch**
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → the whole board loads from an on-wiki page (its size tracks that page, not this repo)
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
-- ✅ Production build: 486.00 KB JS (144.25 KB gzip) + 56.86 KB CSS (11.13 KB gzip) + 56.41 KB pannellum lazy asset (18.01 KB gzip)
+- ✅ Production build: ~0.6 MB raw / ~175 KB gzipped (Vite output — exact byte
+  counts change with every source change, so `npm run build` prints them and the
+  docs-facts constitution bound-checks the magnitude)
 
 ### The starter board, re-verified (2026-08-12)
 
@@ -558,10 +562,12 @@ wikibento/
 - [docs/TOOL-LANDSCAPE.md](docs/TOOL-LANDSCAPE.md) — the full survey behind the synthesis (dashboards, galleries, curation, dataflow)
 - [docs/TOOLFLOW-ANALYSIS.md](docs/TOOLFLOW-ANALYSIS.md) — assessment of Magnus Manske's ToolFlow: what to borrow, what to avoid
 - [docs/DEMO-IDEAS.md](docs/DEMO-IDEAS.md) — demo/showcase concept bank ("Voyager, revisited"): 11 concepts A–K with board wiring, venue and effort, plus a demo playbook
-- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 37 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
+- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 38 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
+- [docs/MEDIA-DATAFLOW.md](docs/MEDIA-DATAFLOW.md) — design direction: should a *graphic* travel the dataflow wire (storage, identity, lifetime, trust), starting with references rather than payloads
+- [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) — append-only deployment log (bundle, commit, what shipped) + the lessons each deploy taught
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/INTENT-BENCHMARK.md](docs/INTENT-BENCHMARK.md) — the Ask advisor's intent→widget ground-truth catalog, the offline + live benchmark suites, and the fixture **interviewer tool** (`scripts/interview-fixtures.mjs` — interview mode for adding test cases without hand-editing JSON)
