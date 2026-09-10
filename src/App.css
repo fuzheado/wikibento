@@ -737,11 +737,43 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
+}
+
+.trend-plot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
 .trend-svg {
   flex: 1;
   width: 100%;
+  min-width: 0;
+}
+
+/* ISSUE-42: y tick labels (max / mid / min), aligned with the gridlines
+   drawn at the same fractions of the SVG viewBox. Hidden on very narrow
+   cards — the sparkline + the svg's native <title> tooltip carry the info. */
+.trend-ylabels {
+  position: relative;
+  width: 46px;
+  flex: none;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+.trend-ylabels span {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+}
+.trend-gridline {
+  stroke: var(--border, rgba(255, 255, 255, 0.09));
+  stroke-width: 1;
+}
+@container (max-width: 230px) {
+  .trend-ylabels { display: none; }
 }
 
 .trend-labels {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
+import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
@@ -811,35 +812,51 @@ function TrendCard({ data }) {
   const { chartData, chartKey, chartLabel } = data;
   if (!chartData || chartData.length === 0) return <div className="widget-empty">No trend data</div>;
 
-  const values = chartData.map(d => d[chartKey]);
-  const max = Math.max(...values);
-  const min = Math.min(...values);
+  // ISSUE-42: the sparkline is min–max scaled (NOT zero-based — pageview
+  // series live far from zero and a zero baseline would flatten them), so
+  // the y labels + gridlines say exactly what vertical position means:
+  // top tick = max, bottom = min, middle = half-way value.
+  const { min, max, ticks } = trendYScale(chartData.map((d) => d[chartKey]));
   const range = max - min || 1;
 
   const points = chartData.map((d, i) => {
     const x = (i / (chartData.length - 1)) * 100;
-    const y = 100 - ((d[chartKey] - min) / range) * 90;
+    const y = TREND_Y_BOT - ((d[chartKey] - min) / range) * (TREND_Y_BOT - TREND_Y_TOP);
     return `${x},${y}`;
   }).join(' ');
+
+  const latest = chartData[chartData.length - 1]?.[chartKey];
 
   return (
     <div className="trend-card">
       {data.title && <div className="trend-title" title={data.title}>{data.title}</div>}
       {data.subtitle && <div className="trend-subtitle">{data.subtitle}</div>}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="trend-svg">
-        <polyline
-          points={points}
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-        />
-        <polygon
-          points={`0,100 ${points} 100,100`}
-          fill="var(--accent)"
-          fillOpacity="0.1"
-        />
-      </svg>
+      <div className="trend-plot">
+        <div className="trend-ylabels" aria-hidden="true">
+          {ticks.map((t, i) => (
+            <span key={i} style={{ top: `${t.y}%` }}>{compactNum(t.v)}</span>
+          ))}
+        </div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="trend-svg" role="img"
+          aria-label={`${chartLabel || 'trend'}: latest ${Number(latest).toLocaleString()} · min ${Number(min).toLocaleString()} · max ${Number(max).toLocaleString()}`}>
+          <title>{`${chartLabel || 'trend'} — latest ${Number(latest).toLocaleString()} · min ${Number(min).toLocaleString()} · max ${Number(max).toLocaleString()}`}</title>
+          {ticks.map((t, i) => (
+            <line key={i} x1="0" x2="100" y1={t.y} y2={t.y} className="trend-gridline" vectorEffect="non-scaling-stroke" />
+          ))}
+          <polyline
+            points={points}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+          <polygon
+            points={`0,${TREND_Y_BOT} ${points} 100,${TREND_Y_BOT}`}
+            fill="var(--accent)"
+            fillOpacity="0.1"
+          />
+        </svg>
+      </div>
       <div className="trend-labels">
         <span>{chartData[0]?.[Object.keys(chartData[0])[0]]}</span>
         <span>{chartLabel}</span>
@@ -1913,7 +1930,6 @@ function FileTrafficCard({ data }) {
   const opts = [3, 6, 12, 24];
   const slice = all.slice(-months);
   const max = Math.max(...slice.map((r) => r.views), 1);
-  const fmt = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(0)}K` : String(n));
   const W = 340;
   const H = 170;
   const PAD_L = 52;
@@ -1946,7 +1962,7 @@ function FileTrafficCard({ data }) {
             {yTicks.map((t, i) => (
               <g key={i}>
                 <line x1={PAD_L} x2={W - PAD_R} y1={t.y} y2={t.y} className="file-traffic-grid" />
-                <text x={PAD_L - 6} y={t.y + 3} textAnchor="end" className="file-traffic-axis">{fmt(t.v)}</text>
+                <text x={PAD_L - 6} y={t.y + 3} textAnchor="end" className="file-traffic-axis">{compactNum(t.v)}</text>
               </g>
             ))}
             {/* X labels (every 2nd month when crowded) */}
