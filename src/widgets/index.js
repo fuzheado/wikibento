@@ -164,6 +164,7 @@ export const WIDGET_TYPES = {
         { value: 'stat', label: 'Stat Card' },
         { value: 'trend', label: 'Trend Chart' },
       ]},
+      { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Trend chart only. Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
     ],
     fetch: (config) => fetchPageviews(config.article, config.project),
     transform: (data, config) => {
@@ -181,6 +182,7 @@ export const WIDGET_TYPES = {
         chartData: data.trend,
         chartKey: 'views',
         chartLabel: 'Daily Pageviews',
+        zeroY: !!config.zeroY,
         title: `${data.article.replace(/_/g, ' ')}`,
         subtitle: `${(() => { const w = dayWindow(30); return fmtDayRange(w.start.year, w.start.month, w.start.day, w.end.year, w.end.month, w.end.day); })()} · 30-day pageviews`,
       };
@@ -950,6 +952,7 @@ export const WIDGET_TYPES = {
       { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
       { key: 'months', label: 'Months (2–24)', type: 'number', placeholder: '6' },
       CIM_MONTH_FIELD,
+      { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
     ],
     fetch: (config) => fetchCimTrend(config.category, config.scope, config.wiki, undefined, config.month, config.months),
     transform: (data, config) => {
@@ -962,6 +965,7 @@ export const WIDGET_TYPES = {
       chartData: data.rows,
       chartKey: 'views',
       chartLabel: 'views',
+      zeroY: !!config.zeroY,
       };
     },
   },

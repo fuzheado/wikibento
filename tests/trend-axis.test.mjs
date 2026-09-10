@@ -69,3 +69,25 @@ test('trendYScale: single-point series behaves like a flat series', () => {
   assert.equal(ticks.length, 2);
   assert.ok(ticks.every((t) => t.v === 42));
 });
+
+test('trendYScale: opts.zero → axis starts at 0 (mid = max/2), data variation compressed honestly', () => {
+  const { min, max, vAt, yAt, ticks } = trendYScale([7700, 8200, 9000, 12300], { zero: true });
+  assert.equal(min, 0);
+  assert.equal(max, 12300);
+  assert.equal(yAt(0), TREND_Y_BOT); // baseline = zero, not the data minimum
+  assert.equal(vAt(TREND_Y_TOP), 12300);
+  assert.equal(ticks[2].v, 0); // bottom tick literally reads 0
+  assert.equal(Math.round(ticks[1].v), 6150); // mid = max/2
+});
+
+test('trendYScale: zero option is opt-in — default stays min–max', () => {
+  const a = trendYScale([7700, 12300]);
+  const b = trendYScale([7700, 12300], { zero: false });
+  assert.equal(a.min, 7700);
+  assert.equal(b.min, 7700);
+});
+
+test('trendYScale: zero option with negative-capable data still floors at the data min', () => {
+  const { min } = trendYScale([-5, 10], { zero: true });
+  assert.equal(min, -5); // Math.min(0, dataMin) — never invents a nonexistent range
+});

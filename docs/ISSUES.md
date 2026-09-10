@@ -2808,9 +2808,15 @@ exact values ("latest 10,089 · min 7,747 · max 12,310"). Narrow cards
 (`<230px` container width) hide the label column via a container query — the
 sparkline + tooltip carry the info (ISSUE-54-family constraint).
 
-**Constitution:** `tests/trend-axis.test.mjs` (8 tests — tick values/positions,
+**Follow-up (same PR):** the scale is now a per-widget toggle — ⚙ **"Y axis
+starts at 0"** (boolean, `zeroY`) on both affected widgets. Off (default) =
+min–max, variation stays visible; on = zero-based, honest magnitude
+comparison (`trendYScale(values, { zero })`, ticks become e.g. 12K/6K/0;
+floors at the data min for negative-capable data).
+
+**Constitution:** `tests/trend-axis.test.mjs` (11 tests — tick values/positions,
 linear inverted mapping, flat/single-point/empty series, unsorted + non-finite
-inputs) → npm test 209.
+inputs, zero-based option) → npm test 212.
 
 **Verified live (built dist, Chromium):** Einstein trend shows `12K / 10K / 8K`
 ticks + gridlines; switching the article via Board Controls (Marie Curie)

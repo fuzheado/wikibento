@@ -29,18 +29,22 @@ export function compactNum(n) {
 export const TREND_Y_TOP = 12;
 export const TREND_Y_BOT = 96;
 
-/** Tick spec for a min–max-scaled trend: { min, max, vAt, ticks: [{ y, v }] }.
+/** Tick spec for a trend: { min, max, vAt, yAt, ticks: [{ y, v }] }.
  *  y runs top → bottom in viewBox units; v is the value that gridline stands
- *  for. A flat series (max === min) keeps only the top and bottom ticks —
- *  three identical numbers would be noise. */
-export function trendYScale(values) {
+ *  for. opts.zero → the axis starts at 0 instead of the data minimum (the
+ *  statistically honest view; default is min–max so variation stays
+ *  visible — ISSUE-64 discussion). A flat series keeps only the top and
+ *  bottom ticks. */
+export function trendYScale(values, opts = {}) {
   const nums = (values || [])
     .filter((v) => v !== null && v !== undefined && v !== '' && v !== false)
     .map(Number)
     .filter(Number.isFinite);
   const max = nums.length ? Math.max(...nums) : 0;
-  const min = nums.length ? Math.min(...nums) : 0;
+  const dataMin = nums.length ? Math.min(...nums) : 0;
+  const min = opts.zero ? Math.min(0, dataMin) : dataMin;
   const range = max - min || 1;
+  const yAt = (v) => TREND_Y_BOT - ((v - min) / range) * (TREND_Y_BOT - TREND_Y_TOP);
   const vAt = (y) => min + ((TREND_Y_BOT - y) / (TREND_Y_BOT - TREND_Y_TOP)) * range;
   const mid = (max + min) / 2;
   const ticks = [
@@ -52,6 +56,7 @@ export function trendYScale(values) {
     min,
     max,
     vAt,
+    yAt,
     ticks: max === min ? [ticks[0], ticks[2]] : ticks,
   };
 }

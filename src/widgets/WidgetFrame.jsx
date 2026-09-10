@@ -812,16 +812,17 @@ function TrendCard({ data }) {
   const { chartData, chartKey, chartLabel } = data;
   if (!chartData || chartData.length === 0) return <div className="widget-empty">No trend data</div>;
 
-  // ISSUE-42: the sparkline is min–max scaled (NOT zero-based — pageview
-  // series live far from zero and a zero baseline would flatten them), so
-  // the y labels + gridlines say exactly what vertical position means:
-  // top tick = max, bottom = min, middle = half-way value.
-  const { min, max, ticks } = trendYScale(chartData.map((d) => d[chartKey]));
+  // ISSUE-42: the sparkline's Y scale — min–max by default (variation stays
+  // visible for series that live far from zero), zero-based via the ⚙ toggle
+  // (the statistically honest view for magnitude comparisons). Either way
+  // the tick labels + gridlines say exactly what vertical position means.
+  const scale = trendYScale(chartData.map((d) => d[chartKey]), { zero: !!data.zeroY });
+  const { min, max, ticks, yAt } = scale;
   const range = max - min || 1;
 
   const points = chartData.map((d, i) => {
     const x = (i / (chartData.length - 1)) * 100;
-    const y = TREND_Y_BOT - ((d[chartKey] - min) / range) * (TREND_Y_BOT - TREND_Y_TOP);
+    const y = yAt(d[chartKey]);
     return `${x},${y}`;
   }).join(' ');
 

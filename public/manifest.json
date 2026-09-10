@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-10T01:15:19.981Z",
+ "generatedAt": "2026-09-10T08:56:13.826Z",
  "widgetCount": 37,
  "widgets": [
   {
@@ -42,6 +42,12 @@
       "stat",
       "trend"
      ]
+    },
+    {
+     "key": "zeroY",
+     "type": "boolean",
+     "label": "Y axis starts at 0",
+     "hint": "Trend chart only. Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison."
     }
    ],
    "defaults": [
@@ -944,6 +950,12 @@
      "type": "number",
      "label": "Months (2–24)",
      "placeholder": "6"
+    },
+    {
+     "key": "zeroY",
+     "type": "boolean",
+     "label": "Y axis starts at 0",
+     "hint": "Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison."
     },
     {
      "key": "category",
