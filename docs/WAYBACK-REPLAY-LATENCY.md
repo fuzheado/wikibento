@@ -31,8 +31,10 @@ archived page itself loading ~150–270 subresources.
 | `cdx?…&from=2015&to=2015&limit=1&filter=statuscode:200` | 19.0 s | filter costs more |
 | `cdx?…&from=2010&to=2024&collapse=timestamp:4&filter=statuscode:200` | **27–37 s** | the shape our server used for multi-date batches |
 
-**Rule that falls out of it:** CDX cost tracks the size of the index range it must scan, not the
-number of rows returned. A one-day window is **7–13× cheaper** than a multi-year range.
+**What these numbers do and do not say:** a one-day window *was* 7–13× cheaper than a multi-year
+range on that URL. That did **not** generalise — see **§5**, where per-date narrow windows turned out
+to be no cheaper, and sometimes slower, than the single wide span the server already used. Read the
+table as a measure of how variable the archive is, not as a recipe for query shape.
 
 ### 1.2 The archive explains itself: `Server-Timing`
 
@@ -91,9 +93,12 @@ succeeded on retry seconds later).
 
 ## 2. Design rules we now follow
 
-1. **Narrow CDX windows, never one wide span.** Ask per date, ±tolerance, not min→max across years.
+1. **One wide CDX query, then a bounded fallback.** *(Rewritten after re-measurement — §5.)* The
+   first version of this rule said the opposite. In practice: keep the single span query, cap the
+   whole fallback phase in time, and treat an empty index answer as definitive.
 2. **Try both URL forms** (`example.com`, `www.example.com`) and remember which one matched —
-   the replay URL must use the matched form or the iframe 404s.
+   the replay URL must use the matched form or the iframe 404s. This one *did* pay off: on
+   en.wikipedia.org the 2015 capture was only found via `www.`.
 3. **Never claim "no captures" from the availability API alone.** `{}` means *unknown*; corroborate
    with the cheap calendar/sparkline probes before saying the archive has nothing.
 4. **Show states, not a spinner:** queued → checking (elapsed) → found (timestamp) → loading
@@ -127,3 +132,37 @@ every request with `--max-time`, so re-running them is safe and cheap.
 unauthenticated. The archive's own caching means variance is large — the same lookup shape gave
 7.8 s, 16.4 s and 66.2 s `cdx.remote` on three comparable captures. Treat the *ratios* as the
 finding (narrow vs wide, hit vs miss, one tile vs four), not the absolute seconds.
+
+## 5. Correction: the narrow-window rule, withdrawn (2026-09-11, same day)
+
+The first version of this doc turned §1.1 into a design rule: *"narrow CDX windows, never one wide
+span."* Implementing it and re-measuring **on the same dates** refuted the rule:
+
+| Query shape (en.wikipedia.org/wiki/Wikipedia, dates 2010/2015/2020/2024 ±30 d) | Time |
+|---|---|
+| One wide span (2009-12 → 2020-01, the server's existing shape) | **20.8 s** |
+| Narrow per-date windows: 2010 (±30 d) | 53.5 s |
+| Narrow per-date windows: 2015 (±30 d) | 17.1 s |
+| Narrow per-date windows: 2020 (±30 d) | 11.8 s |
+
+So the extra query fan-out bought nothing — window width is not the cost driver; the archive's own
+index load is, which is what the `Server-Timing` variance (7.8 s / 16.4 s / 66.2 s for comparable
+captures) was already saying. The implementation keeps **one** span query.
+
+Two things *did* come out of that round of work, both measured on the running server:
+
+- **A time-boxed fallback.** A URL with nothing archived took **74 s** before (stacked retries
+  across availability → CDX → timemap, both URL forms). With a 20 s budget on the fallback phase
+  and an empty index answer treated as definitive, the same request takes **7.3 s** — and now
+  reports *proven absent* rather than *lookup failed*.
+- **The capture count.** The IA calendar's own `sparkline` endpoint answers in 0.65–6 s and gives a
+  real total (17,712 for that article; 751,690 for nytimes.com), so a miss can say "the archive has
+  751,690 captures for this URL" instead of implying the archive is empty.
+
+Measured end-to-end on the patched server: 4 dates on en.wikipedia.org **35.1 s → 8.5 s**;
+nytimes.com **11.0 s** with the count.
+
+**Method note:** every number here is a single measurement on one host, and the archive's cache
+state makes that noisy — the 2010 narrow window at 53.5 s vs the 2020 one at 11.8 s is the same
+query over the same URL with a different date range. Where this doc states a rule, it is because
+the effect was larger than that noise (74 s → 7.3 s, 35 s → 8.5 s). Where it does not, that is why.

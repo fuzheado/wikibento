@@ -1591,6 +1591,59 @@ body {
 .wayback-cap a:hover { text-decoration: underline; }
 .wayback-off { color: var(--text-secondary); }
 
+/* Wayback tile states (docs/WAYBACK-REPLAY-LATENCY.md): the archive gives no progress signal,
+   so show elapsed time, an escalating message, and a way out. Absolute so the 4:3 tile never
+   reflows — the grid smoke test measures geometry. */
+.wayback-counts {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 0 0 6px;
+}
+.wayback-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  text-align: center;
+  background: rgba(0,0,0,0.72);
+  color: var(--text-primary, #eee);
+  pointer-events: auto;
+}
+.wayback-status-text { font-size: 11px; line-height: 1.35; }
+.wayback-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: wayback-pulse 1.4s ease-in-out infinite;
+}
+.wayback-status-slow .wayback-dot,
+.wayback-status-timed-out .wayback-dot { animation: none; background: #d9a13b; }
+.wayback-status-timed-out .wayback-dot { background: #c2603c; }
+@keyframes wayback-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+.wayback-btn {
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary, #eee);
+  text-decoration: none;
+  cursor: pointer;
+}
+.wayback-btn:hover { background: rgba(255,255,255,0.14); }
+.wayback-btn-link { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .wayback-dot { animation: none; }
+}
 .wayback-stale {
   font-size: 11px;
   color: var(--danger);

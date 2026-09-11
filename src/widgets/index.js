@@ -1639,10 +1639,14 @@ export const WIDGET_TYPES = {
     fetch: (config, opts) => fetchWaybackGallery(config.url, config.dates, config.toleranceDays, opts),
     transform: (data, config) => {
       const dates = String(config.dates || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      const found = data.rows.filter((r) => r.available).length;
       return {
         title: 'Wayback Machine history',
-        subtitle: `${data.url} · ${dates[0] || '—'} → ${dates[dates.length - 1] || '—'} · ${data.rows.length} captures`,
+        // `${rows.length} captures` was wrong: those are the DATES we asked about. Say how many
+        // dates resolved; the archive-wide total rides in captureCount (docs/WAYBACK-REPLAY-LATENCY.md).
+        subtitle: `${data.url} · ${dates[0] || '—'} → ${dates[dates.length - 1] || '—'} · ${found}/${dates.length} dates found`,
         rows: data.rows,
+        captureCount: Number(data.captureCount) || 0,
         toleranceDays: parseInt(config.toleranceDays) || 30,
       };
     },
