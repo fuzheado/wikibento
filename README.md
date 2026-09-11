@@ -569,6 +569,7 @@ wikibento/
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
+- [docs/WAYBACK-REPLAY-LATENCY.md](docs/WAYBACK-REPLAY-LATENCY.md) — measured Wayback Machine timings with receipts: why replay tiles hang (`cdx.remote` up to 66 s), why `im_` is not a screenshot, why URL form decides whether a capture is found, and the design rules we now follow
 - [docs/MEDIA-DATAFLOW.md](docs/MEDIA-DATAFLOW.md) — design direction: should a *graphic* travel the dataflow wire (storage, identity, lifetime, trust), starting with references rather than payloads
 - [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) — append-only deployment log (bundle, commit, what shipped) + the lessons each deploy taught
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
