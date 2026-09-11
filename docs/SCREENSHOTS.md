@@ -75,7 +75,12 @@ rankings, article text and history — every number live from a Wikimedia API.
 
 ---
 
-**Maintenance:** these are full-resolution PNGs (~8.5 MB total). If repository size
-matters, `pngquant --quality=70-90` typically cuts screenshots by ~70% with no visible
-difference; keep the originals if the exact pixels matter. Add new shots with the same
-`wikibento-<date>-<subject>.png` naming and a section here.
+**Maintenance:** the PNGs are quantized so the documentation stays cheap to clone: on
+2026-09-11 `pngquant --quality=70-90 --speed 1 --strip` took the set from **8.5 MB to
+2.3 MB (~73% smaller)** with the same pixel dimensions and no visible difference in text
+or photographs. The full-colour originals are still in git history (the commit that added
+them, `339a275`), so this is reversible.
+
+Use the same command for new shots — `--speed 1` favours quality, and `--quality=70-90`
+means a screenshot that would degrade badly is left alone rather than wrecked — and keep
+the `wikibento-<date>-<subject>.png` naming with a section here.
