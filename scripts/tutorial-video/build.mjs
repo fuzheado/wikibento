@@ -130,11 +130,9 @@ mkdirSync(join(OUT, 'cards'), { recursive: true });
 let srtTime = 0;
 const srt = [];
 const TITLE_DUR = 4.5, END_DUR = 5.5;
-const missingCards = ['title.png', 'end.png'].filter((f) => !existsSync(join(OUT, 'cards', f)));
-if (missingCards.length) {
-  console.log(`rendering card PNGs (${missingCards.join(', ')})…`);
-  execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
-}
+// Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
+// notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
+execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 if (existsSync(join(OUT, 'cards', 'title.png'))) { parts.push(cardPart('title.png', TITLE_DUR)); srtTime += TITLE_DUR; }
 else console.error('✘ missing cards/title.png');
 // the end card is appended AFTER the scenes — it used to be pushed here alongside the title, which
@@ -149,18 +147,11 @@ const suspects = [];
 // ── browser-rendered per-scene overlays (badge / url / captions) ─────────────
 const OVL = join(OUT, 'overlays');
 const ov = (name) => join(OVL, name);
-{
-  const wanted = [];
-  for (const s of scenes) {
-    wanted.push(`${s.id}-badge.png`);
-    if (s.url) wanted.push(`${s.id}-url.png`);
-    (s.captions || []).forEach((_, i) => wanted.push(`${s.id}-cap${i}.png`));
-  }
-  if (wanted.some((f) => !existsSync(ov(f)))) {
-    console.log('rendering overlay PNGs…');
-    execFileSync('node', [join(root, 'scripts/tutorial-video/overlays.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
-  }
-}
+// Always invoked: overlays.mjs decides for itself what is current (content-hash manifest) and exits
+// immediately when nothing changed. Gating it here on "is a PNG missing?" was a bug — an edited
+// caption left the old PNG on disk, so the fresh narration played under the previous take's words
+// (found 2026-09-11 by reading a frame of the rebuilt scene 3).
+execFileSync('node', [join(root, 'scripts/tutorial-video/overlays.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 
 // ── scenes ───────────────────────────────────────────────────────────────────
 for (const scene of scenes) {

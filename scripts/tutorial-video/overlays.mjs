@@ -23,9 +23,10 @@
  * Output: <out>/overlays/<scene-id>-{badge,url,cap0,cap1,...}.png
  */
 import { createRequire } from 'node:module';
-import { readFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { resolveOut, arg } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
@@ -58,24 +59,41 @@ const capHtml = (t) =>
            ${plate(`background:rgba(0,0,0,.68);font-size:33px;font-weight:700;color:#fff;padding:14px 22px`, t)}</div>`);
 
 // ── plan every overlay before launching a browser ────────────────────────────
+const dirSafe = (d) => { try { return readdirSync(d); } catch { return []; } };
+
+/**
+ * Overlays are cached by a hash of their markup, not by filename.
+ *
+ * "Skip it if the file exists" is wrong here: edit a caption in scenes.json and the PNG for that
+ * caption is still on disk from the previous build, so the old words are composited over the new
+ * narration — the two disagree and nothing says so. (This shipped once: a rebuilt scene 3 carried
+ * the previous take's caption. Found 2026-09-11.) Same content-hash idea as narration.mjs.
+ */
+const MANIFEST = join(DIR, 'manifest.json');
+const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
+const hashOf = (html) => createHash('sha256').update(html).digest('hex').slice(0, 16);
+
 const jobs = [];
 for (const scene of timeline.scenes) {
   jobs.push({ file: `${scene.id}-badge.png`, html: badgeHtml(scene) });
   if (scene.url) jobs.push({ file: `${scene.id}-url.png`, html: urlHtml(scene) });
   (scene.captions || []).forEach((c, i) => jobs.push({ file: `${scene.id}-cap${i}.png`, html: capHtml(c) }));
-
-  // drop caption PNGs left over from a longer earlier cut, or they linger in <out>/overlays
-  const n = (scene.captions || []).length;
-  const stale = readdirSyncSafe(DIR).filter((f) => {
-    const m = f.match(new RegExp(`^${scene.id}-cap(\\d+)\\.png$`));
-    return m && Number(m[1]) >= n;
-  });
-  stale.forEach((f) => rmSync(join(DIR, f), { force: true }));
 }
 
-function readdirSyncSafe(d) { try { return readdirSync(d); } catch { return []; } }
+// drop caption PNGs (and manifest entries) left over from a longer earlier cut, or they linger in
+// <out>/overlays and can be picked up by a stale build
+const planned = new Set(jobs.map((j) => j.file));
+for (const scene of timeline.scenes) {
+  const n = (scene.captions || []).length;
+  for (const f of dirSafe(DIR)) {
+    const m = f.match(new RegExp(`^${scene.id}-cap(\\d+)\\.png$`));
+    if (m && Number(m[1]) >= n) { rmSync(join(DIR, f), { force: true }); delete manifest[f]; }
+  }
+}
+for (const f of Object.keys(manifest)) if (!planned.has(f)) delete manifest[f];
 
-const todo = FORCE ? jobs : jobs.filter((j) => !existsSync(join(DIR, j.file)));
+for (const job of jobs) job.hash = hashOf(job.html);
+const todo = FORCE ? jobs : jobs.filter((j) => !existsSync(join(DIR, j.file)) || manifest[j.file] !== j.hash);
 if (!todo.length) {
   console.log(`overlays up to date (${jobs.length}) → ${DIR}`);
   process.exit(0);
@@ -89,6 +107,8 @@ for (const job of todo) {
   await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(job.html)}`, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: join(DIR, job.file), omitBackground: true });
+  manifest[job.file] = job.hash;
+  writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 await browser.close();
 console.log(`rendered ${todo.length}/${jobs.length} overlays → ${DIR}`);

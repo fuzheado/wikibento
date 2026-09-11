@@ -213,21 +213,64 @@ const ACTIONS = {
       if (gear) gear.click();
     });
     await settle(page, 1600);
-    // type into the article field, like a person would
-    const box = await page.evaluate(() => {
+    // Set the subject in the article field.
+    //
+    // Two earlier versions failed here, both silently: one clicked at a computed offset (box.x + 40)
+    // that landed outside the input, so focus went to the panel and every keystroke was lost; the
+    // other used elementHandle.click(), which times out because the field sits inside a card whose
+    // config panel is clipped, so it never becomes "actionable". The scene's narration promises
+    // "type or paste the exact article title" and "the data fills in for that article" — with the
+    // field left empty the card kept Main_Page and the promise was false (found 2026-09-11 by
+    // reading a frame of the clip; the record.mjs editor also ran on macOS, where Control+A is not
+    // select-all). So: click the live coordinates, check focus actually landed, and fall back to a
+    // React-safe programmatic set if it did not. Always log the value that ends up in the field.
+    const target = async () => page.evaluate(() => {
+      const all = Array.from(document.querySelectorAll('.grid-item'));
+      const cfg = all[all.length - 1].querySelector('.widget-config');
+      if (!cfg) return null;
+      const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
+      const f = inputs.find((x) => (x.value || '').trim() === 'Main_Page') || inputs[0];
+      if (!f) return null;
+      f.scrollIntoView({ block: 'center' });
+      const r = f.getBoundingClientRect();
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+    });
+    const spot = await target();
+    let typed = false;
+    if (spot) {
+      await clickHuman(page, { x: spot.x, y: spot.y });
+      typed = await page.evaluate(() => {
+        const a = document.activeElement;
+        return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+      });
+    }
+    if (typed) {
+      const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';   // Control+A is not select-all on macOS
+      await page.keyboard.press(`${MOD}+A`);
+      await typeHuman(page, 'Marie Curie', 90);
+      await page.keyboard.press('Enter');
+    } else {
+      // React-compatible programmatic set: the native setter + an input event, so React state updates.
+      console.log('   (field not focusable by click — setting the value directly)');
+      await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('.grid-item'));
+        const cfg = all[all.length - 1].querySelector('.widget-config');
+        const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
+        const f = inputs.find((x) => (x.value || '').trim() === 'Main_Page') || inputs[0];
+        const proto = f.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        Object.getOwnPropertyDescriptor(proto, 'value').set.call(f, 'Marie Curie');
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+        f.focus();
+      });
+      await page.keyboard.press('Enter');
+    }
+    const landed = await page.evaluate(() => {
       const all = Array.from(document.querySelectorAll('.grid-item'));
       const cfg = all[all.length - 1].querySelector('.widget-config');
       const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
-      const target = inputs.find((f) => (f.value || '').trim() === 'Main_Page') || inputs[0];
-      const r = target.getBoundingClientRect();
-      target.focus();
-      target.select();
-      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
+      return inputs.map((x) => (x.value || '').trim());
     });
-    await clickHuman(page, box, { dx: 40 });
-    await page.keyboard.press('Control+A');
-    await typeHuman(page, 'Marie Curie', 90);
-    await page.keyboard.press('Enter');
+    console.log(`   subject set (${typed ? 'typed' : 'set directly'}) → fields:`, JSON.stringify(landed));
     await settle(page, 6500);                                        // the data arrives
   },
   async '05-move'(page) {
