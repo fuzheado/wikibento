@@ -22,6 +22,10 @@ describe the mess, and the reason is structural: **the tools that loop are the t
 edges.** A hub has no edges between widgets, so it cannot loop, cannot deadlock, and
 cannot hide its wiring inside a component.
 
+The same property is what makes a plugin system thinkable: a widget author needs the board's
+**vocabulary**, not a mental map of every other widget (§8 — with the honest caveat that the
+hub is only half the story; an *enforced, typed, distributable* contract is the other half).
+
 ---
 
 ## 1. The question, and why it keeps coming back
@@ -241,7 +245,108 @@ notebooks get it from content-addressed cells. Our version is stated and tested.
 7. **If you think you need a bus, change the board instead.** A widget asking to talk to
    arbitrary peers is almost always a composition problem.
 
-## 8. Honest limits, stale claims, and open questions
+## 8. Does the hub model actually help third-party widget authors?
+
+The claim to test: *with widget-to-widget messaging, every new widget author has to
+dissect how all the other widgets work and how they interconnect; with a hub, authorship
+stays local — so the hub is what makes a plugin system feasible.*
+
+**Verdict: mostly true, but for a narrower reason than it sounds — and the hub alone does
+not get you there.** The decoupling is real and quantifiable. But a hub replaces *peer
+coupling* with *shared-namespace coupling*, which is a different hazard, and it does
+nothing about the four things that actually block third-party authorship today.
+
+### Where the claim holds
+
+1. **The author's knowledge surface is O(N), not O(N²).** A widget written against a hub
+   declares the names it needs (`{{category}}`) and the one source it consumes. A widget in
+   a mesh must know its peers *and* be known by them: with N widgets, the wiring knowledge
+   is pairwise. That is precisely why the mTropolis/HyperCard lineage became unmaintainable —
+   the author of widget 40 inherits a web of 39 existing behaviours.
+2. **Widgets become unit-testable in isolation.** A hub widget can be exercised with raw
+   config + resolved params + one output value; there are no peers to stand up. Our own
+   `tests/dataflow.test.mjs` does exactly this — it constructs outputs directly instead of
+   booting a board of interdependent widgets.
+3. **The graph is derived, not authored** (`MODULARITY-AND-DATAFLOW.md:427-429`), so tooling
+   can reason about a board **without executing it**: validators, the Ask manifest, and an LLM
+   assembling a board all read the same declarative structure. A callback mesh has no such
+   static form; you cannot prompt an LLM to generate one safely.
+4. **The historical contrast is the proof.** HyperCard had no classes or instance variables,
+   so reuse meant copying; mTropolis's power *was* the inter-modifier message web, which is
+   also why nothing was portable. At the other pole, OpenDoc's parts interoperated through a
+   **formal contract** (SOM part interfaces), and that contract is what produced a parts
+   *market* — PartBank, Component 100 (`TOOL-LANDSCAPE-SYNTHESIS.md §4`).
+
+### Where the claim is weaker — four liabilities, honestly
+
+1. **A hub is a global namespace, i.e. the Authorware disease.** Coupling by name means name
+   collisions, and a rename silently breaks every consumer that you cannot see. Our
+   mitigations are partial: unknown names stay literal with one warning
+   (`src/lib/params.js:118-124`), Board Controls can be scoped to a subset of params
+   (ISSUE-59, `params.js:207-211`), and only user gestures write. But a plugin author still
+   cannot discover *which other widgets* will react to a param they add — the board's
+   vocabulary is shared, not owned.
+2. **The boundary is text-shaped and weakly typed.** `extract | lines | count | value` carry
+   prose, lists, numbers and pass-through strings. ISSUE-58 already documents the ambiguity
+   this creates for consumers. A plugin ecosystem wants typed ports (`rows:image`,
+   `count`, `url`) — which is exactly the manifest-v4 direction in `MEDIA-DATAFLOW.md`.
+3. **The contract is not fully enforced.** The Emitter Contract's requirements (a consumer
+   must exist; a new kind needs doc tables and an `askManual` phrase) are **prose**; the only
+   automated guard is the output-kind allowlist in
+   `tests/manifest-compliance.test.mjs:114-127`. First-party code gets review; third-party
+   code will not. Conformance has to become a test (`assertContract`, `MODULARITY-AND-DATAFLOW`
+   Appendix A) before strangers ship widgets.
+4. **Today a widget is still a code change.** A widget = registry entry + fetcher + card in
+   `src/` + regenerated manifest — i.e. fork-and-PR, not authorship. The messaging model
+   cannot fix that; a plugin mechanism can (declarative widget definitions, or sandboxed
+   module loading with a stable plugin API and a trust model). Grafana — the closest peer —
+   has the largest third-party panel ecosystem in this space, and it got there with a stable
+   plugin API *plus* a signature/trust story. The counter-lesson from the object era is
+   ActiveX: code with full permissions in the host's process, which crashed hosts and made
+   distribution dangerous. **Declarative-first is the safer plugin substrate**, with code
+   plugins as an explicitly trusted exception.
+
+### The modularity axis, side by side
+
+| Approach | Author's knowledge burden | Reuse story | Contract | Third-party ecosystem |
+|---|---|---|---|---|
+| HyperCard | own object + the hierarchy above it | copy the object | none | stacks shared, no component market |
+| mTropolis | the whole modifier web | re-attach behaviours | none enforced | none survived |
+| OpenDoc + SOM | the part interface | part into any document | **formal, cross-vendor** | PartBank, C100 — a real (brief) market |
+| OLE/ActiveX | interface + host rules | control into any container | formal, but heavy | **large** (VBX/OCX), with security fallout |
+| JavaBeans | listener interfaces | bean into any builder | typed, point-to-point | BeanBox never took off |
+| Grafana | variables + plugin API | panel plugin anywhere | formal + **signed** | **large and alive** |
+| Node-RED | `msg` shape per node | node into any flow | informal, by convention | **large** (npm) |
+| Yahoo Pipes | the chain | clone a pipe | none | remixing, no marketplace |
+| marimo / Observable | name in a namespace | cell into any notebook | one-writer rule | no plugin market |
+| **WikiBento today** | **names it needs + one source** | **registry entry on any board** | **constitution + convention (partial)** | **none yet — fork-and-PR** |
+
+The pattern: the tools with a **hub *and* an enforced, distributable contract** grew
+ecosystems (Grafana, Node-RED, and historically VBX/OCX — which paid for it in security).
+Tools with a hub and no contract (Yahoo Pipes) or a mesh and no contract (mTropolis) did not.
+Our hub is the precondition; the contract and the distribution channel are the missing half.
+
+### What a plugin future would need (in order)
+
+1. **Enforce the contract as a test**, not prose: consumer-exists, shape compatibility,
+   `outputs.kind` (partly done), plus a widget-level `assertContract()` at registration.
+2. **Type and namespace the boundary** — typed params/outputs (or a documented namespace
+   convention with validation warnings), so a plugin can't silently collide.
+3. **A serialisable widget definition** (or sandboxed loading) with versioning, so a widget
+   can be authored and validated without a code review against `src/`.
+4. **Publish the manifest as the interface** — the same manifest that feeds Ask becomes the
+   discoverability layer a plugin author writes against.
+5. **A trust model.** Declarative-first; code plugins signed and opt-in; never full
+   permissions in the host process by default (the ActiveX lesson).
+
+**Bottom line:** the messaging architecture removes the reason third-party authoring was
+impossible in the CD-ROM era (the N² knowledge web), and gives us the derived graph that
+validation, tooling and LLM assembly need. It is **necessary but not sufficient**: what
+gates actual plugin authorship is a contract that is *enforced and versioned*, typed
+boundaries, a trust model, and a distribution channel. Those are engineering decisions we
+can still make cheaply, because the hub keeps the interface small.
+
+## 9. Honest limits, stale claims, and open questions
 
 Things this model does **not** give you: event-stream-driven reactivity at high frequency
 (see `docs/MEDIA-DATAFLOW.md` and the live-edit stream issue), cross-board shared state,
