@@ -24,6 +24,19 @@
  * REQUIRES: engines installed once via the playwright CLI
  *   (`playwright-cli install-browser firefox webkit`), playwright-core is a
  *   devDependency.
+ *
+ * ENV:
+ *   PW_WS_ENDPOINTS   run an engine on another host (see scripts/remote-browser-daemon.mjs)
+ *   PW_WS_HOST        rewrite the localhost a remote daemon advertises
+ *   PW_EXECUTABLE_<ENGINE>
+ *                     launch that engine through an explicit executable instead of the
+ *                     bundled launcher. Example: WebKit on Debian 13 arm64 runs from a
+ *                     userspace dependency prefix via a launcher script, because the
+ *                     bundle's own wrapper overwrites LD_LIBRARY_PATH:
+ *                       PW_EXECUTABLE_WEBKIT=/opt/data/browser-test/webkit-launcher.sh \
+ *                         node scripts/browser-matrix.mjs --engines webkit
+ *                     Scope it to the single command (or a wrapper script) — do NOT
+ *                     export browser env globally; it leaks into other sessions.
  */
 import { createRequire } from 'node:module';
 import process from 'node:process';
@@ -65,6 +78,15 @@ const WS_ENDPOINTS = Object.fromEntries(
 // loopback) — a REMOTE client must point the host at the daemon machine.
 // Set PW_WS_HOST to the daemon's reachable address to rewrite it.
 const WS_HOST = process.env.PW_WS_HOST || '';
+
+// Per-engine executable override: PW_EXECUTABLE_WEBKIT=/path/to/launcher.sh
+// (the variable name is PW_EXECUTABLE_ + the upper-cased engine). Needed where the
+// bundled browser wrapper cannot be used as-is — e.g. WebKit on Debian 13 arm64, which
+// runs from a userspace dependency prefix through a launcher script. Unset for an
+// engine = the bundled launcher, i.e. exactly the previous behaviour.
+const EXECUTABLES = Object.fromEntries(
+  ENGINES.map((e) => [e, process.env[`PW_EXECUTABLE_${e.toUpperCase()}`] || '']),
+);
 const remoteWs = (engine) => {
   let url = WS_ENDPOINTS[engine];
   if (WS_HOST && /^ws:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(url)) {
@@ -105,7 +127,8 @@ for (const engine of ENGINES) {
     if (WS_ENDPOINTS[engine]) {
       browser = await launch.connect(remoteWs(engine)); // remote engine (daemon host)
     } else {
-      browser = await launch.launch({ headless: true });
+      const exe = EXECUTABLES[engine];
+      browser = await launch.launch({ headless: true, ...(exe ? { executablePath: exe } : {}) });
     }
     const page = await browser.newPage();
     page.on('console', (msg) => {
