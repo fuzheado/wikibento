@@ -135,6 +135,11 @@ filed rather than hidden:
 
 The tutorial video is generated, not hand-edited, so it can be re-recorded when the app changes:
 
+**Prerequisite:** recording needs *Playwright's own* ffmpeg build, not the system one.
+If it is absent the recorder stops with a clear message; the one-time fix is
+`npx playwright install ffmpeg` (about 1.6 MB). Verified by ablation: with that binary renamed
+aside, recording fails with "Video rendering requires ffmpeg binary".
+
 ```bash
 npm run build && node scripts/tutorial-video/record.mjs      # one clip per scene
 # narration: TTS each string in scenes.json → /opt/data/staging/wikibento-tutorial/narration/<id>.ogg

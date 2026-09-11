@@ -9,13 +9,32 @@
  * Env:    PLAYWRIGHT_BROWSERS_PATH (scoped to the command — never exported globally)
  */
 import { createRequire } from 'node:module';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
+
+// ── preflight: recordVideo needs Playwright's OWN ffmpeg build ───────────────
+// Not the system ffmpeg. Playwright keeps it under PLAYWRIGHT_BROWSERS_PATH as ffmpeg-<rev>/.
+// Verified by ablation on 2026-09-11: with that directory renamed aside, recordVideo fails with
+// "Video rendering requires ffmpeg binary" — so check first and say what to run, rather than dying
+// halfway through a take.
+{
+  const cache = process.env.PLAYWRIGHT_BROWSERS_PATH || '';
+  const found = cache && existsSync(cache) && readdirSync(cache).some((d) => d.startsWith('ffmpeg-'));
+  if (!found) {
+    console.error(
+      '✘ Playwright recording ffmpeg is missing' + (cache ? ` (looked in ${cache})` : ' (PLAYWRIGHT_BROWSERS_PATH is unset)') + '.\n' +
+      '  recordVideo cannot work without it; the system ffmpeg is not used. One-time fix:\n' +
+      '      npx playwright install ffmpeg\n' +
+      '  then re-run. Scoped example:\n' +
+      '      env PLAYWRIGHT_BROWSERS_PATH=/opt/data/home/.cache/ms-playwright npm run tutorial:record');
+    process.exit(2);
+  }
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
