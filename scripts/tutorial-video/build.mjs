@@ -53,26 +53,61 @@ const srtStamp = (seconds) => {
 };
 
 /**
- * Seconds of blank page at the head of a clip.
+ * Sample a clip down to one small greyscale frame per video frame.
  *
- * recordVideo starts when the browser context is created, so a clip always opens on the app's
- * unpainted white page — measured at ~1.0s on the 01-what take, which showed up in the assembled
- * video as a white flash at every scene boundary. Sample the clip down to 1x1 greyscale (1 byte per
- * frame) and find the first frame that is not white; trim with a filter rather than `-ss`, because
- * Playwright's streaming webm has no usable seek index.
+ * 32x18 rather than 1x1 on purpose: a single averaged pixel cannot tell an *unpainted* white page
+ * from a white page that has content on it. Chromium renders raw JSON on a white background (which
+ * is exactly what scene `07-store` shows — a Commons page holding the board's JSON), and averaging
+ * that to one pixel reads as "white", so an earlier version of this trimmed 12.6s of legitimate
+ * JSON-page footage and then warned that the take was 63% blank. Keeping a coarse grid means a
+ * single dark glyph anywhere in the frame makes it non-blank.
  */
-function detectLeadIn(clip, { threshold = 250, maxSeconds = 4 } = {}) {
-  let raw;
+function sampleClip(clip) {
   try {
-    raw = execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', clip,
-      '-vf', `fps=${fps},scale=1:1`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
+    return execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', clip,
+      '-vf', `fps=${fps},scale=32:18`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'],
       { maxBuffer: 64 * 1024 * 1024 });
-  } catch { return 0; }
-  const cap = Math.min(raw.length, fps * maxSeconds);
+  } catch { return Buffer.alloc(0); }
+}
+
+const PX = 32 * 18;   // bytes per sampled frame
+
+/** A frame is blank only if EVERY sample is white — no text, no UI, nothing drawn. */
+function isBlankFrame(buf, i, threshold = 250) {
+  const end = i * PX + PX;
+  for (let k = i * PX; k < end; k += 1) if (buf[k] < threshold) return false;
+  return true;
+}
+
+/**
+ * Frames of unpainted page at the head of a clip.
+ *
+ * recordVideo starts when the browser context is created, so a clip opens on the app's unpainted
+ * page before it renders — about 1.0s on most of these scenes, and much longer when the scene
+ * navigates to a wiki page. Left in, that is a white flash at every scene boundary. The cap is a
+ * fraction of the clip rather than a fixed number of seconds, since a long head is real even though
+ * a head covering the whole clip is not.
+ */
+function leadInFrames(buf, { maxFraction = 0.8 } = {}) {
+  const frames = Math.floor(buf.length / PX);
+  if (!frames) return 0;
+  const cap = Math.floor(frames * maxFraction);
   let i = 0;
-  while (i < cap && raw[i] >= threshold) i += 1;
-  if (i >= raw.length) return 0;              // entirely white: not a lead-in we can trust
-  return i / fps;
+  while (i < cap && isBlankFrame(buf, i)) i += 1;
+  return i >= frames ? 0 : i;                // entirely blank: not a lead-in we can trust
+}
+
+/**
+ * What fraction of the clip is an unpainted page, anywhere. A take that is mostly blank is a broken
+ * recording — a page that never rendered, an action that never fired — and the assembler should say
+ * so rather than stretch the blank across a scene.
+ */
+function blankFraction(buf) {
+  const frames = Math.floor(buf.length / PX);
+  if (!frames) return 0;
+  let n = 0;
+  for (let i = 0; i < frames; i += 1) if (isBlankFrame(buf, i)) n += 1;
+  return n / frames;
 }
 
 const scenes = timeline.scenes;
@@ -108,6 +143,9 @@ else console.error('✘ missing cards/title.png');
 const endCard = existsSync(join(OUT, 'cards', 'end.png')) ? cardPart('end.png', END_DUR)
   : (console.error('✘ missing cards/end.png'), null);
 
+/** takes that assembled, but look wrong — reported at the end so a broken clip cannot ship unnoticed */
+const suspects = [];
+
 // ── browser-rendered per-scene overlays (badge / url / captions) ─────────────
 const OVL = join(OUT, 'overlays');
 const ov = (name) => join(OVL, name);
@@ -132,7 +170,9 @@ for (const scene of scenes) {
   if (!existsSync(narration)) { console.error(`✘ missing narration for ${scene.id}`); continue; }
   const dClip = probe(clip);
   const dNarr = probe(narration);
-  const lead = detectLeadIn(clip);                  // blank page before the app paints
+  const buf = sampleClip(clip);
+  const lead = leadInFrames(buf) / fps;             // blank page before the app paints
+  const blank = blankFraction(buf);
   const dEff = Math.max(0.5, dClip - lead);
   const target = dNarr + 1.0;                       // a beat of silence at the end
   const stretch = Math.min(1.5, Math.max(1.0, target / dEff));
@@ -185,6 +225,15 @@ for (const scene of scenes) {
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-pix_fmt', 'yuv420p', '-r', String(fps),
       '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', out], scene.id);
   console.log(`  ${scene.id}: clip ${dClip.toFixed(1)}s${lead > 0.05 ? ` − ${lead.toFixed(1)}s blank` : ''} × ${stretch.toFixed(2)} + ${pad.toFixed(1)}s pad → ${target.toFixed(1)}s (narration ${dNarr.toFixed(1)}s)`);
+  if (blank > 0.25) {
+    suspects.push(`${scene.id} (${(blank * 100).toFixed(0)}% blank)`);
+    console.warn(`  ⚠ ${scene.id}: ${(blank * 100).toFixed(0)}% of this clip is a blank page — the take looks broken.` +
+      ` Re-record it:  node scripts/tutorial-video/record.mjs --only ${scene.id} --out ${OUT}`);
+  }
+  if (pad > 8) {
+    suspects.push(`${scene.id} (${pad.toFixed(1)}s freeze)`);
+    console.warn(`  ⚠ ${scene.id}: narration runs ${pad.toFixed(1)}s longer than the usable footage — the last frame freezes for that long.`);
+  }
   parts.push(out);
   srtTime += target;
 }
@@ -201,3 +250,7 @@ writeFileSync(join(OUT, 'wikibento-tutorial.srt'),
 console.log(`\n✔ ${final}`);
 console.log(`  duration ${probe(final).toFixed(1)}s · ${(statSync(final).size / 1048576).toFixed(1)} MB · ${W}x${H}@${fps}`);
 console.log(`  captions: ${join(OUT, 'wikibento-tutorial.srt')}`);
+if (suspects.length) {
+  console.warn(`\n⚠ ${suspects.length} clip(s) assembled but look wrong: ${suspects.join(', ')}`);
+  console.warn(`  The video is complete; re-record those scenes and rebuild before publishing.\n`);
+}
