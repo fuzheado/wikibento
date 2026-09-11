@@ -3259,3 +3259,47 @@ stated byte budget), `wvImageGaps` (the photo desk that fills listing `image=`),
 have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<img>`);
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
+
+## ISSUE-72 · Wikidata knowledge graph: image nodes, labelled edges (GitHub issue #82) — **open**
+
+**What:** add a **`graph` renderer to the existing `sparql` widget** so a board can show a Wikidata
+knowledge graph the way WDQS's own Graph view does — items as nodes, direct claims as labelled
+edges, P18 images on the nodes. Requested by Andrew 2026-09-11 with a worked `#defaultView:Graph`
+query (a "Madame X" art cluster: Sargent's painting, the sitter, related portraits by other artists,
+the holding museums, two books).
+
+**Why it fits:** the app already runs arbitrary SPARQL (widget `#1411`, endpoints wdqs /
+qlever-commons / humaniki) and can render stat, bar, line or table — the missing view is the one
+Wikidata is actually shaped like. Tables cannot show relations.
+
+**Measured (2026-09-11):** the supplied query runs on the live endpoint in **0.8 s**, returning
+**41 rows / 17 nodes / 15 distinct edge labels / 38 KB**; **15 of 17 nodes carry a P18 image**. A
+browser can query WDQS directly — `POST /sparql` answers `200` with `access-control-allow-origin: *`
+and the `OPTIONS` preflight passes. `embed.html` sends **no `X-Frame-Options` and no `frame-ancestors`
+CSP**, so an iframe embed is also technically open (that is the alternative to a native render).
+
+**Two findings that shape the design:**
+
+1. **WDQS is now split into endpoints** — `query-main` (verified 200, CORS `*`), `query-scholarly`,
+   and a **Commons** service (`commons-query`, verified 307 with our origin echoed);
+   `wikidata-legacy-full` was **decommissioned 2026-01-20**. A widget assuming "the whole graph"
+   behind one URL is now wrong, and the endpoint selector should name the current set.
+2. **The documented limits are the thing to design against** — a 60 s hard deadline, **60 s of
+   processing time per client (User-Agent + IP) per 60 s**, over-limit **429 + `Retry-After`**, with
+   temporary bans for ignoring them and blocking for a missing `User-Agent`. Since a **browser cannot
+   set `User-Agent`** (forbidden header), a board querying WDQS from the visitor's browser spends the
+   *visitor's* budget — an argument for routing graph queries through the existing Toolforge relay
+   with caching, and against short auto-refresh timers.
+
+**Proposed:** `renderer: 'graph'` and `graph+table`; honour `#defaultView:Graph` and the WDQS
+variable contract (`?item1`/`?item2`, `?item1Label`, `?image1`/`?image2`, `?edgeLabel`) so WDQS
+queries render unchanged; images on by default when bound, with a no-image fallback; click a node to
+open the item; a stated node ceiling with a visible "N rows dropped" notice rather than silent
+truncation. Recommended: native SVG with the design tokens (keeps lean/kiosk/print working and is
+cacheable), with the WDQS iframe offered as an explicit "embed" mode. Prior art named in the issue:
+Wikidata Graph Builder, and WDQS's own Graph view.
+
+**Gotchas:** Wikidata data is CC0 but the **images are not** (per-file CC BY-SA, needs attribution and
+a file link); endpoint drift can silently drop edges; the repo has **13 deps and no graph library**, so
+this is a real dependency decision — hence the option of a deterministic layout with no new dependency
+for v1.
