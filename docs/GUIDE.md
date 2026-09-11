@@ -56,7 +56,35 @@ every widget referencing it reloads.
 - **Broadcast.** A click affects every referencing widget. That's the point,
   but check who references a param before renaming or reusing it.
 - **Types:** `buttons` · `select` · `text` · `number` (options `[min,max,step]`)
-  · `month` (`0` = latest published month).
+  · `month` (`0` = latest published month) · `lookup`.
+- **`lookup` — the validated box** (ISSUE-67). Free text that is *checked against
+  live Wikimedia data*, with suggestions as you type. It is the type to reach for
+  when the value must be a real thing: an institution, a Commons category, a file,
+  a Wikidata item.
+
+  ```json
+  "collection": { "label": "Collection", "type": "lookup",
+                  "source": "cim-category",
+                  "options": ["Images from Metropolitan Museum of Art"],
+                  "value": "Images from Metropolitan Museum of Art" }
+  ```
+
+  The **`source`** decides what is suggested and how it is checked:
+
+  | source | suggests | validation |
+  |---|---|---|
+  | `cim-category` | CIM categories instantly, then any Commons category via search | **probed** — does Commons Impact Metrics have data? |
+  | `commons-category` · `commons-file` · `article` | live search | page exists |
+  | `wikidata-item` | `wbsearchentities` | the QID exists (the committed value is the QID) |
+  | *(none)* | the `options` list | is a member of `options` |
+
+  A badge shows the verdict for the **committed** value: ✓ good · ⚠ real but not
+  processed by CIM (the CIM cards will offer to register it) · ✗ no such page ·
+  `?` could not check. Suggestions apply on click; typed text applies on **↵**
+  (not per keystroke — a param fan-out would otherwise re-fetch every card on
+  each character). `options` is an optional shortlist shown before you type.
+  Edit the source in the card's ⚙ as the 4th field:
+  `collection | lookup | Collection | cim-category`.
 
 ## 3. Dataflow — feeding one widget into another
 

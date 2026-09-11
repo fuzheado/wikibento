@@ -13,8 +13,10 @@ output nodes that speak (🔊 Speaker) or translate (🌐 Translator) what they 
 
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the same grid engine used by Grafana and Kibana), ≈599 KB total (~173 KB
-gzipped), hostable as static files on Toolforge or anywhere.
+(the same grid engine used by Grafana and Kibana), ≈0.6 MB total (~175 KB
+gzipped), hostable as static files on Toolforge or anywhere. (Run
+`npm run build` for exact figures — byte counts change with the source, so the
+README quotes a magnitude rather than a number to hand-maintain.)
 
 All widgets hit **real Wikimedia APIs** (RESTBase, MediaWiki Action API,
 Commons, Wikistats) directly from the browser — no backend, no login, no proxy.
@@ -37,11 +39,11 @@ Commons, Wikistats) directly from the browser — no backend, no login, no proxy
 | 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + widget-to-widget dataflow (excerpt → translator) |
 | 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
 | 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
-| 🏛️ [One template, six institutions](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics), switch collections |
+| 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 37 widget types on one board |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 38 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
 
@@ -147,15 +149,13 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   fullscreen engages on the Present click
 - **Lean mode** — ▣ Lean (or `?lean=1`) gives the same chrome-free,
   grid-locked presentation as kiosk **without fullscreen**: the browser
-  stays resizable, so the board reads as a compact app at any window size.
-  The Share panel can hand out a lean link/QR directly (**📱 Lean mode**), so a
-  scanned phone opens straight into the app-like view
+  stays resizable, so the board reads as a compact app at any window size
 
 ### Building a dashboard
 
 > New here? The [user guide](docs/GUIDE.md) explains the model — board params (shared inputs), widget config (local settings) and dataflow (derived values) — with worked examples.
 
-- **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, number sliders, and month steppers** (plus menus/text fields) that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param), and each card can be **scoped to a subset of params** (⚙ → *Params on this card* checkboxes) — so one card can drive the article and another the target language ([ISSUE-59](docs/ISSUES.md))
+- **🎛️ Board Controls (params)** — declare a `params` block and reference `{{name}}` in any widget config; a Board Controls card renders **buttons, menus, text fields, number sliders and month steppers** — plus an **ISSUE-67 validated lookup box** (free text checked against live Wikimedia data, e.g. type any museum and the CIM cards follow) — that re-aim every referencing widget with one click — the interactivity primitive ([ISSUE-50](docs/ISSUES.md)). Params are editable right in the card's ⚙ panel (one line per param), and each card can be **scoped to a subset of params** (⚙ → *Params on this card* checkboxes) — so one card can drive the article and another the target language ([ISSUE-59](docs/ISSUES.md))
 - **🔀 Widget-to-widget dataflow (ISSUE-52, extended ISSUE-58)** — the next rung: a widget can **emit** its output and another widget can **consume** it two ways: a **`source` picker** in the ⚙ panel (structured access — the producer's output arrives as `opts.sourceOutput`) or **`{{widget:id}}` interpolation** in any config field (arrays join with newlines, so a Text List's lines can feed the Article List's titles field). Consumers **re-fetch automatically when the source value changes** (content-based signature — identical re-emits are no-ops). Four Dataflow widgets ship the rudimentary chain **🧾 Text List → 🔎 Filter Lines → 🔢 Line Count → 🖨️ Value Display** — try it: `?config=/flow-demo.json`. **Article Excerpt emits its first paragraph**, so `text: "{{widget:<excerpt-id>}}"` feeds a Translator, Speaker or Markdown card; the ⚙ panel lists every emitter as a clickable `{{widget:<id>}}` chip under text fields, and a widget that **fetches** never sends an unresolved `{{…}}` placeholder upstream — it shows *"Waiting for a reference"* and loads automatically once the producer emits
 - **🏷️ Widget instance names + rename resolution (ISSUE-53)** — every widget has a visible, editable instance name: a small id chip in the header (click → ⚙), the id shown in ⓘ, and the `source` picker listing emitters by id. ⚙ edits the name (plus an optional display-title override). Renaming **repoints references via a confirm dialog** — if other widgets reference the id (source fields or `{{widget:...}}` tokens), it says *"N references in M widgets"* and updates them all atomically; Cancel changes nothing. The source control is a **combobox** (dropdown + manual typing) everywhere widget input exists
 
@@ -175,7 +175,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
-- **Example dashboard** — ✨ loads a showcase dashboard with all 37 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
+- **Example dashboard** — ✨ loads a showcase dashboard with all 38 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
 
 ### Widget highlights
 
@@ -191,7 +191,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   batched 50 titles/call — pattern from the Wiki-Top-100 project), and
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
-- **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. Unregistered categories get a friendly "register via {{Views from category}}" state (404 ≠ error); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
+- **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. Unregistered categories get a friendly "request it via Phabricator" state (404 ≠ error — the allow list is a published TSV, extended by a Commons-Impact-Metrics-Requests ticket, **not** by the `{{Views from category}}` template); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
 - **SPARQL power widget** — 🧠 run any SPARQL against Wikidata (WDQS) or Commons (QLever) and get a big number, bars, line, or table — auto-detected from the result shape (manual override in ⚙). Canned presets unlock instant dashboards (collection depth, multi-institution comparison, Women-in-Red %, Commons top-depicts); 60 s timeout + retry + 10-min cache tame WDQS flakiness; long queries POST form-urlencoded (no CORS preflight)
 - **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
@@ -219,12 +219,6 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   `?config=` URL when present (short, phone-friendly); otherwise the
   self-contained hash link `#/d/…` (config embedded, under a size cap);
   oversized configs show a friendly notice instead of an un-scanable QR
-- **Share modes** — the Share panel chooses what a scanned link *opens*:
-  **📱 Lean mode** (`?lean=1` — no editor chrome, like an app) or **🖥 Full
-  board** (editable). One choice drives both the QR and the copyable link, so
-  what you scan is exactly what you paste, and the caption says which mode the
-  code carries. Neither variant encodes `?kiosk=1`: fullscreen needs a user
-  gesture, so a scanned link could not honour it
 - **ⓘ About** — built-in explainer of what the tool does and how to use it
 - **Reset** — reverts to the 3 default starter widgets
 
@@ -532,18 +526,20 @@ wikibento/
   every field below the fold (21/35 widget types at the fresh-add w3 h3 size,
   25/35 at 1024px, 27/35 at 820px). The long "Name (instance id)" hint (7 lines
   on a 3-column card, 67–93px per panel) is now one line with a tooltip.
-  Constitution: `npm run smoke:panels` — 222 measurements (⚙+ⓘ × 1440/1024/600
-  × 37 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
+  Constitution: `npm run smoke:panels` — 234 measurements (⚙+ⓘ × 1440/1024/600
+  × 39 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
   against the pre-fix CSS. Wired into `npm run smoke`
-- ✅ **All 32 data-driven widget types render live data in the browser; the 5
-  static ones (Text/Markdown, Board Controls, Speaker, Wiki Page, Text List)
-  render from config — no fetch**
-- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → all 37 widgets
+- ✅ **All 29 data-driven widget types render live data in the browser; the 9
+  static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page,
+  Text List, Filter Lines, Line Count, Value Display) render from config — no fetch**
+- ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → the whole board loads from an on-wiki page (its size tracks that page, not this repo)
 - ✅ URL loading: `?config=/dashboard.json` (hosted), `#/d/<base64>` hash links (Share roundtrip), error banner + fallback on bad URLs
 - ✅ w.wiki short URLs: `?config=https://w.wiki/TR9R` and bare `w.wiki/TR9R`
   expand via the same-origin `/api/resolve` endpoint and load the dashboard
 - ✅ Export → Import roundtrip, validation errors shown for bad JSON, Example, About, Reset, localStorage persistence
-- ✅ Production build: 486.00 KB JS (144.25 KB gzip) + 56.86 KB CSS (11.13 KB gzip) + 56.41 KB pannellum lazy asset (18.01 KB gzip)
+- ✅ Production build: ~0.6 MB raw / ~175 KB gzipped (Vite output — exact byte
+  counts change with every source change, so `npm run build` prints them and the
+  docs-facts constitution bound-checks the magnitude)
 
 ### The starter board, re-verified (2026-08-12)
 
@@ -568,10 +564,12 @@ wikibento/
 - [docs/DEMO-IDEAS.md](docs/DEMO-IDEAS.md) — demo/showcase concept bank ("Voyager, revisited"): 11 concepts A–K with board wiring, venue and effort, plus a demo playbook
 - [docs/WIDGET-MESSAGING.md](docs/WIDGET-MESSAGING.md) — **why widgets don't message each other**: a taxonomy of inter-component messaging from HyperCard and mTropolis to Grafana and marimo, why the hub model won, and the checklist for designing new widgets
 - [docs/PLUGIN-TRUST.md](docs/PLUGIN-TRUST.md) — **the code-distribution trust lesson**: why the ActiveX control model is the cautionary tale for any plugin system (signing answers *who*, never *what*; the fix was deleting the capability, not policing it)
-- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: every widget, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
+- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 38 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
+- [docs/MEDIA-DATAFLOW.md](docs/MEDIA-DATAFLOW.md) — design direction: should a *graphic* travel the dataflow wire (storage, identity, lifetime, trust), starting with references rather than payloads
+- [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) — append-only deployment log (bundle, commit, what shipped) + the lessons each deploy taught
 - [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md) — every API endpoint, params, caps, and gotchas
 - [docs/WIDGET-DEVELOPMENT.md](docs/WIDGET-DEVELOPMENT.md) — how to add a new widget type
 - [docs/INTENT-BENCHMARK.md](docs/INTENT-BENCHMARK.md) — the Ask advisor's intent→widget ground-truth catalog, the offline + live benchmark suites, and the fixture **interviewer tool** (`scripts/interview-fixtures.mjs` — interview mode for adding test cases without hand-editing JSON)

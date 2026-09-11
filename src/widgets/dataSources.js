@@ -1608,7 +1608,7 @@ async function fetchCim(path, retries = 2) {
       text = await fetchTextWithRetry(url, { timeoutMs: 30000, retries, withBody: true }); // CIM 500s intermittently (internal upstream 503s — verified 2026-08-13)
     } catch (e) {
       if (e.body && e.body.includes('not loaded yet')) {
-        throw new CimUnregisteredError('No precomputed (CIM) data yet — categories register via {{Views from category}} on the category page (processed monthly)');
+        throw new CimUnregisteredError('No precomputed (CIM) data yet — Commons Impact Metrics processes an allow list; request a category via Phabricator (project Commons-Impact-Metrics-Requests, by the 20th for next month)');
       }
       throw e;
     }
@@ -1626,7 +1626,7 @@ async function fetchCim(path, retries = 2) {
  *  (category-independent — has data whenever the month does) with a bounded
  *  backward walk; TTL-cached 1 h (failures aren't cached, so a fresh publish
  *  is picked up on the next widget load/refresh). */
-async function latestCimMonth() {
+export async function latestCimMonth() {
   return cimCache.get('cim::latest-month', async () => {
     let cur = prevCimMonth();
     for (let i = 0; i < 3; i++) {

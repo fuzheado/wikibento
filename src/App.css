@@ -1854,6 +1854,63 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   background: var(--surface);
   color: var(--text);
   font-size: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ISSUE-67: validated lookup param — free text + suggestions + capability badge.
+   The dropdown is absolutely positioned so it overlays the card content instead
+   of reflowing the grid (and it stays inside the card's overflow, which the
+   panel-reachability constitution keeps scrollable). */
+.lookup-wrap { display: flex; flex-direction: column; gap: 4px; position: relative; }
+.lookup-row { display: flex; align-items: center; gap: 6px; position: relative; }
+.lookup-badge {
+  flex: 0 0 auto;
+  width: 18px; height: 18px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  cursor: help;
+}
+.lookup-badge.ok { color: #3fb950; border-color: #3fb950; }
+.lookup-badge.warn { color: #d29922; border-color: #d29922; }
+.lookup-badge.bad { color: #f85149; border-color: #f85149; }
+.lookup-badge.unknown { color: var(--text-secondary); }
+.lookup-suggest {
+  position: absolute;
+  top: 100%; left: 0; right: 0;
+  z-index: 20;
+  margin-top: 2px;
+  max-height: 168px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.lookup-suggest-item {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.lookup-suggest-item:hover { background: var(--accent); color: #fff; }
+.lookup-suggest-empty {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.lookup-meta {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--text-secondary);
 }
 .board-param-select:focus,
 .board-param-input:focus { outline: none; border-color: var(--accent); }

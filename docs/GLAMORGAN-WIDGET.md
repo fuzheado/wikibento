@@ -94,10 +94,15 @@ primary categories) plus subcategories up to **7 levels deep** have data.
 Unregistered categories return **HTTP 404** with *"the category you asked for
 is not loaded yet"* — that 404 *is* the registration check.
 
-- **Register:** add `{{Views from category}}` to the category page → hidden
-  tracking category → staff add to the allow-list at month-end (submit by the
-  20th). No retroactive data; metrics appear the following month. Optional
-  Phabricator ticket (project `Commons-Impact-Metrics-Requests`).
+- **Register:** open a **Phabricator request** (project
+  `Commons-Impact-Metrics-Requests`,
+  [pre-filled form](https://phabricator.wikimedia.org/maniphest/task/edit/form/1/?projects=Commons-Impact-Metrics-Requests))
+  by the **20th**; staff add qualifying categories to the allow list at month-end
+  and metrics appear the following month. No retroactive data. Category name =
+  the URL slug after `Category:` (underscores, not spaces).
+  **⚠️ Do NOT add `{{Views from category}}`** — that template is the legacy
+  COM:VIEWS category-page-views system and does **not** register a category for
+  CIM (corrected 2026-09-11; see the `wikimedia-commons` skill).
 - **API** (CORS ✓): `https://wikimedia.org/api/rest_v1/metrics/commons-analytics/`
   — `category-metrics-snapshot/{cat}/{start}/{end}` (the four headline stats),
   `top-pages-per-category-monthly/…`, `top-viewed-media-files-monthly/…` (the
