@@ -20,8 +20,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseParams, parseParamSpecText, paramSpecToText } from '../src/lib/params.js';
 import {
-  normalizeLookupValue, matchRank, filterLocal, capabilityState, mergeSuggestions,
-  parseEmbeddedIn, parseActionSearch, parseWbSearchEntities,
+  normalizeLookupValue, matchRank, filterLocal, mergeSuggestions, cimVerdict,
+  parseAllowList, parseActionSearch, parseWbSearchEntities,
   getParamSource, PARAM_SOURCE_IDS, PARAM_SOURCES,
 } from '../src/lib/paramSources.js';
 
@@ -130,29 +130,60 @@ test('filterLocal ranks, limits, and treats an empty query as a shortlist', () =
   assert.deepEqual(filterLocal(null, 'x'), []);
 });
 
-// ── the capability verdict ──────────────────────────────────────────────────
+// ── the CIM verdict (pure decision table) ───────────────────────────────────
+// The allow list is authoritative for primary categories; the probe settles
+// subcategories and month availability. "real but not processed" (amber) must
+// stay distinct from "a typo" (red) — and an unreachable list must never be
+// read as "not allowed".
 
-test('capabilityState: registered → ok, real-but-unregistered → unregistered, missing → invalid', () => {
-  const registered = new Set(['Files from the Biodiversity Heritage Library']);
-  assert.equal(capabilityState({ value: 'Files from the Biodiversity Heritage Library', registered }), 'ok');
-  assert.equal(capabilityState({ value: 'Images from the Met', registered, exists: true }), 'unregistered');
-  assert.equal(capabilityState({ value: 'Nope Nope Nope', registered, exists: false }), 'invalid');
-  assert.equal(capabilityState({ value: 'Images from the Met', registered }), 'unknown');
-  assert.equal(capabilityState({ value: '', registered }), 'empty');
+test('cimVerdict: on the allow list → ok, offline-confirmable', () => {
+  const v = cimVerdict({ allowed: true });
+  assert.equal(v.state, 'ok');
+  assert.match(v.note, /allow list/);
 });
 
-test('capabilityState: without a registered set it is existence-only', () => {
-  assert.equal(capabilityState({ value: 'Albert Einstein', exists: true }), 'ok');
-  assert.equal(capabilityState({ value: 'Albert Einstein' }), 'unknown');
+test('cimVerdict: unlisted but probe 200 → ok (a subcategory of an allow-listed category)', () => {
+  const v = cimVerdict({ allowed: false, status: 200 });
+  assert.equal(v.state, 'ok');
+  assert.match(v.note, /subcategory/);
+});
+
+test('cimVerdict: unlisted + probe 404 + page exists → unregistered (amber, registerable)', () => {
+  const v = cimVerdict({ allowed: false, status: 404, exists: true });
+  assert.equal(v.state, 'unregistered');
+  assert.match(v.note, /Phabricator/);          // the corrected instruction
+  assert.doesNotMatch(v.note, /Views from category/);
+});
+
+test('cimVerdict: unlisted + probe 404 + no such page → invalid (a typo)', () => {
+  assert.equal(cimVerdict({ allowed: false, status: 404, exists: false }).state, 'invalid');
+});
+
+test('cimVerdict: an unreachable list is NOT "not allowed" (probe still decides)', () => {
+  assert.equal(cimVerdict({ allowed: null, status: 200 }).state, 'ok');
+  assert.equal(cimVerdict({ allowed: null, status: 404, exists: true }).state, 'unregistered');
+});
+
+test('cimVerdict: an inconclusive probe is unknown, never a guess', () => {
+  assert.equal(cimVerdict({ allowed: null, status: 0 }).state, 'unknown');
+  assert.equal(cimVerdict({ allowed: false, status: 429 }).state, 'unknown');
 });
 
 // ── payload parsers tolerate junk ───────────────────────────────────────────
 
-test('parseEmbeddedIn strips the Category: prefix and survives junk', () => {
-  const json = { query: { embeddedin: [{ title: 'Category:Skansen' }, { title: 'Category:PD USDA' }] } };
-  assert.deepEqual(parseEmbeddedIn(json), ['Skansen', 'PD USDA']);
-  assert.deepEqual(parseEmbeddedIn(null), []);
-  assert.deepEqual(parseEmbeddedIn({ query: {} }), []);
+test('parseAllowList reads the allow-list TSV: slugs → titles, blanks/comments skipped', () => {
+  const tsv = '\uFEFFIn_The_Beginning---Baptists\n\n# a comment\n19th-century_works_in_the_Musée_des_Beaux-Arts_de_Nancy\nSkansen\n';
+  assert.deepEqual(parseAllowList(tsv), [
+    'In The Beginning---Baptists',
+    '19th-century works in the Musée des Beaux-Arts de Nancy',
+    'Skansen',
+  ]);
+});
+
+test('parseAllowList dedupes, ignores a Category: prefix, and survives junk', () => {
+  assert.deepEqual(parseAllowList('Skansen\nSkansen\nCategory:Skansen'), ['Skansen']);
+  assert.deepEqual(parseAllowList(null), []);
+  assert.deepEqual(parseAllowList('   \n\t\n'), []);
 });
 
 test('parseActionSearch reads search and prefixsearch, optionally stripping a namespace', () => {

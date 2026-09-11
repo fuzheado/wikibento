@@ -1077,8 +1077,11 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
  *     would fire an N-widget re-fetch storm (13 cards on the glam demo).
  *  2. The badge describes the COMMITTED value, not the draft, so it never shows
  *     a verdict for something the board isn't actually using yet.
- *  3. A stale-response guard (the ISSUE-57 pattern) drops suggestions from a
- *     superseded query — typing fast must not let an old result win.
+ *  3. A stale-response guard drops suggestions from a superseded query — typing
+ *     fast must not let an old result win. Each async flow owns its OWN
+ *     lifecycle flag: sharing one counter between the validation and suggestion
+ *     effects made typing silently discard an in-flight verdict, leaving the
+ *     badge stuck on "checking…" (caught in verification 2026-09-11).
  *
  *  An unknown/absent source degrades to a plain text input: a bad source id
  *  must never break a board. */
@@ -1090,20 +1093,20 @@ function LookupParam({ spec, value, onSetParam, name }) {
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState({ state: 'empty' });
   const [optionCount, setOptionCount] = useState(null);
-  const seq = useRef(0);
 
   // Keep the draft in step with external changes (another card, URL, import).
   useEffect(() => { setDraft(value ?? ''); }, [value]);
 
   // Validate the committed value. Best-effort: a failed check is `unknown`.
+  // `alive` (set false by this effect's own cleanup) is the supersession guard;
+  // it must NOT be shared with the suggestion effect below.
   useEffect(() => {
     if (!value) { setVerdict({ state: 'empty' }); return undefined; }
-    const my = ++seq.current;
     let alive = true;
     setVerdict({ state: 'checking' });
     validateLookupValue(spec.source, value, { options: spec.options })
-      .then((v) => { if (alive && my === seq.current) setVerdict(v); })
-      .catch(() => { if (alive && my === seq.current) setVerdict({ state: 'unknown' }); });
+      .then((v) => { if (alive) setVerdict(v); })
+      .catch(() => { if (alive) setVerdict({ state: 'unknown' }); });
     return () => { alive = false; };
   }, [value, spec.source, spec.options]);
 
@@ -1122,15 +1125,14 @@ function LookupParam({ spec, value, onSetParam, name }) {
   // so they need no debounce at all; server searches wait for a typing pause.
   useEffect(() => {
     if (!open) return undefined;
-    const my = ++seq.current;
-    let alive = true;
+    let alive = true; // this effect's own supersession guard (see above)
     const delay = source?.kind === 'search' ? 280 : 0;
     const t = setTimeout(() => {
       setBusy(true);
       suggestForSource(spec.source, draft, { options: spec.options })
-        .then((s) => { if (alive && my === seq.current) setSuggestions(s); })
-        .catch(() => { if (alive && my === seq.current) setSuggestions([]); })
-        .finally(() => { if (alive && my === seq.current) setBusy(false); });
+        .then((s) => { if (alive) setSuggestions(s); })
+        .catch(() => { if (alive) setSuggestions([]); })
+        .finally(() => { if (alive) setBusy(false); });
     }, delay);
     return () => { alive = false; clearTimeout(t); };
   }, [draft, open, spec.source, spec.options, source]);

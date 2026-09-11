@@ -6,7 +6,9 @@
  * days), so every default-month CIM widget 404'd — and the broken probe
  * (probe window ≡ main window when month=0) misread that as "unregistered",
  * telling users of registered categories like Images_from_Metropolitan_
- * Museum_of_Art to add {{Views from category}} when the category was fine.
+ * Museum_of_Art to "add {{Views from category}}" when the category was fine.
+ *  (That instruction was itself wrong — the template does not register a
+ *  category; registration is a Phabricator request. Corrected 2026-09-11.)
  *
  * RULES:
  *  1. Default month (month=0) must resolve to the latest PUBLISHED month
@@ -125,6 +127,9 @@ test('explicit month newer than the latest published → "No CIM data" error, NO
 test('unregistered category (404 even on the latest published month) → CimUnregisteredError', async () => {
   await assert.rejects(
     fetchCimSnapshot('Unregistered_Category', 'deep', undefined, 0),
-    (e) => e instanceof CimUnregisteredError && /Views from category/.test(e.message),
+    // The correction (2026-09-11): registration is a Phabricator request, NOT
+    // the {{Views from category}} template — the message must say so.
+    (e) => e instanceof CimUnregisteredError && /Phabricator/.test(e.message)
+      && !/Views from category/.test(e.message),
   );
 });

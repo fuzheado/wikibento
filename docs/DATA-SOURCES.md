@@ -188,8 +188,9 @@ Month/year default to the previous calendar month; pageview data starts
 2015-08.
 
 **Alternative — Commons Impact Metrics (precomputed):** for **allow-listed**
-categories (GLAM/campaign categories registered via `{{Views from category}}`,
-processed monthly), the official AQS API
+categories (a WMF-maintained allow list of ~1,775 primary categories, extended by
+Phabricator request — project `Commons-Impact-Metrics-Requests` — and processed
+at month-end), the official AQS API
 (`…/api/rest_v1/metrics/commons-analytics/category-metrics-snapshot/…`) returns
 the same headline stats instantly, exactly, and at 1M-file scale. Unregistered
 categories 404 with *"the category you asked for is not loaded yet"* — that's
@@ -453,7 +454,7 @@ describe it in the docs above, done.
 
 ## 19. CIM widgets — Commons Impact Metrics (precomputed, allow-list) **Widgets:** CIM Category Snapshot · Views Over Time · Top Files · Top Wikis · Top Pages · Top Editors · Global Leaderboard · File Spotlight
 - **Base:** `https://wikimedia.org/api/rest_v1/metrics/commons-analytics/` — CORS `*`, no auth, `{context, items}` envelope; **14 endpoints** (authoritative: `api-spec.json` at the base URL). All 8 widgets verified live 2026-08-13 against `Files_from_the_Biodiversity_Heritage_Library`.
-- **Allow-list reality:** only ~1,755 primary categories + subcats (7 levels) have data. Unregistered categories (and registered ones with no data for the requested month) return **HTTP 404** with `"not loaded yet"` in the body — the 404 is **ambiguous** (verified: BHL itself 404s for 2015-01). `fetchCimMonth` disambiguates with a previous-month probe: probe OK → "no CIM data for this month"; probe 404 → not registered (friendly register hint with `{{Views from category}}`, processed monthly).
+- **Allow-list reality:** only ~1,775 primary categories + subcats (7 levels) have data, and the set is published as a TSV by WMF Data Engineering (`gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/main/dags/commons/commons_category_allow_list.tsv`, ~73 KB, one underscored slug per line, **no CORS** — read it via the deployment's `/api/proxy`). Unregistered categories (and registered ones with no data for the requested month) return **HTTP 404** with `"not loaded yet"` in the body — the 404 is **ambiguous** (verified: BHL itself 404s for 2015-01). `fetchCimMonth` disambiguates with a previous-month probe: probe OK → "no CIM data for this month"; probe 404 → not allow-listed (friendly hint: request it via Phabricator, project `Commons-Impact-Metrics-Requests`, by the 20th). **⚠️ `{{Views from category}}` is NOT the allow list** — it is the legacy COM:VIEWS category-page-views system and does not register anything; 872 of the 886 categories transcluding it (98.4%) happen to be allow-listed because GLAM categories commonly have both (corrected 2026-09-11 per the `wikimedia-commons` skill).
 - **Snapshot has NO pageviews** — join `pageviews-per-category-monthly` for view totals. Read the `-deep` keys for tree-wide numbers (identical to shallow for flat categories).
 - **Semantics:** CIM "views" = pageviews of pages **using** the files — not media requests, Commons-page views, or thumbnail fetches. Labeled "pageviews" in the widgets.
 - **Dates:** `YYYYMM01`, **end-exclusive**; default = previous calendar month (current month incomplete; data lags ~1–2 days).

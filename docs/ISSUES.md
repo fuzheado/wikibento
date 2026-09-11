@@ -3013,32 +3013,49 @@ unknown/absent source degrades to a plain text input rather than breaking.
 | existence check | `action=query&titles=Category:<X>` | `missing` flag |
 | **capability check** | `…/commons-analytics/category-metrics-snapshot/<Cat>/<YYYYMMDD>/<YYYYMMDD>` | **the only authoritative check** (see below) |
 
-**The finding that shaped the design — the registration list is partial.** The
-documented registration route is transcluding `{{Views from category}}`, and
-`list=embeddedin` enumerates it: **886 categories in 2 requests / ~48 KB**
-(exhausted, no continue). It is tempting to treat that as the capability set, but
-it is a *partial* view, and shipping it as proof would warn users about working
-categories:
+**The correction that shaped the design — `{{Views from category}}` is NOT the allow list.**
+An earlier revision of this slice seeded its option list from
+`list=embeddedin` on `Template:Views from category` (886 categories, 2 requests)
+and described that as "the documented registration route". It is not: the
+template is the **legacy COM:VIEWS category-page-views** system and does not
+register anything for CIM. It is a **correlation trap** — 872 of the 886
+transcluding categories (**98.4%**) are allow-listed anyway, simply because GLAM
+categories commonly carry both, and the 14 that are not return 404 on a live
+probe. Believing it produced exactly the failure mode a validator must not have:
+false "not registered" warnings for working categories — the Met (389,036 files),
+the Rijksmuseum, the Library of Congress and the National Gallery of Art are all
+allow-listed and **none of them transclude the template**. (Corrected 2026-09-11
+from the `wikimedia-commons` skill's Commons Impact Metrics section, which also
+records the 98.4% measurement; the branch that fixed the skill is
+`fix/cim-registration` on `Wikipedia-AI-Skills`.)
 
-| category | CIM files (2026-08) | in the template list? |
-|---|---|---|
-| Images from Metropolitan Museum of Art | 389,036 | ✗ |
-| Files from the Biodiversity Heritage Library | 305,997 | ✓ |
-| Images from the Rijksmuseum | 6,866 | ✗ |
-| Images from the Library of Congress | 200 | ✗ |
-| Images from the National Gallery of Art | 200 | ✗ |
+**The authoritative source is a published TSV, and it is enumerable:**
 
-`Template:Source category` (4,000+ categories, and it *does* contain the Library
-of Congress) and `Template:Image template notice` are also incomplete, and no
-union of templates enumerates the universe (DATA-SOURCES §19 puts it at ~1,755
-primary categories). **So the seed list supplies instant suggestions and the live
-snapshot probe supplies the verdict**, with CirrusSearch as the suggestion
-fallback — which is exactly what makes the Met findable: it is not in the list,
-but typing `Images from Metropolitan` surfaces it (first hit) and the probe
-confirms it. Membership in the list stays a fast, offline-confirmable `ok`.
-The probe must use `latestCimMonth()` (the latest **published** month) — probing
-the calendar's previous month misreads the month-start publish lag as
-"unregistered", the bug fixed 2026-09-01.
+```
+https://gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/
+  main/dags/commons/commons_category_allow_list.tsv
+```
+
+**1,775 primary categories** (subcategories up to 7 levels deep also have data),
+73 KB, one underscored slug per line, no header. It sends **no CORS headers**, so
+the browser reads it through the deployment's generic `/api/proxy` relay — the
+same mechanism the Top-pages widget already uses for hatnote; on hosts without
+the relay the source degrades to search-only suggestions. So the design is now:
+
+| input | verdict |
+|---|---|
+| on the allow list | ✓ `ok` — definitive, offline-confirmable |
+| not listed, probe 200 | ✓ `ok` — a subcategory of an allow-listed category |
+| not listed, probe 404, page exists | ⚠ `unregistered` — "request it via Phabricator (project Commons-Impact-Metrics-Requests)" |
+| not listed, probe 404, no such page | ✗ `invalid` — a typo |
+| list or probe unreachable | `?` `unknown` — never a guess |
+
+**Registration is a staff cycle, not a page edit:** a Phabricator request
+(project `Commons-Impact-Metrics-Requests`, pre-filled form, by the **20th**),
+processed at month-end, no retroactive backfill. This also corrects the
+user-facing copy in `dataSources.js` (`CimUnregisteredError`) and in the README,
+`docs/DATA-SOURCES.md` §19, `docs/GLAMORGAN-WIDGET.md` and HANDOFF — every one of
+which had been telling users to add the template.
 
 **Shipped (Slice 1):** `src/lib/paramSources.js` (registry + pure helpers),
 `lookup` in `parseParams`/`parseParamSpecText`/`paramSpecToText`,

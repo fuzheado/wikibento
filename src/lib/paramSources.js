@@ -13,35 +13,53 @@
  *
  *  · enumerable — a small, fetchable option set that we download once (24 h TTL,
  *    shared in-flight promise) and filter LOCALLY: instant suggestions, no
- *    debounce, no requests. `cim-category` seeds from the 886 categories
- *    registered via the documented `{{Views from category}}` route (2 requests /
- *    ~48 KB, verified 2026-09-10) AND falls back to server search, because that
- *    list is only a partial view of what CIM processes (see below).
+ *    debounce, no requests. `cim-category` seeds from the **allow list itself**
+ *    and falls back to server search for everything else.
  *
  *  · search — the namespace is unbounded (millions of Commons categories, all
  *    articles), so suggestions must come from the server: CirrusSearch for
  *    categories, `prefixsearch` for files/articles, `wbsearchentities` for
  *    Wikidata. Validation is then best-effort existence, NOT capability.
  *
- * WHY THE CAPABILITY CHECK IS A LIVE PROBE, NOT A LIST LOOKUP (found 2026-09-10)
- * The template list is only a PARTIAL view of what CIM processes, so treating it
- * as proof would warn users about categories that work fine:
+ * THE CIM ALLOW LIST, AND THE TEMPLATE THAT LOOKS LIKE IT (corrected 2026-09-11)
+ * Commons Impact Metrics processes an allow list of ~1,775 primary categories
+ * (plus subcategories up to 7 levels deep), published as a TSV by WMF Data
+ * Engineering — that TSV is the authoritative enumeration, and this module reads
+ * it (73 KB, one category per line, underscored slugs):
  *
- *     Images from Metropolitan Museum of Art       389,036 files, NOT in the list
- *     Images from the Rijksmuseum                      6,866 files, NOT in the list
- *     Files from the Biodiversity Heritage Library   305,997 files, IS in the list
+ *   https://gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/
+ *     main/dags/commons/commons_category_allow_list.tsv
  *
- * (Neither `Template:Source category` — 4,000+ categories, and it does contain
- * the Library of Congress — nor a union of templates enumerates the universe.)
- * The authoritative check is the one the widgets already use: request the CIM
- * snapshot for the resolved month and read the status — 200 = has data; 404 =
- * unregistered or no data, disambiguated against the latest PUBLISHED month
- * (probing the calendar's previous month would misread the month-start publish
- * lag as "unregistered" — the bug fixed 2026-09-01).
+ * It is NOT CORS-enabled, so the browser reaches it through the deployment's
+ * generic `/api/proxy` relay (the same mechanism the Top-pages widget uses for
+ * hatnote). Where the relay is absent the source degrades to search-only
+ * suggestions + probe validation.
  *
- * So the list supplies instant SUGGESTIONS and the probe supplies the VERDICT;
- * suggestions fall back to CirrusSearch so a category outside the list (the Met!)
- * is still findable by typing its name.
+ * ⚠️ `{{Views from category}}` does NOT register a category. It is the legacy
+ * "category page views" table system (COM:VIEWS) and is a correlation trap:
+ * 872 of the 886 categories that transclude it (98.4%) are allow-listed anyway,
+ * simply because GLAM categories commonly have both; the 14 that are not
+ * allow-listed return 404 on a live CIM probe. An earlier revision of this module
+ * seeded from `list=embeddedin` on that template and called it "the documented
+ * registration route" — which produced false "not registered" verdicts for
+ * categories that work fine (the Met, the Rijksmuseum, the Library of Congress,
+ * the National Gallery of Art are all allow-listed and none of them transclude
+ * it). Registration is a **Phabricator request** (project
+ * `Commons-Impact-Metrics-Requests`), processed by staff at month-end (submit by
+ * the 20th, no retroactive backfill) — never a page edit. Source: the
+ * `wikimedia-commons` skill's Commons Impact Metrics section.
+ *
+ * A probe is still required in addition to the list: subcategories (up to 7
+ * levels deep) have data without being on the list by name, and a listed
+ * category can have no data for a particular month. The probe asks CIM for the
+ * resolved month — 200 = has data; 404 = not processed (or no data for that
+ * month), disambiguated against the latest PUBLISHED month (probing the
+ * calendar's previous month would misread the month-start publish lag as
+ * "unregistered" — the bug fixed 2026-09-01).
+ *
+ * So the allow list supplies instant SUGGESTIONS **and** a definitive `ok`, and
+ * the probe settles everything else; suggestions fall back to CirrusSearch so a
+ * subcategory or a brand-new category is still findable by typing its name.
  *
  * CirrusSearch rather than prefixsearch for categories (verified 2026-09-10):
  * GLAM categories are named `Images from X` / `Files from Y`, so a prefix search
@@ -63,15 +81,13 @@ const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 const CIM_BASE = 'https://wikimedia.org/api/rest_v1/metrics/commons-analytics/';
 
-/** The template whose transclusion is the DOCUMENTED CIM registration route.
- *  A useful seed list — but NOT the whole registered universe (see below). */
-const CIM_TEMPLATE = 'Template:Views from category';
+/** The CIM allow list — the authoritative set of categories CIM processes.
+ *  Not CORS-enabled: reached through the deployment's /api/proxy relay. */
+const CIM_ALLOW_LIST_URL =
+  'https://gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/main/dags/commons/commons_category_allow_list.tsv';
 
-/** CIM registration is processed monthly — a day-long cache is plenty. */
-const CIM_REGISTERED_TTL = 24 * 60 * 60 * 1000;
-
-/** Safety valve: `embeddedin` pages 500 at a time; ~886 entries need 2. */
-const MAX_CIM_PAGES = 12;
+/** The allow list changes at month-end — a day-long cache is plenty. */
+const CIM_ALLOW_LIST_TTL = 24 * 60 * 60 * 1000;
 
 // ── pure helpers (no network — covered by tests/param-lookup.test.mjs) ───────
 
@@ -126,27 +142,36 @@ export function filterLocal(list, query, limit = 8) {
  *  unknown      — could not check (offline / list failed to load)
  *  empty        — no value yet
  */
-export function capabilityState({ value, registered, exists }) {
-  const v = String(value ?? '').trim();
-  if (!v) return 'empty';
-  if (registered) {
-    if (registered.has(v)) return 'ok';
-    if (exists === true) return 'unregistered';
-    if (exists === false) return 'invalid';
-    return 'unknown';
+/**
+ * The CIM verdict — the decision table the badge renders, kept pure so it is
+ * covered by tests rather than buried in async code.
+ *
+ *  allowed  — is the category on the allow list? (null when the list is
+ *             unreachable, which must NOT be read as "not allowed")
+ *  status   — the snapshot probe's HTTP status (200 | 404 | 0 = inconclusive)
+ *  exists   — does the Commons category page exist? (undefined = unchecked)
+ *
+ * `unregistered` (amber, registerable) is deliberately distinct from `invalid`
+ * (red, a typo): the museum-dashboard UX turns on telling those apart.
+ */
+export function cimVerdict({ allowed, status, exists }) {
+  if (allowed === true) return { state: 'ok', note: 'on the Commons Impact Metrics allow list' };
+  if (status === 200) {
+    return {
+      state: 'ok',
+      note: allowed === null
+        ? 'has Commons Impact Metrics data'
+        : 'has CIM data (a subcategory of an allow-listed category)',
+    };
   }
-  if (exists === true) return 'ok';
-  if (exists === false) return 'invalid';
-  return 'unknown';
-}
-
-/** `list=embeddedin` payload → bare category titles (pure; testable). */
-export function parseEmbeddedIn(json) {
-  const rows = json?.query?.embeddedin;
-  if (!Array.isArray(rows)) return [];
-  return rows
-    .map((r) => String(r?.title || '').replace(/^Category\s*:\s*/i, ''))
-    .filter(Boolean);
+  if (status === 404) {
+    if (exists === false) return { state: 'invalid', note: 'no such Commons category' };
+    return {
+      state: 'unregistered',
+      note: 'not on the Commons Impact Metrics allow list — request it via Phabricator (project Commons-Impact-Metrics-Requests)',
+    };
+  }
+  return { state: 'unknown', note: status ? `Commons Impact Metrics returned ${status}` : 'could not check Commons Impact Metrics' };
 }
 
 /** Action API `list=search` / `list=prefixsearch` payload → bare titles. */
@@ -170,46 +195,68 @@ export function parseWbSearchEntities(json) {
     .map((r) => ({ value: r.id, label: r.label ? `${r.label} (${r.id})` : r.id }));
 }
 
-// ── enumerable source: the CIM-registered category set ──────────────────────
+// ── enumerable source: the CIM allow list ──────────────────────────────────
 
-const cimRegistered = createTtlCache(CIM_REGISTERED_TTL);
+const cimAllowList = createTtlCache(CIM_ALLOW_LIST_TTL);
 
-/** Fetch (once per day) every category Commons Impact Metrics processes.
- *  Paginates `list=embeddedin` on the registration template. Failures are not
- *  cached (createTtlCache drops them) so a transient error self-heals. */
-export function loadCimRegistered() {
-  return cimRegistered.get('cim-registered', async () => {
-    const out = [];
-    let cont = null;
-    for (let page = 0; page < MAX_CIM_PAGES; page++) {
-      const params = new URLSearchParams({
-        action: 'query',
-        list: 'embeddedin',
-        eititle: CIM_TEMPLATE,
-        einamespace: '14',
-        eilimit: '500',
-        format: 'json',
-        formatversion: '2',
-        origin: '*',
-      });
-      if (cont) for (const [k, v] of Object.entries(cont)) params.set(k, v);
-      const json = JSON.parse(await fetchTextWithRetry(`${COMMONS_API}?${params}`, { timeoutMs: 20000 }));
-      out.push(...parseEmbeddedIn(json));
-      cont = json?.continue || null;
-      if (!cont) break;
+/** Parse the allow-list TSV → bare category titles with spaces (the form the
+ *  CIM API and the widgets use). Tolerates a BOM, blank lines and comments;
+ *  dedupes. Pure, so the contract is covered by tests. */
+export function parseAllowList(text) {
+  const out = [];
+  const seen = new Set();
+  for (const rawLine of String(text ?? '').split('\n')) {
+    const line = rawLine.replace(/^\uFEFF/, '').trim();
+    if (!line || line.startsWith('#')) continue;
+    // The TSV holds one underscored slug per line (a category may contain tabs
+    // only in theory; take the first field if one appears).
+    const slug = line.split('\t')[0].trim();
+    const title = slug.replace(/^Category\s*:\s*/i, '').replace(/_/g, ' ').trim();
+    if (!title || seen.has(title)) continue;
+    seen.add(title);
+    out.push(title);
+  }
+  return out;
+}
+
+/**
+ * Fetch (once per day) every category on the CIM allow list.
+ *
+ * The TSV is not CORS-enabled, so this goes through the deployment's generic
+ * `/api/proxy` relay first (same-origin, and the same mechanism the Top-pages
+ * widget uses for hatnote); a direct fetch is attempted second for hosts that
+ * serve it with CORS (and for tests). Failures are not cached (createTtlCache
+ * drops them) so a transient error self-heals, and callers treat an
+ * unreachable list as "no seed": suggestions fall back to search and the probe
+ * still supplies the verdict.
+ */
+export function loadCimAllowList() {
+  return cimAllowList.get('cim-allow-list', async () => {
+    const proxied = `/api/proxy?url=${encodeURIComponent(CIM_ALLOW_LIST_URL)}`;
+    let text;
+    try {
+      const payload = JSON.parse(await fetchTextWithRetry(proxied, { timeoutMs: 15000 }));
+      if (!payload || payload.status !== 200 || typeof payload.body !== 'string') {
+        throw new Error(`proxy returned ${payload?.status}`);
+      }
+      text = payload.body;
+    } catch {
+      text = await fetchTextWithRetry(CIM_ALLOW_LIST_URL, { timeoutMs: 15000 });
     }
-    return out.map((c) => c.replace(/_/g, ' '));
+    const list = parseAllowList(text);
+    if (!list.length) throw new Error('allow list was empty');
+    return list;
   });
 }
 
-/** The loaded set as a Set for O(1) membership — resolved for the UI badge. */
-export async function loadCimRegisteredSet() {
-  return new Set(await loadCimRegistered());
+/** The allow list as a Set for O(1) membership — resolved for the UI badge. */
+export async function loadCimAllowListSet() {
+  return new Set(await loadCimAllowList());
 }
 
 /** Drop the cached set (Refresh / tests). */
 export function clearParamSourceCaches() {
-  cimRegistered.clear();
+  cimAllowList.clear();
 }
 
 // ── search sources ──────────────────────────────────────────────────────────
@@ -265,14 +312,14 @@ async function searchWikidataItems(query, limit) {
 export const PARAM_SOURCES = {
   'cim-category': {
     id: 'cim-category',
-    label: 'Commons category (CIM-friendly)',
-    // seed list first (instant), then CirrusSearch so categories outside the
-    // template-registered seed are still findable — the Met is one of them.
+    label: 'Commons category (Commons Impact Metrics)',
+    // allow list first (instant + definitive), then CirrusSearch so a
+    // subcategory or an unlisted category is still findable by name.
     kind: 'enumerable',
     search: searchCommonsCategories,
     placeholder: 'Metropolitan Museum of Art',
-    hint: 'Known CIM categories are suggested instantly; others are searched live and then checked.',
-    load: loadCimRegistered,
+    hint: 'Allow-listed CIM categories are suggested instantly; anything else is searched live and then checked.',
+    load: loadCimAllowList,
   },
   'commons-category': {
     id: 'commons-category',
@@ -374,40 +421,34 @@ export async function validateLookupValue(id, value, { options } = {}) {
     return { state: opts.length === 0 ? 'ok' : (opts.includes(v) ? 'ok' : 'invalid') };
   }
   if (source.kind === 'enumerable') {
-    // Capability is PROBED, not inferred from the seed list — the list is partial
-    // (the Met and the Rijksmuseum have CIM data but are not in it). Membership is
-    // still a fast, offline-confirmable "ok".
-    let registered;
+    // The allow list is authoritative for PRIMARY categories — membership is a
+    // definitive, offline-confirmable `ok`. Everything else (subcategories up to
+    // 7 levels deep, which have data without being listed by name) is settled by
+    // the live probe.
+    let allowed = null; // null = list unreachable, NOT "not allowed"
     try {
-      registered = await loadCimRegisteredSet();
+      allowed = (await loadCimAllowListSet()).has(v);
     } catch {
-      registered = null;
+      allowed = null;
     }
-    if (registered?.has(v)) return { state: 'ok', note: 'registered with Commons Impact Metrics' };
-    let status;
+    if (allowed === true) return cimVerdict({ allowed: true });
+    let status = 0;
     try {
       status = await probeCimCategory(v);
     } catch {
-      return { state: 'unknown', note: 'could not check Commons Impact Metrics' };
+      status = 0;
     }
-    if (status === 200) return { state: 'ok', note: 'has Commons Impact Metrics data' };
+    // 404 is ambiguous (not allow-listed OR no data for that month) — only call it
+    // a typo when the category page does not exist at all.
+    let exists;
     if (status === 404) {
-      // The 404 is ambiguous (unregistered OR no data for the month) — only call
-      // it unregistered when the category page does not exist at all.
-      let exists;
       try {
         exists = await categoryExists(v);
       } catch {
         exists = undefined;
       }
-      return {
-        state: capabilityState({ value: v, registered, exists }),
-        note: exists === false
-          ? 'no such Commons category'
-          : 'not in Commons Impact Metrics — CIM cards will offer to register it',
-      };
     }
-    return { state: 'unknown', note: `Commons Impact Metrics returned ${status}` };
+    return cimVerdict({ allowed, status, exists });
   }
   // search sources: existence only (no capability notion)
   let exists;
@@ -448,7 +489,11 @@ async function probeCimCategory(value) {
   const end = `${next.getUTCFullYear()}${String(next.getUTCMonth() + 1).padStart(2, '0')}01`;
   const url = `${CIM_BASE}category-metrics-snapshot/${encodeURIComponent(value.replace(/ /g, '_'))}/${start}/${end}`;
   try {
-    await fetchTextWithRetry(url, { timeoutMs: 20000, retries: 0, withBody: true });
+    // 8 s, not the usual 20–30 s: a throttled (429) or slow CIM response should
+    // degrade to `unknown` promptly rather than leave the badge reading
+    // "checking…" — verified live at ~18 s under a rate-limited burst, which was
+    // honest but far too slow to be useful.
+    await fetchTextWithRetry(url, { timeoutMs: 8000, retries: 0, withBody: true });
     return 200;
   } catch (e) {
     const m = /^HTTP (\d{3})/.exec(String(e?.message || ''));

@@ -1608,7 +1608,7 @@ async function fetchCim(path, retries = 2) {
       text = await fetchTextWithRetry(url, { timeoutMs: 30000, retries, withBody: true }); // CIM 500s intermittently (internal upstream 503s — verified 2026-08-13)
     } catch (e) {
       if (e.body && e.body.includes('not loaded yet')) {
-        throw new CimUnregisteredError('No precomputed (CIM) data yet — categories register via {{Views from category}} on the category page (processed monthly)');
+        throw new CimUnregisteredError('No precomputed (CIM) data yet — Commons Impact Metrics processes an allow list; request a category via Phabricator (project Commons-Impact-Metrics-Requests, by the 20th for next month)');
       }
       throw e;
     }

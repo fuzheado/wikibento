@@ -149,8 +149,11 @@ dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseab
    the GLAM widget reported 0 used/0 views while glamtools returned 518 files ·
    38 used · 40 pages · 110,092 views.
 5. **Commons Impact Metrics is allow-list only.** Unregistered categories 404 with
-   "the category you asked for is not loaded yet" (registration via
-   `{{Views from category}}`, processed monthly) — and that 404 is *ambiguous*:
+   "the category you asked for is not loaded yet" (the allow list is a published
+   TSV of ~1,775 primary categories; additions go through a **Phabricator
+   request**, project `Commons-Impact-Metrics-Requests`, by the 20th — **not** the
+   `{{Views from category}}` template, which is the unrelated legacy
+   category-page-views system) — and that 404 is *ambiguous*:
    a registered category with no data for the month returns the same body. Default
    months must resolve through `latestCimMonth()`, never `prevCimMonth()`.
 6. **Playwright coordinate clicks miss after layout shifts** (images loading change
