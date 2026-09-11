@@ -42,14 +42,20 @@ Every card has the same top bar:
 
 ## 3. Clear it and start your own
 
-Click **↺ Reset**. The board returns to that same three-card starter set, and whatever you had is
-gone.
+Click **↺ Reset**. Because this throws the board away, it asks first — and offers two ways to start
+over:
 
-> ⚠️ **Export first if you want to keep the current board** — Reset does not ask for confirmation
-> yet (see *Known gaps* below).
+- **Starter set** — the same three-card board you began with (Main Page pageviews, a link count, the
+  largest Wikipedias).
+- **Blank board** — nothing at all, just the empty grid, ready for the cards you choose.
 
-From here everything you add is yours. If you would rather keep the demo board intact, open a fresh
-tab with the plain <https://wikibento.toolforge.org/> URL instead of resetting.
+**Cancel** changes nothing. A blank board is *remembered*: reloading keeps it empty rather than
+bringing the starter cards back.
+
+> ⚠️ **Export first if you want to keep the current board.** Reset clears both the cards and the
+> board's parameters, and it cannot be undone.
+
+From here everything you add is yours.
 
 ## 4. Add a card and point it at a subject
 
@@ -120,16 +126,17 @@ For a screen that should not be edited, add `?lean=1` (chrome-free, still resiza
 Documentation is only honest if it says where the tool currently lets you down. These are real, and
 filed rather than hidden:
 
-- **Reset has no confirmation.** One click discards the current board with no "Clear all?" prompt.
-  Export first. (The maintainer wants a confirmation; it is not built yet.)
-- **Export does not include the board *params* block.** If your board uses shared parameters, the
-  exported JSON keeps `version`, `widgets` and `layout` only — so parameters do not survive a
-  round-trip through Export → wiki page → `?config=`. The loader *does* read a `params` block, so a
-  hand-edited file works. Verified in source (`src/App.jsx` export handler) — note that no shipped
-  example board uses params, so the loss is easy to miss.
-- **Reset does not clear board params either**, for the same reason.
 - **The `?config=` URL must be CORS-fetchable** (wiki pages are, most static hosts are not) — see
   step 7. There is no server-side proxy for arbitrary hosts.
+
+Fixed on 2026-09-11 — the tutorial needed them to be true, so the product changed rather than the
+narration:
+
+- **Reset now asks.** It opens a dialog offering the starter set, a blank board, or cancel — and it
+  clears the board's `params` block along with the cards.
+- **Export carries the `params` block.** The exported JSON was `version`, `widgets`, `layout` only, so
+  a parameterised board lost its parameters through Export → wiki page → `?config=`. It now writes
+  `params` too, matching the documented format.
 
 ## Re-making the video
 

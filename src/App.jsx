@@ -12,6 +12,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
+import { readSavedBoard, savedBoardPayload } from './lib/savedBoard';
 import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
@@ -59,12 +60,23 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  // Reset is destructive and now offers a choice of fresh start (blank board or
+  // the starter set), so it opens a dialog instead of acting on the click.
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset) — also by board-param changes (ISSUE-50)
   const [paramSpecs, setParamSpecs] = useState({});   // board params (ISSUE-50): { name: { label, type, options } }
   const [paramValues, setParamValues] = useState({}); // board params live values: { name: string }
   const [paramBlock, setParamBlock] = useState(null); // board params RAW (persisted; spec edits rewrite it)
+  // Always holds the current params block, for `persist` to fall back on when a caller changes only
+  // widgets or layout. Assigned during render, NOT in an effect: child effects run before parent
+  // effects, so react-grid-layout's layout callback (which persists) fires *before* a parent effect
+  // could update a ref — which is exactly how a board's params were being erased from storage
+  // moments after boot (found 2026-09-11). Assigning here means any callback invoked after a render
+  // sees the value from that render.
+  const paramBlockRef = useRef(null);
+  paramBlockRef.current = paramBlock;
   // ISSUE-51 (widget-to-widget dataflow): { widgetId → emitted value }. Built
   // live from each widget's registry `emit`, consumed via the `source` picker
   // or {{widget:id}} interpolation. Ephemeral — rebuilt from fresh loads,
@@ -115,19 +127,13 @@ const [showAskPanel, setShowAskPanel] = useState(false);
       setParamValues(values);
       setWidgets(widgets);
       setLayout(layout);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets, layout, params: paramsBlock || null }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedBoardPayload(widgets, layout, paramsBlock)));
     };
     const loadSaved = () => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.widgets?.length && parsed.layout?.length) {
-            apply(parsed.widgets, parsed.layout, parsed.params);
-            return;
-          }
-        }
-      } catch (e) { /* corrupt, use defaults */ }
+      // readSavedBoard distinguishes "the user saved an empty board" (honour it) from
+      // "nothing saved" (use the starter set) by the shape of the blob — see src/lib/savedBoard.js.
+      const board = readSavedBoard(localStorage.getItem(STORAGE_KEY));
+      if (board) { apply(board.widgets, board.layout, board.params); return; }
       apply(DEFAULT_WIDGETS, DEFAULT_LAYOUT);
     };
     const boot = async () => {
@@ -196,9 +202,17 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     return () => window.removeEventListener('keydown', onKey);
   }, [kiosk, lean, exitPresent]);
 
-  // Persist to localStorage on changes
+  // Persist to localStorage on changes.
+  //
+  // `paramsBlock` is optional, and the difference between `undefined` and `null` is load-bearing:
+  // `undefined` means "this change did not touch the board's params, keep whatever they are", while
+  // `null` means "the params block is now empty on purpose" (Reset). Five call sites — layout moves,
+  // widget removal — pass no third argument at all, and because they used to write `params: null`,
+  // any board with parameters lost them from storage as soon as the user moved a card, so the next
+  // reload came back without its controls (found 2026-09-11 while testing the share round-trip).
   const persist = useCallback((newWidgets, newLayout, paramsBlock) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ widgets: newWidgets, layout: newLayout, params: paramsBlock || null }));
+    const params = paramsBlock === undefined ? paramBlockRef.current : paramsBlock;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedBoardPayload(newWidgets, newLayout, params)));
   }, []);
 
   /** ISSUE-44 Phase 3a — add an Ask-assembled board fragment BELOW the
@@ -415,13 +429,27 @@ const handleAutoHeight = useCallback((id, px) => {
     }
   }, [widgets, layout, persist, paramBlock]);
 
-  const handleReset = useCallback(() => {
+  /**
+   * Reset the board. `mode` is 'blank' (an empty board) or 'starter' (the three-card default); both
+   * are chosen explicitly from the confirm dialog, which is why this is never called from a bare
+   * click any more. Both also clear the board params block — a reset that left `params` behind is not
+   * a reset, and the params block is part of the board (it was previously left untouched).
+   */
+  const handleReset = useCallback((mode = 'starter') => {
+    const blank = mode === 'blank';
+    const nextWidgets = blank ? [] : DEFAULT_WIDGETS;
+    const nextLayout = blank ? [] : DEFAULT_LAYOUT;
     localStorage.removeItem(STORAGE_KEY);
-    setWidgets(DEFAULT_WIDGETS);
-    setLayout(DEFAULT_LAYOUT);
+    setParamBlock(null);
+    setParamSpecs({});
+    setParamValues({});
+    setWidgets(nextWidgets);
+    setLayout(nextLayout);
     setWidgetOutputs({});
+    persist(nextWidgets, nextLayout, null);   // a blank board has to survive the next reload
     setReloadKey((k) => k + 1);
-  }, []);
+    setShowResetDialog(false);
+  }, [persist]);
 
   /** Replace the whole dashboard (example load / successful import). */
   const applyDashboard = useCallback((dashboard) => {
@@ -537,7 +565,10 @@ const handleAutoHeight = useCallback((id, px) => {
   }, [applyDashboard]);
 
   const handleExport = useCallback(() => {
-    const config = { version: CONFIG_VERSION, widgets, layout };
+    // `params` is part of the documented config format (docs/JSON-FORMAT.md) and is read back by the
+    // import / example / ?config= paths, so leaving it out made a parameterised board lose its
+    // parameters on Export → wiki page → ?config= (ISSUE-75). Board params are part of the board.
+    const config = { version: CONFIG_VERSION, widgets, layout, params: paramBlock || null };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -545,7 +576,7 @@ const handleAutoHeight = useCallback((id, px) => {
     a.download = 'dashboard.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [widgets, layout]);
+  }, [widgets, layout, paramBlock]);
 
   /** Open the Share panel (QR code + copyable link). */
   const openShare = useCallback(() => setShowShare(true), []);
@@ -623,7 +654,7 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">
             ⬇ Export
           </button>
-          <button className="btn btn-danger" onClick={handleReset} title="Reset to defaults">
+          <button className="btn btn-danger" onClick={() => setShowResetDialog(true)} title="Reset to defaults">
             ↺ Reset
           </button>
           <button className="btn" onClick={() => setShowAbout(true)} title="About WikiBento">
@@ -699,6 +730,7 @@ const handleAutoHeight = useCallback((id, px) => {
         <SharePanel
           widgets={widgets}
           layout={layout}
+          params={paramBlock}
           lean={lean}
           onClose={() => setShowShare(false)}
         />
@@ -728,6 +760,19 @@ const handleAutoHeight = useCallback((id, px) => {
 
       {showDiagnostics && (
         <DiagnosticsPanel onClose={() => setShowDiagnostics(false)} />
+      )}
+
+      {showResetDialog && (
+        <ConfirmDialog
+          title="Start a new board?"
+          message="This clears the current board — every card, and the board's parameters. It cannot be undone, so export first if you want to keep it. Choose what to start from: the three-card starter set, or an empty board."
+          cancelLabel="Cancel"
+          secondaryLabel="Blank board"
+          onSecondary={() => handleReset('blank')}
+          confirmLabel="Starter set"
+          onConfirm={() => handleReset('starter')}
+          onCancel={() => setShowResetDialog(false)}
+        />
       )}
 
       {pendingRename && (

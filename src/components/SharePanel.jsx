@@ -20,13 +20,17 @@ const QR_MAX_CHARS = 1500;
  *   2. The self-contained #/d/<base64> share link, when short enough
  *   3. No QR — friendly notice — when the embedded config is too long
  */
-export default function SharePanel({ widgets, layout, lean = false, onClose }) {
+export default function SharePanel({ widgets, layout, params = null, lean = false, onClose }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState(lean ? 'lean' : 'full');
 
   const shareJson = useMemo(
-    () => JSON.stringify({ version: CONFIG_VERSION, widgets, layout }),
-    [widgets, layout],
+    // The board's `params` block travels too — otherwise a shared parameterised board arrives with
+    // its widgets but without the controls that re-aim them, which is the same defect Export had
+    // (found 2026-09-11). Omitted entirely when there are none, because this string becomes the URL:
+    // no reason to spend bytes on `null` for the common case.
+    () => JSON.stringify({ version: CONFIG_VERSION, widgets, layout, ...(params ? { params } : {}) }),
+    [widgets, layout, params],
   );
   const hashShareUrl = useMemo(() => buildShareLink(shareJson), [shareJson]);
 

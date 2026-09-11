@@ -2264,7 +2264,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .confirm-panel { width: 460px; padding: 18px 20px; gap: 12px; }
 .confirm-title { font-size: 15px; font-weight: 700; }
 .confirm-message { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 
 /* Translator (MinT) — machine translation card */
 .translate-card { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; overflow: auto; }

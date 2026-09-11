@@ -335,10 +335,18 @@ actions drift several seconds away from the words that describe them. Fix = make
 beat *at record time* (narration as a phrase list with measured offsets; the recorder waits for the offset
 before clicking), so no clip is ever stretched. `SCRIPT.md` is structured as beats for exactly this reason.
 
-**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; make `SCRIPT.md`
-authoritative for `scenes.json`; and the product decisions in issue #75 (Reset has no confirmation; Reset
-does not clear the board `params` block; Export and Share omit `params`), which the tutorial currently
-documents as "Known gaps" — fixing them means re-recording scene 3 (`--only 03-reset`).
+**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; and make
+`SCRIPT.md` authoritative for `scenes.json`.
+
+**Done 2026-09-11** (the tutorial needed them true, so the product changed rather than the narration):
+Reset now asks — Cancel · **Blank board** · **Starter set** — and clears the board's `params` block;
+**Export and the 🔗 Share link both carry `params`** (they silently dropped it, so a parameterised
+board lost its controls through Export → wiki page → `?config=`, and a shared link arrived with the
+cards but not the controls); and `persist()` at five call sites wrote `params: null` when only
+widgets/layout changed, erasing the block from localStorage as soon as a card was moved — those now
+keep the current block. Verified in a real browser (22 checks: reset flow, blank-board reload, export
+payload, drag survival, share-link recipient) and by `tests/saved-board.test.mjs`. Scenes 3 and 4 need
+re-recording (`--only 03-reset`, `--only 04-add`).
 
 Measured facts worth keeping (2026-09-11, this host):
 

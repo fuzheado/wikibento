@@ -144,7 +144,7 @@ async function applyStart(page, spec) {
   } else {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await settle(page, 7000);
-    if (spec === 'home-addpageviews') await addArticlePageviews(page, 'Albert Einstein');
+    if (spec === 'home-addpageviews') await addArticlePageviews(page, 'Marie Curie');
   }
 }
 
@@ -179,13 +179,18 @@ const ACTIONS = {
   },
   async '03-reset'(page) {
     await clickHuman(page, 'button[title="Reset to defaults"]');
-    await settle(page, 1500);
-    // tolerate a confirmation dialog whether or not it exists yet
-    await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll('button'));
-      const yes = btns.find((b) => /^(clear all|yes|confirm|reset)$/i.test((b.innerText || '').trim()));
-      if (yes) yes.click();
+    await settle(page, 2400);
+    // Reset asks first (2026-09-11): Cancel · Blank board · Starter set. Click "Starter set" so this
+    // scene ends on the board the following scenes expect. SCRIPT.md has the alternative take
+    // (choose Blank board and start scene 4 from an empty grid).
+    const chose = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('.confirm-actions button'));
+      const wanted = btns.find((b) => /starter set/i.test((b.innerText || '').trim()));
+      if (wanted) { wanted.click(); return wanted.innerText.trim(); }
+      return null;
     });
+    console.log(chose ? `   reset dialog → "${chose}"`
+                      : '   ⚠ no reset dialog — is the deployed app older than 2026-09-11?');
     await settle(page, 3500);
     const c = await cards(page);
     console.log('   reset → cards:', c.map((x) => x.title).join(' | '));
@@ -221,7 +226,7 @@ const ACTIONS = {
     });
     await clickHuman(page, box, { dx: 40 });
     await page.keyboard.press('Control+A');
-    await typeHuman(page, 'Albert Einstein', 90);
+    await typeHuman(page, 'Marie Curie', 90);
     await page.keyboard.press('Enter');
     await settle(page, 6500);                                        // the data arrives
   },

@@ -36,12 +36,14 @@ marked ⚠ are the ones where the action now lands several seconds after the wor
 3. 🗣 "What you are looking at is the starter board — three cards: pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
    🖱 point at each card in turn (a quick pulse, not a click), one per clause
    ⭕ ring each card's title as it is named — 0.6s each, thin ring, no zoom (three zooms in a row is seasick)
+   🔍 1.2× push onto the third card as it is described, held to the end of the sentence — the one zoom in this scene
 4. 🗣 "All of it is live."
    🖱 settle; pointer away from the cards
    📝 "Live data · no login · no server"
 
-Note: this scene has no actions, so the current take fits its narration fine. It is the one place a
-zoom could help — a 1.2× push onto the third card while it is being described.
+Zoom: **accepted 2026-09-11** — the 1.2× push above. Not in the current take: the fx layer is proved
+(`fx-proof.mjs`) but not yet wired into the recorder, so 🔍/⭕/🔊 markers record intent, not frames.
+This is the gentlest scene to prove it on — there are no actions, so a zoom has nothing to interrupt.
 
 ---
 
@@ -69,19 +71,25 @@ zoom could help — a 1.2× push onto the third card while it is being described
 
 `scene 03-reset` · starts from: the starter board · target ~16s
 
-1. 🗣 "To start your own board, you can clear this one: click Reset, and the board goes back to the same three starter cards."
-   🖱 click ↺ Reset — **on the word "Reset"**, not 3s later ⚠
-   ⭕ ring the Reset button before the click (1.2s), so the viewer sees where you are going
+1. 🗣 "To start your own board, you can clear this one. Reset asks first — you can go back to the starter set, or begin with an empty board."
+   🖱 click ↺ Reset — **on the word "Reset"** — and the dialog opens: Cancel · Blank board · Starter set
+   ⭕ ring the Reset button before the click (1.2s), then ring the two options as each is named
 2. 🗣 "Anything you had is gone, so export first if you want to keep it."
-   🖱 pause, pointer away from the buttons (give the warning room)
-   🔊 soft "warn" tone (optional) — decide: is a sound effect right for a wiki tool?
+   🖱 hold on the dialog, pointer away from the buttons (give the warning room)
 3. 🗣 "From here, everything you add is yours."
-   🖱 small scroll of the refreshed board
+   🖱 click **Starter set**; the board refreshes
 
-Open question for you: the reset has **no confirmation dialog** in the product today (issue #75).
-Until that changes, this scene is teaching a destructive click. Options: (a) show it as is and keep
-beat 2's warning, (b) fix the product first so the video shows a "Clear all?" dialog — that is a
-~10-line change and one re-record of this scene.
+**Built 2026-09-11** (this replaced an open question). Reset now asks: it offers the starter set, a
+blank board, or cancel, and it clears the board's `params` block along with the cards. The empty
+state says "No widgets yet. Click + Add Widget to get started."
+
+Take note: the recorder clicks **Starter set**, so this scene ends on the board the next scene expects.
+The alternative take — choose **Blank board**, then let scene 4 add the first card to an empty grid — is
+the better story arc (you watch a board being built from nothing), and it needs scene 4's start state
+changed to a blank board along with it. Not done yet.
+
+🔊 dropped for this scene (decided 2026-09-11): a warning tone was proposed, never implemented, and not
+wanted. The dialog is the warning.
 
 ---
 
@@ -113,8 +121,9 @@ beat 2's warning, (b) fix the product first so the video shows a "Clear all?" di
 7. 🗣 "Anything you change takes effect immediately."
    🖱 close the panel; a small settle
 
-Subject choice: currently **Albert Einstein**. A different article would change every number on
-screen — say the word if you want a WikiPortraits-adjacent subject instead.
+Subject: **Marie Curie** (changed from Albert Einstein, 2026-09-11). A WikiPortraits subject rather
+than a default-looking one, and the recording types this into the article field — so every number on
+screen is hers.
 
 ---
 
@@ -154,10 +163,13 @@ extra cards added, the wide bottom card refuses to shift.
    🖱 scroll the JSON a little
    📝 "dashboard.json — the whole board in one small file"
 
-Honesty note that should stay in the narration unless you overrule it: the exported file carries
-cards, their settings and their positions — **but not the board's `params` block**, so a board that
-uses parameters does not round-trip (issue #75). Saying "every card, its settings" is true; "the
-whole board" is not, for parameterised boards.
+**Resolved 2026-09-11** — the export used to omit the board's `params` block, so a parameterised board
+lost its parameters through Export → wiki page → `?config=`. That was a real bug: the documented format
+(`docs/JSON-FORMAT.md`) has always included `params`, and the loader reads it. Fixed, so the line
+"WikiBento writes the whole thing" is now true as written and the honesty caveat is gone.
+
+Still ⚠ in this scene: the click lands about a second before the word "Export". That is beat timing,
+not content — the same defect as the other ⚠ beats.
 
 ---
 

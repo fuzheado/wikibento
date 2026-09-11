@@ -20,7 +20,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 |---|---|---|---|
 | `version` | integer | optional | Must be `1` (or absent — treated as 1). Reserved for future migrations |
 | `params` | object | optional | Board params (ISSUE-50): `{ name: { label, type, options, value } }`, `type` = `buttons` \| `select` \| `text` \| `number` (options `[min, max, step]`) \| `month` \| `lookup` (ISSUE-67: add `source`, e.g. `cim-category`, `commons-category`, `commons-file`, `article`, `wikidata-item`; `options` becomes an optional curated shortlist). Widget configs reference them with `{{name}}`; a `boardControls` card renders them |
-| `widgets` | array | ✅ | At least one entry; see [Widget](#widget) |
+| `widgets` | array | ✅ | **May be empty** — a blank board (the Reset dialog can start you on one, and the UI shows an empty state). Otherwise see [Widget](#widget) |
 | `layout` | array | ✅ | May be empty (widgets auto-place); see [Layout Item](#layout-item) |
 
 ## Widget
@@ -293,6 +293,11 @@ exactly what `dashboard.json` looks like after export.
 
 ## Compatibility Notes
 
+- **Export, the `#/d/` share link and the localStorage snapshot all carry the whole board
+  including `params`** (fixed 2026-09-11 — Export and Share previously wrote `version`, `widgets` and
+  `layout` only, so a parameterised board arrived without the controls that re-aim its cards, and
+  several internal save paths wrote `params: null` and erased the block from storage as soon as a
+  card was moved). Omitted from a share link when there are no params, since that link is a URL.
 - Exported files carry `"version": 1` (added 2026-08-12); older exports without
   `version` still import.
 - The widget registry (`src/widgets/index.js`) is the source of truth for
