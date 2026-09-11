@@ -159,6 +159,11 @@ here; verified present 2026-09-11).
 host's `/opt/data/staging/wikibento-tutorial` when that exists, otherwise a temp dir — so the
 pipeline also runs on a laptop. The recorder prints the resolved path as `clips → …`.
 
+The **narration and the on-screen timing** live in `scripts/tutorial-video/SCRIPT.md`,
+which is the editable source of truth: each scene is a list of beats, and every beat
+says which action must happen while that line is spoken. Edit the words there, not in
+`scenes.json` (which the recorder reads).
+
 ```bash
 npm run build && node scripts/tutorial-video/record.mjs      # one clip per scene
 # narration: TTS each string in scenes.json → /opt/data/staging/wikibento-tutorial/narration/<id>.ogg

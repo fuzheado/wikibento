@@ -289,3 +289,51 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
 - **The on-wiki demo config is `Commons:WikiPortraits/Bento-demo.json`** — the
   WikiPortraits project hosts it; coordinate changes with that page's editors. Its
   size tracks that page, not this repo.
+
+## Tutorial video (state as of 2026-09-11)
+
+Goal: a narrated screencast that teaches the eight basic steps (what it is; read a shared board; clear
+it; add a card and set its subject; move/resize; export; store the JSON; reload with `?config=`).
+
+Where it stands:
+
+- `scripts/tutorial-video/SCRIPT.md` — **the editable source of truth**: narration in beats, each with
+  the action that must happen during that line, plus zoom / ring / sound / caption markers. Andrew is
+  editing this; the wording and beat order drive everything else.
+- `scripts/tutorial-video/scenes.json` — the recorder's scene plan (starting state per scene).
+- `scripts/tutorial-video/record.mjs` — records one clip per scene by driving the live app; `--only <id>`
+  re-records a single scene. Has a preflight for Playwright's own ffmpeg (see below).
+- `scripts/tutorial-video/build.mjs` + `cards.mjs` — assembles: stretch each clip to its voiceover
+  (max 1.5x, then freeze), burn in step badges / URL cards / captions, mux narration, concat behind a
+  browser-rendered title card and in front of an end card, emit an `.srt`.
+- `scripts/tutorial-video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with
+  a label, per-keystroke click sounds timed from the page, growing typed-text chip.
+- Artifacts (not in git; regenerable): `/opt/data/staging/wikibento-tutorial/` (final mp4 ≈3:40, 1080p25,
+  ~11 MB, narration + `.srt`) and `/opt/data/staging/fx-proof/fx-proof.mp4` (15 s proof, 1.4 MB).
+
+**The known defect to fix next:** the assembler stretches a whole clip to fit its voiceover, so individual
+actions drift several seconds away from the words that describe them. Fix = make actions land on their
+beat *at record time* (narration as a phrase list with measured offsets; the recorder waits for the offset
+before clicking), so no clip is ever stretched. `SCRIPT.md` is structured as beats for exactly this reason.
+
+**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; and the product
+decisions in issue #75 (Reset has no confirmation; Reset does not clear the board `params` block; Export
+and Share omit `params`), which the tutorial currently documents as "Known gaps" — fixing them means
+re-recording scene 3 (`--only 03-reset`).
+
+Measured facts worth keeping (2026-09-11, this host):
+
+- In-page zoom works: a CSS transform on `#root` magnifies **1.80x** (a 461 px card measures 830 px), and
+  magnified text stays crisp because the browser re-renders it — upscaling in ffmpeg cannot.
+- `recordVideo` needs **Playwright's own** ffmpeg (`ffmpeg-<rev>/` under `PLAYWRIGHT_BROWSERS_PATH`), not
+  the system ffmpeg. `record.mjs` preflights it; the fix is `npx playwright install ffmpeg` (~1.6 MB).
+- Real selectors (guessing them by text costs a whole take): the top button is a plain
+  `button.btn.btn-primary` reading "+ Add Widget"; the picker's field is `.add-widget-search`
+  (placeholder "Search widgets… (name, source, category)"), and it is **inside `#root`**, so transforms
+  applied there affect it.
+- The auto-zoom tutorial tools (OpenScreen / Recordly / OpenScreen Studio) cannot run here: this host is
+  **aarch64** and OpenScreen v1.11.0 ships no arm64 Linux asset (AppImage/deb/rpm/pacman only), Recordly
+  has no releases. They also infer zooms from cursor position, whereas we know the exact bounding box of
+  the element we are pointing at.
+- Drag recipe (measured): one column of the grid is ≈262 px of pointer travel at 1920 px wide; a card in
+  the leftmost column cannot move left (it snaps back) and drags must be handed to the card's top bar.
