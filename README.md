@@ -43,7 +43,7 @@ Commons, Wikistats) directly from the browser — no backend, no login, no proxy
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 38 widget types on one board — its article switcher drives five cards |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 39 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
 
@@ -129,6 +129,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
+| **IA Item** | 📦 | `archive.org/metadata` + `be-api…/views` (CORS `*`, no key) | An **Internet Archive item** by identifier — title, creator, year, collection, file count and size, plus all-time / 30-day / 7-day **views** (IA engagement, updated daily — *not* Wikimedia pageviews), thumbnail and a link to its details page. Emits the item URL for downstream use (e.g. a **QR Code** card) |
 | **Wayback Snapshot Gallery** ⚠️alpha | 🕰️ | Wayback availability + CDX/timemap (server batch) | Screenshot tiles of a website at chosen dates — closest capture per date (within tolerance), iframe-embedded; experimental — depends on Wayback backend health, failed lookups retry on refresh |
 
 ## Features
@@ -175,7 +176,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   allowlist** (`*.wikimedia.org`); other hosts render only with the per-widget
   "Allow external images" opt-in — so a shared dashboard can't leak viewers'
   IP/referrer to third-party tracking pixels (`referrerpolicy=no-referrer`)
-- **Example dashboard** — ✨ loads a showcase dashboard with all 38 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
+- **Example dashboard** — ✨ loads a showcase dashboard with all 39 widget types (real working assets), including a 📝 welcome card. Guided demo boards live at **`?config=/demos.json`** (the hub); the interactive params demo is at `?config=/params-demo.json`
 
 ### Widget highlights
 
@@ -526,10 +527,10 @@ wikibento/
   every field below the fold (21/35 widget types at the fresh-add w3 h3 size,
   25/35 at 1024px, 27/35 at 820px). The long "Name (instance id)" hint (7 lines
   on a 3-column card, 67–93px per panel) is now one line with a tooltip.
-  Constitution: `npm run smoke:panels` — 234 measurements (⚙+ⓘ × 1440/1024/600
-  × 39 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
+  Constitution: `npm run smoke:panels` — 240 measurements (⚙+ⓘ × 1440/1024/600
+  × 40 widgets at w3 h3, offline), exit 1 on any clipped action; negative-tested
   against the pre-fix CSS. Wired into `npm run smoke`
-- ✅ **All 29 data-driven widget types render live data in the browser; the 9
+- ✅ **All 30 data-driven widget types render live data in the browser; the 9
   static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page,
   Text List, Filter Lines, Line Count, Value Display) render from config — no fetch**
 - ✅ On-wiki config loading: `?config=…Commons:WikiPortraits/Bento-demo.json` → the whole board loads from an on-wiki page (its size tracks that page, not this repo)
@@ -564,7 +565,7 @@ wikibento/
 - [docs/DEMO-IDEAS.md](docs/DEMO-IDEAS.md) — demo/showcase concept bank ("Voyager, revisited"): 11 concepts A–K with board wiring, venue and effort, plus a demo playbook
 - [docs/WIDGET-MESSAGING.md](docs/WIDGET-MESSAGING.md) — **why widgets don't message each other**: a taxonomy of inter-component messaging from HyperCard and mTropolis to Grafana and marimo, why the hub model won, and the checklist for designing new widgets
 - [docs/PLUGIN-TRUST.md](docs/PLUGIN-TRUST.md) — **the code-distribution trust lesson**: why the ActiveX control model is the cautionary tale for any plugin system (signing answers *who*, never *what*; the fix was deleting the capability, not policing it)
-- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 38 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
+- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 39 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)

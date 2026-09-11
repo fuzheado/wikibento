@@ -933,7 +933,30 @@ downloads"). Shared TTL cache for the search/views endpoints.
 **Deferred:** IA S3 API, changes feed (auth-gated); Archive-It partner
 APIs (auth); Scholar/Fatcat (separate catalog).
 
-**Status:** open. Source: IA API research 2026-08-14.
+**Progress (2026-09-10):**
+- ✅ **Item 1 shipped — `iaItem` (IA Item).** Metadata + engagement views +
+  `services/img` thumbnail on a shared `CimSnapshotCard`; `timeScope: 'point'`;
+  emits the item URL. Endpoints re-verified live 2026-09-10 (CORS `*`): metadata
+  324 ms, views 351 ms. Tests: `tests/ia-item.test.mjs` (14) →
+  `npm test` 252/252; browser E2E `npm run smoke:ia`
+  (`scripts/ia-item-e2e.mjs`, 13 assertions incl. a loaded thumbnail and the
+  not-found message). Docs: `docs/DATA-SOURCES.md` §27,
+  `docs/BOARD-COMPOSITION.md` §1.8.
+- ⚠️ **Item 5 (Wayback Availability) is largely already built — do not duplicate
+  it.** `waybackGallery` (registry, `WaybackGalleryCard`, `/api/wayback-gallery`)
+  already does closest-capture-per-date with an availability fast path, a CDX
+  fallback through `/api/proxy`, stale-cache resilience, and iframe replay tiles.
+  A separate single-URL "is it archived?" card would overlap it; the genuinely
+  *new* angle is **bulk citation-rot** (an article's external links → coverage %
+  + liveness), which belongs with the Bucket B dead-link detector.
+- Re-verified constraints for the rest of the family: `scrape` `count` minimum is
+  **100** (400 otherwise); CDX is **proxy-gated and 503-prone**; `views/v1/detail`
+  is **5.8 s / 48 KB** (the slow one — cache hard, refresh rarely);
+  `timemap/link` returns **27 MB** per call.
+- Remaining: items 2 (views over time), 3 (IA search), 4 (IA collection).
+
+**Status:** open (item 1 done 2026-09-10). Source: IA API research 2026-08-14,
+re-verified 2026-09-10.
 
 ## ISSUE-26 · Hashtag Stats widget — edit-a-thon / campaign tracking — **open**
 

@@ -29,6 +29,7 @@ const INTENT_PATTERNS = [
   { re: /(links?|linking).{0,30}(domain|example\.|site|pages?)/, w: 'linkcount', reason: 'External Link Count counts pages linking to a domain.' },
   { re: /(playlist|play|watch|video).{0,30}(video|audio|file)/, w: 'mediaPlayer', reason: 'Media Player plays Commons video/audio — one file or a jukebox playlist.' },
   { re: /(how many|count).{0,50}(articles|edits|users).{0,30}(wikipedia|edition|german|french|spanish|language)/, w: 'wikistats', reason: 'Wiki Stats shows aggregate article/edit/user counts for a language edition.' },
+  { re: /internet archive|archive\.org\/details|ia item/, w: 'iaItem', reason: 'IA Item shows an Internet Archive item by identifier — metadata, file count/size and all-time/30-day/7-day views.' },
   { re: /(archive|snapshot|wayback)/, w: 'waybackGallery', reason: 'Wayback Snapshot Gallery shows archived captures of a website at chosen dates.' },
   { re: /panorama|360/, w: 'panorama360', reason: 'Panorama Viewer renders an equirectangular Commons file as a 360° view.' },
   { re: /3d|three.dimension|model/, w: 'panorama360', reason: 'Panorama Viewer is the closest current fit for 3D-like content (a 360° panorama).' },

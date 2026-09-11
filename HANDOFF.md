@@ -29,7 +29,7 @@ Feature-complete for v1 and deployed.
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-6udjc6im.js` (+ `index-C-pGdSgK.css`) |
 | deployed | 2026-09-10 (third deploy that day — config-only, same bundle) |
-| registry | 38 widget types — 29 data-driven, 9 static |
+| registry | 39 widget types — 30 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
