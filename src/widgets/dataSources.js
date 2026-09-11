@@ -11,6 +11,7 @@ const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 import { createTtlCache } from '../lib/fetchCache';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
+import { urlVariants } from '../lib/waybackTiles';
 import {
   wikidataEntityId,
   labelLanguage,
@@ -1928,14 +1929,17 @@ export async function fetchWaybackGallery(url, dates, toleranceDays = 30, opts =
     const batchText = await fetchTextWithRetry(batchUrl, { timeoutMs: 25000, retries: 1 });
     const batch = JSON.parse(batchText);
     if (batch && Array.isArray(batch.rows)) {
+      // `captureCount` is the server's best-effort total (sparkline) — it lets a miss say
+      // "the archive has 12,480 captures for this URL" instead of implying the archive is empty.
+      const counts = Number(batch.captureCount) || 0;
       if (batch.rows.some((r) => r.available)) {
-        const payload = { url: clean, rows: batch.rows };
+        const payload = { url: clean, rows: batch.rows, captureCount: counts };
         writeWaybackCache(lsKey, payload);
         return payload;
       }
       // upstream wholly unavailable right now — serve stale if we have it
       if (cached) return { ...cached.payload, stale: true };
-      return { url: clean, rows: batch.rows };
+      return { url: clean, rows: batch.rows, captureCount: counts };
     }
   } catch { /* endpoint absent (static host) or failed — fall through */ }
 
@@ -1943,16 +1947,22 @@ export async function fetchWaybackGallery(url, dates, toleranceDays = 30, opts =
   // authoritative CDX-through-proxy rescue for the flaky lookups.
   const rows = await Promise.all(list.map(async (date) => {
     const ts = date.replace(/[-/]/g, '');
-    const api = `https://archive.org/wayback/available?url=${encodeURIComponent(clean)}&timestamp=${ts}`;
     let closest = null;
-    try {
-      const text = opts.force
-        ? await fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 })
-        : await waybackCache.get(api, () => fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 }));
-      let data = {};
-      try { data = JSON.parse(text); } catch { /* not JSON — treat as no capture */ }
-      closest = data?.archived_snapshots?.closest;
-    } catch { /* CORS/network — fall through to CDX */ }
+    let matched = clean;
+    // Ask both URL forms: `nytimes.com` and `www.nytimes.com` can disagree (measured), and the
+    // replay URL must use the form that matched or the tile 404s.
+    for (const variant of urlVariants(clean)) {
+      const api = `https://archive.org/wayback/available?url=${encodeURIComponent(variant)}&timestamp=${ts}`;
+      try {
+        const text = opts.force
+          ? await fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 })
+          : await waybackCache.get(api, () => fetchTextWithRetry(api, { timeoutMs: 10000, retries: 1 }));
+        let data = {};
+        try { data = JSON.parse(text); } catch { /* not JSON — treat as no capture */ }
+        const hit = data?.archived_snapshots?.closest;
+        if (hit && hit.available) { closest = hit; matched = variant; break; }
+      } catch { /* CORS/network — fall through to CDX */ }
+    }
     if (!closest || !closest.available) {
       // availability said no (or threw): CDX is authoritative — try it.
       try {
@@ -1987,8 +1997,9 @@ export async function fetchWaybackGallery(url, dates, toleranceDays = 30, opts =
       timestamp: capTs,
       captureDate,
       status: closest.status,
+      matchedUrl: matched,
       snapshotUrl,
-      replayUrl: `https://web.archive.org/web/${capTs}id_/${clean}`,
+      replayUrl: `https://web.archive.org/web/${capTs}id_/${matched}`,
     };
   }));
 

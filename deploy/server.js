@@ -628,10 +628,21 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify(hit));
         return;
       }
+      const WB_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) wayback-gallery';
+      // The availability API is URL-form sensitive: `nytimes.com` returns {} while
+      // `www.nytimes.com` finds the capture — same site, and the miss is the slower path
+      // (measured 6.2 s vs 2.6 s on 2026-09-11, docs/WAYBACK-REPLAY-LATENCY.md). Ask both forms
+      // and remember which one matched: replaying the wrong form is a 404 tile.
+      const variants = (() => {
+        const [host, ...rest] = clean.split('/');
+        const tail = rest.length ? `/${rest.join('/')}` : '';
+        return /^www\./i.test(host) ? [clean, host.replace(/^www\./i, '') + tail] : [clean, `www.${clean}`];
+      })();
       const day = 86400000;
-      const rowFor = (date, capTs, status, via, original) => {
+      const rowFor = (date, capTs, status, via, original, matchUrl) => {
         const captureDate = `${capTs.slice(0, 4)}-${capTs.slice(4, 6)}-${capTs.slice(6, 8)}`;
         const diffDays = Math.round(Math.abs((new Date(captureDate) - new Date(date)) / day));
+        const target = matchUrl || clean;
         return {
           date,
           available: true,
@@ -641,114 +652,185 @@ const server = createServer(async (req, res) => {
           captureDate,
           status,
           via,
-          snapshotUrl: `https://web.archive.org/web/${capTs}/${original || clean}`,
-          replayUrl: `https://web.archive.org/web/${capTs}id_/${clean}`,
+          matchedUrl: target,
+          snapshotUrl: `https://web.archive.org/web/${capTs}/${original || target}`,
+          replayUrl: `https://web.archive.org/web/${capTs}id_/${target}`,
         };
       };
       try {
-        // Pass 1: availability API per date (CORS is irrelevant server-side;
-        // timeouts 10 s). Recover the memento-location header when the body
+        // Pass 1: availability API per date, trying BOTH URL forms (CORS is irrelevant
+        // server-side; timeouts 10 s). Recover the memento-location header when the body
         // omits the capture (the known bug case).
-        const rows = await Promise.all(dates.map(async (date) => {
+        const availabilityFor = async (date, variant) => {
           const ts = date.replace(/-/g, '');
-          const api = `https://archive.org/wayback/available?url=${encodeURIComponent(clean)}&timestamp=${ts}`;
+          const api = `https://archive.org/wayback/available?url=${encodeURIComponent(variant)}&timestamp=${ts}`;
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 10000);
           try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 10000);
-            const r = await fetch(api, { signal: ctrl.signal, headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) wayback-gallery' } });
-            clearTimeout(timer);
+            const r = await fetch(api, { signal: ctrl.signal, headers: { 'User-Agent': WB_UA } });
             const body = await r.json();
             const closest = body?.archived_snapshots?.closest;
             if (closest && closest.available && /^\d{14}$/.test(String(closest.timestamp))) {
-              return rowFor(date, String(closest.timestamp), closest.status, 'availability');
+              return rowFor(date, String(closest.timestamp), closest.status, 'availability', null, variant);
             }
             const memento = r.headers.get('memento-location') || '';
             const mTs = (memento.match(/\/web\/(\d{14})/) || [])[1];
-            if (mTs) return rowFor(date, mTs, '200', 'memento');
-            return { date, available: false };
+            if (mTs) return rowFor(date, mTs, '200', 'memento', null, variant);
+            return null;
           } catch {
-            return { date, available: false };
+            return null;
+          } finally {
+            clearTimeout(timer);
           }
-        }));
-        // Pass 2: CDX span query for the misses (authoritative; 503-flaky →
-        // two attempts with backoff; on failure keep the misses as-is).
+        };
+        // Capture count: the sparkline endpoint the IA calendar itself uses (0.65-6 s,
+        // ~2 kB). Best effort and *concurrent* with pass 1, so it never delays a tile — it
+        // exists so a miss can say "the archive has 12,480 captures" instead of implying the
+        // archive is empty.
+        const countPromise = (async () => {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 3500);
+          try {
+            const spark = `https://web.archive.org/__wb/sparkline?output=json&url=${encodeURIComponent(clean)}&collection=web`;
+            const r = await fetch(spark, { signal: ctrl.signal, headers: { 'User-Agent': WB_UA } });
+            const body = await r.json();
+            const years = body?.years || {};
+            return Object.values(years).reduce(
+              (sum, months) => sum + (Array.isArray(months) ? months.reduce((s, n) => s + (Number(n) || 0), 0) : 0), 0);
+          } catch {
+            return 0;
+          } finally {
+            clearTimeout(timer);
+          }
+        })();
+        const [rows, captureCount] = await Promise.all([
+          Promise.all(dates.map(async (date) => {
+            for (const variant of variants) {
+              const hit = await availabilityFor(date, variant);
+              if (hit) return hit;
+            }
+            return { date, available: false };
+          })),
+          countPromise,
+        ]);
+        // Fallback passes are time-boxed. The archive's own index latency dominates — its
+        // Server-Timing header reported cdx.remote at 7.8 s / 16.4 s / 66.2 s on three comparable
+        // captures — so a total miss must not become a minute of stacked retries. Measured before
+        // this budget: 74 s for a URL with nothing in the index.
+        const FALLBACK_BUDGET_MS = Number(process.env.WIKIBENTO_WAYBACK_BUDGET_MS) || 20000;
+        const fallbackStart = Date.now();
+        const budgetLeft = () => FALLBACK_BUDGET_MS - (Date.now() - fallbackStart);
+        const timedFetch = async (u, capMs) => {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), Math.max(3000, Math.min(capMs, budgetLeft())));
+          try {
+            return await fetch(u, { signal: ctrl.signal, headers: { 'User-Agent': WB_UA } });
+          } finally {
+            clearTimeout(timer);
+          }
+        };
         const misses = rows.filter((r) => !r.available);
         let cdxRan = false;
-        if (misses.length) {
+        if (misses.length && budgetLeft() > 0) {
           try {
             const ms = dates.map((d) => new Date(d).getTime());
             const from = new Date(Math.min(...ms) - tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
             const to = new Date(Math.max(...ms) + tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
-            const cdx = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(clean)}&from=${from}&to=${to}&output=json&fl=timestamp,original,statuscode&collapse=timestamp:6&filter=statuscode:200&limit=10000`;
-            let cdxRows = null;
-            for (let attempt = 0; attempt < 2 && !cdxRows; attempt++) {
-              try {
-                const r = await fetch(cdx, { headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) wayback-gallery' } });
-                const text = await r.text();
-                if (r.ok) {
-                  const parsed = JSON.parse(text);
-                  if (Array.isArray(parsed) && parsed.length >= 2) cdxRows = parsed;
+            // ONE query for all misses. Re-measured 2026-09-11: the wide span took 20.8 s here,
+            // while six narrow per-date windows for the same dates took 11.8-53.5 s — narrower is
+            // not reliably cheaper, so the extra query fan-out was not justified.
+            for (const variant of variants) {
+              if (budgetLeft() <= 0) break;
+              const cdx = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(variant)}&from=${from}&to=${to}&output=json&fl=timestamp,original,statuscode&collapse=timestamp:6&filter=statuscode:200&limit=10000`;
+              let cdxRows = null;
+              let definitiveEmpty = false;
+              for (let attempt = 0; attempt < 2 && !cdxRows && !definitiveEmpty && budgetLeft() > 0; attempt++) {
+                try {
+                  const r = await timedFetch(cdx, 25000);
+                  const text = await r.text();
+                  if (r.ok) {
+                    const parsed = JSON.parse(text);
+                    if (Array.isArray(parsed)) {
+                      cdxRan = true;
+                      if (parsed.length >= 2) cdxRows = parsed;
+                      // An empty array is an ANSWER, not a failure: this URL is not in the index
+                      // for this window. Marking it lets the card say "no captures on record"
+                      // with confidence instead of "lookup failed — retry".
+                      else definitiveEmpty = true;
+                    }
+                  }
+                } catch { /* retry below */ }
+                if (!cdxRows && !definitiveEmpty && attempt === 0 && budgetLeft() > 2000) {
+                  await new Promise((r2) => setTimeout(r2, 800));
                 }
-              } catch { /* retry below */ }
-              if (!cdxRows && attempt === 0) await new Promise((r2) => setTimeout(r2, 1200));
-            }
-            if (cdxRows) {
-              cdxRan = true;
-              const cols = cdxRows[0];
-              const iTs = cols.indexOf('timestamp');
-              const iOrig = cols.indexOf('original');
-              const iSt = cols.indexOf('statuscode');
-              for (const miss of misses) {
-                const targetMs = new Date(miss.date).getTime();
-                let best = null;
-                for (let r = 1; r < cdxRows.length; r++) {
-                  const capTs = String(cdxRows[r][iTs] || '');
-                  if (!/^\d{14}$/.test(capTs)) continue;
-                  const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - targetMs) / day));
-                  if (!best || d < best.diffDays) best = { capTs, original: cdxRows[r][iOrig], status: cdxRows[r][iSt], diffDays: d };
+              }
+              if (cdxRows) {
+                const cols = cdxRows[0];
+                const iTs = cols.indexOf('timestamp');
+                const iOrig = cols.indexOf('original');
+                const iSt = cols.indexOf('statuscode');
+                for (const miss of misses) {
+                  if (miss.available) continue;
+                  const targetMs = new Date(miss.date).getTime();
+                  let best = null;
+                  for (let row = 1; row < cdxRows.length; row++) {
+                    const capTs = String(cdxRows[row][iTs] || '');
+                    if (!/^\d{14}$/.test(capTs)) continue;
+                    const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - targetMs) / day));
+                    if (!best || d < best.diffDays) {
+                      best = { capTs, original: cdxRows[row][iOrig], status: cdxRows[row][iSt], diffDays: d };
+                    }
+                  }
+                  if (best) Object.assign(miss, rowFor(miss.date, best.capTs, best.status, 'cdx', best.original, variant));
                 }
-                if (best) {
-                  const replaced = rowFor(miss.date, best.capTs, best.status, 'cdx', best.original);
-                  Object.assign(miss, replaced);
-                }
+                break;
+              }
+              if (definitiveEmpty) {
+                for (const miss of misses) if (!miss.available) miss.provenAbsent = true;
+                break;
               }
             }
           } catch { /* CDX entirely down — misses stay unavailable */ }
         }
-        // Misses that pass 2 couldn't resolve are lookups that FAILED (CDX
-        // down) rather than proven absences — mark them so the card can say so.
+        // Misses the index never answered for are FAILURES (retry-worthy), not absences.
         for (const miss of misses) {
-          if (!miss.available && !cdxRan) miss.lookupFailed = true;
+          if (!miss.available && !miss.provenAbsent) miss.lookupFailed = true;
         }
-        // Pass 3: per-miss timemap JSON queries (replay-cluster backend —
-        // healthy even when the CDX index 503s; same columnar shape:
-        // [urlkey, timestamp, original, mimetype, statuscode, digest, length]).
+        // Pass 3: per-miss timemap JSON queries (replay-cluster backend — healthy even when the
+        // CDX index 503s; same columnar shape). Only for misses the index did not definitively
+        // answer, and only while the budget lasts; both URL forms.
         for (const miss of misses) {
-          if (miss.available) continue;
+          if (miss.available || miss.provenAbsent || budgetLeft() <= 0) continue;
           const from = new Date(new Date(miss.date).getTime() - tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
           const to = new Date(new Date(miss.date).getTime() + tolerance * day).toISOString().slice(0, 10).replace(/-/g, '');
-          try {
-            const tm = `https://web.archive.org/web/timemap/json?url=${encodeURIComponent(clean)}&from=${from}&to=${to}`;
-            const r = await fetch(tm, { headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) wayback-gallery' } });
-            const text = await r.text();
-            if (r.ok) {
-              const parsed = JSON.parse(text);
-              if (Array.isArray(parsed) && parsed.length >= 2) {
-                const targetMs = new Date(miss.date).getTime();
-                let best = null;
-                for (let row = 1; row < parsed.length; row++) {
-                  const capTs = String(parsed[row][1] || '');
-                  const st = String(parsed[row][4] || '');
-                  if (!/^\d{14}$/.test(capTs) || st !== '200') continue;
-                  const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - targetMs) / day));
-                  if (!best || d < best.diffDays) best = { capTs, original: parsed[row][2], status: st, diffDays: d };
+          for (const variant of variants) {
+            if (budgetLeft() <= 0) break;
+            try {
+              const tm = `https://web.archive.org/web/timemap/json?url=${encodeURIComponent(variant)}&from=${from}&to=${to}`;
+              const r = await timedFetch(tm, 15000);
+              const text = await r.text();
+              if (r.ok) {
+                const parsed = JSON.parse(text);
+                if (Array.isArray(parsed) && parsed.length >= 2) {
+                  const targetMs = new Date(miss.date).getTime();
+                  let best = null;
+                  for (let row = 1; row < parsed.length; row++) {
+                    const capTs = String(parsed[row][1] || '');
+                    const st = String(parsed[row][4] || '');
+                    if (!/^\d{14}$/.test(capTs) || st !== '200') continue;
+                    const d = Math.round(Math.abs((new Date(capTs.slice(0, 4), capTs.slice(4, 6) - 1, capTs.slice(6, 8)) - targetMs) / day));
+                    if (!best || d < best.diffDays) best = { capTs, original: parsed[row][2], status: st, diffDays: d };
+                  }
+                  if (best) {
+                    Object.assign(miss, rowFor(miss.date, best.capTs, best.status, 'timemap', best.original, variant));
+                    break;
+                  }
                 }
-                if (best) Object.assign(miss, rowFor(miss.date, best.capTs, best.status, 'timemap', best.original));
               }
-            }
-          } catch { /* timemap down too — miss stays unavailable */ }
+            } catch { /* timemap down too — this form is a dead end */ }
+          }
         }
-        const payload = { url: clean, rows, batch: true };
+        const payload = { url: clean, rows, batch: true, captureCount, variants };
         if (rows.some((r) => r.available)) waybackCacheSet(cacheKey, payload, 10 * 60 * 1000);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify(payload));

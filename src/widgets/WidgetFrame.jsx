@@ -9,6 +9,7 @@ import { renderMarkdown } from '../lib/markdown';
 import { qrSvg, qrModuleCount } from '../lib/qr';
 import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
+import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import '../vendor/pannellum.css';
 
 /**
@@ -2216,50 +2217,122 @@ function FileTrafficCard({ data }) {
  *  replay) in a fixed 1280x960 iframe scaled down to tile size — the
  *  classic screenshot-thumbnail technique. Tiles are display-only
  *  (pointer-events off); the caption links open the full snapshot. */
+/** One Wayback tile. The archive exposes no progress signal for replay (no streaming status,
+ *  `Range` ignored, `im_` is not a screenshot), so we render what we DO have: elapsed time, the
+ *  iframe's own load event, and a bounded give-up with an escape hatch. Measurements and the rules
+ *  behind these thresholds: docs/WAYBACK-REPLAY-LATENCY.md (helpers: src/lib/waybackTiles.js). */
+function WaybackTile({ row, index, captureCount, toleranceDays }) {
+  const canPreview = Boolean(row?.available && row?.withinTolerance);
+  const [mounted, setMounted] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [nonce, setNonce] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const startedAt = useRef(0);
+
+  // Tiles start one at a time (TILE_STAGGER_MS apart): each is a 150–270-request page load
+  // against a host that throttles, so four at once is what makes the whole card crawl.
+  useEffect(() => {
+    const t = setTimeout(() => { startedAt.current = Date.now(); setMounted(true); }, tileMountDelay(index));
+    return () => clearTimeout(t);
+  }, [index, nonce]);
+
+  const showFrame = Boolean(canPreview && mounted);
+  const phase = tilePhase({ row, loaded, mounted: showFrame, elapsedMs: elapsed });
+
+  // Elapsed clock — the one honest progress signal available (a spinner with no clock is what
+  // makes a slow tile feel dead).
+  useEffect(() => {
+    if (!showFrame || loaded) return undefined;
+    setElapsed(Date.now() - startedAt.current);
+    const id = setInterval(() => setElapsed(Date.now() - startedAt.current), 1000);
+    return () => clearInterval(id);
+  }, [showFrame, loaded, nonce]);
+
+  const retry = () => {
+    startedAt.current = Date.now();
+    setLoaded(false);
+    setElapsed(0);
+    setMounted(false);
+    setNonce((n) => n + 1);
+  };
+
+  const missing = () => {
+    if (row?.lookupFailed) return 'lookup failed — retries on refresh';
+    if (row?.available) return `no capture within ±${toleranceDays} days`;
+    return tileLabel('no-capture', { row, captureCount, toleranceDays });
+  };
+
+  return (
+    <div className="wayback-tile">
+      {canPreview ? (
+        <div className="wayback-shot">
+          {showFrame && (
+            <iframe
+              key={nonce}
+              src={row.replayUrl}
+              title={`${row.captureDate} capture of ${row.matchedUrl || ''}`}
+              loading="lazy"
+              tabIndex={-1}
+              aria-hidden="true"
+              onLoad={() => setLoaded(true)}
+            />
+          )}
+          {showFrame && !loaded && (
+            <div className={`wayback-status wayback-status-${phase}`} role="status">
+              <span className="wayback-dot" aria-hidden="true" />
+              <span className="wayback-status-text">
+                {tileLabel(phase, { row, elapsedMs: elapsed, captureCount, toleranceDays })}
+              </span>
+              {tileCanRetry(phase) && (
+                <button type="button" className="wayback-btn" onClick={retry}>Retry</button>
+              )}
+              <a
+                className="wayback-btn wayback-btn-link"
+                href={row.snapshotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open in Wayback ↗
+              </a>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="wayback-missing">{missing()}</div>
+      )}
+      <div className="wayback-cap">
+        <a href={row?.snapshotUrl || row?.replayUrl || '#'} target="_blank" rel="noopener noreferrer">
+          {row?.captureDate || row?.date}
+        </a>
+        {row?.available && !row?.withinTolerance && (
+          <span className="wayback-off"> · nearest {row.diffDays}d away</span>
+        )}
+        {row?.available && row?.status && row.status !== '200' && (
+          <span className="wayback-off"> · HTTP {row.status}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function WaybackGalleryCard({ data }) {
   const rows = data.rows || [];
+  const toleranceDays = data.toleranceDays || 30;
+  const captureCount = Number(data.captureCount) || 0;
   return (
     <div className="wayback-card">
       {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
-      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      {data.subtitle && <div className="ranking-subtitle" title={data.subtitle}>{data.subtitle}</div>}
+      {captureCount > 0 && (
+        <div className="wayback-counts">{formatCount(captureCount)} captures archived for this URL</div>
+      )}
       {data.stale && (
         <div className="wayback-stale">⚠ showing cached snapshots — live lookup unavailable, retrying on refresh</div>
       )}
       <div className="wayback-grid">
         {rows.length === 0 && <div className="widget-empty">No captures found</div>}
         {rows.map((r, i) => (
-          <div key={i} className="wayback-tile">
-            {r.available && r.withinTolerance ? (
-              <div className="wayback-shot">
-                <iframe
-                  src={r.replayUrl}
-                  title={`${data.title} ${r.captureDate}`}
-                  loading="lazy"
-                  tabIndex="-1"
-                  aria-hidden="true"
-                />
-              </div>
-            ) : (
-              <div className="wayback-missing">
-                {r.lookupFailed
-                  ? 'lookup failed — retries on refresh'
-                  : r.available
-                    ? `no capture within ±${data.toleranceDays || 30} days`
-                    : 'no captures on record'}
-              </div>
-            )}
-            <div className="wayback-cap">
-              <a href={r.snapshotUrl || r.replayUrl} target="_blank" rel="noopener noreferrer">
-                {r.captureDate || r.date}
-              </a>
-              {r.available && !r.withinTolerance && (
-                <span className="wayback-off"> · nearest {r.diffDays}d away</span>
-              )}
-              {r.available && r.status && r.status !== '200' && (
-                <span className="wayback-off"> · HTTP {r.status}</span>
-              )}
-            </div>
-          </div>
+          <WaybackTile key={`${r.date}-${i}`} row={r} index={i} captureCount={captureCount} toleranceDays={toleranceDays} />
         ))}
       </div>
     </div>
