@@ -18,7 +18,9 @@
     "docs-facts:live": "node scripts/docs-facts.mjs --live",
     "smoke:wayback": "node scripts/wayback-states-e2e.mjs",
     "tutorial:record": "node scripts/tutorial-video/record.mjs",
-    "tutorial:build": "node scripts/tutorial-video/build.mjs"
+    "tutorial:build": "node scripts/tutorial-video/build.mjs",
+    "update:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs",
+    "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check"
   },
   "dependencies": {
     "pannellum": "^2.5.7",

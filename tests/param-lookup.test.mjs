@@ -18,6 +18,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { CIM_ALLOW_LIST_MAX_AGE_DAYS, parseAllowListSnapshot } from '../src/lib/cimAllowList.js';
 import { parseParams, parseParamSpecText, paramSpecToText } from '../src/lib/params.js';
 import {
   normalizeLookupValue, matchRank, filterLocal, mergeSuggestions, cimVerdict,
@@ -241,4 +243,50 @@ test('getParamSource: curated and unknown ids return null so the control degrade
   assert.equal(getParamSource('nonsense'), null);
   assert.equal(getParamSource(''), null);
   assert.equal(getParamSource('cim-category').id, 'cim-category');
+});
+
+// ── the bundled allow-list snapshot (ISSUE-68 follow-up) ────────────────────
+// Instant suggestions used to depend on the deployment's /api/proxy relay, so
+// they existed on Toolforge and nowhere else. The list now ships in public/:
+// same-origin, instant, identical on every host. Snapshot staleness is tolerable
+// by design — it only SEEDS suggestions (the probe decides validity, and the
+// CirrusSearch fallback finds anything it is missing) — but a very old snapshot
+// is still worth a nudge, hence the age check below.
+
+const SNAP_PATH = 'public/cim-allow-list.json';
+const snapshot = () => parseAllowListSnapshot(readFileSync(SNAP_PATH, 'utf8'));
+
+test('the bundled allow-list snapshot parses and is sane', () => {
+  const snap = snapshot();
+  assert.ok(snap.categories.length > 500, `expected hundreds of categories, got ${snap.categories.length}`);
+  assert.equal(new Set(snap.categories).size, snap.categories.length, 'no duplicates');
+  assert.ok(snap.categories.every((c) => c.trim() && !c.includes('_')), 'titles use spaces, not underscores');
+  assert.ok(snap.source.includes('commons_category_allow_list'), 'records where it came from');
+});
+
+test('the snapshot can drive the flagship demo — a glam institution is allow-listed', () => {
+  const snap = snapshot();
+  const glam = JSON.parse(readFileSync('public/glam-demo.json', 'utf8'));
+  const curated = glam.params.collection.options;
+  assert.ok(
+    curated.some((c) => snap.categories.includes(c)),
+    `none of the glam shortlist is on the allow list: ${curated.join(', ')}`,
+  );
+});
+
+test('the snapshot is fresh enough (refresh with npm run update:cim-allow-list)', () => {
+  const snap = snapshot();
+  const ageDays = (Date.now() - Date.parse(snap.fetchedAt)) / 86400000;
+  assert.ok(Number.isFinite(ageDays), 'fetchedAt parses');
+  assert.ok(
+    ageDays <= CIM_ALLOW_LIST_MAX_AGE_DAYS,
+    `snapshot is ${ageDays.toFixed(0)} days old — run: npm run update:cim-allow-list`,
+  );
+});
+
+test('parseAllowListSnapshot accepts a bare array and rejects junk', () => {
+  assert.deepEqual(parseAllowListSnapshot('["A","B"]').categories, ['A', 'B']);
+  assert.throws(() => parseAllowListSnapshot('{}'));
+  assert.throws(() => parseAllowListSnapshot('{"categories":[]}'));
+  assert.throws(() => parseAllowListSnapshot('not json'));
 });

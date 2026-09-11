@@ -1,49 +1,60 @@
+#!/usr/bin/env node
 /**
- * Grid geometry smoke test — the safety net for silently-ignored props.
+ * Grid-geometry smoke test — boots the built app and asserts the rendered grid
+ * matches the intended formulas, so a silent dependency drift (react-grid-layout
+ * moving a prop into an object, e.g. `rowHeight`/`dragConfig`/`gridConfig`)
+ * surfaces as a red exit instead of a mystery.
  *
- * react-grid-layout 2.x has twice silently dropped props (dragConfig,
- * gridConfig): the board renders fine but at the WRONG sizes, with no
- * error or warning. This script boots the built app and asserts the
- * MEASURED pixel geometry against the intended formulas, so any future
- * dependency drift surfaces as a red exit instead of a mystery.
+ * Drives **playwright-core** directly (the repo devDependency), the same way
+ * scripts/browser-matrix.mjs and scripts/smoke-panels.mjs do. It used to drive the
+ * globally installed `playwright-cli`, which made this suite depend on a global
+ * tool being present *and* able to launch its own engine build — on a machine
+ * where the global CLI's bundled Chromium revision is absent it silently falls
+ * back to system Google Chrome, so "chromium" meant different binaries across
+ * suites (fixed 2026-09-11). PW_EXECUTABLE_CHROMIUM still overrides the binary.
  *
- * Drives the globally installed playwright-cli (the project's documented
- * browser tool — see AGENTS.md). Requires: dist/ built, network for the
- * live widget APIs, playwright-cli installed.
+ * Requires: dist/ built (npm run build), network for the live widget APIs.
  *
  * Checks:
  *  1. Starter widget density: h:4 item must measure 4×80 + 3×12 = 356px
- *     (RGL's defaults — 150px rows — would measure 630px → fail).
- *  2. New Article Gallery: lands at w:12 (full container width).
- *  3. Auto-height fit: persisted h within clamp 3..14 and the rendered
- *     height matches h×80 + (h−1)×12 (rowHeight 80 + margin 12 reached
- *     the grid).
- *
- * Usage: npm run smoke
+ *  2. A gallery added through the real Add Widget UI lands full-width (w:12)
+ *  3. Its auto-fit height lands inside the documented clamp (3..14)
+ *  4. Rendered height matches h×80 + (h−1)×12 — i.e. rowHeight really reaches
+ *     the grid, which is the exact drift this guards
  */
-import { spawn, execFileSync } from 'node:child_process';
+
+import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+// Resolve playwright-core: repo node_modules first (devDependency), then the
+// global playwright-cli bundle (see scripts/browser-matrix.mjs for the same
+// fallback rationale).
+let chromium;
+try {
+  ({ chromium } = require('playwright-core'));
+} catch {
+  const candidates = [
+    process.env.PLAYWRIGHT_CORE_PATH,
+    '/opt/homebrew/lib/node_modules/@playwright/cli/node_modules/playwright-core',
+    '/usr/local/lib/node_modules/@playwright/cli/node_modules/playwright-core',
+    join(process.env.HOME || '', '.npm-global/lib/node_modules/@playwright/cli/node_modules/playwright-core'),
+  ].filter(Boolean);
+  const found = candidates.find((p) => existsSync(p));
+  if (!found) {
+    console.error('playwright-core not found — run npm install (it is a devDependency)');
+    process.exit(2);
+  }
+  ({ chromium } = require(found));
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = 8977;
 const BASE = `http://localhost:${PORT}`;
 const itemHeight = (h) => h * 80 + (h - 1) * 12;
-
-const cli = (args) => {
-  const out = execFileSync('playwright-cli', args, { encoding: 'utf8', timeout: 60000 });
-  return out;
-};
-
-// Extract the JSON result from `playwright-cli eval` output (between the
-// "### Result" marker and the next "###" section).
-const evalJson = (expression) => {
-  const out = cli(['eval', expression]);
-  const m = out.match(/### Result\s*\n([\s\S]*?)(\n### |\n```|$)/);
-  if (!m) throw new Error(`no Result in eval output: ${out.slice(0, 200)}`);
-  return JSON.parse(m[1].trim());
-};
 
 const failures = [];
 const check = (name, ok, detail) => {
@@ -63,17 +74,23 @@ const server = spawn('node', ['deploy/server.js'], {
   stdio: 'ignore',
 });
 
+let browser;
 try {
   await sleep(1200);
-  cli(['open']); // headless browser session for the CLI daemon
-  cli(['goto', `${BASE}/?smoke=${Date.now()}`]);
+  browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.PW_EXECUTABLE_CHROMIUM || undefined,
+  });
+  const page = await browser.newPage();
+  await page.goto(`${BASE}/?smoke=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
   await sleep(2000);
   // Fresh board: clear the saved layout, then reload.
-  evalJson(`(function(){ localStorage.removeItem('wikibento-layout'); location.reload(); return true; })()`);
+  await page.evaluate(() => localStorage.removeItem('wikibento-layout'));
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await sleep(3500);
 
   // ── Check 1: starter widget density (the rowHeight-ignored detector) ──
-  const starter = evalJson(`(function(){
+  const starter = await page.evaluate(`(function(){
     const el = [...document.querySelectorAll('.react-grid-item')].find((g) => g.textContent.includes('Main Page'));
     return el ? Math.round(el.getBoundingClientRect().height) : null;
   })()`);
@@ -82,16 +99,16 @@ try {
     starter === null ? 'not found' : `${starter}px`);
 
   // ── Add an Article Gallery through the real UI ──
-  evalJson(`(function(){ [...document.querySelectorAll('button')].find((b) => b.textContent.includes('Add Widget')).click(); return true; })()`);
+  await page.evaluate(`(function(){ [...document.querySelectorAll('button')].find((b) => b.textContent.includes('Add Widget')).click(); return true; })()`);
   await sleep(1200);
-  evalJson(`(function(){
+  await page.evaluate(`(function(){
     [...document.querySelectorAll('.add-widget-item')].find((x) => x.textContent.includes('Article Gallery')).click();
     return true;
   })()`);
   // wait for images + auto-fit settle (gallery fetch can take several seconds)
   await sleep(9000);
 
-  const g = evalJson(`(function(){
+  const g = await page.evaluate(`(function(){
     const el = [...document.querySelectorAll('.react-grid-item')].find((x) => x.textContent.includes('Albert Einstein'));
     const layout = JSON.parse(localStorage.getItem('wikibento-layout') || '{"layout":[]}').layout || [];
     const li = [...layout].reverse().find((x) => String(x.i).includes('gallery'));
@@ -114,6 +131,7 @@ try {
   console.error('smoke run failed:', e.message);
   failures.push('run');
 } finally {
+  if (browser) await browser.close().catch(() => {});
   server.kill();
 }
 

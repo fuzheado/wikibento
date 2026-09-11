@@ -75,16 +75,12 @@
 import { fetchTextWithRetry } from './httpRetry';
 import { createTtlCache } from './fetchCache';
 import { latestCimMonth } from '../widgets/dataSources';
+import { CIM_ALLOW_LIST_URL, CIM_ALLOW_LIST_SNAPSHOT, parseAllowList, parseAllowListSnapshot } from './cimAllowList';
 
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 const CIM_BASE = 'https://wikimedia.org/api/rest_v1/metrics/commons-analytics/';
-
-/** The CIM allow list — the authoritative set of categories CIM processes.
- *  Not CORS-enabled: reached through the deployment's /api/proxy relay. */
-const CIM_ALLOW_LIST_URL =
-  'https://gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/main/dags/commons/commons_category_allow_list.tsv';
 
 /** The allow list changes at month-end — a day-long cache is plenty. */
 const CIM_ALLOW_LIST_TTL = 24 * 60 * 60 * 1000;
@@ -199,26 +195,6 @@ export function parseWbSearchEntities(json) {
 
 const cimAllowList = createTtlCache(CIM_ALLOW_LIST_TTL);
 
-/** Parse the allow-list TSV → bare category titles with spaces (the form the
- *  CIM API and the widgets use). Tolerates a BOM, blank lines and comments;
- *  dedupes. Pure, so the contract is covered by tests. */
-export function parseAllowList(text) {
-  const out = [];
-  const seen = new Set();
-  for (const rawLine of String(text ?? '').split('\n')) {
-    const line = rawLine.replace(/^\uFEFF/, '').trim();
-    if (!line || line.startsWith('#')) continue;
-    // The TSV holds one underscored slug per line (a category may contain tabs
-    // only in theory; take the first field if one appears).
-    const slug = line.split('\t')[0].trim();
-    const title = slug.replace(/^Category\s*:\s*/i, '').replace(/_/g, ' ').trim();
-    if (!title || seen.has(title)) continue;
-    seen.add(title);
-    out.push(title);
-  }
-  return out;
-}
-
 /**
  * Fetch (once per day) every category on the CIM allow list.
  *
@@ -232,6 +208,19 @@ export function parseAllowList(text) {
  */
 export function loadCimAllowList() {
   return cimAllowList.get('cim-allow-list', async () => {
+    // 1. The bundled snapshot (public/cim-allow-list.json, refreshed by
+    //    `npm run update:cim-allow-list`): same-origin, instant, works on every
+    //    host — including a laptop or a third-party mirror with no relay. It is a
+    //    snapshot, but staleness is low-risk by design: this list only SEEDS
+    //    suggestions, the probe decides validity, and anything missing is still
+    //    findable through the CirrusSearch fallback.
+    try {
+      const snap = parseAllowListSnapshot(await fetchTextWithRetry(CIM_ALLOW_LIST_SNAPSHOT, { timeoutMs: 10000 }));
+      if (snap.categories.length) return snap.categories;
+    } catch { /* no bundled snapshot (or unreadable) — fall through to the live list */ }
+
+    // 2. The live TSV through the deployment's generic /api/proxy relay (the list
+    //    sends no CORS headers), then 3. direct, for hosts that do allow it.
     const proxied = `/api/proxy?url=${encodeURIComponent(CIM_ALLOW_LIST_URL)}`;
     let text;
     try {
@@ -248,6 +237,8 @@ export function loadCimAllowList() {
     return list;
   });
 }
+
+export { parseAllowList }; // re-exported: the lookup sources module is the public surface
 
 /** The allow list as a Set for O(1) membership — resolved for the UI badge. */
 export async function loadCimAllowListSet() {

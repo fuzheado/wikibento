@@ -197,7 +197,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   batched 50 titles/call — pattern from the Wiki-Top-100 project), and
   non-article helper pages (Main_Page, Special:*, Wikipedia:*…) are filtered
   from both sources
-- **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. Unregistered categories get a friendly "request it via Phabricator" state (404 ≠ error — the allow list is a published TSV, extended by a Commons-Impact-Metrics-Requests ticket, **not** by the `{{Views from category}}` template); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
+- **CIM widgets (Commons Impact Metrics)** — 🎯📈🖼️🌍📄✍️🏆🔦 a full family of **precomputed** monthly widgets for allow-listed Commons categories: exact snapshot stats (305,868-file categories with zero budget), view trends, top files/wikis/pages/editors, a global top-100 leaderboard, and a per-file spotlight. The category lookup's suggestion list **ships with the app** (`public/cim-allow-list.json`, a snapshot of the upstream allow-list TSV — refresh with `npm run update:cim-allow-list`), so instant suggestions work on any host, not just behind the Toolforge relay. Unregistered categories get a friendly "request it via Phabricator" state (404 ≠ error — the allow list is a published TSV, extended by a Commons-Impact-Metrics-Requests ticket, **not** by the `{{Views from category}}` template); the live `glamorgan` walk stays a separate widget, unchanged. CIM "views" = pageviews of pages *using* the files (not media requests)
 - **SPARQL power widget** — 🧠 run any SPARQL against Wikidata (WDQS) or Commons (QLever) and get a big number, bars, line, or table — auto-detected from the result shape (manual override in ⚙). Canned presets unlock instant dashboards (collection depth, multi-institution comparison, Women-in-Red %, Commons top-depicts); 60 s timeout + retry + 10-min cache tame WDQS flakiness; long queries POST form-urlencoded (no CORS preflight)
 - **List-driven widgets** — 🗂️ Commons File Gallery and 📋 Article List take a **pasted list** (one item per line) as input: any Commons files → gallery (grid/list, order as-listed/random/alphabetical/largest, missing files counted); any article titles → clickable rows with optional batched thumbnails + intros. The first consumers of the planned "list source" input vocabulary (PagePile/PSID can slot into the same fields later)
 - **GLAM impact stats** — category × depth × month/year → files, used/viewed
@@ -277,15 +277,13 @@ PW_EXECUTABLE_CHROMIUM="/Applications/Google Chrome.app/Contents/MacOS/Google Ch
   npm run test:browsers -- --engines chromium
 ```
 
-Note the two browser drivers differ: `npm run test:browsers` launches the engines
-bundled with the repo's `playwright-core`, while `npm run smoke` (grid geometry)
-drives the **globally installed `playwright-cli`** — which, when its own bundled
-Chromium revision is absent, falls back to the system Google Chrome. So "chromium"
-is not always the same binary across the two suites. Install the matrix's engines
-with the **repo's** playwright-core (`node node_modules/playwright-core/cli.js
-install firefox webkit chromium`) — see the header of `scripts/browser-matrix.mjs`
-for the revision table and the two install traps (version mismatch, and
-`npx playwright install <subset>` pruning the engines you didn't name).
+Every browser suite here — `test:browsers`, `smoke` (grid geometry), `smoke:panels`
+— drives the **repo's own `playwright-core`**, so the engines tested are the ones
+the devDependency pins and no global tool needs to be installed. Install them with
+that same copy (`node node_modules/playwright-core/cli.js install firefox webkit
+chromium`) — see the header of `scripts/browser-matrix.mjs` for the revision table
+and the two install traps (a mismatched playwright version, and
+`npx playwright install <subset>` **pruning** the engines you didn't name).
 
 ## Project Structure
 
@@ -613,6 +611,7 @@ wikibento/
 - [docs/SCALABILITY.md](docs/SCALABILITY.md) — batching, caching, and efficiency notes for tracking hundreds of files/categories
 - [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) — the dashboard JSON format spec (v1), with [machine-readable schema](docs/dashboard.schema.json) and URL-loading docs
 - [docs/AUTHORS.md](docs/AUTHORS.md) — author identity (User:Fuzheado)
+- [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) — dated snapshots of real boards (article switcher, GLAM, Met, SPARQL, WikiPortraits) kept as documentation
 - [docs/screenshot.png](docs/screenshot.png) — demo dashboard snapshot
 
 ## Feedback & Feature Requests

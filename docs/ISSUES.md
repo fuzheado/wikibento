@@ -3126,6 +3126,25 @@ register it*; a fictional category → ✗ *no such Commons category*; typing
 `Images from Metropolitan` → pick → **snapshot + top files + the rest re-aim to
 the new category, 0 error frames**.
 
+**Follow-ups shipped (2026-09-11):**
+- **The allow list is bundled.** Instant suggestions used to depend on the
+  deployment's `/api/proxy` relay, so they existed on Toolforge and nowhere else
+  (a local `npm run preview`, a mirror, or any third-party host got search-only
+  suggestions). `scripts/fetch-cim-allow-list.mjs` now writes
+  `public/cim-allow-list.json` (1,775 categories, ~78 KB) and the loader tries it
+  **first** — same-origin, instant, identical everywhere — with the relay as the
+  live fallback and a direct fetch as the third try. Refresh with
+  `npm run update:cim-allow-list`; `npm run check:cim-allow-list` and a test in
+  `tests/param-lookup.test.mjs` guard count, shape, freshness (180 days) and that
+  a flagship glam institution is still listed. A snapshot suffices because the
+  list only *seeds* suggestions — the probe decides validity, and CirrusSearch
+  finds what the list lacks.
+- **The smoke test no longer needs a global tool.** `scripts/smoke-grid.mjs`
+  drove the globally installed `playwright-cli`; it now drives the repo's
+  `playwright-core` like `browser-matrix.mjs` and `smoke-panels.mjs` already did,
+  so no suite depends on a global install whose engine revisions differ from the
+  devDependency's (verified by running it with `playwright-cli` absent from `PATH`).
+
 **Known limits / next slices:** suggestion quality is relevance-ranked, so a user
 who types `Metropolitan Museum` gets the *general* category (correctly flagged ⚠)
 rather than the CIM `Images from…` variant — ranking probe-verified candidates

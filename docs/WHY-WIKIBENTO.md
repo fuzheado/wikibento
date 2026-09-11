@@ -129,6 +129,9 @@ the entry gets a correction note rather than a quiet edit (§5 of the Wayback do
   arguments (it deleted the cache the suites were using), and the project's own `smoke-grid.mjs`
   drives a *globally installed* CLI rather than a dependency. *Changed:* the browser tooling skill
   and a `PW_EXECUTABLE_<ENGINE>` hook in the matrix runner.
+  *Resolved 2026-09-11:* `smoke-grid.mjs` now drives playwright-core too, so no suite depends on a
+  global CLI whose engine revisions can differ from the devDependency's — verified by running it
+  with `playwright-cli` removed from `PATH`.
 - **Test-chain integrity:** `npm test` exited 0 with a failing test because the docs-facts gate was
   spliced in with `;`. *Changed:* exit status now reflects tests *and* gate; negative-tested.
 
