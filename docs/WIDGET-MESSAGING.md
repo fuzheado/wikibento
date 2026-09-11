@@ -336,7 +336,10 @@ Our hub is the precondition; the contract and the distribution channel are the m
    can be authored and validated without a code review against `src/`.
 4. **Publish the manifest as the interface** — the same manifest that feeds Ask becomes the
    discoverability layer a plugin author writes against.
-5. **A trust model.** Declarative-first; code plugins signed and opt-in; never full
+5. **A trust model.** *(The full history behind this recommendation — the
+   ActiveX control model that shipped third-party native code with the user's
+   full privileges — is written up in [PLUGIN-TRUST.md](PLUGIN-TRUST.md).)*
+   Declarative-first; code plugins signed and opt-in; never full
    permissions in the host process by default. Signing alone is not a safety property: in
    ActiveX, verification *worked* — the certificates were valid, the warnings appeared, and a
    properly signed demonstration control still formatted a floppy drive live on stage at JavaOne
