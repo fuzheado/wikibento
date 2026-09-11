@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { buildShareLink } from '../lib/share';
+import { buildShareLink, presentModeUrl } from '../lib/share';
 import { qrSvg } from '../lib/qr';
 import { CONFIG_VERSION } from '../lib/dashboardConfig';
 
@@ -8,13 +8,21 @@ const QR_MAX_CHARS = 1500;
 
 /**
  * Share modal: QR code + copyable link for the current dashboard.
+ *
+ * Share mode (ISSUE-67): the link and the QR encode an EXPLICIT presentation
+ * mode, chosen here — `Lean` (`?lean=1`: no editor chrome) or `Full` (editable).
+ * Default is the mode the presenter is in. Both variants are normalized
+ * (`presentModeUrl`), so the presenter's own mode never leaks into the link and
+ * a Full link can never drop a recipient into presentation mode.
+ *
  * QR payload selection:
  *   1. The current URL when it carries ?config= (short — ideal for scanning)
  *   2. The self-contained #/d/<base64> share link, when short enough
  *   3. No QR — friendly notice — when the embedded config is too long
  */
-export default function SharePanel({ widgets, layout, onClose }) {
+export default function SharePanel({ widgets, layout, lean = false, onClose }) {
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState(lean ? 'lean' : 'full');
 
   const shareJson = useMemo(
     () => JSON.stringify({ version: CONFIG_VERSION, widgets, layout }),
@@ -27,7 +35,13 @@ export default function SharePanel({ widgets, layout, onClose }) {
   const currentUrl = window.location.href;
   const hasConfigParam = new URLSearchParams(window.location.search).has('config');
 
-  const linkText = hasConfigParam ? currentUrl : hashShareUrl;
+  // The QR is an encoding of the copyable link — always the same artifact, so
+  // what you scan is exactly what you can paste.
+  const linkText = useMemo(
+    () => presentModeUrl(hasConfigParam ? currentUrl : hashShareUrl, mode),
+    [hasConfigParam, currentUrl, hashShareUrl, mode],
+  );
+
   const qrText = linkText.length <= QR_MAX_CHARS ? linkText : null;
   const linkIsLong = qrText && qrText.length > 1000;
 
@@ -55,12 +69,40 @@ export default function SharePanel({ widgets, layout, onClose }) {
           <button className="widget-btn widget-btn-remove" onClick={onClose}>✕</button>
         </div>
 
+        {/* Which app the scanned link opens — one choice drives both the QR and
+            the copyable link, so the two can never disagree. */}
+        <div className="share-mode-row" role="group" aria-label="Share mode">
+          <button
+            className={`btn share-mode-btn${mode === 'full' ? ' active' : ''}`}
+            aria-pressed={mode === 'full'}
+            onClick={() => setMode('full')}
+            title="Editable board — toolbar, drag and resize enabled"
+          >
+            🖥 Full board
+          </button>
+          <button
+            className={`btn share-mode-btn${mode === 'lean' ? ' active' : ''}`}
+            aria-pressed={mode === 'lean'}
+            onClick={() => setMode('lean')}
+            title="Clean view — no editor chrome or toolbar (adds ?lean=1)"
+          >
+            📱 Lean mode
+          </button>
+        </div>
+        <div className="import-hint share-mode-hint">
+          {mode === 'lean'
+            ? 'Opens with no editor chrome — like an app. Leave with ✕ Exit or Esc.'
+            : 'Opens the editable board, with the toolbar and layout controls.'}
+        </div>
+
         {qrText ? (
           <div className="share-qr-wrap">
             {/* QR needs a white background + quiet zone to scan */}
             <div className="share-qr-card" dangerouslySetInnerHTML={{ __html: qrSvg(qrText) }} />
             <div className="share-qr-hint">
-              Scan to open this dashboard on your phone
+              {mode === 'lean'
+                ? 'Scan to open this board in Lean mode'
+                : 'Scan to open this dashboard on your phone'}
               {linkIsLong && <span className="share-qr-warn"> · long link — QR is dense</span>}
             </div>
           </div>

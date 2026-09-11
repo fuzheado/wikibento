@@ -147,7 +147,9 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   fullscreen engages on the Present click
 - **Lean mode** — ▣ Lean (or `?lean=1`) gives the same chrome-free,
   grid-locked presentation as kiosk **without fullscreen**: the browser
-  stays resizable, so the board reads as a compact app at any window size
+  stays resizable, so the board reads as a compact app at any window size.
+  The Share panel can hand out a lean link/QR directly (**📱 Lean mode**), so a
+  scanned phone opens straight into the app-like view
 
 ### Building a dashboard
 
@@ -217,6 +219,12 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
   `?config=` URL when present (short, phone-friendly); otherwise the
   self-contained hash link `#/d/…` (config embedded, under a size cap);
   oversized configs show a friendly notice instead of an un-scanable QR
+- **Share modes** — the Share panel chooses what a scanned link *opens*:
+  **📱 Lean mode** (`?lean=1` — no editor chrome, like an app) or **🖥 Full
+  board** (editable). One choice drives both the QR and the copyable link, so
+  what you scan is exactly what you paste, and the caption says which mode the
+  code carries. Neither variant encodes `?kiosk=1`: fullscreen needs a user
+  gesture, so a scanned link could not honour it
 - **ⓘ About** — built-in explainer of what the tool does and how to use it
 - **Reset** — reverts to the 3 default starter widgets
 

@@ -36,6 +36,32 @@ export function buildShareLink(json) {
   return `${window.location.origin}${window.location.pathname}#/d/${encodeDashboardHash(json)}`;
 }
 
+/** Presentation-mode params (ISSUE-18): ?lean=1 is chrome-free, ?kiosk=1 adds
+ *  a fullscreen attempt. `lean` is the param a *scanned* link should carry. */
+export const LEAN_PARAM = 'lean';
+export const KIOSK_PARAM = 'kiosk';
+
+/**
+ * Normalize a share URL to an explicit presentation mode.
+ *
+ * `mode: 'lean'` → `?lean=1` (no editor chrome, no fullscreen); `mode: 'full'`
+ * → neither present-mode param. Both modes strip any `?lean`/`?kiosk` already
+ * on the URL, so sharing is explicit rather than accidental: the presenter's
+ * own mode must not leak into the link, and a `full` link must never drop the
+ * recipient into a presentation mode.
+ *
+ * `kiosk` is deliberately never encoded: the fullscreen request requires a user
+ * gesture and the `?kiosk=1` boot path must not attempt it (see App.jsx), so a
+ * scanned link could not honour it — lean is the honest target for a QR.
+ */
+export function presentModeUrl(url, mode) {
+  const u = new URL(url);
+  u.searchParams.delete(KIOSK_PARAM);
+  u.searchParams.delete(LEAN_PARAM);
+  if (mode === 'lean') u.searchParams.set(LEAN_PARAM, '1');
+  return u.toString();
+}
+
 /** Pull a ?config= URL (decoded) from the current query string, if any. */
 export function readConfigParam() {
   const v = new URLSearchParams(window.location.search).get('config');
