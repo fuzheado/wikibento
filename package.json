@@ -16,7 +16,9 @@
     "smoke:share": "node scripts/share-lean-e2e.mjs",
     "docs-facts": "node scripts/docs-facts.mjs",
     "docs-facts:live": "node scripts/docs-facts.mjs --live",
-    "smoke:wayback": "node scripts/wayback-states-e2e.mjs"
+    "smoke:wayback": "node scripts/wayback-states-e2e.mjs",
+    "tutorial:record": "node scripts/tutorial-video/record.mjs",
+    "tutorial:build": "node scripts/tutorial-video/build.mjs"
   },
   "dependencies": {
     "pannellum": "^2.5.7",
