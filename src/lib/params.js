@@ -2,10 +2,15 @@
  * Board params (ISSUE-50 — Path A interactivity prototype).
  *
  * A dashboard may declare a top-level `params` block:
- *   { "params": { "category": { "label": "Museum", "type": "buttons"|"select"|"text",
- *                               "options": ["A","B"], "value": "A" } } }
+ *   { "params": { "category": { "label": "Museum", "type": "buttons"|"select"|"text"|
+ *                               "lookup", "options": ["A","B"], "value": "A",
+ *                               "source": "cim-category" } } }
  * Widget config string fields may reference `{{name}}`; App resolves configs
  * against the live values and bumps reloadKey so referencing widgets re-fetch.
+ *
+ * `lookup` (ISSUE-67) is a validated combobox: free text checked against a named
+ * option source (src/lib/paramSources.js) with live suggestions. `source` names
+ * the source; `options` stays available as an optional curated shortlist.
  *
  * Design contracts (docs/ISSUES.md ISSUE-50, MODULARITY-AND-DATAFLOW §Part 3):
  *  - Resolution happens ONCE per render, before validate/fetch — the validator
@@ -16,24 +21,30 @@
  */
 
 /** Normalize a dashboard `params` block → { specs, values }.
- *  specs: { name: { label, type, options, } } · values: { name: string }.
+ *  specs: { name: { label, type, options, source } } · values: { name: string }.
  *  Types: buttons | select | text | number (options = [min, max, step]) |
  *  month (options ignored; value = month 1–12, or 0/empty = latest available
- *  — matching the widgets' own resolveMonth/latestCimMonth semantics). */
+ *  — matching the widgets' own resolveMonth/latestCimMonth semantics) |
+ *  lookup (ISSUE-67: `source` names an option source; `options` may hold a
+ *  curated shortlist). */
 export function parseParams(block) {
   const specs = {};
   const values = {};
   if (!block || typeof block !== 'object') return { specs, values };
   for (const [name, raw] of Object.entries(block)) {
     if (!raw || typeof raw !== 'object') continue; // string shorthand ignored in v1
-    const type = ['buttons', 'select', 'text', 'number', 'month'].includes(raw.type) ? raw.type
+    const type = ['buttons', 'select', 'text', 'number', 'month', 'lookup'].includes(raw.type) ? raw.type
       : (Array.isArray(raw.options) ? 'select' : 'text');
     const options = Array.isArray(raw.options) ? raw.options.map(String) : undefined;
     let value = raw.value !== undefined ? String(raw.value)
       : (type === 'month' ? '0'
         : (options?.length ? options[0] : ''));
     if (type === 'text' && !value && typeof raw.value === 'string') value = raw.value;
-    specs[name] = { label: raw.label || name, type, options };
+    // The source may arrive as `source`, or as the 4th field of a spec line
+    // (parseParamSpecText); an unknown name leaves the control a plain input.
+    const source = type === 'lookup' && raw.source ? String(raw.source).trim() : undefined;
+    specs[name] = source ? { label: raw.label || name, type, options, source }
+      : { label: raw.label || name, type, options };
     values[name] = value;
   }
   return { specs, values };
@@ -44,12 +55,14 @@ const warned = new Set();
 /** Human-editable one-line-per-param spec format for the Board Controls ⚙
  *  panel: `name | type | Label | option1, option2, …` (options only for
  *  buttons/select; `#` lines are comments; type defaults to select when
- *  options are present, else text). Returns a params BLOCK (same shape as
- *  the dashboard JSON `params`), minus values — the App merges live values
- *  in, preserving the current choice when it is still among the options. */
+ *  options are present, else text). For `lookup` the 4th field is the option
+ *  SOURCE id (`name | lookup | Institution | cim-category`), not a list.
+ *  Returns a params BLOCK (same shape as the dashboard JSON `params`), minus
+ *  values — the App merges live values in, preserving the current choice when
+ *  it is still among the options. */
 export function parseParamSpecText(text) {
   const block = {};
-  const TYPES = ['buttons', 'select', 'text', 'number', 'month'];
+  const TYPES = ['buttons', 'select', 'text', 'number', 'month', 'lookup'];
   // number: options = "min, max, step" (e.g. `count | number | Photos | 3, 12, 1`)
   // month: no options (a Latest chip + ‹ › month stepper; value 0 = latest available)
   for (const line of String(text || '').split('\n')) {
@@ -70,7 +83,10 @@ export function parseParamSpecText(text) {
     }
     const entry = { label: label || name };
     if (TYPES.includes(type)) entry.type = type;
-    if (options !== undefined && options !== '') {
+    if (entry.type === 'lookup') {
+      // 4th field is the option source id (see src/lib/paramSources.js)
+      if (options) entry.source = String(options).trim();
+    } else if (options !== undefined && options !== '') {
       entry.options = options.split(',').map((s) => s.trim()).filter(Boolean);
       if (!entry.type) entry.type = 'select';
     }
@@ -84,8 +100,10 @@ export function parseParamSpecText(text) {
 export function paramSpecToText(block) {
   return Object.entries(block || {}).map(([name, p]) => {
     const type = p.type || (p.options ? 'select' : 'text');
-    const opts = (p.options || []).join(', ');
-    return [name, type, p.label || name, opts].filter((v, i) => i < 3 || v).join(' | ');
+    // lookup's 4th field is the source id; a curated shortlist is intentionally
+    // NOT rendered back (it would parse as a source) — edit it in the JSON.
+    const rest = type === 'lookup' ? (p.source || '') : (p.options || []).join(', ');
+    return [name, type, p.label || name, rest].filter((v, i) => i < 3 || v).join(' | ');
   }).join('\n');
 }
 

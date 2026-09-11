@@ -3,7 +3,8 @@
   "params": {
     "collection": {
       "label": "Collection",
-      "type": "buttons",
+      "type": "lookup",
+      "source": "cim-category",
       "options": [
         "Images from Metropolitan Museum of Art",
         "Files from the Biodiversity Heritage Library",

@@ -2953,3 +2953,114 @@ dependency in the unit tier.
 **Out of scope:** server-side filtering, persisting events, per-widget
 connections, and high-traffic public deployment (the service is for
 small-scale external tools).
+
+## ISSUE-67 · Validated lookup params: "type an institution, the whole board follows" (GitHub #51–#53 family) — **Slice 1 done 2026-09-10**
+
+**What:** a Board Controls param type that accepts free text *checked against live
+Wikimedia data*, so one box can aim a whole museum/library dashboard. The
+flagship case is the GLAM board: type an institution → the nine CIM widgets
+re-aim. Directed 2026-09-10: *"I want a way that a user can specify a Wikimedia
+Commons category in one box … all the other widgets get populated … either allow
+free text entry and check against valid Wikimedia Commons categories … type to
+validate or type to fill or type to check or pull down from a list … it would be
+nice to have maybe a pull down menu as an option."*
+
+**Why it is a param and not a widget.** The consumer side already exists: because
+`{{param}}` resolves into any string config field, one `category` param re-aims
+**9 widgets** (MODULARITY-AND-DATAFLOW §Part 4 audits this — "the consumer side
+needs zero code"). Params also **fan out** to N consumers, while the dataflow
+`emit`/`source` mechanism is point-to-point; the "one box" is therefore a
+*producer* in the param system, and building it as an emitter widget would create
+a second, competing wiring mechanism. §Part 4 ranks this work as Quadrant 2 #6
+(*dynamic query select*, "the pick-any-GLAM-institution board") + #7
+(*search-as-input*); Quadrant 1 (buttons/text/select/number/month) had all shipped.
+
+**Design (additive, no format break):**
+
+```json
+"collection": { "label": "Collection", "type": "lookup",
+                "source": "cim-category", "options": ["…curated shortlist…"],
+                "value": "Images from Metropolitan Museum of Art" }
+```
+
+Spec-line form (the ⚙ textarea) uses the 4th field as the **source**, not options:
+`collection | lookup | Collection | cim-category`. Sources live in
+`src/lib/paramSources.js`: `cim-category`, `commons-category`, `commons-file`,
+`article`, `wikidata-item` (plus the implicit `curated` = the `options` list).
+`options` on a lookup is a hand-picked shortlist shown before typing.
+
+**Three verdicts, because "valid category" ≠ "works here":** `ok` (✓, has CIM
+data), `unregistered` (⚠, real category CIM does not process — the CIM cards will
+offer to register it), `invalid` (✗, no such page), `unknown` (`?`, could not
+check). Validation is best-effort and **never blocks the board** — a failed check
+degrades to `unknown`, like the SPARQL label resolution.
+
+**UI contract:** commit on **Enter or picking a suggestion, never per keystroke**
+(a param fans out to N widgets — per-character commits would fire an N-card
+re-fetch storm); the badge describes the *committed* value, not the draft; a
+stale-response guard (the ISSUE-57 pattern) drops superseded queries; an
+unknown/absent source degrades to a plain text input rather than breaking.
+
+### Verified API notes (all live 2026-09-10, `origin=*`)
+
+| need | endpoint | note |
+|---|---|---|
+| category suggestion | `list=search&srnamespace=14` (CirrusSearch) | **full-text is mandatory** |
+| — rejected | `list=prefixsearch&psnamespace=14` | only matches title *starts*: `Smithsonian` → `Category:Smithsonian*`, never `Images from Smithsonian…`. GLAM naming is `Images from X` / `Files from Y`, so prefix search cannot find the real targets |
+| — rejected | `list=search&srsearch=<q> hastemplate:"Views from category"` | the template's own rendered text is indexed, so it matched almost anything ("Met" → `Hallands kulturhistoriska museum`) |
+| file / article suggestion | `list=prefixsearch&psnamespace=6` / `=0` | titles start with their subject, so prefix fits here |
+| Wikidata suggestion | `wbsearchentities` | commit the QID |
+| existence check | `action=query&titles=Category:<X>` | `missing` flag |
+| **capability check** | `…/commons-analytics/category-metrics-snapshot/<Cat>/<YYYYMMDD>/<YYYYMMDD>` | **the only authoritative check** (see below) |
+
+**The finding that shaped the design — the registration list is partial.** The
+documented registration route is transcluding `{{Views from category}}`, and
+`list=embeddedin` enumerates it: **886 categories in 2 requests / ~48 KB**
+(exhausted, no continue). It is tempting to treat that as the capability set, but
+it is a *partial* view, and shipping it as proof would warn users about working
+categories:
+
+| category | CIM files (2026-08) | in the template list? |
+|---|---|---|
+| Images from Metropolitan Museum of Art | 389,036 | ✗ |
+| Files from the Biodiversity Heritage Library | 305,997 | ✓ |
+| Images from the Rijksmuseum | 6,866 | ✗ |
+| Images from the Library of Congress | 200 | ✗ |
+| Images from the National Gallery of Art | 200 | ✗ |
+
+`Template:Source category` (4,000+ categories, and it *does* contain the Library
+of Congress) and `Template:Image template notice` are also incomplete, and no
+union of templates enumerates the universe (DATA-SOURCES §19 puts it at ~1,755
+primary categories). **So the seed list supplies instant suggestions and the live
+snapshot probe supplies the verdict**, with CirrusSearch as the suggestion
+fallback — which is exactly what makes the Met findable: it is not in the list,
+but typing `Images from Metropolitan` surfaces it (first hit) and the probe
+confirms it. Membership in the list stays a fast, offline-confirmable `ok`.
+The probe must use `latestCimMonth()` (the latest **published** month) — probing
+the calendar's previous month misreads the month-start publish lag as
+"unregistered", the bug fixed 2026-09-01.
+
+**Shipped (Slice 1):** `src/lib/paramSources.js` (registry + pure helpers),
+`lookup` in `parseParams`/`parseParamSpecText`/`paramSpecToText`,
+`LookupParam` in `WidgetFrame`, styles in `App.css`, a `latestCimMonth` export
+(one source of truth for the published month), constitution
+`tests/param-lookup.test.mjs` (23 tests → npm test 252), and the glam demo's
+`collection` param switched to `lookup` + `cim-category` with the five flagship
+institutions as the curated shortlist.
+
+**Verified live in the browser (2026-09-10):** the Met seeded → ✓ *"has Commons
+Impact Metrics data"* (probe, not list); empty query → the 5 curated
+institutions (the pull-down); `Smithsonian` → ⚠ *not in CIM — cards will offer to
+register it*; a fictional category → ✗ *no such Commons category*; typing
+`Images from Metropolitan` → pick → **snapshot + top files + the rest re-aim to
+the new category, 0 error frames**.
+
+**Known limits / next slices:** suggestion quality is relevance-ranked, so a user
+who types `Metropolitan Museum` gets the *general* category (correctly flagged ⚠)
+rather than the CIM `Images from…` variant — ranking probe-verified candidates
+first, or biasing toward collection-category patterns, is the obvious follow-up.
+Slice 2: a **Finder widget** (a prominent search-and-pick card with result
+previews, click-row → set-param — this is also where Quadrant 2 #9 lands, making
+leaderboard/category rows drive the board). Slice 3: ISSUE-40 URL context params
+(`?config=…&collection=Images from the Met`) so the box is shareable. Deferred:
+project-aware `article` source (per-wiki), PagePile/PSID list params (#8).

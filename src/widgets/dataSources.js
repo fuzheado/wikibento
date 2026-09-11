@@ -1626,7 +1626,7 @@ async function fetchCim(path, retries = 2) {
  *  (category-independent — has data whenever the month does) with a bounded
  *  backward walk; TTL-cached 1 h (failures aren't cached, so a fresh publish
  *  is picked up on the next widget load/refresh). */
-async function latestCimMonth() {
+export async function latestCimMonth() {
   return cimCache.get('cim::latest-month', async () => {
     let cur = prevCimMonth();
     for (let i = 0; i < 3; i++) {
