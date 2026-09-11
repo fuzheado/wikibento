@@ -1,5 +1,5 @@
 /**
- * Named option sources for `lookup` board params (ISSUE-67).
+ * Named option sources for `lookup` board params (ISSUE-68).
  *
  * WHY THIS EXISTS
  * A Board Controls param could already be a fixed pull-down (`select`) or free
@@ -306,7 +306,7 @@ async function searchWikidataItems(query, limit) {
 // ── the registry ────────────────────────────────────────────────────────────
 
 /**
- * `curated` is not listed: it IS the param's own `options` list (the pre-ISSUE-67
+ * `curated` is not listed: it IS the param's own `options` list (the pre-ISSUE-68
  * behaviour), handled by the control directly.
  */
 export const PARAM_SOURCES = {

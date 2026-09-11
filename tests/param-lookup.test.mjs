@@ -1,5 +1,5 @@
 /**
- * Lookup-param constitution (ISSUE-67) — the contracts the validated "one box"
+ * Lookup-param constitution (ISSUE-68) — the contracts the validated "one box"
  * producer depends on. All pure: no network, no DOM.
  *
  *  - parseParams / parseParamSpecText / paramSpecToText round-trip `lookup`

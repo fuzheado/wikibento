@@ -1858,7 +1858,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   min-width: 0;
 }
 
-/* ISSUE-67: validated lookup param — free text + suggestions + capability badge.
+/* ISSUE-68: validated lookup param — free text + suggestions + capability badge.
    The dropdown is absolutely positioned so it overlays the card content instead
    of reflowing the grid (and it stays inside the card's overflow, which the
    panel-reachability constitution keeps scrollable). */

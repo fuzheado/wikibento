@@ -8,7 +8,7 @@
  * Widget config string fields may reference `{{name}}`; App resolves configs
  * against the live values and bumps reloadKey so referencing widgets re-fetch.
  *
- * `lookup` (ISSUE-67) is a validated combobox: free text checked against a named
+ * `lookup` (ISSUE-68) is a validated combobox: free text checked against a named
  * option source (src/lib/paramSources.js) with live suggestions. `source` names
  * the source; `options` stays available as an optional curated shortlist.
  *
@@ -25,7 +25,7 @@
  *  Types: buttons | select | text | number (options = [min, max, step]) |
  *  month (options ignored; value = month 1–12, or 0/empty = latest available
  *  — matching the widgets' own resolveMonth/latestCimMonth semantics) |
- *  lookup (ISSUE-67: `source` names an option source; `options` may hold a
+ *  lookup (ISSUE-68: `source` names an option source; `options` may hold a
  *  curated shortlist). */
 export function parseParams(block) {
   const specs = {};

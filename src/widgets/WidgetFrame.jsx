@@ -1067,7 +1067,7 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
   );
 }
 
-/** Lookup param (ISSUE-67) — the validated "one box" producer.
+/** Lookup param (ISSUE-68) — the validated "one box" producer.
  *
  *  Free text + live suggestions + a capability badge, backed by a named option
  *  source (src/lib/paramSources.js). Three deliberate UI choices:
