@@ -292,6 +292,8 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
 
 ## Tutorial video (state as of 2026-09-11)
 
+> Detail, evidence and the fix order live in **[docs/TUTORIAL-VIDEO-STATUS.md](docs/TUTORIAL-VIDEO-STATUS.md)** — read that before touching the pipeline. Short version: `record.mjs` works here (verified, a real 18.7 s clip); `build.mjs` cannot run here (this machine's ffmpeg has no `drawtext`, and its font paths are Debian-only); there is no narration yet and no TTS step in the repo.
+
 Goal: a narrated screencast that teaches the eight basic steps (what it is; read a shared board; clear
 it; add a card and set its subject; move/resize; export; store the JSON; reload with `?config=`).
 
