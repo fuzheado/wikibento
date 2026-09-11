@@ -3191,3 +3191,71 @@ ChromeOS kiosk) and/or serve the locked URL as the only published one.
 **Note:** renumbered 68 → 69 — the docs-facts/lookup-params work took ISSUE-68 (merged as PR #68).
 
 **Status:** open. Source: user direction 2026-09-10 (kiosk/view-only analysis).
+
+## ISSUE-70 · Wikisource widgets: book navigation, proofreading progress, activity (GitHub issue #79) — **open**
+
+**What:** a first set of Wikisource widgets, requested by Andrew 2026-09-11 while thinking
+about which Wikimedia projects a dashboard serves well. Researched live: the API behaviour,
+the cost of each readout, and the policy constraints are in the GitHub issue.
+
+**Why Wikisource:** the content is a work in progress — a scanned book becomes readable
+only as volunteers transcribe and validate it page by page — so "how finished is this?"
+and "what should I do next?" are numeric questions spread over hundreds of pages nobody
+wants to open one at a time. Measured: **one** `action=parse` of an Index page returns the
+whole book's status breakdown *and* its page links (Wind in the Willows: 390 pages,
+356 validated, 34 with no text; 111 KB). Per-page status and *who set it* come from
+`<pagequality level="N" user="X" />` in batched wikitext (50 pages per request, 246 KB).
+Live activity comes from `rcnamespace=104` with self-describing tags
+(`proofreadpage-quality3`) and comments (`/* Proofread */`). There is **no usable status
+API**: `prop=proofread` returns no payload, `list=proofread` is unrecognised.
+
+**Proposed widgets:** `wsBookPages` (page-turner with ◀ ▶ and a page-number box — the
+explicit ask, and cheap because the Index parse already carries the page list),
+`wsProofreadProgress` (stacked bar + "356 of 390 validated"), `wsPageStatus`,
+`wsActivity`, `wsValidationQueue` (pages at level 3 — the milestone that needs pairs of
+eyes), `wsText` (a validated passage with proper attribution), `wsIndexBrowser`,
+`wsAuthor`. Example boards: book-squad, reading, project.
+
+**Gotchas:** level 0 (blank/plates) distorts denominators; level-3 detection is the weak
+spot (no cheap query); namespace listings include subpages and image-based indexes; the
+scan is **not** in the rendered `Page:` HTML (1249 bytes, 0 images) — it comes from the
+file's `imageinfo` and the djvu page thumbnail. Open questions for the Wikisource
+community are in the issue.
+
+## ISSUE-71 · Wikivoyage widgets: static maps, itineraries, and closing the image gap (GitHub issue #80) — **open**
+
+**What:** a first set of Wikivoyage widgets, same session/request. Researched live;
+measurements and policy quotes are in the GitHub issue.
+
+**Why Wikivoyage:** the guide is map-shaped and listing-shaped — structured points of
+interest with coordinates, plus prose — and travel planning is the canonical "many small
+numbers in a grid" problem. It also has a deliberate constraint to design around: see
+`Wikivoyage:Image policy`, quoted in the issue — *"Travellers may be using Wikivoyage from
+networks with low bandwidth, or with a cost for every MB used."* A board can carry the
+pictures **outside** the article: measured, five Commons photos near Kyoto cost **16.0 MB**
+at full size but **1.3 MB** at 800 px and **194 KB** at 320 px. The policy even names the
+opening: *"Guidelines on minimal use of images do not apply to the 'image' tabs in
+listings, which should be filled with the filenames of relevant images on Wikimedia
+Commons whenever possible."*
+
+**Measured feasibility:** the destination coordinate is one `prop=coordinates` call;
+listings parse from one page fetch, but **coordinate coverage is wildly uneven** (Kyoto 3
+of 9 rendered cards; Kyoto/Central 39 of 91; Aarhus 285 of 310; some itineraries 0) — so
+maps must show their gaps. Static Wikimedia maps work from a browser with CORS
+(`maps.wikimedia.org/img/osm-intl,…` → 200, `image/png`, 176 KB), as do route/region
+GeoJSON (`geoline`/`geoshape`). **Policy:** `maps.wikimedia.org` *tiles* may only be
+embedded on WMF/Affiliate-hosted sites (approval otherwise), but **static images may be
+downloaded or hosted by anyone** under CC BY-SA 4.0 with attribution — hence static-first.
+
+**Proposed widgets:** `wvMap` (static Kartographer map + attribution), `wvItinerary`
+(numbered waypoints, track via GeoJSON, distances, and "N of M stops have coordinates"
+so the map cannot lie by omission — the community's own expedition page lists itinerary
+maps as *"Manually created, not slippy"*), `wvListings` (sortable table with missing-
+coordinate and missing-image columns), `wvPhotosNearby` (Commons geosearch gallery with a
+stated byte budget), `wvImageGaps` (the photo desk that fills listing `image=`),
+`wvNearby`, `wvBanner`. Example boards: destination, itinerary, photo desk, kiosk.
+
+**Gotchas:** count rendered `vcard`s, not `{listing}` (Kyoto: 3 vs 9); itineraries often
+have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<img>`);
+never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
+to anything we add.
