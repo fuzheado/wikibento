@@ -19,7 +19,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | Field | Type | Required | Rules |
 |---|---|---|---|
 | `version` | integer | optional | Must be `1` (or absent — treated as 1). Reserved for future migrations |
-| `params` | object | optional | Board params (ISSUE-50): `{ name: { label, type, options, value } }`, `type` = `buttons` \| `select` \| `text` \| `number` (options `[min, max, step]`) \| `month`. Widget configs reference them with `{{name}}`; a `boardControls` card renders them |
+| `params` | object | optional | Board params (ISSUE-50): `{ name: { label, type, options, value } }`, `type` = `buttons` \| `select` \| `text` \| `number` (options `[min, max, step]`) \| `month` \| `lookup` (ISSUE-67: add `source`, e.g. `cim-category`, `commons-category`, `commons-file`, `article`, `wikidata-item`; `options` becomes an optional curated shortlist). Widget configs reference them with `{{name}}`; a `boardControls` card renders them |
 | `widgets` | array | ✅ | At least one entry; see [Widget](#widget) |
 | `layout` | array | ✅ | May be empty (widgets auto-place); see [Layout Item](#layout-item) |
 

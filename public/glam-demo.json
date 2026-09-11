@@ -3,7 +3,8 @@
   "params": {
     "collection": {
       "label": "Collection",
-      "type": "buttons",
+      "type": "lookup",
+      "source": "cim-category",
       "options": [
         "Images from Metropolitan Museum of Art",
         "Files from the Biodiversity Heritage Library",
@@ -108,7 +109,7 @@
       "id": "leaderboard",
       "widgetType": "cimLeaderboard",
       "config": {
-        "scope": "deep",
+        "scope": "shallow",
         "wiki": "all-wikis",
         "month": "{{month}}",
         "refreshSeconds": 3600

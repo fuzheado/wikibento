@@ -42,6 +42,10 @@ A number without its time context is useless.
 
 # The Emitter Contract (read before wiring a widget to others)
 
+> *Background:* why this is a one-way, text-shaped convention rather than a message
+> bus — and how other tools (Grafana, Tableau, marimo, HyperCard, mTropolis) solved
+> the same problem — is in [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md).
+
 The two sections above are **constitutions** — build-breaking. This one is a
 **convention** with a single automated guard, and it exists because the dataflow
 wire has non-obvious constraints: getting them wrong produces boards that are

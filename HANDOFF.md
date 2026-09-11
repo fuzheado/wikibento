@@ -1,1007 +1,291 @@
 # WikiBento — Handoff
 
-*Last updated: 2026-09-10 · Repo: [github.com/fuzheado/wikibento](https://github.com/fuzheado/wikibento)*
+*The state of the project **now**. History: [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md) ·
+design rationale: [docs/ISSUES.md](docs/ISSUES.md) · feature docs: [README.md](README.md).*
 
-## Recent Work (2026-09-10)
-
-### ISSUE-64: TrendCard Y-axis + scale toggle — **DEPLOYED** (PR #43, GitHub #42)
-
-- **The gap (GitHub #42):** trend charts (Article Pageviews trend mode, CIM
-  Views Over Time) rendered a min–max normalized sparkline with zero Y
-  information — a 50→55 series looked identical to a 5M→5.5M series.
-- **The fix:** `src/lib/format.js` (new) — `compactNum` (the 254K/1.2M tick
-  format, extracted from FileTrafficCard which now reuses it) +
-  `trendYScale(values, { zero })` (pure tick spec: top = max, mid =
-  (min+max)/2, bottom = min; viewBox fractions 12/96). TrendCard draws 3
-  gridlines + an HTML tick-label column aligned at the same fractions
-  (SVG text would distort under preserveAspectRatio="none") + aria-label/
-  `<title>` tooltip with exact values. Narrow cards (<230px) hide labels via
-  a container query. Scale deliberately NOT zero-based by default — a zero
-  baseline would flatten pageview series; **the scale is now a ⚙ toggle**
-  ("Y axis starts at 0", `zeroY`) on both widgets — verified live: zero mode
-  reads 12K/6K/0.
-- **Deployed:** production bundle index-D9wl_Ty8.js; ticks + toggle
-  re-verified live on wikibento.toolforge.org. GitHub #42 closed by PR #43.
-- Constitution: tests/trend-axis.test.mjs (11 tests) → npm test 212.
-
-### Ask board assembly — ISSUE-44 Phase 3a **DEPLOYED** (PR #40)
-
-- 🧩 **Whole board mode** in the Ask advisor: describe a multi-widget need →
-  a complete wired board fragment (params block + widgets with model-assigned
-  ids + {{param}}/{{widget:id}} wiring) validated by the new server-side
-  `validateAssembly` (iterative dangling-ref pruning, caps 8 widgets/4 params)
-  and added **below the current board** (additive, never supplants) with a
-  one-click Undo toast. Client merge handles id collisions (atomic repoint,
-  ISSUE-53 machinery) and param collisions (incompatible → rename + repoint,
-  never reinterpret). Constitution: tests/assembly.test.mjs (10 tests).
-  Verified end-to-end in the browser incl. param-driven re-aim and reload
-  persistence; **deployed** (same session, bundle index-TTSz7Lkm.js, then
-  superseded by today's second deploy).
-- De-risked by the benchmark's board-assembly probe (3/3 coherent boards,
-  zero dangling refs — `scripts/probe-ask-edge.mjs --assembly`).
-
-### Benchmark artifacts reorganized under `bench/` (PR #41)
-
-- The 11 root-level `bench-*` files moved to `bench/README.md` +
-  `bench/results/*.json` (date-prefixed, chronological); `--out` now joins
-  `bench/results/` for bare filenames. Rounds 1–3 of the Ask benchmark
-  (prompt-variant null result, board fixtures + chain scoring, paraphrase +
-  multilingual + ablation experiments, the Toolforge high-tier trick) were
-  committed to main the same day — full write-up in `bench/README.md`.
-
-### Ask benchmark: prompt-variant comparison + board-construction suite (2026-09-09, afternoon)
-
-Continued the "is the Ask prompt enough" benchmark (`bench-README.md` has the
-full write-up; raw results in `bench/results/`):
-
-- **Prompt-variant comparison is a clean null:** baseline vs +compact wiring
-  reference vs +expanded dataflow manual score **identically** on all 15
-  single-widget fixtures (top1 100% · keys 93% · subject 85%) — the single-widget
-  suite is saturated, so wiring knowledge can't move it. `scripts/benchmark-ask-variants.mjs`
-  (fixed: was never run — scoreOptions arg swap + missing `fixture` in rows
-  crashed every row).
-- **Two real prompt bugs found + fixed in `deploy/server.js` VALUE RULES:**
-  (1) the model truncated `Wiki Loves Monuments 2024 in the United States` →
-  category rule now says "copied VERBATIM … keep the FULL span" (re-verified ✓);
-  (2) the model dropped `url` from a waybackGallery config while filling
-  `dates` → new SUBJECT COMPLETENESS rule ("pre-fill EVERY subject field the
-  user explicitly gave"). npm test 190 ✓ after the prompt edit.
-- **Board-construction fixtures + chain scoring (NEW):**
-  `tests/board-fixtures.mjs` (6 chain prompts) + `scoreChainOptions`/
-  `summarizeChain`/`assertBoardFixtureSchema` in `tests/intent-benchmark-lib.mjs`
-  + `--boards` / `--variants` modes in the variants runner + offline schema
-  constitution in `tests/intent-benchmark.test.mjs` (npm test 191). Results
-  (`bench/results/2026-09-09-boards-v1.json`): chain 83% · keys 100% · subject 100% —
-  3-widget chains (`excerpt → translate → speaker`, `listSource → filterLines →
-  lineCount`) come back in correct order with correct configs.
-- **Both prompt fixes verified for RELIABILITY** (the `--via toolforge` option
-  made repeat runs cheap — no more hourly 429 ceiling): `wayback-snapshots`
-  passed only **1/5** with the SUBJECT COMPLETENESS rule alone — a rule
-  doesn't reliably make the model pre-fill config fields. Adding a wayback
-  few-shot (url + dates, different site than the fixture) to the ASK_RULES
-  EXAMPLES block → **5/5**. `glam-category-impact` verbatim category holds
-  **3/3**. Lesson recorded: for config pre-fill, one targeted few-shot beats
-  a general rule.
-- **The model wants to wire:** it volunteers `{{widget:<invented-id>}}` tokens
-  in ~20% of chain options despite ASK_MANUAL's never-invent-ids rule — the
-  evidence for ISSUE-44 Phase 3 (board-assembly output schema: the advisor
-  generates a NEW board's ids/params/wiring deterministically).
-- **LiftWing rate window:** direct ~90 calls/IP/hour before persistent 429s;
-  the variants runner now honors Retry-After, supports `--variants` /
-  `--only` for targeted runs, and gained **`--via toolforge`** — calls go
-  over SSH to the bastion whose egress is on WMF's higher tier (effectively
-  unlimited, ~140 ms/req; per the `wikimedia-ml-services` skill). Use it for
-  all repeat measurements.
-
-### Round 2 — experiments unlocked by `--via toolforge` (2026-09-09, later)
-
-Five experiments ran once the rate cap was gone (full table in
-`bench-README.md`):
-
-- **Board suite saturated:** all 3 prompt variants now score chain/keys/subject
-  **100%** — no ordering few-shot needed; earlier failures were the transient
-  503 + an ambiguous fixture.
-- **Fallback model benchmarked:** `llm-qwen3-14b` scores **100%** on all 15
-  single-widget fixtures — the production fallback degrades nothing.
-- **Temp 0.0 = temp 0.3** on the board suite — keep 0.3.
-- **Out-of-scope probe** (`scripts/probe-ask-edge.mjs`): 5/6 strict, 6/6 no
-  invented ids — for "write a poem" the model returns a valid markdown widget
-  with the poem in it (creative, legitimate).
-- **Board-assembly prototype (ISSUE-44 Phase 3): the model fills a complete
-  params + widgets + `{{widget:id}}` wiring schema 3/3 with zero dangling
-  refs** — museum switcher (params block + `{{category}}`), transitive
-  excerpt→translate→speaker chain, 4-widget list/filter/count/display pipeline
-  with correct source-picker semantics. Phase 3 is now a product build, not a
-  model-capability risk. Probe: `scripts/probe-ask-edge.mjs --assembly`.
-
-- **Round 3 (same day, evening):** paraphrase robustness 100% (no overfitting
-  to fixture/few-shot phrasing), multilingual prompts 6/6 (es/fr/de/it/pt —
-  including German-prompt→Italian-edition cross-extraction), 14b fallback on
-  boards 5/6 (confusable-widget weakness) + semantically weaker assembly,
-  and manifest ablation: trim `defaults`/`placeholders`/`hints` freely,
-  NEVER widget `description`s (they drive the confusable-pair discrimination).
-  Noise floor: single-shot runs wobble ±7% — repeat before claiming a
-  regression. Fixtures: `tests/fixture-paraphrases.mjs`,
-  `tests/fixture-multilingual.mjs`; ablation probe:
-  `scripts/probe-ask-ablate.mjs`.
-
-### Board Composition Guide (`docs/BOARD-COMPOSITION.md`)
-
-Created a comprehensive, LLM-parseable reference guide covering:
-- **Part 1 — Widget Registry**: all 38 widgets with full capabilities (id, type, dataSource, configFields, defaults, emit behavior, renderer)
-- **Part 2 — Communication Patterns**: board params, dataflow (emit/consume, source picker, `{{widget:<id>}}` interpolation), reference grammar
-- **Part 3 — Board Composition Patterns**: layout guidelines, responsive behavior, kiosk/lean modes, composition strategies
-- **Part 4 — LLM Prompt Guide**: how to use the guide to generate board configs, common patterns, anti-patterns, widget ID reference
-
-The guide is structured for both human reading and LLM parsing — consistent headings, machine-readable tables, JSON examples.
-
-### Voyager CD-ROM Catalog Expansion (`docs/DEMO-IDEAS.md` §5)
-
-Added a full Voyager CD-ROM catalog organized by 10 themes (Film & Cinema, Music & Performance, Museums & Art, Cities & Cultures, Literature & Ideas, Science & Exploration, History & Politics, Interactive & Games, Criterion Collection, Expanded Books), with specific board wiring diagrams for each title and a wiring legend.
-
-### Live Benchmark (`bench/results/2026-09-09-baseline-single-widget.json`)
-
-Ran the Ask advisor benchmark against 15 ground-truth fixtures:
-- **top1: 93%** (14/15 correct on first try)
-- **top3: 93%**
-- **keys: 87%**
-- **subject: 73%**
-- **1 error**: sparql-count (HTTP 503 upstream, transient)
-
-Follow-on script saved: `scripts/benchmark-ask-variants.mjs` — compares baseline vs. compact reference vs. expanded ASK_MANUAL prompt variants.
-
-### Documentation Updates
-
-- `README.md` — added reference to `docs/BOARD-COMPOSITION.md`
-- `DEMO-IDEAS.md` intro — added reference to the board composition guide
-
-## What This Is
+## What this is
 
 WikiBento is a dark-themed, drag-and-drop widget dashboard for Wikimedia —
 "insights and action". A single-page React app (React 19, Vite 8,
-react-grid-layout) with **no backend**: every live widget fetches directly from
-CORS-enabled Wikimedia APIs (RESTBase pageviews, MediaWiki Action API, Commons,
-Wikistats, Commons Impact Metrics, WDQS/QLever, MinT) — a handful of static
-widgets (Markdown, Board Controls, Speaker, Wiki Page, Text List) render from
-config. Dashboards are JSON configs (format v1) that persist to
-localStorage, export/import, and load via shareable URLs — either embedded in
-the hash (`#/d/<base64>`) or fetched from a URL (`?config=<url>`, including
-on-wiki pages like `Commons:WikiPortraits/Bento-demo.json`).
+react-grid-layout) with **no backend for data**: every live widget fetches
+directly from CORS-enabled Wikimedia APIs (RESTBase pageviews, MediaWiki Action
+API, Commons, Wikistats, Commons Impact Metrics, WDQS/QLever, MinT). A handful of
+static widgets (Text/Markdown, QR, Board Controls, Speaker, Wiki Page, Text List,
+and the dataflow nodes) render from config.
 
-## Current Status
+Dashboards are JSON configs (format v1) that persist to `localStorage`,
+export/import, and load via shareable URLs — embedded in the hash
+(`#/d/<base64>`) or fetched from a URL (`?config=<url>`, including on-wiki pages
+like `Commons:WikiPortraits/Bento-demo.json`). The Toolforge deployment adds a
+few same-origin relays for APIs with no CORS (`/api/proxy`, `/api/resolve`,
+`/api/petscan`, `/api/ask`).
 
-**Feature-complete for v1, Phase 0 cleanup done, deployed live.**
-- ✅ **DEPLOYED 2026-09-09 (bundle index-DxO6r8uA.js) — demo suite + hub, embeds, rate-limit guards, guide:**
-  production now serves the whole session: the 8-board demo suite with **`?config=/demos.json`** as the
-  front door (GLAM five-institution switcher · article vitals · query power · article switcher ·
-  translate/params/flow/embed), custom-URL embeds (Objectium 3D), the shared rate-limit HTTP layer,
-  the Ask manifest v3, and the user guide. Deploy verified: bundle hash in index.html, all 10 demo
-  endpoints 200, every demo loaded live with **0 widget errors**, 3-engine matrix on the hub clean,
-  `/api/resolve` OK, startup log `WikiBento serving dist/ on port 8000`. Prior same-day deploy:
-  index-BWKLfppo.js.
-- ✅ **Seminal demo suite + hub (ISSUE-63, 2026-09-09):** 8 boards + a hub. Onboarding:
-  `article-switcher-demo` (one param, two cards), `translate-demo`, `params-demo`, `flow-demo`.
-  Flagships: `glam-demo` (one template, **five CIM-registered institutions** — Met/LoC/BHL/NGA/
-  Rijksmuseum, collection + month switcher), `article-vitals-demo` (excerpt · views ·
-  quality · assessments · edits · gallery), `sparql-demo` (WDQS + Humaniki + QLever). Extras:
-  `embed-demo`, `dashboard`. **`demos.json`** is the hub — its Markdown index links every board;
-  the markdown renderer gained same-origin links (`?config=/x.json`, `/path`, `#hash` render as
-  in-place anchors; absolute still new-tab; protocol-relative/`javascript:` stay inert).
-  Constitution: tests/demos.test.mjs +5 (validate · unique ids/types · refs resolve · hub links
-  exist · link safety) → npm test 190. Verified live: all 10 boards 0 widget errors, hub click
-  navigates.
-- ✅ **Wiki Page custom-URL embed (ISSUE-62, 2026-09-09):** the `wikiPage` widget can now embed
-  **any http(s) page** via a `url` field (custom mode) — e.g. an Objectium 3D model
-  (`?config` board card: `{"widgetType":"wikiPage","config":{"url":"https://objectium.toolforge.org/uploads/213"}}`).
-  http(s) only (bare domains get `https://`; `javascript:`/`data:`/`file:` rejected with an
-  error state), URL wins over the wiki fields, external frames are **sandboxed**
-  (`allow-scripts allow-same-origin allow-forms allow-presentation` + `allow=fullscreen`),
-  Wikimedia pages stay unsandboxed. Objectium is iframe-safe (no X-Frame-Options, report-only
-  CSP) — verified live: the sandboxed card renders the WebGL viewer, 0 errors. Constitution:
-  tests/embed.test.mjs +6 → npm test 174; Ask manifest regenerated (also catches up the `show`
-  field #33 missed). Native three.js viewing (ISSUE-43 `model3D`) still needs CORS on Objectium's
-  `/file` + `/thumbnail` routes (no ACAO today) or a proxy.
-- ✅ **Rate-limit guards (ISSUE-61, 2026-09-09):** new shared HTTP layer `src/lib/httpRetry.js` —
-  concurrency capped at 4, adaptive 500 ms pacing after any 429, **`Retry-After` honored** (seconds
-  or HTTP-date, capped 10 s, default 1 s; Wikimedia exposes it via
-  `Access-Control-Expose-Headers`), **at most one 429 retry** (5xx keep the normal budget), and an
-  actionable message — *"HTTP 429 — Wikimedia is rate-limiting this browser — wait ~Ns, then Retry
-  (…)"*. The config load now uses the same helper (it had no retry). Triggered by a user hitting
-  persistent 429s on a throttled IP (VPN/shared NAT — the same pattern from another IP returned
-  200s). Constitution: tests/http-retry.test.mjs +5 → npm test 168; live-verified with an
-  intercepted `Retry-After: 2` (2 requests, 2.0 s apart).
-- ✅ **User guide + config-URL error handling (ISSUE-60, 2026-09-09):** `docs/GUIDE.md` — a tight
-  user-facing manual (three-layer model: board params / widget config / dataflow; params
-  definitions-vs-values and `show` scoping; dataflow + the waiting guard; three worked examples;
-  troubleshooting; cookbook), linked from the README and the in-app ⓘ panel (whose stale catalog
-  copy is fixed). Config URLs that return HTML or 404 now say so — *"returned an HTML page, not
-  JSON"* / *"config not found (HTTP 404) — check the ?config= path"* — instead of *"Unexpected
-  token '<'"*; a Vite middleware 404s missing `*.json` in dev so dev matches production.
-  Constitution: tests/config-load.test.mjs +5 → npm test 168.
-- ✅ **Board Controls per-card param scoping (ISSUE-59, 2026-09-09):** a Board Controls card can
-  now render a **subset** of the board's params — ⚙ → *Params on this card* (a checkbox per
-  declared param, stored as a comma-separated `show` allow-list; empty = all, backward
-  compatible). `selectParamNames(specs, show)` (params.js) filters in declaration order and
-  ignores unknown names; a card whose selection matches nothing shows an explanatory empty
-  state. This makes the 4-widget board real: article buttons → Article Excerpt (emits) →
-  Translator `to: "{{targetLang}}"` → **language-only buttons card**. Verified live: cards render
-  `["Article"]` / `["Language"]`; the chain gives `EN → FR · nllb200-600M` and clicking **de**
-  on the language card re-translates to `EN → DE · nllb200-600M`. Constitution: tests/dataflow +3
-  → npm test 163. Controls-surface half of P2 (MODULARITY §Part 5); per-click target scoping
-  remains design (ISSUE-41).
-- ✅ **Article Excerpt emitter + unresolved-reference guard + reference chips (ISSUE-58, 2026-09-09):**
-  the excerpt card now declares `emit: (data) => data.extract`, so
-  `text: "{{widget:<excerpt-id>}}"` feeds a Translator (verified: EN extract →
-  Spanish; a board-param change re-emits and the consumer re-fetches). A widget
-  that FETCHES no longer sends an unresolved `{{widget:id}}`/`{{param}}` upstream —
-  `findUnresolvedRefs`/`describeUnresolvedRefs` (params.js) make `load()` show a
-  **"Waiting for a reference"** card and re-run when the producer emits (verified:
-  zero MinT/REST requests while unresolved). ⚙ lists emitters as clickable
-  `{{widget:<id>}}` chips under text fields (`noRefs: true` opts out — Translator
-  `from`/`to`). Deliberately NOT emitting article-title lists yet: a translated
-  title can be mistaken for Wikidata language mapping, so a future title emitter
-  must label its output as machine translation. Constitution: tests/dataflow +5
-  → npm test 160; `npm run smoke` (222 panel measurements) still green.
-- ✅ **DEPLOYED 2026-09-09 (bundle index-BWKLfppo.js) — first session deploy:** six
-  PRs merged and shipped in one deploy — speaker widget (#17), translator widget (#21),
-  request-serial guard (#24), panel reachability (#31), docs research series (#30), ROADMAP
-  Phase 2.5 (#29). **37 widget types** now in the registry and in the `?config=/dashboard.json`
-  catalog. Deploy verified: bundle hash in index.html, `/api/resolve` OK, 3-engine matrix on the
-  live full catalog (37 widgets, 0 widget errors, 0 severe console errors), speaker card
-  (181-voice picker) + translator (EN→ES · nllb200-600M) rendering, and the panel fix live on the
-  translator's 264px card (panel scrolls 204px, Apply reachable). Startup log:
-  `WikiBento serving dist/ on port 8000`.
-- ✅ **Panel reachability — ⚙/ⓘ actions can never clip (ISSUE-54, 2026-09-09):** a widget shorter
-  than its config panel guillotined the panel bottom — `.grid-item{overflow:hidden}` plus
-  `.widget-config/.widget-info{flex-shrink:0}` with no internal overflow meant **"Apply & Reload"**
-  (and ⓘ's "Copy debug info") sat below the card edge with no scrollbar anywhere; the only
-  workaround was resizing the widget. Audited with a new measurement script: **21/35 widget types
-  clip at the fresh-add w3 h3 size** (25/35 @1024px, 27/35 @820px, 0/35 below 768px where the
-  mobile stack auto-heights — desktop-grid-only bug; the catalog's authored sizes mostly pass,
-  which is why the browser matrix missed it). Fix is **CSS-only**: panels
-  `flex-shrink:1; min-height:0; overflow-y:auto`, action pinned with `position:sticky; bottom:0`
-  + an opaque composited background + top border (sticky on `.widget-info-actions` — the panel's
-  direct child — works where the nested button did not). The 7-line "Name (instance id)" hint
-  (67–93px of panel height on a 3-column card) became one line + tooltip; label → "Name".
-  Rejected: dual Apply (the **fields**, not the button, are unreachable — a 488px panel in a 232px
-  card shows ~2 fields), popout (right *polish* follow-up, not the fix), auto-expand the card
-  (reflows the board). Constitution: **`npm run smoke:panels`** — 222 measurements (⚙+ⓘ ×
-  1440/1024/600px × 37 widgets at w3 h3, Wikimedia requests blocked so auto-height can't mask a
-  too-tall panel), exit 1 on any clipped action, negative-tested against the pre-fix CSS; wired
-  into `npm run smoke`. Docs: ISSUES.md ISSUE-54, README features/quickstart.
-- ✅ **Translator (MinT) widget (ISSUE-56, PR #21, 2026-09-09):** fetch widget whose text (typed or
-  `{{param}}`-driven) is machine-translated by Wikimedia MinT — `POST
-  https://translate.wmcloud.org/api/translate`, CORS `*` verified → **browser-direct, no key, no
-  proxy** (the key-free AI node). `from`/`to` 2-letter codes (MinT has no auto-detect),
-  `format:'text'`, 8,000-char truncation flagged in the card, 24 h TTL cache, serving model
-  surfaced (`ES · nllb200-600M`). Merge work: ISSUE renumbered 53 → 56, `TranslateCard → 'query'`
-  in both TYPE_BY_RENDERER maps, manifest regenerated, translate added to the catalog sample.
-  Verified live: EN → *"El jazz es un género musical que se originó en Nueva Orleans."*
-- ✅ **Speaker widget (ISSUE-55, PR #17, 2026-09-09):** first output/effector widget — static
-  (no fetch, `timeScope:'point'`), speaks its resolved `text` via the Web Speech API. Safety model:
-  nothing speaks until ▶ is clicked once on that widget; `speakOnChange` (default OFF) auto-speaks
-  only after arming; controller-global 🔊 mute writes a shareable `audioMuted` param; one voice at
-  a time (cancel-before-speak), rate clamped [0.5, 2], utterance cancelled on unmount. Zero-voice
-  engines (headless CI) render a "No voice on this device" state + a 6 s stall guard — never an
-  error. Merge work: ISSUE renumbered 52 → 55, manifest regenerated, speaker added to the catalog
-  sample. Verified live: 181-voice picker (macOS Chromium), text + "Press ▶ once to enable" gate.
-- ✅ **Request-serial guard (ISSUE-57, PR #24, 2026-09-09):** `WidgetFrame.load()` claims
-  `++loadSeqRef.current` per run; the success and error paths return without touching state when
-  superseded, and unmount invalidates in-flight loads — a slow fetch under an old config/param can
-  no longer clobber a newer result (compounds with `{{param}}`/dataflow feeds). Merge work: the
-  guard now sits between the sourceOutput-aware fetch and transform; ISSUE renumbered 54 → 57.
-  **Verified with a controlled race probe** (params-driven MinT fetch, first response delayed 15 s):
-  with the guard the card keeps FRESH-BETA; with the guard removed and rebuilt the same probe ends
-  on STALE-ALPHA — red/green proof the guard is what fixes it.
-- ✅ **Docs: research series + ROADMAP Phase 2.5 (PRs #30/#29, 2026-09-09):**
-  `docs/TAPESTRY-EVALUATION.md` (WikiBento ↔ Internet Archive Tapestry primitives; three cheap
-  interop seams) and `docs/DEMO-IDEAS.md` (11 demo concepts A–K, Voyager-revisited provenance, demo
-  playbook) merged, plus ROADMAP **Phase 2.5 — board-to-board nav + Stage & Scene immersion layer**
-  (ship order 1→2→3, cache-warmth budget, steps-as-data, atmosphere). #30 merged first so #29's
-  DEMO-IDEAS link resolves from the moment it lands.
-- ✅ **Widget instance names + rename resolution (ISSUE-53, 2026-09-08 — DEPLOYED):** every widget
-  now has a visible, editable instance name — an id chip in every header (click → ⚙), the instance id in
-  the ⓘ panel + a Type row, and source-picker options labeled `icon Type · id — label`. ⚙ gains a **Name
-  (instance id)** field + a **Display title (optional)** field (the old uneditable-`_title` known issue is
-  fixed). Renaming validates (non-empty, `[A-Za-z0-9_-]`, unique) and uses **dialog + atomic repoint**: if
-  any widget references the id (source fields or `{{widget:id}}` tokens), a confirm dialog reports
-  "N references in M widgets" and repoints them all (renameWidgetRefs, deep) + the layout `i`; Cancel is
-  a no-op. The source picker is now a **combobox** everywhere (datalist dropdown of emitting widgets by
-  instance id + manual typing). Markdown notes containing `{{widget:flow-list}}` are live consumers —
-  counted + repointed with everything else. Constitution: tests/dataflow.test.mjs +5 → npm test 131;
-  validateDashboard warns (never blocks) on ids outside the reference grammar. Verified live: rename
-  flow-list→my-list dialogs "3 references in 3 widgets" and repoints chip/filter-header/source-
-  dropdown/note uniformly with the chain intact; invalid + duplicate names show inline errors and the
-  panel stays open; Cancel leaves everything untouched; 3-engine matrix clean. **Rename-propagation
-  fix:** the first cut cleared all widget outputs on rename, which froze consumers (sig-equals-prev after
-  identical re-emits) — fixed by dropping only the renamed widget's key; rename now converges in ~2 s with
-  no transients (verified live). Docs: ISSUES.md ISSUE-53,
-  README features/catalog, JSON-FORMAT Dataflow+ids.
-- ✅ **Widget-to-widget dataflow (ISSUE-52, 2026-09-08 — DEPLOYED, bundle index-OJOY0xwd.js):** the next
-  interactivity rung after board params (ISSUE-50). Any widget can **emit** its output (registry `emit`
-  fn; published by WidgetFrame in BOTH static and fetch paths — the producers are all static), and any
-  other widget can consume it via a new **`source` config-field type** (⚙ dropdown of emitting widgets;
-  output arrives as `opts.sourceOutput` to transform/fetch) or **`{{widget:id}}` interpolation**
-  (deep-string, same as `{{param}}`; arrays join with \n so a list feeds a textarea field — e.g.
-  `"articles": "{{widget:flow-list}}"`). Consumers re-fetch on output change via a **content-based
-  signature** (`widgetOutputSignature`, src/lib/dataflow.js) — identical re-emits are no-ops, no
-  refresh storms/loops; built from the RAW config so `{{widget:}}` refs survive the resolution that
-  hides them. **Four new Dataflow widgets** (category "Dataflow", new: 🧾 Text List / 🔎 Filter Lines /
-  🔢 Line Count / 🖨️ Value Display-echo) ship the rudimentary chain the user asked for —
-  **List → Filter → Count → Display** — live at `?config=/flow-demo.json`; EXAMPLE_DASHBOARD + the
-  35-widget `dashboard.json` catalog carry the same row; the Ask manifest sees the new fields/category.
-  Constitution: tests/dataflow.test.mjs (13 tests → npm test 125; wired into `npm test`, cleanup list
-  now rm's all 10 bundles). validateDashboard warns (never errors) on a `source` pointing off-board.
-  **Two bugs caught by browser verification during this work:** (1) the static-widget branch of
-  WidgetFrame.load() returned before publishing emit output — no producer ever emitted; (2)
-  widgetOutputSignature was computed from the resolved config, so interpolation refs were invisible
-  and those consumers never reloaded. Both fixed; verified live in Chromium (Text List 5→7 lines
-  propagates Filter "7 of 7" · Count "7" · Echo "7" · Article List re-fetches 7 real articles via
-  interpolation) and via `npm run test:browsers` (flow-demo 6/6 × 3 engines, 0 errors; full catalog
-  passes when the pageview API isn't rate-limited — a local burst trips Wikimedia 429s, widgets
-  degrade gracefully, re-runs clean). Docs: ISSUES.md ISSUE-52 (full design + fixes), README catalog
-  + features, JSON-FORMAT Dataflow section, this file.
-- ✅ **SPARQL QID → label resolution (Issue #6, merged as PR #11, DEPLOYED 2026-09-08):** QLever can't run
-  `SERVICE wikibase:label` (it federates to a dead host), so QLever queries returned bare QIDs — the widget
-  path now post-processes every SPARQL result: cells whose binding was a Wikidata entity URI (Q or P) are
-  batch-resolved via `wbgetentities` (≤ 50 ids/call, 24 h TTL, `navigator.language` primary subtag with `en`
-  fallback, best-effort — a label failure never fails the query) and render **"Label (QID)"**. Vars with a
-  `?xLabel` sibling (WDQS SERVICE convention) are left alone; literals/non-Wikidata URIs untouched. Pure
-  helpers in `src/lib/sparqlLabels.js`; constitution: tests/sparql-labels.test.mjs (npm test 108).
-- ✅ **Browser matrix: remote engines + esbuild-bundle untracking (PRs #14/#15, DEPLOYED 2026-09-08):**
-  `npm run test:browsers` accepts `PW_WS_ENDPOINTS` for remote engine grids (scripts/remote-browser-daemon);
-  `*-test-bundle.mjs` artifacts untracked + gitignored (the npm test cleanup list had missed three).
-- ✅ **GLAM view-budget fix (2026-09-08, DEPLOYED — bundle index-ejrRtwiS.js):** the 📈 widget's
-  monthly pageview budget was raised `GLAM_VIEW_BUDGET` 150 → **2,000** after
-  a verified ~3× undercount on `Media from MIT OpenCourseWare` (2026-05):
-  the tree is shallow (1,956 files at depth 6 AND 12 — depth and the 20K
-  file budget were NOT the issue), but the category has **285 distinct ns-0
-  pages**, and the old top-150-by-weight cut was arbitrary (nearly every
-  page has weight 1), silently dropping **879,082 of 1,375,031 monthly
-  views (64%)** — Economy of India (101,789 views, one file) among them.
-  Reproduced both numbers independently: widget-style top-150 = 495,949,
-  all-pages = 1,375,045 vs GLAMorgan 1,386,218 (residual ≈ agent model + a
-  wikiquote page `wikiToProject` skips). The partial state is now honest:
-  subtitle reads `views partial (150 of 285 pages)`-style with
-  `viewsFetched` in the output, the Total views stat gains a `partial` sub
-  label, and `aggregateGlamStats` takes an injectable `viewBudget` (test
-  regression: a 9999-view weight-1 page beyond an injected 150 cut).
-  Also from the all-widgets clamp audit: self-walk fallback `GIU_LIMIT`
-  100 → **500** (the Action API `gulimit` max — 100 silently truncated
-  heavily-used files; relay path has no per-file cap) and a stale comment
-  (10,000 → 30,000) fixed. Everything else audited is display-only,
-  config-surfaced, or documented against upstream limits. Constitution:
-  updated tests/glam-petscan.test.mjs (npm test 108).
-  **Deploy-verification finding (same day):** live browser checks of the
-  MIT OCW widget exposed a second silent-wrongness bug — the view walk's
-  285-request burst can trip the pageview API's rate limiter, and 429s were
-  terminal in `fetchTextWithRetry` (2026-09-01 rule) AND zero-filled by
-  `fetchMonthlyViews`' catch-all → one live run silently lost ~65% of
-  views; a clean run matched the offline reproduction exactly (1,375,031).
-  Fix: 429 is now transient (retried with backoff like 5xx — 404 stays
-  terminal), `fetchMonthlyViews` returns `null` on non-404 failure (0 stays
-  "genuinely no data"), `aggregateGlamStats` counts `viewsFailed`, and the
-  card subtitle appends `· N pages failed` (GLAMorgan's own warning
-  pattern). Verified live: Total views 1,375,031 / Files viewed 158 —
-  exact match with GLAMorgan-parity expectations.
-- ✅ **Article Gallery: show-all / hide-decorative / section & gallery grouping (GitHub issue #3, 2026-09-05 — merged as PR #12, DEPLOYED 2026-09-08):** three new ⚙ options on the `gallery` widget. **All images** (`includeAll`, default off — legacy captioned-only behavior unchanged) also displays caption-less `<gallery>` blocks and table/figure lists: List of presidents of Harvard University goes 1 → 30 images; National Gallery London's three galleries; India's 58 uncaptioned nature photos. **Hide decorative** (`hideDecorative`, default on, meaningful only with All images) drops common decorative caption-less files — flags, coats of arms/escudos/wappen, seals/emblems/crests/insignia/badges/roundels, logos, locator/blank/orthographic-projection maps, icons/symbols, Noimage placeholders — via a conservative filename heuristic verified against 12 live pages with zero content false positives; captioned images are never filtered; users can disable it. **Group by** (`groupBy`: none | section | gallery) renders group headers: section mode labels them with real headings from one `action=parse&prop=tocdata` call (Einstein all-images → 36 rows across 27 real "Section: …" headings; __NOTOC__ pages fall back to "Section N", lead = "Section: Introduction"); gallery mode sets each `<gallery>` block off as "Gallery N" and section-groups the rest. Caption-less tiles now show their file name; the empty state says "No images found" (never "No captioned images found") in all-images mode; autoHeight budgets group headers. minSize floor + batched imageinfo enrichment unchanged. Constitution: tests/gallery-options.test.mjs (13 tests, npm test 88) with real-file vectors. Manifest regenerated (Ask advisor sees the new fields).
-- ✅ **CIM shallow-vs-deep gap indicator (Issue #5, 2026-09-03, DEPLOYED — bundle index-DClvfKWq.js):**
-  cimSnapshot cards with deep scope and an extreme diffusion ratio (filesDeep/files
-  ≥ 10× and ≥ 10k deep files — e.g. UNESCO 575 vs 16.4M) render a two-segment
-  mini-bar + caption: "575 direct · 16,414,373 in tree (28,547×) — tree reach,
-  not direct attribution". No extra fetch (the snapshot endpoint returns both
-  scopes in one call). Also fixes a latent mislabel: stats showed shallow keys
-  under the configured scope's label — deep scope now shows -deep values
-  (fallbacks for partial data; found by the new tests). Flat trees render
-  unchanged. Constitution: tests/cim-gap.test.mjs (npm test 73). Issue #5
-  closed with implementation note; investigation record in
-  docs/DATA-SOURCES.md §19.
-- ✅ **Cross-browser fix + matrix suite (2026-09-03, DEPLOYED — bundle index-BgEdNEa0.js):**
-  see the FIXED known-issue entry below for the full User-Agent-preflight
-  diagnosis. New `npm run test:browsers` (scripts/browser-matrix.mjs,
-  playwright-core devDep) loads any dashboard URL in Chromium + Firefox +
-  WebKit and gates on widget error frames + severe console errors (hatnote
-  CORS noise / 404 probes / transient 5xx classified benign with reasons).
-  Engines are per-playwright-version builds — install once via
-  `node node_modules/playwright-core/cli.js install firefox webkit chromium`;
-  the install traps (version mismatch, __dirlock, stalled cdn.playwright.dev
-  downloads → manual azureedge.net/CfT-bucket fallback) are distilled in the
-  new `cross-browser-testing` skill (~/.pi/agent/skills/).
-- ✅ **Interactivity research + params evolution (2026-09-01 → 09-03):**
-  MODULARITY-AND-DATAFLOW gained Parts 3–6 (peer interconnection-model
-  comparison, input-widget taxonomy + effort×impact matrix, headwinds
-  analysis incl. loop/scale/clutter precedents, wiring-display tiers).
-  ISSUE-50 evolved: spec textarea (params editable in the ⚙ UI), the
-  `{{param}}` lock-in fix (⚙ edits RAW config; resolution lives in
-  WidgetFrame), number-slider + month-stepper param types, validator
-  placeholder support, and the params-demo.json board. Tier A wiring view
-  (derived read-only map) is next — fully specced in Part 6, not started.
-- ✅ **Catalog organization + widget idea backlog (2026-09-01):** README
-  Features / Verified Working / Widget Catalog all regrouped into ###
-  subsections mirroring the app's Add Widget categories (all bullets/rows
-  verbatim — script-asserted 0 lost). **cimLeaderboard moved Rankings &
-  Platforms → Categories & GLAM** in the registry so the CIM family (9
-  widgets) is together in the Add Widget panel too (manifest regenerated;
-  deployed index-D1CFGyxI.js). Docs research: the media player has no open
-  TODOs beyond its spec — **ISSUE-48 filed** (poster frames via
-  Special:FilePath?width=640, verified 200 image/jpeg; direct thumb/seek
-  scheme 400s — documented as a trap; + iOS quicktime pick) and **ISSUE-49
-  filed** (TimedText subtitles — probe pattern verified; language
-  enumeration + VTT endpoint are the open probes).
-- ✅ **Board params prototype (ISSUE-50, 2026-09-01, DEPLOYED — bundle index-DjTAjvPz.js):**
-  the first interactivity primitive (Path A of the 2026-09-01 research,
-  MODULARITY-AND-DATAFLOW §Part 3). Dashboards may declare a `params` block
-  (`{ name: { label, type: buttons|select|text, options, value } }`);
-  widget configs may reference `{{name}}` (deep string interpolation,
-  unknown names left literal + warned); the new static **Board Controls**
-  widget (🎛️, Content & Embeds) renders one control group per param and a
-  click writes the value + bumps `reloadKey` → all referencing widgets
-  re-resolve + re-fetch. Params persist in localStorage and round-trip
-  through boot/URL-config/import (App `apply` threads `params`).
-  Verified live: 3 museum-category buttons re-aim a Category Size widget
-  (Smithsonian 17,166 → Rijksmuseum 6,870 → Library of Congress, sample
-  photos re-aiming each time). Constitution: tests/params.test.mjs
-  (npm test 61). Deferred to ISSUE-41 full design: URL context overlay,
-  per-widget ⓘ provenance, schema/docs for `params`.
-- ✅ **Media player description + annotation (2026-09-01, DEPLOYED — bundle index-DBwecE6U.js):**
-  the 🎬 widget gains "Show Commons description" (⚙, default ON — now-playing
-  track shows its `videoinfo` extmetadata `ImageDescription` + `Artist ·
-  License` credit, `.media-desc` block; `iiextmetadatafilter` is ignored by
-  videoinfo, noted in code) and a freeform **annotation** textarea (Markdown,
-  escape-first renderer, no external images) under the controls — user-written
-  captions for boards/kiosks. Verified live with Dance reedit 2.webm
-  ("Dance couple performing the cha cha." · Wpzhiyilee · CC BY-SA 3.0).
-- ✅ **CIM File Spotlight image preview (2026-09-01, DEPLOYED — bundle index-D5iaTtCr.js):**
-  the 🔦 widget gains "Show image preview" (⚙ checkbox, default ON) — a 480px
-  Commons thumb of the file above the stats, clickable to the Commons file page
-  (reuses the File Usage Map `.card-image` pattern; fetch is best-effort via the
-  new `fetchCommonsFileImage` helper — a bad filename can never fail the CIM
-  stats). Title now links to Commons too. Ask manifest regenerated
-  (`node scripts/generate-manifest.mjs`). Tests: spotlight month-resolution +
-  thumb/showImage=false paths (npm test 55).
-- ✅ **CIM month-lag fix (2026-09-01, DEPLOYED — bundle index-BHGlMTfE.js):** every CIM widget falsely
-  reported registered categories as "unregistered" at the start of each month —
-  the calendar's previous month isn't published until the monthly job runs days
-  in (verified live 2026-09-01: August 404'd while July had full Met data), AND
-  the 404 disambiguation probe was built from the same `prevCimMonth()` as the
-  main request when month=0, so probe ≡ main → both 404 → false "register via
-  {{Views from category}}" verdict. Fix: new `latestCimMonth()` helper (bounded
-  backward walk probing the category-independent global leaderboard, 1 h TTL
-  cache) — all 9 CIM fetchers now default to the latest PUBLISHED month and probe
-  against it; fetchers return `resolvedMonth` and the CIM transforms display it
-  (config-computed `resolveMonth(config.month)` stays as fallback). Also: 4xx
-  fetches are now terminal in `fetchTextWithRetry` (previously retried with 1.5 s
-  backoff — every 404 error path and the whole test suite were 1.5–4.5 s slower).
-  Constitution: tests/cim-latest-month.test.mjs (4 tests, date-relative stub —
-  runs in any month; npm test 53). Verified live: Met snapshot resolves to
-  2026-07 = 389,030 files · 20,700 used · 404 wikis · 31,351 pages.
-- ✅ **GLAM depth UX (2026-08-17)** — zero-state explainer + config hints:
-  when a scan returns 0 files the card now shows a real message instead of
-  silent zeros — depth 0: "No files directly in this category — increase
-  Depth to include subcategories"; deeper: "No files found in this category
-  tree" (transform emits `emptyHint`, GlamCard swaps the stats grid for the
-  hint). Config panel: `hint` field on configFields renders inline
-  semantics — Depth "0 = category only, 1 = + direct subcats", Excl depth
-  "0 = excluded cats only, 1 = + their subcats" (plus the 0–12 range);
-  negdepth gained min/max 0–12 so the range shows too. Browser-verified
-  (zero-state via a nonexistent category, hints in the ⚙ panel).
-- ✅ **Clickable titles + page names on GLAM/CIM cards (2026-08-17)** —
-  ISSUE-47: GLAM Category Usage + CIM Category Snapshot card titles link
-  to the Commons `Category:` page in a new tab (`.excerpt-title a` styling;
-  the card title, not the drag-handle title bar, is the link target).
-  Extended: the GLAM card's per-page usage table links too — the top-file
-  header opens its `File:` page and every usage row's page name opens on
-  its own wiki (`pageHref`, `.org` stripped; unknown wikis stay plain).
-  Audit: all other page-listing cards already linked (cimTopPages,
-  topPages, articleList, cimTopFiles). Transform tests cover en/commons/
-  unknown-wiki rows + null-detail (glam-petscan.test.mjs; npm test 48).
-- ✅ **GLAM file budget ceiling raised to 30,000 (2026-08-17)** — the
-  `glamorgan` widget's `fileBudget` (silently clamped at 1,000 in
-  production) now honors user values up to **30,000** end-to-end (raised
-  1,000 → 10,000 → 30,000 = GLAMorgan's own ceiling): client clamp
-  `GLAM_FILE_BUDGET_MAX` (dataSources.js), relay clamp `PETSCAN_BUDGET_MAX`
-  (server.js parsePetscanParams), registry/panel max, docs. The **self-walk
-  fallback stays capped at 1,000** (`GLAM_FALLBACK_CAP`) so a relay outage
-  can never trigger a multi-hundred-call browser walk — and `cappedFiles` is
-  now computed against the walk cap, so a capped fallback is labeled, not
-  silent. **Timeout mismatch fixed:** the relay legitimately runs up to 60 s
-  on big trees, but the client's `fetchJSON` default (15 s) aborted first
-  and silently fell back — `fetchPetscanRelay` now waits 75 s in a single
-  attempt; loadingHint updated ("30–90 s for large budgets"). **UI/import
-  contract:** registry configFields declare `min`/`max` (fileBudget 50–
-  30,000, depth 0–12, topN 1–10) → the ⚙ panel shows the range hint + HTML
-  min/max, and `validateDashboard` warns on out-of-range values ("will be
-  clamped", mirroring the layout w/h warning precedent). Live probe:
-  People at Wikimania 2024 depth 5 = 2,832 files / 1.19 MB / ~2 s via
-  PetScan (~0.4 KB/file → a full-budget tree ≈ 12 MB, under the 25 MB byte
-  cap). Tests: glam-petscan +3, new config-ranges suite +6 (npm test 45).
-  **DEPLOYED 2026-08-17** (bundle index-B_hgqo4i.js; merged to main ebb4af7).
-- ✅ **30 widget types total (2026-08-16; now 37 — see the deploy bullet above):** + 🎬 Video/Media Player
-  (ISSUE-39) + 🕰️ Wayback Snapshot Gallery (alpha). Full catalog:
-  `?config=/dashboard.json`.
-- ✅ **Kiosk mode (2026-08-15)** — ⛶ Present + `?kiosk=1`: chrome-free
-  fullscreen presentation, grid locked, Esc/✕ Exit (strips the URL
-  param), fullscreen only on click (user-gesture rule). ISSUE-18.
-  **DEPLOYED** (commit 3c94ab8, verified live 2026-08-15).
-- ✅ **Lean mode (2026-08-16)** — ▣ Lean + `?lean=1`: the same
-  chrome-free, grid-locked state WITHOUT fullscreen — resizable
-  browser, iPad-app feel; shares the `.kiosk` CSS rules; Esc/✕ Exit;
-  kiosk and lean mutually exclusive. **DEPLOYED** (commit 3bfad47,
-  bundle index-DkcrAAk0.js — then-current production bundle, verified live
-  2026-08-16 incl. kiosk regression).
-- ✅ **Video / Media Player widget (2026-08-16)** — 🎬 ISSUE-39: native
-  HTML5 `<video>`/`<audio>` (no player library) of Commons files —
-  single embed or jukebox playlist; batched `videoinfo` derivatives
-  (≤4,500-char chunks), height-based quality pick (VP9 WebM, auto =
-  largest ≤1080p, original fallback), per-track media-type detection,
-  next/prev/position, loop wrap, Fisher-Yates shuffle, autoplay ▶ Start
-  pill (browser policy), missing-file counts. **DEPLOYED** (commit
-  c9f7bbc, bundle index-DdJRNUuD.js → current index-DkcrAAk0.js,
-  verified live 2026-08-16).
-- ✅ **✨ Ask advisor (2026-08-16)** — ISSUE-44 Phase 1: intent-first
-  widget discovery. `✨ Ask` toolbar button → conversational panel
-  (user bubble → thinking → recommendation cards with reasons +
-  pre-filled config chips → click to add to board; sample chips,
-  privacy footer). Architecture: `scripts/generate-manifest.mjs`
-  extracts the 30-widget catalog (with REAL select options per field)
-  into `public/manifest.json` (~3.7K tokens, wired into `npm run build`);
-  `deploy/server.js` gains `/api/ask/session` (30-min HMAC token,
-  IP-bound) + `/api/ask` — narrow-function relay to Wikimedia's free
-  LiftWing LLM (`llm-qwen36-27b`, json_object mode, `<think>` strip,
-  id validation, per-IP rate limits + global tripwire, prompt caps,
-  10-min hash cache, 45 s timeout + `llm-qwen3-14b` fallback,
-  privacy-respecting logs). Server-side config normalization against
-  declared fields (unknown keys dropped, invalid selects dropped,
-  `commons.org`→`commons.wikimedia` aliases, `Category:` stripped,
-  `File:` prefixes ensured, displayMode validated) + VALUE RULES /
-  intent-matching prompt. Offline keyword fallback (`src/lib/askLocal.js`,
-  "offline" badge). Constitution: `tests/ask-validation.test.mjs`
-  (11 tests, wired into npm test/build). **DEPLOYED** (commits 5378088 +
-  165c014, verified live incl. the user-reported failure prompts).
-- ✅ **Gallery defaults + grid density fix (2026-08-16):** Article Gallery /
-  Commons File Gallery now add at **w:12 full width** and **auto-fit their
-  height to the image count** (registry `autoHeight` → WidgetFrame
-  `onAutoHeight` → App fits rows, clamp 3–14, stops once the user resizes).
-  cimTopFiles + waybackGallery share the full-width default. **Root-cause
-  find:** react-grid-layout 2.2.4 moved `cols/rowHeight/margin/
-  containerPadding` into the `gridConfig` prop (same silent-API drift as
-  dragConfig) — the app's rowHeight={80} was ignored and the grid rendered
-  with RGL's 150px-row defaults all along. Fixed via `gridConfig`; board
-  now renders at the intended density. Commit ee70ce4, verified live.
-- ✅ **GLAM PetScan relay implemented (ISSUE-46, 2026-08-17)** — branch
-  `glam-petscan-relay`. `deploy/server.js` gains `/api/petscan` (stateless
-  capped relay: budget + 25 MB byte cap, 60 s timeout, per-IP limits;
-  `wikiDbToDomain` maps PetScan DB names → domains; pure fns exported).
-  `fetchGlamStats` rewritten: PetScan relay primary, self-walk fallback
-  (ISSUE-45 fix retained), shared `aggregateGlamStats` with injectable
-  views/thumbs; output carries `source`, card subtitle flags self-walk
-  fallback. **19 new offline tests** (tests/glam-petscan.test.mjs — npm
-  test now 36) + `scripts/verify-glam.mjs` live parity check. **Verified:
-  both paths match glamtools exactly on XBio depth-1 2026-07 — 518/38/38/
-  40/2/110,092**; endpoint HTTP-smoked (400 on missing cats, real query
-  OK). **DEPLOYED 2026-08-17** (merged to main ebb4af7; production bundle
-  index-B_hgqo4i.js; verified live — Wikimania 2024 depth 5 = 2,832 files,
-  capped: false).
-- ✅ **GLAM architecture decision: PetScan relay (ISSUE-46, 2026-08-17)** —
-  after the ISSUE-45 zero-usage bug, a source read of glamtools showed
-  GLAMorgan has NO stats backend (PetScan + same-origin pageviews proxy +
-  ~40 lines of browser aggregation). Decision: **B now** — delegate
-  tree+usage to PetScan (`giu` exact-ns) via a capped stateless
-  `/api/petscan` relay; pageviews stay client-side (WMF API); never adopt
-  glamtools' proxy (same-origin-only, unversioned — verified no CORS
-  2026-08-17); full server aggregation (C) only when budgets >~1K files or
-  repeat-load caching wins. Design + revisit triggers:
-  docs/GLAMORGAN-WIDGET.md §Architecture Decision; contracts recorded in
-  ARCHITECTURE.md watchlist; ROADMAP Phase 1.5. **Status: implemented +
-  merged to main 2026-08-17 (ebb4af7), deployed** (was `glam-petscan-relay`,
-  docs-only at decision time).
-- ✅ **Ask payload contract documented + intent→widget benchmark suite
-  (2026-08-16):** ISSUE-44 gains the "Payload contract (as shipped)"
-  section — the exact trim map (8 fields per widget: id/name/description/
-  dataSource/category/type/configFields/defaults; icon/intensity/
-  experimental dropped), prompt layout (preamble → CATALOG → RULES →
-  VALUE RULES → OUTPUT SCHEMA → 2 few-shots), params (json_object,
-  temp 0.3, 700 max tokens, 45 s timeout), cache key, sanitizer chain.
-  Corrected the stale "531 prompt tokens" figures in ISSUES.md +
-  DATA-SOURCES.md: the shipped catalog is 15,764 chars ≈ 4.1–5.3K tokens;
-  full system prompt 17.5K chars ≈ 4.5–6K of 32K ctx (fallback 16K → keep
-  enriched system ≤ ~13K). **Benchmark suite (ISSUE-44 design item 6,
-  "evaluation as a constitution"):** `tests/intent-fixtures.mjs` — 15
-  ground-truth intents (draft v1, review pending) covering every widget
-  family + confusable pairs (fileUsage vs cimFileSpotlight, glamorgan vs
-  cimSnapshot); `tests/intent-benchmark.test.mjs` wired into `npm test`
-  (hard schema asserts + local-tier top-3 floor); `scripts/benchmark-
-  ask.mjs` — live LLM scorer against the exact ASK_SYSTEM+ASK_RULES
-  prompt (direct LiftWing call, same sanitizer, --gate/--out/--model
-  options). askLocal gains a manifest override param + 3 new intent
-  patterns. **Baseline: LLM tier 15/15 top-1, keys 100%, subject 100%;
-  local tier 15/15 top-3 (100% top-1 after pattern fixes) — the bench
-  caught 3 real local-matcher bugs** (missing wikistats + wayback
-  patterns; linkcount losing to topPages on a keyword false-friend).
-  **Category-span delineation probed live (5 variants): the model extracts
-  full category names exactly whether quoted, unquoted w/ em-dash, or
-  unquoted with NO boundary — fixtures stay in the realistic unquoted form
-  and glam-category-impact was hardened to the no-boundary wording
-  ("…and how many files…"); re-verified 100% live + offline. Benchmark
-  script gains --fixtures and matchedOption in --out (extracted configs
-  saved for span diagnostics). **Fixture interviewer tool
-  (scripts/interview-fixtures.mjs)**: interactive widget-card → phrase →
-  subject → validated-append flow (needs a real terminal; piped stdin
-  hangs on Node 26 readline — use --add for automation); --list shows
-  coverage (15/30), --add is the agent path; entries validated by the
-  same assertFixtureSchema before writing. Full how-to, scoring
-  semantics, and ground rules in docs/INTENT-BENCHMARK.md (linked from
-  README + ISSUE-44).
-- ✅ **Docs (2026-08-15/16):** docs/PHILOSOPHY.md (the HyperCard
-  lineage + origin story + wayfinding question) and docs/PARADIGMS.md
-  (presentation paradigms, CD-ROM era, contemporaries incl. Knight Lab
-  + GLAM Wiki Dashboard evaluations) added; WIDGET-IDEAS.md gained the
-  mapping extensions, sister-project widgets (Wikivoyage/Wiktionary/
-  Wikisource), and the Knight Lab + GLAM Wiki Dashboard evaluations;
-  ROADMAP Phase 2 rows (board templating, map family); ISSUES.md
-  now tracks ISSUE-18..49 (kiosk/lean done, media player done incl. the
-  2026-09-01 description/annotation extension; open: 33 slideshow, 36
-  manifests, 41 templating, 42 primitives, 43 model3D, 48 poster frames,
-  49 subtitles;
-  slideshow/ticker (33/34), categorySize modes (37), Bento navigation
-  (35), shared renderers (38), parameterized links (40) — open design).
+## Current state
 
-- ✅ 7 data-driven widget types verified live + 📝 Text/Markdown static card + 🔥 Top Wikipedia Articles (28 total, 2026-08-13: + 4 Article Vitals + 🖼️ Gallery + 🗂️ Commons File Gallery + 📋 Article List + 🧠 SPARQL Query + 📄 Wiki Page + 8 CIM widgets)
-- ✅ **SPARQL Query widget (2026-08-13):** 🧠 power widget — WDQS + QLever (Commons) + Humaniki; auto-detecting renderer (big number/bars/line/table, ⚙ override); 4 presets (Met depth 72,433, multi-institution bars, Women-in-Red 20.13% via Humaniki, Commons top-depicts via QLever); 60 s timeout + retry + 10-min TTL cache; GET ≤1,800 chars else form-urlencoded POST (no preflight). Humaniki gotcha: interpret gender keys via its own bias_labels (its QID map is swapped vs Wikidata — hardcoding gives 79.7%, label lookup gives the correct 20.1%). Preset select fills query+endpoint atomically (one onUpdateConfig call — sequential handleConfigChange calls clobber each other via stale props). Schema + example dashboard (17 widget types) + docs updated. **DEPLOYED to Toolforge 2026-08-13** (commit bfbce6e, bundle index-BJjaG_ta.js) — verified live: multi-institution bars (Met 72,433), /api/resolve OK.
-- ✅ **Wiki Page widget (2026-08-13):** 📄 static iframe embed — Wikimedia pages send no X-Frame-Options/frame-ancestors (verified), so the widget is a direct `<iframe>` (no fetch, no sanitize); **desktop/mobile toggle** via `?useformat=mobile` (MobileFrontend's own preview parameter — verified 200 + Minerva HTML on enwiki and Commons; the m. subdomains are retired and 301 to desktop), optional section anchor, links browse inside. 28 widget types total (26 data-driven + markdown + wiki page). **DEPLOYED to Toolforge 2026-08-13** (commit f7dfa44, bundle index-BdMTw21V.js) — verified live: Help:Introduction iframe renders on the production site.
-- ✅ **Freshness constitution (2026-08-14):** every live-querying widget now shows its last-run time — WidgetFrame stamps `_fetchedAt` on every fetch widget's data and renders a `⏱ updated HH:MM:SS · auto-refresh Nh` footer (updates on every load: initial, ↻, config change, auto-refresh). Static widgets (markdown, wikiPage) exempt. Enforced by the constitution test: fetch widgets must declare `refreshSeconds ≥ 30` in defaults. Audit: all 26 fetch widgets covered automatically by the single WidgetFrame change; 2 static exempt. Caveat documented: TTL-cached sources (Wikistats/SPARQL/CIM) show the widget's last run, not upstream data age. **DEPLOYED to Toolforge 2026-08-14** (commit a7f5ee7, bundle index-C3DXQFad.js) — verified live: 26 stamps, 0 errors.
-- ✅ **Temporal-scope constitution (2026-08-13):** every widget whose data has a time scope now displays the RESOLVED scope in its subtitle (pageviews: "2026-07-15 → 2026-08-13 · 30-day pageviews"; CIM: "2026-07 · precomputed (CIM)…", "2026-02 → 2026-07 · …"). Enforced by `tests/scope-compliance.test.mjs` via `npm test`, wired into `npm run build` — a non-compliant widget blocks the build, hence deployment. All 28 widgets declare `timeScope` ('month'/'range'/'day'/'point'); helpers in src/lib/scope.js.
-- ✅ **CIM File Traffic widget (2026-08-13):** 📉 interactive per-file chart — labeled axes (compact Y ticks, month X labels, "views"/"month" titles), −/+ zoom slices 3/6/12/24 months client-side, header always shows the displayed range. Found + self-healed a real CIM bug: the API deterministically 500s from browsers on the exact 12-month window 20250801/20260801 (internal upstream 503; curl 200s; other windows incl. 30-month work) — `fetchCimTrafficWithHeal` retries with the earliest month dropped.
-- ✅ **CIM widgets (2026-08-13):** 🎯📈🖼️🌍📄✍️🏆🔦 8 separate precomputed Commons Impact Metrics widgets (NOT merged into the glamorgan live walk, per 2026-08-13 decision): snapshot (BHL: 305,868 files · 14,434 used · 252 wikis · 41,819 pages — exact), views trend (Jan 83.1M), top files w/ thumbs (Dogs Plate XI 811,993), top wikis/pages/editors (SchlurcherBot 4,491), global top-100 leaderboard (UNESCO 6.6B) + file spotlight. 28 widget types total (26 data-driven + markdown + wiki page). Key gotchas: the CIM 404 is AMBIGUOUS (registered cats with no data for the month return the same "not loaded yet" body — BHL 2015-01 404s) → previous-month disambiguation probe; snapshot has NO pageviews; CIM views = pageviews of pages USING the files; top-files thumb lookup must use space-normalized titles (imageinfo normalizes). 1-h TTL cache + 30 s timeout. **DEPLOYED to Toolforge 2026-08-13** (commit 7e022f7, bundle index-DiStWjwF.js) — verified live via the new full-catalog sample (`?config=/dashboard.json`: all 28 widget types, 0 errors; leaderboard highlight works — WLM 2024 correctly 'not in the top 100').
-- ✅ **List-driven widgets (2026-08-13):** 🗂️ **Commons File Gallery** + 📋 **Article List** — 28 widget types. Both take pasted lists (one per line) as input; the gallery renders any Commons files (grid/list, order: listed/random/alpha/largest, missing-file counting, reuses GalleryGrid/ListCard renderers) and the article list is a clickable row list with optional batched thumbnails+intros (pageimages|extracts). First consumers of the "list source" input idea (PagePile/PSID can slot in later). Example dashboard + schema + README/DATA-SOURCES/WIDGET-DEVELOPMENT updated. **DEPLOYED to Toolforge 2026-08-13** (commit 68dea21, bundle index-D4DEEPkT.js) — verified live: "3 files" gallery tiles + article list thumbs/extracts, /api/resolve OK.
-- ✅ Config format v1: docs/JSON-FORMAT.md + docs/dashboard.schema.json + runtime validator
-- ✅ Shareable URLs, import/export, example dashboard, About modal
-- ✅ Git repo on GitHub (main). **Current production bundle = index-D9wl_Ty8.js** (deployed
-  2026-09-10 — ISSUE-64 TrendCard Y-axis + zero-based toggle on top of 2026-09-09's
-  board-assembly deploy index-TTSz7Lkm.js — Ask board assembly, ISSUE-64 axes,
-  bench/ reorg; main = afd308a);
-  prior deploys: index-DxO6r8uA.js (demo suite + hub 2026-09-09);
-  index-DWKLfppo.js, index-CGBDkEU8.js (GLAM view-budget + ISSUE-53);
-  index-ejrRtwiS.js / index-BLGokffr.js / index-DHc3p4sT.js (GLAM 2026-09-08);
-  index-DClvfKWq.js CIM gap indicator 2026-09-03,
-  index-B_hgqo4i.js GLAM PetScan relay 2026-08-17.
-- ✅ **DEPLOYED to Toolforge (2026-08-12):** https://wikibento.toolforge.org/ —
-  node20 webservice serving dist/ via deploy/server.js; demo URL verified live.
-  **Deploy procedure (fresh-session safe — full detail in docs/DEPLOYMENT.md):**
-  SSH as the PERSONAL account (`ssh alih@dev.toolforge.org` — `tools.wikibento@`
-  is NOT an SSH login and fails with publickey); tool commands via
-  `sudo -niu tools.wikibento` (never `become` over chained SSH); then:
-  `npm run build` → `rsync -az --delete dist/ alih@dev.toolforge.org:/data/project/wikibento/www/js/dist/`
-  → `ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart"`
-  → verify bundle hash + `/api/resolve`. This Pi's hosts inventory has
-  `tools` = alih@dev.toolforge.org (use `host_exec`).
-- ✅ **Phase 0 cleanup done (2026-08-12):** recharts removed, dead assets
-  (`public/favicon.svg`, `icons.svg`) deleted, grid resize listener added,
-  per-widget error boundary added
-- ✅ **QR share panel (2026-08-12):** 🔗 Share now opens a modal with a scannable
-  QR code (client-side `qrcode-generator`, inline SVG) + copyable link — encodes
-  the current `?config=` URL when present (short, phone-friendly), else the
-  self-contained hash link when under ~1,500 chars, else a friendly notice
-- ✅ **Responsive layout (2026-08-12):** phones (<768px) get a single-column card
-  stack instead of 75px-wide grid columns; tablets/desktops keep the grid
-- ✅ **Wikistats robustness (2026-08-12):** shared 5-min TTL fetch cache (Wiki Stats
-  + Top 10 now cost ONE request for the 195 KB CSV) + 15 s timeout +
-  retry-with-backoff; transient "Load failed" errors self-heal
-- ✅ **Text/Markdown widget (2026-08-12):** 📝 8th widget type — zero-dep,
-  escape-first Markdown renderer (`src/lib/markdown.js`), static-widget pattern
-  (no `fetch`; WidgetFrame renders `transform(config)` directly — see
-  docs/WIDGET-DEVELOPMENT.md), new `textarea` config field. Images are https-only
-  with a **`*.wikimedia.org` default allowlist**; other hosts need the per-widget
-  "Allow external images" opt-in (privacy: blocks tracking-pixel IP/referrer
-  leakage in shared dashboards; `referrerpolicy=no-referrer` on all imgs)
-- ✅ **Mobile stack ordering fix (2026-08-12):** the <768px single-column stack
-  now sorts by grid position (y, then x) instead of widget-array insertion
-  order — desktop drags are reflected on phones
-- ✅ **Top Wikipedia Articles widget (2026-08-12):** 🔥 most-visited articles
-  per language (top.hatnote.com, 28 langs) — "latest" or any date, top-N
-  (all/10/arbitrary), default noise filter (`.xxx`, `XXX (beer)`…). hatnote has
-  no CORS, so deploy/server.js gained `/api/proxy` (wraps `{status, body}`);
-  non-Toolforge hosts fall back to the CORS-enabled WMF Pageviews `top`
-  endpoint. See docs/DATA-SOURCES.md §8
-- ✅ **Top Pages expanded view (2026-08-13):** ⚙ "Expanded view (thumbnail +
-  summary)" checkbox — each row shows a 120px thumbnail, linked title, views,
-  and a 3-line intro. Enrichment via the CORS-enabled MediaWiki API
-  (`prop=pageimages|extracts`, batched 50 titles/call — pattern from the
-  fuzheado/Wiki-Top-100 repo); non-article pages (Main_Page, Special:*,
-  Wikipedia:*…) are filtered from both hatnote and WMF data
-- ✅ **w.wiki short URLs (2026-08-12):** `?config=https://w.wiki/TR9R` (or bare
-  `w.wiki/TR9R`) expands via the same-origin `/api/resolve` endpoint in
-  deploy/server.js — browsers can't follow w.wiki redirects to wiki pages (the
-  target sends no CORS headers), so the server follows the redirect and the
-  client re-dispatches through the normal wiki/Action-API path
-- ✅ **GLAM fixes (2026-08-13):** wiki column shows shorthand (`en.wikipedia`,
-  full hostname on hover) and is 108px nowrap; the category title is no longer
-  squished to a 9px sliver by the stats area — `.glam-card > * { flex-shrink: 0 }`
-  (overflow:hidden on the title made its min-height compute to 0, so flex
-  crushed it; the card now scrolls instead)
-- ✅ **Article Vitals widgets (2026-08-13):** four new single-article widgets —
-  📄 **Article Excerpt** (REST `/page/summary`: description + thumbnail + first
-  paragraph), 🕓 **Edit History** (`prop=revisions` newest-first with byte
-  deltas, diff-linked users), 🏅 **Article Quality (ORES)** (Lift Wing
-  `enwiki-articlequality` POST — FA/GA/B/C/Start/Stub + probability
-  distribution bars; falls back to the modern continuous `articlequality`
-  model), 🧭 **WikiProject Assessment** (`prop=pageassessments` — per-project
-  class + importance badges). All CORS-verified (Lift Wing reflects the
-  origin; Action API needs `origin=*`; `palimit=500` gets all projects).
-  Verified live: Einstein → FA 53.9%, 18 assessed projects. Schema enum +
-  example dashboard + README/DATA-SOURCES/WIDGET-DEVELOPMENT docs updated.
-  **DEPLOYED to Toolforge 2026-08-13** (commit b9d62f7, bundle
-  index-CF9Vo_m5.js) — verified live: all 4 vitals render, no console
-  errors from the new endpoints.
-- ✅ **Article Gallery widget (2026-08-13):** 🖼️ significant images with
-  captions for any article. REST `/page/media-list` (Parsoid's own media
-  extraction — no wikitext parsing) + batched `imageinfo`. Significance
-  filter (verified): keep only captioned images — caption-less items are
-  exactly the noise (infobox flags like `Flag_of_France.svg`, maps, logos);
-  `minSize` (default 200px) drops tiny icons. Display modes: grid
-  (small/medium/large) or list (thumb left, caption right + filename).
-  `showInGallery` metadata is useless (true for everything). Thumb URLs
-  utm-stripped (`cleanThumbUrl`). Verified: Einstein → 32 captioned images,
-  both modes + size variants in browser. Schema/README/DATA-SOURCES §13
-  updated. **DEPLOYED to Toolforge 2026-08-13** (commit 4cf2c93, bundle
-  index-BEguwTL7.js) — verified live: gallery renders 32 captioned images,
-  no console errors from the new endpoints.
-- ✅ **Gallery overflow fix (2026-08-13):** content-height gallery card could
-  exceed the widget body on windows < ~1280px wide — `align-items: center`
-  centered the overflow so its top painted OVER the header, burying the
-  ⚙/✕/↻ buttons (reproduced at 1100/1000/900/800px: card 1204–1864px vs
-  body 1074px). Fix: `.gallery-card { height: 100%; min-height: 0 }` (the
-  `.ranking-card` pattern — inner grid scrolls at any width) + defensive
-  `overflow: hidden` on `.widget-body` so no future content-height card can
-  cover a header. Verified live at 1100px: fits, no overlap, ⚙ pointer-
-  clickable (commit 4cf2c93 fix bundle index-BqgxhKa5.js).
-- ✅ **Gallery square tiles + letterboxing (2026-08-13):** grid thumbs were
-  `object-fit: cover` in fixed-height boxes — cropped wide panoramas and tall
-  portraits. Now square tiles (`aspect-ratio: 1/1`) with `object-fit: contain`
-  — the entire image is always visible, letterboxed against the tile
-  background; new `imageFit` config opts into `cover` (square fill-crop).
-  Verified live: 32/32 images contain, all tiles square, 6 wide + 5 tall
-  images letterboxed (bundle index-bbwxWEKh.js).
-- ✅ **360° Panorama Viewer widget (2026-08-13):** 🌐 Pannellum 2.5.7 (vendored
-  `src/vendor/pannellum.js` + lazy `pannellumLoader.js` — separate 56 KB dist
-  asset, singleton script tag). Config: Commons file → `imageinfo`
-  (iiurlwidth=4096 display copy, original URL, dims) → interactive WebGL
-  viewer: drag/look-around, auto-rotate toggle, fullscreen, 2:1 + GPano
-  detection with "not 2:1" warning, viewer.resize() via ResizeObserver,
-  destroy on unmount. **New registry pattern: `defaultLayout`** — per-widget
-  min/max size constraints (panorama: w4×h3, min 3×2; verified clamped by
-  drag). Gotchas: npm pannellum build is a window-IIFE (rolldown "Missing
-  export") → load via `?url` script injection; Pannellum 2.5.7 rejects
-  cross-origin `#config=` JSON. Verified live: Imiloa grounds 12740×6370
-  renders + rotates; File:Example.jpg flags not-2:1; config change rebuilds
-  the viewer. **DEPLOYED to Toolforge 2026-08-13** (commit ec9d26c, bundle
-  index-BSwIQuK-.js + lazy asset pannellum-BqmdIb_j.js) — verified live:
-  canvas renders, drag rotates (pixel-diff).
-- ✅ **Grid drag fix — dragConfig API (2026-08-13):** mouse-dragging the
-  panorama moved the WIDGET instead of panning. Root cause: react-grid-layout
-  2.2.4 replaced the 1.x `draggableHandle` prop with the `dragConfig`
-  object (`{ handle, cancel, ... }`) — the old prop was **silently ignored**,
-  so widget drags could start anywhere. Fix: `dragConfig={{ handle:
-  '.widget-header', cancel: '.no-drag' }}` + `no-drag` class on
-  `.panorama-container` (reusable for future interactive widgets — maps!).
-  Side effect: header-only dragging is now ACTIVE for all widgets (the
-  README's "grab the title bar" behavior — was silently broken). Verified
-  live: canvas drag pans the view (pixel-diff), widget stays at (30,48),
-  header drag still moves widgets (bundle index-CyCFd4ac.js).
+Feature-complete for v1 and deployed.
 
-## Quick Start
+| | |
+|---|---|
+| Live | <https://wikibento.toolforge.org/> |
+| production bundle | `index-6udjc6im.js` (+ `index-C-pGdSgK.css`) |
+| deployed | 2026-09-10 (third deploy that day — config-only, same bundle) |
+| registry | 39 widget types — 30 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
+| front door for demos | `?config=/demos.json` (the hub) |
+| entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
+| pending deploy | none — this branch's tip is live; only docs changed after it (PR [#58](https://github.com/fuzheado/wikibento/pull/58) is open, so `main` is one merge behind production) |
+
+**Every widget type is in the showcase catalog** — no exceptions, and
+`scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
+type is missing from `public/dashboard.json` without a reasoned entry in its
+`CATALOG_EXCLUSIONS`). The catalog's article switcher is a real board param:
+one click re-aims five cards (Excerpt, Quality, Assessments, Edit History,
+Gallery).
+
+**Constitutions** (all gate `npm run build`, hence a deploy):
+
+| command | asserts |
+|---|---|
+| `npm test` | the whole suite (a bundle per constitution area: scope compliance, freshness, manifest compliance, panel/dataflow/demos/assembly/trend-axis/gallery/config-load…) plus `scripts/docs-facts.mjs` |
+| `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
+| `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
+| `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
+| `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
+
+`public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
+(the showcase) are both **derived artifacts** kept honest by tests, so they
+cannot drift from `src/widgets/index.js`.
+
+## Running it
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # → dist/ (~599 KB total / ~173 KB gzip incl. pannellum lazy asset)
-npm run test:browsers  # cross-browser matrix (Chromium/Firefox/WebKit) against prod
-npm run smoke      # grid geometry + panel reachability (ISSUE-54) — needs dist/ built
-npm run smoke:panels   # panel reachability only (⚙/ⓘ actions at w3 h3 across 3 widths)
-npx vite preview   # http://localhost:4173
-npm run lint       # oxlint (pre-existing warnings only: vendored pannellum + a few legacy nits)
+npm run dev            # http://localhost:5173
+npm run build          # runs the full suite, then → dist/
+npx vite preview       # http://localhost:4173
+npm run lint           # oxlint (pre-existing warnings only: vendored pannellum + legacy nits)
 ```
 
-Demo URLs:
-`http://localhost:4173/?config=/demos.json` — the hub (all demo boards)
-`http://localhost:4173/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json` — on-wiki config
+Demo URLs (against `vite preview`):
+`http://localhost:4173/?config=/demos.json` — the hub ·
+`http://localhost:4173/?config=/dashboard.json` — the full catalog ·
+`http://localhost:4173/?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json` — on-wiki config.
 
-## Architecture in One Screen
+## Deploying
+
+Read the `toolforge-nodejs` skill before any `webservice` command (**there is no
+`static` webservice type** — this is `node20` serving `dist/` via
+`deploy/server.js`), and `docs/DEPLOYMENT.md` for full detail. Fresh-session-safe
+shape:
+
+```bash
+npm run build
+rsync -az --delete dist/ alih@dev.toolforge.org:/data/project/wikibento/www/js/dist/
+ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart"
+```
+
+- SSH as the **personal** account (`ssh alih@dev.toolforge.org`) — `tools.wikibento@`
+  is not an SSH login and fails with `publickey`. Tool commands go through
+  `sudo -niu tools.wikibento` (never `become` over a chained SSH command).
+- Host inventory alias: `tools` = `alih@dev.toolforge.org` (use `host_exec`).
+- After deploying, verify: the bundle hash in the served `index.html`,
+  `/api/resolve` → 200, and `node scripts/docs-facts.mjs --live`.
+- Then **update the two lines above** ("production bundle" / "deployed") and add a
+  row to `docs/DEPLOYMENTS.md`.
+- `public/*.json` changes (`dashboard.json`, the demo boards) ship with a deploy —
+  they are not live before one.
+
+## Architecture in one screen
 
 ```
-App.jsx (state: widgets[] + layout[], URL boot, persistence)
-├── GridLayout (12 cols, vertical compaction)
-│   └── WidgetFrame × N (fetch lifecycle, ⚙ config panel, refresh, header)
-│       └── renderer: StatCard | RankingCard | TrendCard | GlamCard | MarkdownCard
-├── AddWidgetPanel / ImportPanel / AboutPanel
+App.jsx (state: widgets[] + layout[] + params{}, URL boot, persistence)
+├── GridLayout (12 cols, vertical compaction, single column under 768px)
+│   └── WidgetFrame × N (fetch lifecycle, request-serial guard, ⚙ panel, emit publisher)
+│       └── renderer: StatCard | RankingCard | TrendCard | GlamCard | MarkdownCard | …
+├── AddWidgetPanel / ImportPanel / SharePanel / AboutPanel
 └── src/widgets/index.js — WIDGET_TYPES registry (THE extension point)
-    each entry: { id, name, icon, category, defaults, configFields, fetch, transform, renderer,
-                 timeScope, emit?, source?, defaultLayout?, autoHeight?, labelFromConfig?, getRenderer? }
+    each entry: { id, name, icon, category, defaults, configFields, fetch, transform,
+                  renderer, timeScope, emit?, source?, defaultLayout?, autoHeight?,
+                  labelFromConfig?, getRenderer? }
     fetch → raw data; transform → renderer contract; WidgetFrame owns loading/error/retry
-    static widgets (e.g. markdown, speaker) omit `fetch` — rendered from config directly
-    emit → publishes widget output for dataflow consumers (`source` field / {{widget:id}})
+    static widgets (markdown, qrCode, speaker, boardControls, dataflow nodes) omit `fetch`
+    emit → publishes output for dataflow consumers (a `source` field / {{widget:id}})
 ```
 
-Key files: `src/widgets/index.js` (registry), `src/widgets/dataSources.js`
-(fetchers, one per widget type), `src/widgets/WidgetFrame.jsx` (lifecycle + renderers),
-`src/lib/dashboardConfig.js` (format + `validateDashboard()` + example),
-`src/lib/markdown.js` (zero-dep Markdown renderer for the Text/Markdown widget),
-`src/lib/share.js` (URL loading/sharing).
+Key files: `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+(fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
+renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
+example board) · `src/lib/params.js` (board params, reference resolution) ·
+`src/lib/dataflow.js` (emitter signatures) · `src/lib/httpRetry.js` (rate-limit
+layer) · `src/lib/markdown.js` · `src/lib/share.js` · `deploy/server.js`
+(relays) · `scripts/docs-facts.mjs` (docs↔code constitution).
 
-## Hard-Won Technical Gotchas (don't rediscover these)
+Docs worth knowing: `docs/GUIDE.md` (user model: board params vs widget config vs
+dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseable) ·
+`docs/JSON-FORMAT.md` + `dashboard.schema.json` · `docs/DATA-SOURCES.md` ·
+`docs/ARCHITECTURE.md` (incl. the third-party API-contract watchlist) ·
+`docs/WIDGET-DEVELOPMENT.md` (how to add a type) · `docs/MEDIA-DATAFLOW.md`
+(design direction: should graphics travel the wire?) · `docs/DEMO-IDEAS.md` ·
+`docs/ROADMAP.md` · `docs/ISSUES.md` (canonical tracker).
+
+## Hard-won gotchas (don't rediscover these)
 
 1. **`exturlusage` clamps `eulimit` to 500** for non-bot users (verified:
-   `eulimit=5000` returns 500 + warning). The fetcher paginates 10 pages =
+   `eulimit=5000` returns 500 + a warning). The fetcher paginates 10 pages =
    5,000, matching Special:LinkSearch. `eunamespace=0` gives article-space-only counts.
-2. **Commons `prop=globalusage` entries have NO `ns` field** (keys: title/url/wiki only).
-   The GLAM widget's article-space filter uses a URL-path namespace heuristic
-   (see `NON_ARTICLE_NS` in dataSources.js). Localized namespace names
-   (Diskussion:, ノート:) are conservatively counted as articles.
-3. **PetScan ignores the `max` cap** in quick-intersection mode (max=100 →
-   all 239,084 files, 39 MB response). Never call PetScan from this app for big
-   categories — the GLAM widget does its own bounded categorymembers walk.
-4. **Long filenames blow multi-title GET URLs** (HTTP 414). Batch by encoded
-   length (~4,500 chars), not by count — see `fetchBatchedUsage`. **BUT the
-   anonymous `titles` cap is 50 per query** (`toomanyvalues`, lowlimit 50 /
-   highlimit 500 for bots) — length-only chunking silently breaks when short
-   filenames pack 70+ titles into a chunk (every query returns empty
-   `query.pages`, NO error surface). Chunk by **min(count 50, length
-   4,500)**. Fixed 2026-08-16: GLAM widget showed 0 used/0 views for
-   "Images from XBio" while glamtools returned 518 files · 38 used · 40
-   pages · 110,092 views; after the fix the widget matches exactly.
-5. **Commons Impact Metrics is allow-list only**: unregistered categories 404
-   with "the category you asked for is not loaded yet". Registration via
-   `{{Views from category}}` template, processed monthly. The planned CIM-first
-   mode (try CIM, fall back to live) is a ROADMAP item — see
-   docs/GLAMORGAN-WIDGET.md and the `wikimedia-commons` skill.
-6. **Playwright coordinate clicks miss after layout shifts** (images loading
-   change widget heights). For reliable browser tests, click via JS
-   (`element.click()`) or re-snapshot, not stale refs.
-7. **Wikimedia API etiquette**: pace requests (≥1s), use the
-   `$WIKIMEDIA_USER_AGENT` env var, honor 429 Retry-After. Multi-title batching
-   (50 titles/call) is the scale pattern — see docs/SCALABILITY.md.
-8. **top.hatnote.com has NO CORS headers** — browsers can't fetch it directly;
-   the Toolforge deployment uses the same-origin `/api/proxy` endpoint
-   (deploy/server.js). Data updates ~02:00 UTC; month/day in URLs are NOT
+2. **Commons `prop=globalusage` entries have NO `ns` field**
+   (keys: title/url/wiki only). The GLAM widget's article-space filter uses a
+   URL-path namespace heuristic (`NON_ARTICLE_NS` in `dataSources.js`); localized
+   namespace names (`Diskussion:`, `ノート:`) are conservatively counted as articles.
+3. **PetScan ignores the `max` cap** in quick-intersection mode (`max=100` →
+   all 239,084 files, 39 MB). Never call PetScan directly from the app for big
+   categories — go through the `/api/petscan` relay, which is capped.
+4. **Multi-title GETs have two independent limits.** Long filenames blow the URL
+   (HTTP 414) → batch by *encoded length* (~4,500 chars). **But** the anonymous
+   `titles` cap is **50** per query (`toomanyvalues`; lowlimit 50 / highlimit 500
+   for bots) — length-only chunking silently breaks when short filenames pack 70+
+   titles into one chunk (every query returns empty `query.pages`, with **no error
+   surface**). Chunk by **min(count 50, length 4,500)**. This cost a real bug:
+   the GLAM widget reported 0 used/0 views while glamtools returned 518 files ·
+   38 used · 40 pages · 110,092 views.
+5. **Commons Impact Metrics is allow-list only.** Unregistered categories 404 with
+   "the category you asked for is not loaded yet" (the allow list is a published
+   TSV of ~1,775 primary categories; additions go through a **Phabricator
+   request**, project `Commons-Impact-Metrics-Requests`, by the 20th — **not** the
+   `{{Views from category}}` template, which is the unrelated legacy
+   category-page-views system) — and that 404 is *ambiguous*:
+   a registered category with no data for the month returns the same body. Default
+   months must resolve through `latestCimMonth()`, never `prevCimMonth()`.
+6. **Playwright coordinate clicks miss after layout shifts** (images loading change
+   widget heights). Click via JS (`element.click()`) or re-snapshot, not stale refs.
+7. **Wikimedia API etiquette**: pace requests (≥1s), use `$WIKIMEDIA_USER_AGENT`,
+   honor 429 `Retry-After`; batch 50 titles/call. See `docs/SCALABILITY.md`.
+   From browsers, set **no custom fetch headers** — a `User-Agent` header triggers
+   a preflight that RESTBase rejects (see the Firefox/Safari entry in
+   `docs/BUG-REPORT-ios-safari-fetch.md`).
+8. **top.hatnote.com has NO CORS headers** — the Toolforge deployment fetches it
+   through `/api/proxy`; elsewhere the widget falls back to the CORS-enabled WMF
+   Pageviews `top` endpoint. Data updates ~02:00 UTC; month/day in URLs are **not**
    zero-padded; there is no "latest" path — back off from today.
-9. **w.wiki redirects are browser-unfollowable to wiki pages**: the 301 itself
-   carries `Access-Control-Allow-Origin: *`, but the target page (e.g.
-   commons.wikimedia.org) sends no CORS headers, so `fetch()` fails with
-   "Failed to fetch" and `redirect:'manual'` exposes no Location. Expand
-   server-side (`/api/resolve`) — see the `wikimedia-url-shortener` skill.
-10. **CSS: `overflow: hidden` on a flex item makes `min-height: auto` compute
-    to 0** — a fixed-height flex column will crush such children to a sliver
-    when content overflows (the GLAM title bug). Fix: `flex-shrink: 0` on
-    children and let the container scroll.
-11. **Stale index.html bites after deploys**: old bundles are deleted by
-    `rsync --delete`, so a browser holding a cached index.html 404s. index.html
-    is now served `Cache-Control: no-cache` (assets stay immutable); hard
-    refresh (⌘⇧R) if a deploy looks missing.
-12. **Commons `imageinfo` needs the `File:` prefix re-added after normalization** (fixed 2026-08-13): strip `File:` for display/normalization, but query titles must be `File:Title` — without the prefix every title resolves as a missing main-namespace page and the gallery silently shows "0 files · N not found".
-13. **formatversion=2 returns canonical titles WITH spaces** (fixed 2026-08-13): even when you query `Ada_Lovelace`, the API answers `Ada Lovelace` — look up batched enrichment results by the returned title, not the underscore form (the Article List enrichment returned empty thumbs/extracts until fixed).
+9. **w.wiki redirects are browser-unfollowable to wiki pages**: the 301 carries
+   `Access-Control-Allow-Origin: *`, but the target page sends no CORS headers, so
+   `fetch()` fails and `redirect:'manual'` exposes no `Location`. Expand
+   server-side via `/api/resolve`.
+10. **CSS: `overflow: hidden` on a flex item makes `min-height: auto` compute to 0** —
+    a fixed-height flex column crushes such children to a sliver when content
+    overflows. Fix: `flex-shrink: 0` on children and let the container scroll.
+    (Same family: `.grid-item { overflow: hidden }` clipped config panels until
+    ISSUE-54 made them scroll with a sticky action.)
+11. **A stale `index.html` bites after deploys** — `rsync --delete` removes old
+    bundles, so a cached `index.html` 404s. It is served `Cache-Control: no-cache`
+    (assets stay immutable); hard-refresh (⌘⇧R) if a deploy looks missing.
+12. **Commons `imageinfo` needs the `File:` prefix re-added after normalization**:
+    strip it for display, but query titles must be `File:Title` — without the
+    prefix every title resolves as a missing main-namespace page and the gallery
+    silently shows "0 files · N not found".
+13. **`formatversion=2` returns canonical titles WITH spaces** even when you query
+    `Ada_Lovelace` — look up batched enrichment results by the *returned* title,
+    not the underscore form (the Article List enrichment returned empty
+    thumbs/extracts until this was fixed).
 
-## Known Issues (details in docs/ARCHITECTURE.md §Known Issues)
+## Open issues & known bugs
 
-**Tracked bugs & fixes: `docs/ISSUES.md`** — ISSUE-01 (leaderboard double rank numerals), ISSUE-02 (clickable category names), ISSUE-03 (ⓘ info button on every widget), ISSUE-54 (⚙/ⓘ panel bottom actions clipped on small widgets).
+Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
+actually broken or unfinished today:
 
-- **FIXED — Firefox/Safari/WebKit network errors (2026-09-03):** the "iOS Safari
-  Load failed" bug (docs/BUG-REPORT-ios-safari-fetch.md) and the Firefox
-  NetworkError wave share one root cause: `fetchTextWithRetry` set a
-  `User-Agent` header on every browser fetch. Chromium strips the forbidden
-  header before the CORS preflight check (masked the bug), Firefox/WebKit
-  preflight with it — and Wikimedia's REST endpoints reject `user-agent`
-  (RESTBase allow-list: `api-user-agent` only; CIM 405s OPTIONS) while the
-  Action API answers preflights properly — hence the exact working/failing
-  split. Fix: no custom headers on browser GETs. Verified in all three engines
-  via the new **`npm run test:browsers`** cross-browser matrix
-  (scripts/browser-matrix.mjs — Chromium/Firefox/WebKit, loads a dashboard,
-  counts widget error frames + severe console errors; hatnote-CORS noise,
-  404 probes and transient 5xx classified benign). Full 30-widget catalog:
-  30/30/30 widgets, 0 errors on all engines.
-- **FIXED — `_title` (custom widget title) isn't editable in the config panel (ISSUE-53, 2026-09-08):** ⚙ now has a "Display title (optional)" field (header override; defaults to the computed label). Renaming the actual instance id works too — see the ISSUE-53 bullet in Current Status.
-- **FIXED — ⚙/ⓘ panels clipped their bottom action on small widgets (ISSUE-54, 2026-09-09):** panels now scroll inside the card with `Apply & Reload` / `Copy debug info` pinned (sticky); guarded by `npm run smoke:panels`. See the Current Status bullet.
-- **Pre-existing dev-only React warnings (found 2026-09-09, cosmetic):** the toolbar's ✨ Ask button is nested inside the + Add Widget button (`App.jsx:489` — invalid HTML; browsers auto-split them and React warns about hydration), and the media player spreads a `key` inside `mediaProps` into `<audio>/<video>` (`WidgetFrame.jsx:1604`). Both are 2-line fixes; neither affects production behaviour today.
-- **Reset leaves the URL config in place**: ↺ Reset clears localStorage + restores
-  defaults, but if the page was loaded via `?config=…` or `#/d/<base64>` (or a w.wiki
-  share link), a refresh re-applies the URL config (URL > localStorage > defaults
-  priority) — the reset "doesn't stick". Fix: `handleReset` should also blank the URL
-  params (`history.replaceState` to the bare path, removing `?config=` / `#/d/`).
-- AddWidgetPanel: no Escape-to-close, no focus trap (SharePanel has Escape-to-close)
-- Wikistats CSV parser is naive (no quoted-field handling) — fetching is now
-  cached + retried, but the parse itself still assumes no commas in fields
-- `handleLayoutChange` persists to localStorage on every drag tick (fine at current payload size)
+- **Reset doesn't stick on a URL-loaded board.** ↺ Reset clears `localStorage` and
+  restores the defaults, but a page loaded via `?config=…` / `#/d/<base64>` /
+  a w.wiki share link re-applies the URL config on refresh (URL > localStorage >
+  defaults). Fix: `handleReset` should also blank the URL params
+  (`history.replaceState` to the bare path).
+- **`public/dashboard.json`'s authored layout overlaps itself.** `fileusage`
+  (x9 y14 w3 h5 → occupies through row 18) and `topwikis` (x9 y18 w4 h4) collide;
+  react-grid-layout pushes items apart so the *rendered* board is fine, but the
+  authored file contradicts itself and nothing checks. Worth a no-overlap
+  assertion in the demos constitution, plus a one-line fix.
+- **Don't diagnose an artifact diff without pinning the commit.** A rebuild of the
+  working tree did not match the deployed bundle, which invited a "toolchain drift"
+  explanation — but `HEAD` had moved past the **deployed commit**, and the 🔳 QR
+  widget (PR #47) had never been deployed. Rebuilding the deployed commit with the
+  same toolchain reproduced the live bundle byte-for-byte, so nothing had drifted.
+  Before comparing an artifact to a rebuild, pin the commit
+  (`git log --oneline <deployed-commit>..origin/main` shows what is merged but not
+  live) — the worked numbers live in `docs/DEPLOYMENTS.md`.
+- **AddWidgetPanel** has no Escape-to-close and no focus trap (SharePanel has
+  Escape-to-close).
+- **Wikistats CSV parser is naive** (no quoted-field handling) — fetching is cached
+  and retried, but the parse still assumes no commas in fields.
+- **`handleLayoutChange` persists to `localStorage` on every drag tick** — fine at
+  the current payload size, wasteful as boards grow.
+- **Two pre-existing dev-only React warnings** (cosmetic, 2-line fixes, no
+  production impact): the toolbar's ✨ Ask button is nested inside the + Add Widget
+  button (`App.jsx:489` — invalid HTML; browsers auto-split them), and the media
+  player spreads a `key` inside `mediaProps` into `<audio>`/`<video>`
+  (`WidgetFrame.jsx:1604`).
 
-*Fixed in Phase 0 (2026-08-12): resize reflow, error boundary, recharts,
-`public/favicon.svg` + `icons.svg`. Added (2026-08-12): QR share panel,
-responsive mobile stack (order follows grid layout), Wikistats cache + timeout
-+ retry, 📝 Text/Markdown widget (static pattern + image domain policy),
-🔥 Top Wikipedia Articles + /api/proxy. Added (2026-08-13): expanded Top Pages
-view (MW API enrichment), w.wiki /api/resolve, GLAM wiki-column + title fixes,
-Top-100 display fixes (default 10, single counter, wrap titles, card
-containment), index.html no-cache.*
+## Next steps
 
-- ✅ **Dependency-drift defense (2026-08-16)** — react-grid-layout pinned
-  exact `2.2.4` (the caret range let the 1.x→2.x config-object renames
-  arrive silently — the cause of BOTH the dragConfig and gridConfig
-  incidents); `npm run smoke` (scripts/smoke-grid.mjs) asserts measured
-  grid geometry against intended formulas (starter h:4 = 356px, gallery
-  w:12 full-width, height == h×80+(h−1)×12) — negative-tested to catch
-  the gridConfig bug; ARCHITECTURE.md gains a Third-Party API Contracts
-  watchlist with the upgrade procedure. Commit bed5af6.
+Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
-## Next Steps (see docs/ROADMAP.md for the full plan)
+1. **Deploy the pending catalog/docs change**, then update the two state lines above
+   and append to `docs/DEPLOYMENTS.md`.
+2. **Tier-A wiring view** — a derived, read-only map of who drives whom on a board.
+   Fully specced in `docs/MODULARITY-AND-DATAFLOW.md` §Part 6, not started. This is
+   the biggest remaining UX gap now that params and dataflow both ship.
+3. **Open widget designs**: ISSUE-41 (board templating), ISSUE-42 (five content
+   primitives), ISSUE-43 (`model3D`, the missing fifth primitive — needs CORS on
+   Objectium's `/file` + `/thumbnail` routes, or a proxy), ISSUE-48 (media player
+   poster frames), ISSUE-49 (TimedText subtitles).
+4. **ROADMAP phases**: Phase 1 (time-range selectors, CIM-first GLAM mode),
+   Phase 1.5 (batching/efficiency layer), Phase 2 (map + force-graph renderers),
+   Phase 2.5 (board-to-board navigation + the Stage & Scene immersion layer).
+5. **Quick win**: a Wiki Edu campaign widget — dashboard.wikiedu.org exposes
+   CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); verified endpoints
+   in `docs/WIDGET-IDEAS.md`.
+6. **Demo suite** grows from `docs/DEMO-IDEAS.md` (11 concepts A–K with wiring,
+   venue and effort).
 
-1. ~~Deploy to Toolforge~~ — **done 2026-08-12**: https://wikibento.toolforge.org/
-1. ~~Phase 0 cleanup~~ — **done 2026-08-12**: recharts, dead assets, resize listener, error boundary
-1. ~~📝 Text/Markdown widget~~ — **done 2026-08-12**: static widget + image domain policy (see Current Status)
-1. ~~🔥 Top Wikipedia Articles widget~~ — **done 2026-08-12**: hatnote via /api/proxy + WMF fallback (see Current Status)
-1. ~~Top Pages expanded view~~ — **done 2026-08-13**: thumbnails + intros via MW API enrichment (see Current Status)
-1. ~~w.wiki short URLs in ?config=~~ — **done 2026-08-12**: /api/resolve endpoint (see Current Status)
-1. ~~GLAM display fixes~~ — **done 2026-08-13**: wiki-column shorthand + nowrap, title squish fix (see Current Status)
-1. ~~Article Vitals widgets~~ — **done 2026-08-13**: Excerpt, Edit History, ORES Quality, WikiProject Assessment (see Current Status)
-1. **Widget strategy agreed 2026-08-12** — ROADMAP §Strategy + WIDGET-IDEAS:
-   power widgets (SPARQL, PetScan, URL extractor) → starter packs (7 JSON
-   bentos; ship GLAM Footprint, Newsroom Pulse, Edit-a-thon Live first) →
-   spike alert (hero feature). Brainstorm doc: wiki source SRC-2026-08-12-004.
-1. **UX + WikiProject directions noted 2026-08-13** (user session) — ROADMAP
-   §Phase 2: categorized Add Widget catalog (registry `category` field),
-   slide-out toolbox instead of centered modal (drawer pattern proven in
-   wikigraph), debounced search (don't load while typing; current search is
-   local filter — note applies to future live-loading), lean display mode
-   (decorations hidden by default, hover/tap to reveal). WIDGET-IDEAS Tier 6:
-   WikiProject widget family — assessment scale + popular pages (endpoints
-   verified: `/Popular_pages` = Rank·Views·Quality·Importance table, 501
-   rows, ~360 KB; ⚠️ `prop=wikitable` doesn't exist — parse `prop=text`).
-1. ~~Commons File Gallery + Article List widgets~~ — **done 2026-08-13**: pasted-list inputs (one per line), order modes, optional enrichment; PagePile/PSID list sources deferred (see Current Status)
-1. ~~SPARQL power widget~~ — **done 2026-08-13**: WDQS/QLever/Humaniki + auto renderer + presets (see Current Status); map + force-graph renderers remain Phase 2
-1. ~~Wiki Page embed~~ — **done 2026-08-13**: static iframe, desktop/mobile toggle, section anchors (see Current Status)
-1. ~~CIM widgets~~ — **done 2026-08-13**: 8 separate precomputed widgets (see Current Status); starter pack / glamorgan merge deferred by design
-1. ~~Widget-to-widget dataflow (ISSUE-52)~~ — **done 2026-09-08**: `source` picker + `{{widget:id}}` + 🧾🔎🔢🖨️ chain (see Current Status); the designed-but-unbuilt Part 5 (per-widget targeting of board params) is now partially delivered — targets are widget outputs rather than params; a visual wiring view remains Tier-A design (MODULARITY-AND-DATAFLOW §Part 6)
-1. **Wiki Edu campaign widget (optional, quick win)** — dashboard.wikiedu.org
-   has public CORS-enabled JSON (`/campaigns/{slug}.json`, `/users.json`); idea
-   and verified endpoints in docs/WIDGET-IDEAS.md
-2. Phase 1: **time-range selectors** for pageviews, **CIM-first GLAM mode**
-3. Phase 1.5: batching/efficiency layer (docs/SCALABILITY.md)
-4. ~~QR code share~~ — **done 2026-08-12**: Share panel with client-side QR (see README)
-5. ~~Shared fetch cache (Wikistats)~~ — **done 2026-08-12**: 5-min TTL cache +
-   in-flight coalescing + 15 s timeout + retry (see README)
-6. **Five content primitives (ISSUE-42)** — one canonical widget per content
-   type (page/image/audio/video/3D), 1-or-n items + per-family display modes;
-   **model3D widget (ISSUE-43)** — STL viewer, CORS + thumbnails verified
-   (three.js lazy asset, Pannellum pattern)
-7. **"Ask" NL widget advisor (ISSUE-44)** — intent-first catalog: user types
-   what they want → LLM (registry-focused) returns widget options with
-   pre-filled configs; phased: smart search → Ask panel → board assembly
-
-## Identity & Attribution
+## Identity & attribution
 
 - Author: **Andrew Lih** — Wikipedia/Commons username **User:Fuzheado**
-- Use `User:Fuzheado` in User-Agents and on-wiki pages; **never** `User:AndrewLih` (old alias)
-- See docs/AUTHORS.md; identity also baked into `~/.pi/agent/AGENTS.md`
+- Use `User:Fuzheado` in User-Agents and on-wiki pages; **never** `User:AndrewLih`
+  (old alias). See `docs/AUTHORS.md`; the identity is also in `~/.pi/agent/AGENTS.md`.
 
-## External Contributions
+## External contributions
 
-Public feature requests and bug reports arrive via **GitHub Issues** (templates
-in `.github/ISSUE_TEMPLATE/`). Triage flow: duplicate/clarify → move accepted
-items into `docs/ISSUES.md` with the next ISSUE-NN number → roadmap/ship per
-the usual process. `docs/ISSUES.md` remains the canonical internal tracker.
+Public feature requests and bug reports arrive via **GitHub Issues** (templates in
+`.github/ISSUE_TEMPLATE/`). Triage flow: duplicate/clarify → move accepted items
+into `docs/ISSUES.md` with the next ISSUE-NN number → roadmap/ship per the usual
+process. `docs/ISSUES.md` is the canonical internal tracker.
 
-## Session Notes for AI Agents
+## Session notes for AI agents
 
-- **LiftWing LLM testing (benchmarks, scoring loops): use the "Toolforge
-  trick"** — the public endpoint is 100 req/h per IP, but running the same
-  call from `ssh alih@dev.toolforge.org` (bastion egress = WMF high tier) is
-  effectively unlimited. Base64-encode the payload over the SSH hop.
-  Ready-made: `scripts/benchmark-ask-variants.mjs --via toolforge` and
-  `scripts/probe-ask-edge.mjs`; the canonical write-up is the
-  `wikimedia-ml-services` skill + docs/DATA-SOURCES.md §23.
-- The LLM wiki (`~/.llm-wiki`) has observations/insights from this project's
-  development (search `wikiwidget`, `wikibento`, `commons-impact-metrics`).
-- Relevant skills: `toolforge-nodejs` (**deployments — read before any webservice
-  command**; the `static` webservice type does not exist, use node20),
-  `wikimedia-toolforge`, `wikimedia-commons` (incl. Commons Impact Metrics section),
-  `wikimedia-api-access`, `commons-file-resolution`, `wikimedia-api-strategy`.
-- **Widget ideas bank:** docs/WIDGET-IDEAS.md — unprioritized proposals with
-  verified API/CORS notes (Wiki Edu dashboards etc.); move to ROADMAP when scheduled.
-- The on-wiki demo config is `Commons:WikiPortraits/Bento-demo.json` — the
-  WikiPortraits project hosts it; coordinate changes with that page's editors.
+- **LiftWing LLM testing (benchmarks, scoring loops): use the "Toolforge trick"** —
+  the public endpoint is ~90–100 requests/hour per IP, but running the same call
+  from `ssh alih@dev.toolforge.org` (bastion egress on WMF's higher tier) is
+  effectively unlimited at ~140 ms/request. Base64-encode the payload over the SSH
+  hop. Ready-made: `scripts/benchmark-ask-variants.mjs --via toolforge` and
+  `scripts/probe-ask-edge.mjs`; canonical write-up in the `wikimedia-ml-services`
+  skill and `docs/DATA-SOURCES.md`.
+- **Docs have a constitution now.** `scripts/docs-facts.mjs` derives the truth
+  (registry counts, catalog coverage, the panel-measurement count, build-size
+  magnitude) and fails the build when prose contradicts it. Volatile facts are
+  banned from README/HANDOFF: no bare git SHAs, no running test totals, no
+  decimal-precise byte sizes — put history in `docs/DEPLOYMENTS.md` and design
+  rationale in `docs/ISSUES.md`, and fix counts *by running the script*, not by
+  guessing. `--live` verifies the deployed bundle.
+- The LLM wiki (`~/.llm-wiki`) has observations from this project's development
+  (search `wikiwidget`, `wikibento`, `commons-impact-metrics`).
+- Relevant skills: `toolforge-nodejs` (**read before any `webservice` command**),
+  `wikimedia-toolforge`, `wikimedia-commons` (incl. Commons Impact Metrics),
+  `wikimedia-api-access`, `commons-file-resolution`, `wikimedia-api-strategy`,
+  `playwright-cli`, `cross-browser-testing`, `browser-ux-debugging`.
+- **Widget ideas bank:** `docs/WIDGET-IDEAS.md` — unprioritized proposals with
+  verified API/CORS notes; move to `docs/ROADMAP.md` when scheduled.
+- **Ask-advisor benchmarks:** `bench/README.md` + `bench/results/` (date-prefixed).
+  Prompt changes should be re-measured — single-shot runs wobble ±7%, so repeat
+  before claiming a regression. Fixtures: `tests/intent-fixtures.mjs`,
+  `tests/board-fixtures.mjs`, `tests/fixture-*.mjs`.
+- **The on-wiki demo config is `Commons:WikiPortraits/Bento-demo.json`** — the
+  WikiPortraits project hosts it; coordinate changes with that page's editors. Its
+  size tracks that page, not this repo.

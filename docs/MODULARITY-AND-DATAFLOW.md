@@ -9,6 +9,12 @@ flow *between* widgets, up to and including workflow-orchestration territory?*
 
 ---
 
+> **Reading this for the first time?** The short, outside-facing version of this
+> document's conclusion — a taxonomy of component messaging from HyperCard and
+> mTropolis to Grafana and marimo, plus a design checklist — is
+> [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md). This file is the internal,
+> long-form analysis.
+
 ## TL;DR
 
 1. **Modularity** — the *interfaces* are clean and well-specified (a widget is a

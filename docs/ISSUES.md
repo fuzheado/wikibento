@@ -3007,3 +3007,167 @@ URL. Leaving a lean link: ✕ Exit / Esc (already strips the param).
 **Status:** done (`src/lib/share.js`, `src/components/SharePanel.jsx`,
 `src/App.jsx`, `src/App.css`, `tests/share-lean.test.mjs`,
 `scripts/share-lean-e2e.mjs`).
+
+## ISSUE-68 · Validated lookup params: "type an institution, the whole board follows" (GitHub #51–#53 family) — **Slice 1 done 2026-09-10**
+
+**What:** a Board Controls param type that accepts free text *checked against live
+Wikimedia data*, so one box can aim a whole museum/library dashboard. The
+flagship case is the GLAM board: type an institution → the nine CIM widgets
+re-aim. Directed 2026-09-10: *"I want a way that a user can specify a Wikimedia
+Commons category in one box … all the other widgets get populated … either allow
+free text entry and check against valid Wikimedia Commons categories … type to
+validate or type to fill or type to check or pull down from a list … it would be
+nice to have maybe a pull down menu as an option."*
+
+**Why it is a param and not a widget.** The consumer side already exists: because
+`{{param}}` resolves into any string config field, one `category` param re-aims
+**9 widgets** (MODULARITY-AND-DATAFLOW §Part 4 audits this — "the consumer side
+needs zero code"). Params also **fan out** to N consumers, while the dataflow
+`emit`/`source` mechanism is point-to-point; the "one box" is therefore a
+*producer* in the param system, and building it as an emitter widget would create
+a second, competing wiring mechanism. §Part 4 ranks this work as Quadrant 2 #6
+(*dynamic query select*, "the pick-any-GLAM-institution board") + #7
+(*search-as-input*); Quadrant 1 (buttons/text/select/number/month) had all shipped.
+
+**Design (additive, no format break):**
+
+```json
+"collection": { "label": "Collection", "type": "lookup",
+                "source": "cim-category", "options": ["…curated shortlist…"],
+                "value": "Images from Metropolitan Museum of Art" }
+```
+
+Spec-line form (the ⚙ textarea) uses the 4th field as the **source**, not options:
+`collection | lookup | Collection | cim-category`. Sources live in
+`src/lib/paramSources.js`: `cim-category`, `commons-category`, `commons-file`,
+`article`, `wikidata-item` (plus the implicit `curated` = the `options` list).
+`options` on a lookup is a hand-picked shortlist shown before typing.
+
+**Three verdicts, because "valid category" ≠ "works here":** `ok` (✓, has CIM
+data), `unregistered` (⚠, real category CIM does not process — the CIM cards will
+offer to register it), `invalid` (✗, no such page), `unknown` (`?`, could not
+check). Validation is best-effort and **never blocks the board** — a failed check
+degrades to `unknown`, like the SPARQL label resolution.
+
+**UI contract:** commit on **Enter or picking a suggestion, never per keystroke**
+(a param fans out to N widgets — per-character commits would fire an N-card
+re-fetch storm); the badge describes the *committed* value, not the draft; a
+stale-response guard (the ISSUE-57 pattern) drops superseded queries; an
+unknown/absent source degrades to a plain text input rather than breaking.
+
+### Verified API notes (all live 2026-09-10, `origin=*`)
+
+| need | endpoint | note |
+|---|---|---|
+| category suggestion | `list=search&srnamespace=14` (CirrusSearch) | **full-text is mandatory** |
+| — rejected | `list=prefixsearch&psnamespace=14` | only matches title *starts*: `Smithsonian` → `Category:Smithsonian*`, never `Images from Smithsonian…`. GLAM naming is `Images from X` / `Files from Y`, so prefix search cannot find the real targets |
+| — rejected | `list=search&srsearch=<q> hastemplate:"Views from category"` | the template's own rendered text is indexed, so it matched almost anything ("Met" → `Hallands kulturhistoriska museum`) |
+| file / article suggestion | `list=prefixsearch&psnamespace=6` / `=0` | titles start with their subject, so prefix fits here |
+| Wikidata suggestion | `wbsearchentities` | commit the QID |
+| existence check | `action=query&titles=Category:<X>` | `missing` flag |
+| **capability check** | `…/commons-analytics/category-metrics-snapshot/<Cat>/<YYYYMMDD>/<YYYYMMDD>` | **the only authoritative check** (see below) |
+
+**The correction that shaped the design — `{{Views from category}}` is NOT the allow list.**
+An earlier revision of this slice seeded its option list from
+`list=embeddedin` on `Template:Views from category` (886 categories, 2 requests)
+and described that as "the documented registration route". It is not: the
+template is the **legacy COM:VIEWS category-page-views** system and does not
+register anything for CIM. It is a **correlation trap** — 872 of the 886
+transcluding categories (**98.4%**) are allow-listed anyway, simply because GLAM
+categories commonly carry both, and the 14 that are not return 404 on a live
+probe. Believing it produced exactly the failure mode a validator must not have:
+false "not registered" warnings for working categories — the Met (389,036 files),
+the Rijksmuseum, the Library of Congress and the National Gallery of Art are all
+allow-listed and **none of them transclude the template**. (Corrected 2026-09-11
+from the `wikimedia-commons` skill's Commons Impact Metrics section, which also
+records the 98.4% measurement; the branch that fixed the skill is
+`fix/cim-registration` on `Wikipedia-AI-Skills`.)
+
+**The authoritative source is a published TSV, and it is enumerable:**
+
+```
+https://gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/
+  main/dags/commons/commons_category_allow_list.tsv
+```
+
+**1,775 primary categories** (subcategories up to 7 levels deep also have data),
+73 KB, one underscored slug per line, no header. It sends **no CORS headers**, so
+the browser reads it through the deployment's generic `/api/proxy` relay — the
+same mechanism the Top-pages widget already uses for hatnote; on hosts without
+the relay the source degrades to search-only suggestions. So the design is now:
+
+| input | verdict |
+|---|---|
+| on the allow list | ✓ `ok` — definitive, offline-confirmable |
+| not listed, probe 200 | ✓ `ok` — a subcategory of an allow-listed category |
+| not listed, probe 404, page exists | ⚠ `unregistered` — "request it via Phabricator (project Commons-Impact-Metrics-Requests)" |
+| not listed, probe 404, no such page | ✗ `invalid` — a typo |
+| list or probe unreachable | `?` `unknown` — never a guess |
+
+**Registration is a staff cycle, not a page edit:** a Phabricator request
+(project `Commons-Impact-Metrics-Requests`, pre-filled form, by the **20th**),
+processed at month-end, no retroactive backfill. This also corrects the
+user-facing copy in `dataSources.js` (`CimUnregisteredError`) and in the README,
+`docs/DATA-SOURCES.md` §19, `docs/GLAMORGAN-WIDGET.md` and HANDOFF — every one of
+which had been telling users to add the template.
+
+**Shipped (Slice 1):** `src/lib/paramSources.js` (registry + pure helpers),
+`lookup` in `parseParams`/`parseParamSpecText`/`paramSpecToText`,
+`LookupParam` in `WidgetFrame`, styles in `App.css`, a `latestCimMonth` export
+(one source of truth for the published month), constitution
+`tests/param-lookup.test.mjs` (23 tests → npm test 252), and the glam demo's
+`collection` param switched to `lookup` + `cim-category` with the five flagship
+institutions as the curated shortlist.
+
+**Verified live in the browser (2026-09-10):** the Met seeded → ✓ *"has Commons
+Impact Metrics data"* (probe, not list); empty query → the 5 curated
+institutions (the pull-down); `Smithsonian` → ⚠ *not in CIM — cards will offer to
+register it*; a fictional category → ✗ *no such Commons category*; typing
+`Images from Metropolitan` → pick → **snapshot + top files + the rest re-aim to
+the new category, 0 error frames**.
+
+**Known limits / next slices:** suggestion quality is relevance-ranked, so a user
+who types `Metropolitan Museum` gets the *general* category (correctly flagged ⚠)
+rather than the CIM `Images from…` variant — ranking probe-verified candidates
+first, or biasing toward collection-category patterns, is the obvious follow-up.
+Slice 2: a **Finder widget** (a prominent search-and-pick card with result
+previews, click-row → set-param — this is also where Quadrant 2 #9 lands, making
+leaderboard/category rows drive the board). Slice 3: ISSUE-40 URL context params
+(`?config=…&collection=Images from the Met`) so the box is shareable. Deferred:
+project-aware `article` source (per-wiki), PagePile/PSID list params (#8).
+
+## ISSUE-69 · Locked view-only kiosk mode (no UI path back to the editor) (GitHub issue #64) — **open**
+
+**What:** a board mode for public workstations / museum terminals / locked iPads in
+which a visitor has **no UI path** back to the editing interface, and an
+administrator can unlock it with a deliberate gesture + PIN. Requested by Andrew
+2026-09-10 ("truly a kiosk mode… you can always kick back out into the editing
+interface today").
+
+**Why the current modes don't cover it:** `?kiosk=1` / `?lean=1` *hide* chrome
+rather than lock it. Live escape routes: the always-rendered ✕ Exit pill
+(`App.jsx:742-746`), the Escape handler (`App.jsx:191-197`), and Exit stripping
+`?kiosk`/`?lean` from the URL so a refresh lands back in the editor
+(`App.jsx:177-189`). Chrome is hidden by CSS (`App.css:1753-1761`), not disabled,
+and the Share panel's **Full board** variant (ISSUE-67) means a locked board's QR
+can hand out an *unlocked* link.
+
+**Proposed fix (decomposition — full detail in the GitHub issue):**
+`lock=1` board flag composable with lean/kiosk (F1); every escape path disabled at
+the **code** level, with handlers guarding on the flag and not merely hidden by CSS
+(F2); lock-aware Share panel offering only locked links (F3); admin unlock via
+hold-a-corner gesture → PIN keypad (F4, with PIN-storage options and a
+recommendation: salted hash in the board JSON + a device-local unlock token);
+content stays fully interactive while locked (F5: params, auto-refresh, galleries,
+media, QR); optional view-only indicator (F6); kiosk profile + idle param reset
+(F7). Browser E2E asserting the lock holds against Escape, direct clicks and the
+Share panel, that unlock works, and that **reload re-locks**.
+
+**Honest limit:** client-side code removes *UI* paths only — it is accident-proofing,
+not a security boundary (devtools can edit state; the plain board URL still opens
+the editor). Real deployments pair this with OS kiosk mode (iPad Guided Access,
+ChromeOS kiosk) and/or serve the locked URL as the only published one.
+
+**Note:** renumbered 68 → 69 — the docs-facts/lookup-params work took ISSUE-68 (merged as PR #68).
+
+**Status:** open. Source: user direction 2026-09-10 (kiosk/view-only analysis).

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
+import { getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue } from '../lib/paramSources';
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
@@ -1043,6 +1044,8 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
               <NumberParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
             ) : spec.type === 'month' ? (
               <MonthParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
+            ) : spec.type === 'lookup' ? (
+              <LookupParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
             ) : (
               <div className="board-param-buttons">
                 {(spec.options || []).map((opt) => (
@@ -1060,6 +1063,139 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/** Lookup param (ISSUE-68) — the validated "one box" producer.
+ *
+ *  Free text + live suggestions + a capability badge, backed by a named option
+ *  source (src/lib/paramSources.js). Three deliberate UI choices:
+ *
+ *  1. It commits on Enter or on picking a suggestion — NOT on every keystroke.
+ *     A param fans out to every referencing widget, so committing per character
+ *     would fire an N-widget re-fetch storm (13 cards on the glam demo).
+ *  2. The badge describes the COMMITTED value, not the draft, so it never shows
+ *     a verdict for something the board isn't actually using yet.
+ *  3. A stale-response guard drops suggestions from a superseded query — typing
+ *     fast must not let an old result win. Each async flow owns its OWN
+ *     lifecycle flag: sharing one counter between the validation and suggestion
+ *     effects made typing silently discard an in-flight verdict, leaving the
+ *     badge stuck on "checking…" (caught in verification 2026-09-11).
+ *
+ *  An unknown/absent source degrades to a plain text input: a bad source id
+ *  must never break a board. */
+function LookupParam({ spec, value, onSetParam, name }) {
+  const source = getParamSource(spec.source);
+  const [draft, setDraft] = useState(value ?? '');
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [verdict, setVerdict] = useState({ state: 'empty' });
+  const [optionCount, setOptionCount] = useState(null);
+
+  // Keep the draft in step with external changes (another card, URL, import).
+  useEffect(() => { setDraft(value ?? ''); }, [value]);
+
+  // Validate the committed value. Best-effort: a failed check is `unknown`.
+  // `alive` (set false by this effect's own cleanup) is the supersession guard;
+  // it must NOT be shared with the suggestion effect below.
+  useEffect(() => {
+    if (!value) { setVerdict({ state: 'empty' }); return undefined; }
+    let alive = true;
+    setVerdict({ state: 'checking' });
+    validateLookupValue(spec.source, value, { options: spec.options })
+      .then((v) => { if (alive) setVerdict(v); })
+      .catch(() => { if (alive) setVerdict({ state: 'unknown' }); });
+    return () => { alive = false; };
+  }, [value, spec.source, spec.options]);
+
+  // Warm an enumerable source on mount so the first keystroke is instant, and
+  // report its size (this is also the freshness note for the downloaded list).
+  useEffect(() => {
+    if (source?.kind !== 'enumerable' || !source.load) return undefined;
+    let alive = true;
+    source.load()
+      .then((list) => { if (alive) setOptionCount(list.length); })
+      .catch(() => { if (alive) setOptionCount(null); });
+    return () => { alive = false; };
+  }, [source]);
+
+  // Debounced suggestions for the draft. Enumerable sources filter in-memory,
+  // so they need no debounce at all; server searches wait for a typing pause.
+  useEffect(() => {
+    if (!open) return undefined;
+    let alive = true; // this effect's own supersession guard (see above)
+    const delay = source?.kind === 'search' ? 280 : 0;
+    const t = setTimeout(() => {
+      setBusy(true);
+      suggestForSource(spec.source, draft, { options: spec.options })
+        .then((s) => { if (alive) setSuggestions(s); })
+        .catch(() => { if (alive) setSuggestions([]); })
+        .finally(() => { if (alive) setBusy(false); });
+    }, delay);
+    return () => { alive = false; clearTimeout(t); };
+  }, [draft, open, spec.source, spec.options, source]);
+
+  const commit = (raw) => {
+    const v = normalizeLookupValue(spec.source, raw);
+    if (!v) return;
+    onSetParam?.(name, v);
+    setDraft(v);
+    setOpen(false);
+  };
+
+  const BADGE = {
+    ok: { glyph: '✓', cls: 'ok', title: verdict.note || 'valid' },
+    unregistered: { glyph: '⚠', cls: 'warn', title: verdict.note || 'not registered' },
+    invalid: { glyph: '✗', cls: 'bad', title: verdict.note || 'not found' },
+    unknown: { glyph: '?', cls: 'unknown', title: verdict.note || 'could not verify' },
+    checking: { glyph: '…', cls: 'unknown', title: 'checking…' },
+  }[verdict.state];
+
+  return (
+    <div className="lookup-wrap">
+      <div className="lookup-row">
+        <input
+          className="board-param-input lookup-input"
+          value={draft}
+          placeholder={source?.placeholder || spec.label}
+          aria-label={spec.label}
+          onChange={(e) => { setDraft(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); commit(draft); }
+            else if (e.key === 'Escape') setOpen(false);
+          }}
+        />
+        {BADGE && (
+          <span className={`lookup-badge ${BADGE.cls}`} title={BADGE.title} role="status">
+            {BADGE.glyph}
+          </span>
+        )}
+      </div>
+      {open && (suggestions.length > 0 || busy) && (
+        <div className="lookup-suggest" role="listbox">
+          {busy && suggestions.length === 0 && <div className="lookup-suggest-empty">searching…</div>}
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="option"
+              className="lookup-suggest-item"
+              onMouseDown={(e) => e.preventDefault()} // keep focus, avoid the blur race
+              onClick={() => commit(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="lookup-meta">
+        {source?.hint || 'Free text; press ↵ to apply. A suggestion applies immediately.'}
+        {optionCount != null && ` · ${optionCount.toLocaleString()} options`}
+      </div>
     </div>
   );
 }
