@@ -127,6 +127,7 @@ Grouped the same way as the in-app **Add Widget** panel — each section below i
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
+| **IA Item** | 📦 | `archive.org/metadata` + `be-api…/views` (CORS `*`, no key) | An **Internet Archive item** by identifier — title, creator, year, collection, file count and size, plus all-time / 30-day / 7-day **views** (IA engagement, updated daily — *not* Wikimedia pageviews), thumbnail and a link to its details page. Emits the item URL for downstream use (e.g. a **QR Code** card) |
 | **Wayback Snapshot Gallery** ⚠️alpha | 🕰️ | Wayback availability + CDX/timemap (server batch) | Screenshot tiles of a website at chosen dates — closest capture per date (within tolerance), iframe-embedded; experimental — depends on Wayback backend health, failed lookups retry on refresh |
 
 ## Features

@@ -28,7 +28,7 @@ Think of it as the assembly manual for WikiBento's Lego set: each widget is a br
 
 ## Table of Contents
 
-1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 38 widgets with full capabilities
+1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 39 widgets with full capabilities
 2. [Part 2 — Communication Patterns](#part-2--communication-patterns) — params, dataflow, source picker, interpolation
 3. [Part 3 — Board Composition Patterns](#part-3--board-composition-patterns) — layout, sizing, responsive, kiosk/lean
 4. [Part 4 — LLM Prompt Guide](#part-4--llm-prompt-guide) — how to use this guide to generate board configs
@@ -491,7 +491,17 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** `data.value` — passes the value through (number, lines, or JSON).
 - **renderer:** `EchoCard`
 
-### 1.8 Web & History (1 widget)
+### 1.8 Web & History (2 widgets)
+
+#### `iaItem` — IA Item
+- **dataSource:** `archive.org/metadata/{id}` + `be-api.us.archive.org/views/v1/short/{id}` (both CORS `*`, no key; verified 2026-09-10)
+- **configFields:**
+  - `identifier` (text — the last part of an `archive.org/details/…` URL)
+- **defaults:** `identifier: 'nasa'`, `refreshSeconds: 86400`
+- **timeScope:** `point`
+- **emit:** the item's canonical URL (`outputs.kind: 'value'`) — the same link the card title opens
+- **renderer:** `CimSnapshotCard` (shared with the CIM snapshot widgets: image + stat tiles)
+- **notes:** views are **IA engagement**, not Wikimedia pageviews — one view per item/user/IP/day, refreshed daily; `have_data: false` means "no data yet" and a views failure degrades to dashes rather than blanking the card (metadata is the payload). Thumbnails come from `archive.org/services/img/{id}` — a plain `<img src>`, so no CORS header is needed
 
 #### `waybackGallery` — Wayback Snapshot Gallery ⚠️ alpha
 - **dataSource:** Wayback Machine availability + CDX/timemap (server batch)
@@ -500,7 +510,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
   - `dates` (textarea, one date per line, `YYYYMMDD` format)
   - `tolerance` (number, days)
 - **defaults:** `url`, `dates`, `tolerance`, `refreshSeconds`
-- **timeScope:** `point`
+- **timeScope:** `range` (the registry is authoritative — an earlier revision of this line said `point`; corrected 2026-09-10)
 - **emit:** none
 - **renderer:** `WaybackGalleryCard`
 

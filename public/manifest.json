@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-10T11:37:57.057Z",
- "widgetCount": 38,
+ "generatedAt": "2026-09-11T00:15:05.662Z",
+ "widgetCount": 39,
  "widgets": [
   {
    "id": "pageviews",
@@ -1744,6 +1744,36 @@
     "toleranceDays",
     "refreshSeconds"
    ]
+  },
+  {
+   "id": "iaItem",
+   "name": "IA Item",
+   "icon": "📦",
+   "description": "An Internet Archive item by identifier — title, creator, year, collection, file count and size, all-time + 30-day + 7-day views (IA engagement, updated daily), thumbnail, and a link to its details page",
+   "dataSource": "archive.org/metadata + be-api.us.archive.org/views/v1/short",
+   "category": "Web & History",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "identifier",
+     "type": "text",
+     "label": "Identifier",
+     "hint": "The last part of an archive.org/details/… URL",
+     "placeholder": "nasa"
+    }
+   ],
+   "defaults": [
+    "identifier",
+    "refreshSeconds"
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   },
   {
    "id": "listSource",

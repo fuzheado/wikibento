@@ -2088,3 +2088,84 @@ export async function fetchMinTTranslation(text, from = 'en', to = 'es') {
     return out;
   });
 }
+
+
+/* ── 27. Internet Archive item (ISSUE-25) ────────────────────────────────
+ *  Endpoints verified live 2026-09-10, both ACAO `*` and browser-fetchable:
+ *    archive.org/metadata/{id}                      200, 324 ms, 6.7 KB
+ *    be-api.us.archive.org/views/v1/short/{id}      200, 351 ms
+ *  The thumbnail is archive.org/services/img/{id}, used as a plain <img src>
+ *  — no CORS needed for images (it serves the JPEG directly with 200).
+ *
+ *  "Views" are IA engagement, NOT Wikimedia pageviews: IA counts one view per
+ *  item/user/IP/day, refreshes daily, and reports `have_data: false` for items
+ *  too new to have figures. Metadata is the payload, so a views failure
+ *  degrades to dashes instead of blanking the card.
+ */
+const iaItemCache = createTtlCache(10 * 60 * 1000);
+
+/** Byte size for the metadata tile (base 1000 — IA's own `item_size` unit). */
+export function iaBytes(n) {
+  const v = Number(n) || 0;
+  if (v <= 0) return '';
+  const units = ['B', 'kB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let x = v;
+  while (x >= 1000 && i < units.length - 1) { x /= 1000; i += 1; }
+  const shown = x >= 10 || i === 0 ? String(Math.round(x)) : x.toFixed(1).replace(/\.0$/, '');
+  return `${shown} ${units[i]}`;
+}
+
+/** Pure shaper (unit-tested): IA metadata + views → the CimSnapshotCard
+ *  contract. Never returns a raw API envelope. */
+export function shapeIaItem(meta, views) {
+  const m = (meta && meta.metadata) || {};
+  const id = String(m.identifier || '').trim();
+  const strip = (s) => String(s === undefined || s === null ? '' : s)
+    .replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const files = Number(meta && meta.files_count) || (Array.isArray(meta && meta.files) ? meta.files.length : 0);
+  const size = Number(meta && meta.item_size) || 0;
+  const v = views && views.all_time !== undefined ? views : null;
+  const num = (n) => (n === null || n === undefined || Number.isNaN(Number(n)) ? '—' : Number(n).toLocaleString());
+  const details = `https://archive.org/details/${encodeURIComponent(id)}`;
+  const collection = strip(Array.isArray(m.collection) ? m.collection[0] : m.collection);
+  const year = String(m.year || String(m.date || '').slice(0, 4) || '');
+  const viewsSub = v ? 'IA engagement' : (views && views.have_data === false ? 'no data yet' : 'unavailable');
+  return {
+    title: strip(m.title) || id,
+    href: details,
+    detailsUrl: details,
+    identifier: id,
+    subtitle: [strip(m.creator), year, strip(m.mediatype), collection].filter(Boolean).join(' · '),
+    description: strip(m.description).slice(0, 400),
+    image: id ? { url: `https://archive.org/services/img/${encodeURIComponent(id)}` } : null,
+    stats: [
+      { label: 'views (all time)', value: num(v ? v.all_time : null), sub: viewsSub },
+      { label: 'last 30 days', value: num(v ? v.last_30day : null), sub: v ? 'updated daily' : '' },
+      { label: 'last 7 days', value: num(v ? v.last_7day : null), sub: '' },
+      { label: 'files', value: num(files), sub: iaBytes(size) },
+    ],
+  };
+}
+
+export function fetchIaItem(identifier) {
+  const id = String(identifier || '').trim();
+  if (!id) {
+    return Promise.reject(new Error('Enter an Internet Archive identifier (e.g. nasa)'));
+  }
+  return iaItemCache.get(`ia-item:${id}`, async () => {
+    const meta = await fetchJSON(`https://archive.org/metadata/${encodeURIComponent(id)}`);
+    if (!meta || !meta.metadata) {
+      throw new Error(`No Internet Archive item "${id}" — the identifier is the last part of an archive.org/details/… URL`);
+    }
+    if (meta.is_dark) {
+      throw new Error(`Item "${id}" is not publicly available (marked dark on the Internet Archive)`);
+    }
+    let views = null;
+    try {
+      const raw = await fetchJSON(`https://be-api.us.archive.org/views/v1/short/${encodeURIComponent(id)}`);
+      views = raw && raw[id] ? raw[id] : null;
+    } catch { /* engagement stats are optional — metadata is the payload */ }
+    return shapeIaItem(meta, views);
+  });
+}

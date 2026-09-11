@@ -33,6 +33,7 @@ import {
  fetchCimFileSpotlight,
  fetchCimFileTraffic,
  fetchWaybackGallery,
+ fetchIaItem,
 } from './dataSources';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
@@ -1655,6 +1656,32 @@ export const WIDGET_TYPES = {
   //   Text List → Filter Lines → Line Count → Value Display
   // and the Text List's output can also feed existing textarea widgets
   // (e.g. articleList.articles) through interpolation.
+
+  iaItem: {
+    id: 'iaItem',
+    category: 'Web & History', intensity: 'low',
+    timeScope: 'point',
+    name: 'IA Item',
+    icon: '📦',
+    description: 'An Internet Archive item by identifier — title, creator, year, collection, file count and size, all-time + 30-day + 7-day views (IA engagement, updated daily), thumbnail, and a link to its details page',
+    defaultLayout: { w: 6, h: 5, minW: 3, minH: 3 },
+    labelFromConfig: (c) => (c.identifier || '').trim() || null,
+    defaults: {
+      identifier: 'nasa',
+      refreshSeconds: 86400,
+    },
+    renderer: 'CimSnapshotCard',
+    dataSource: 'archive.org/metadata + be-api.us.archive.org/views/v1/short',
+    configFields: [
+      { key: 'identifier', label: 'Identifier', type: 'text', placeholder: 'nasa', hint: 'The last part of an archive.org/details/… URL' },
+    ],
+    fetch: (config) => fetchIaItem(config.identifier),
+    transform: (data) => data,
+    // Emits the item's canonical URL — unambiguous, and the same link the card
+    // title opens, so the emitted value is visibly labelled (Emitter Contract).
+    outputs: { kind: 'value' },
+    emit: (data) => data.detailsUrl,
+  },
 
   listSource: {
     id: 'listSource',
