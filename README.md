@@ -264,6 +264,29 @@ curl -s -X POST -H 'content-type: application/json' -d '{"engine":"webkit"}' htt
 PW_WS_ENDPOINTS="webkit=ws://<daemon-ip>:<port>/<id>" PW_WS_HOST=<daemon-ip> npm run test:browsers -- --engines webkit
 ```
 
+`<port>/<id>` come from the `/launch` reply's `wsEndpoint` — a *second*, ephemeral
+port, not the daemon's 9322.
+
+**Engines that aren't the bundled ones** — set `PW_EXECUTABLE_<ENGINE>` to launch
+an engine through an explicit executable (a system Chrome, or a launcher script on
+a host whose Playwright bundle can't start by itself). Scope it to the command;
+don't export it globally:
+
+```bash
+PW_EXECUTABLE_CHROMIUM="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  npm run test:browsers -- --engines chromium
+```
+
+Note the two browser drivers differ: `npm run test:browsers` launches the engines
+bundled with the repo's `playwright-core`, while `npm run smoke` (grid geometry)
+drives the **globally installed `playwright-cli`** — which, when its own bundled
+Chromium revision is absent, falls back to the system Google Chrome. So "chromium"
+is not always the same binary across the two suites. Install the matrix's engines
+with the **repo's** playwright-core (`node node_modules/playwright-core/cli.js
+install firefox webkit chromium`) — see the header of `scripts/browser-matrix.mjs`
+for the revision table and the two install traps (version mismatch, and
+`npx playwright install <subset>` pruning the engines you didn't name).
+
 ## Project Structure
 
 ```

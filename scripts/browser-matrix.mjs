@@ -21,9 +21,18 @@
  *     --wait <ms>      settle time after load (default 15000)
  *     --engines <list> comma list (default: chromium,firefox,webkit)
  *
- * REQUIRES: engines installed once via the playwright CLI
- *   (`playwright-cli install-browser firefox webkit`), playwright-core is a
- *   devDependency.
+ * REQUIRES: engines installed once with the SAME playwright-core that runs this
+ *   script (it is a devDependency here) — installing with a different
+ *   playwright-core is the #1 cause of "Executable doesn't exist", because each
+ *   copy pins its own engine revisions:
+ *     node node_modules/playwright-core/cli.js install firefox webkit chromium
+ *   NOT `playwright-cli install-browser …`: that global CLI takes ONE engine per
+ *   invocation and installs ITS revisions (2026-09-11, this machine: the repo's
+ *   playwright-core 1.59.1 wants chromium-1217 / firefox-1511 / webkit-2272,
+ *   while the global @playwright/cli bundles 1.61.0-alpha wanting chromium-1224 /
+ *   firefox-1522 / webkit-2287 — following the global-CLI form leaves the matrix
+ *   still broken). Also NEVER `npx playwright install <subset>`: it prunes the
+ *   engines you did not name.
  *
  * ENV:
  *   PW_WS_ENDPOINTS   run an engine on another host (see scripts/remote-browser-daemon.mjs)
@@ -37,6 +46,10 @@
  *                         node scripts/browser-matrix.mjs --engines webkit
  *                     Scope it to the single command (or a wrapper script) — do NOT
  *                     export browser env globally; it leaks into other sessions.
+ *                     Works on any host, not just the Debian/arm64 case above —
+ *                     verified on macOS by pointing it at system Chrome:
+ *                       PW_EXECUTABLE_CHROMIUM="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+ *                         node scripts/browser-matrix.mjs --engines chromium
  */
 import { createRequire } from 'node:module';
 import process from 'node:process';

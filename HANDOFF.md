@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-6udjc6im.js` (+ `index-C-pGdSgK.css`) |
-| deployed | 2026-09-10 (third deploy that day — config-only, same bundle) |
+| production bundle | `index-B-t2hIBH.js` (+ `index-FAW-1YrO.css`) |
+| deployed | 2026-09-11 — 35 commits, incl. IA Item, share mode, Wayback tiles, the validated lookup, and the CIM registration correction |
 | registry | 39 widget types — 30 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
 | front door for demos | `?config=/demos.json` (the hub) |
