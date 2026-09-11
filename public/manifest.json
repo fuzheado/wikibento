@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-10T11:37:57.057Z",
+ "generatedAt": "2026-09-11T12:37:38.133Z",
  "widgetCount": 38,
  "widgets": [
   {
@@ -1378,8 +1378,8 @@
      "key": "spec",
      "type": "textarea",
      "label": "Params (one per line: name | type | Label | options)",
-     "hint": "One param per line — name | buttons/select/text/number/month | Label | options. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). Saving updates the board params; widgets referencing {{name}} re-fetch.",
-     "placeholder": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\\ncount | number | Photos | 3, 12, 1\\nmonth | month | Data month\\nyear | select | Year | 2023, 2024\\nquery | text | Search"
+     "hint": "One param per line — name | type | Label | options. Types: buttons/select/text/number/month/lookup. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). lookup (ISSUE-68): a validated combobox — the 4th field is the option SOURCE (cim-category, commons-category, commons-file, article, wikidata-item), so the value is suggested and checked against live Wikimedia data. Saving updates the board params; widgets referencing {{name}} re-fetch.",
+     "placeholder": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\\ncount | number | Photos | 3, 12, 1\\nmonth | month | Data month\\nyear | select | Year | 2023, 2024\\ninstitution | lookup | Institution | cim-category"
     },
     {
      "key": "show",
