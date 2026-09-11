@@ -11,6 +11,11 @@ usage, and GLAM-style impact stats, and extending to listings and feeds you
 can click through and act on, like recent changes and usage trails — plus
 output nodes that speak (🔊 Speaker) or translate (🌐 Translator) what they hold.
 
+**Why this exists at all,** now that an agent can generate a dashboard from a sentence:
+[`docs/WHY-WIKIBENTO.md`](docs/WHY-WIKIBENTO.md) — the argument, and the running ledger of measured
+API behaviour (timeouts, CORS realities, honest failure states) that a one-shot dashboard does not
+have. The widgets are the demo; the ledger is the product.
+
 It's a single-page React app built on
 [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
 (the same grid engine used by Grafana and Kibana), ≈0.6 MB total (~175 KB
@@ -566,6 +571,7 @@ wikibento/
 - [docs/WIDGET-MESSAGING.md](docs/WIDGET-MESSAGING.md) — **why widgets don't message each other**: a taxonomy of inter-component messaging from HyperCard and mTropolis to Grafana and marimo, why the hub model won, and the checklist for designing new widgets
 - [docs/PLUGIN-TRUST.md](docs/PLUGIN-TRUST.md) — **the code-distribution trust lesson**: why the ActiveX control model is the cautionary tale for any plugin system (signing answers *who*, never *what*; the fix was deleting the capability, not policing it)
 - [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 39 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
+- [docs/WHY-WIKIBENTO.md](docs/WHY-WIKIBENTO.md) — **why WikiBento**: the case for a curated, measured substrate over generated dashboards, kept as an append-only wisdom ledger (measured → decided, with receipts)
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)
