@@ -566,7 +566,9 @@ wikibento/
 - [docs/TOOL-LANDSCAPE.md](docs/TOOL-LANDSCAPE.md) — the full survey behind the synthesis (dashboards, galleries, curation, dataflow)
 - [docs/TOOLFLOW-ANALYSIS.md](docs/TOOLFLOW-ANALYSIS.md) — assessment of Magnus Manske's ToolFlow: what to borrow, what to avoid
 - [docs/DEMO-IDEAS.md](docs/DEMO-IDEAS.md) — demo/showcase concept bank ("Voyager, revisited"): 11 concepts A–K with board wiring, venue and effort, plus a demo playbook
-- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 37 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
+- [docs/WIDGET-MESSAGING.md](docs/WIDGET-MESSAGING.md) — **why widgets don't message each other**: a taxonomy of inter-component messaging from HyperCard and mTropolis to Grafana and marimo, why the hub model won, and the checklist for designing new widgets
+- [docs/PLUGIN-TRUST.md](docs/PLUGIN-TRUST.md) — **the code-distribution trust lesson**: why the ActiveX control model is the cautionary tale for any plugin system (signing answers *who*, never *what*; the fix was deleting the capability, not policing it)
+- [docs/BOARD-COMPOSITION.md](docs/BOARD-COMPOSITION.md) — **complete wiring reference**: all 39 widgets, communication patterns (params, dataflow, emit/consume), board composition strategies, and LLM-friendly generation guide; structured for both human reading and LLM parsing
 - [docs/TAPESTRY-EVALUATION.md](docs/TAPESTRY-EVALUATION.md) — WikiBento vs the Internet Archive Tapestry primitives, and the three cheap interop seams
 - [docs/AGENT-MEMO.md](docs/AGENT-MEMO.md) — agent-facing memo: high-impact widget gaps + issue-tracker conventions
 - [docs/MODULARITY-AND-DATAFLOW.md](docs/MODULARITY-AND-DATAFLOW.md) — architecture assessment: plug-in modularity scorecard + the dataflow spectrum (dashboard variables → declarative wiring → visual DAG → orchestration, and why we stop before orchestration)

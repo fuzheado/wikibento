@@ -98,7 +98,7 @@ paradigm's promise and its fate:
 | **Card / stack** | HyperCard (1987), SuperCard, Stacksmith | "Flip to the next card; the stack is the unit" | Killed by Apple 2004; the card survived as the *widget* |
 | **Book** | ToolBook (1990), Voyager Expanded Books (1991) | "Turn pages; you always know where you are" | Died with CD-ROM; the page survived everywhere |
 | **Timeline** | MacroMind Director (1985), Flash (1996), Authorware | "The playhead moves; time is the axis" | Director EOL 2017, Flash EOL 2020 |
-| **Object / message-passing** | mTropolis (1995), QuarkImmedia (1995), Oracle Media Objects (1994) | "Objects trigger each other; behavior is composition" | mTropolis killed by Quark 1998; QuarkImmedia failed 1997 |
+| **Object / message-passing** | mTropolis (1995), QuarkImmedia (1995), Oracle Media Objects (1994) *(mechanism-level detail: [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md) §3)* | "Objects trigger each other; behavior is composition" | mTropolis killed by Quark 1998; QuarkImmedia failed 1997 |
 | **Stream** | Lifestreams (MIT, 1996), activity feeds | "Time flows past; the newest is at the top" | Became the feed — every social platform |
 | **Spatial canvas** | VIKI (1994), Pad/Pad++ (1993–98), Miro, Freeform, Obsidian Canvas, **Tapestries** | "Place things where they belong; navigate by memory" | Thriving as an *authoring* layer; wayfinding cost for visitors |
 | **Tile / widget grid** | iGoogle (2005–13), Netvibes (2005), Opera Speed Dial (2007), Symbaloo | "Everything visible at once; grid = reading order" | iGoogle killed by Google 2013 (not by failure); survived in enterprise (Grafana, Kibana) and **WikiBento** |
