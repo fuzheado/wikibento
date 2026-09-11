@@ -132,3 +132,25 @@ per-page errors** (returns 0 views), so it cannot reveal the same failure.
 - `src/lib/fetchCache.js` (TTL cache)
 - `src/components/DiagnosticsPanel.jsx` (self-test panel)
 - HANDOFF.md §Known Issues
+
+---
+
+## Re-verified on real Safari (2026-09-11)
+
+Since the fix, the WebKit leg has been covered by Playwright's bundled WebKit in the
+3-engine matrix (`npm run test:browsers`) — a WebKit *build*, not the shipped browser.
+The closest available check on Apple's actual engine was run on **Safari 26.6**: the
+GLAM board (`?config=/glam-demo.json`) loaded with **all nine cards rendering and no
+error states** — the Board Controls lookup badge showed ✓ with the allow list reporting
+1,775 entries, the CIM snapshot read 389,154 files, the trend chart drew with labelled
+axes, and the leaderboard rendered.
+
+Two caveats, stated rather than glossed:
+
+- **iOS Safari itself is still not covered from this machine.** No iOS Simulator runtime
+  is installed (`xcrun simctl list devices available` lists only *Unavailable* entries)
+  and no physical device was used, so the original phone-only report stands as the iOS
+  evidence, plus WebKit/real-Safari as its proxy.
+- Real-Safari *automation* (safaridriver/WebDriver) needs a one-time manual enablement
+  (*Allow remote automation*), so this check was done by screenshot, not DOM assertions.
+  The enablement commands are in the `cross-browser-testing` skill.
