@@ -140,6 +140,11 @@ If it is absent the recorder stops with a clear message; the one-time fix is
 `npx playwright install ffmpeg` (about 1.6 MB). Verified by ablation: with that binary renamed
 aside, recording fails with "Video rendering requires ffmpeg binary".
 
+The **narration and the on-screen timing** live in `scripts/tutorial-video/SCRIPT.md`,
+which is the editable source of truth: each scene is a list of beats, and every beat
+says which action must happen while that line is spoken. Edit the words there, not in
+`scenes.json` (which the recorder reads).
+
 ```bash
 npm run build && node scripts/tutorial-video/record.mjs      # one clip per scene
 # narration: TTS each string in scenes.json → /opt/data/staging/wikibento-tutorial/narration/<id>.ogg
