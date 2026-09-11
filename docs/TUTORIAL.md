@@ -135,10 +135,29 @@ filed rather than hidden:
 
 The tutorial video is generated, not hand-edited, so it can be re-recorded when the app changes:
 
-**Prerequisite:** recording needs *Playwright's own* ffmpeg build, not the system one.
-If it is absent the recorder stops with a clear message; the one-time fix is
-`npx playwright install ffmpeg` (about 1.6 MB). Verified by ablation: with that binary renamed
-aside, recording fails with "Video rendering requires ffmpeg binary".
+**Prerequisite:** recording needs *Playwright's own* ffmpeg build, not the system one. It lives
+in Playwright's browser cache as `ffmpeg-<rev>/` — `PLAYWRIGHT_BROWSERS_PATH` if that is set,
+otherwise the platform default (`~/Library/Caches/ms-playwright` on macOS, `~/.cache/ms-playwright`
+on Linux). The recorder checks both and names what it looked for. If it is genuinely absent the
+one-time fix is the build belonging to **this repo's** playwright-core:
+
+```bash
+node node_modules/playwright-core/cli.js install ffmpeg
+```
+
+⚠️ Do not reach for `npx playwright install ffmpeg` — it resolves a *different* playwright version
+(so it can install a revision nothing here uses) and `install <subset>` **prunes** the engines you
+did not name. Verified by ablation: with the ffmpeg binary renamed aside, recording fails with
+"Video rendering requires ffmpeg binary".
+
+**Two different ffmpegs, on purpose:** recording uses Playwright's build (above); the
+*assembling* step (`tutorial:build`) shells out to the **system** `ffmpeg` and `ffprobe`
+for stretching, captions and concatenation, so those must be on `PATH` (`brew install ffmpeg`
+here; verified present 2026-09-11).
+
+**Output directory:** `--out <dir>` (or `WIKIBENTO_TUTORIAL_OUT`). The default is the recording
+host's `/opt/data/staging/wikibento-tutorial` when that exists, otherwise a temp dir — so the
+pipeline also runs on a laptop. The recorder prints the resolved path as `clips → …`.
 
 ```bash
 npm run build && node scripts/tutorial-video/record.mjs      # one clip per scene
