@@ -3112,3 +3112,39 @@ previews, click-row → set-param — this is also where Quadrant 2 #9 lands, ma
 leaderboard/category rows drive the board). Slice 3: ISSUE-40 URL context params
 (`?config=…&collection=Images from the Met`) so the box is shareable. Deferred:
 project-aware `article` source (per-wiki), PagePile/PSID list params (#8).
+
+## ISSUE-69 · Locked view-only kiosk mode (no UI path back to the editor) (GitHub issue #64) — **open**
+
+**What:** a board mode for public workstations / museum terminals / locked iPads in
+which a visitor has **no UI path** back to the editing interface, and an
+administrator can unlock it with a deliberate gesture + PIN. Requested by Andrew
+2026-09-10 ("truly a kiosk mode… you can always kick back out into the editing
+interface today").
+
+**Why the current modes don't cover it:** `?kiosk=1` / `?lean=1` *hide* chrome
+rather than lock it. Live escape routes: the always-rendered ✕ Exit pill
+(`App.jsx:742-746`), the Escape handler (`App.jsx:191-197`), and Exit stripping
+`?kiosk`/`?lean` from the URL so a refresh lands back in the editor
+(`App.jsx:177-189`). Chrome is hidden by CSS (`App.css:1753-1761`), not disabled,
+and the Share panel's **Full board** variant (ISSUE-67) means a locked board's QR
+can hand out an *unlocked* link.
+
+**Proposed fix (decomposition — full detail in the GitHub issue):**
+`lock=1` board flag composable with lean/kiosk (F1); every escape path disabled at
+the **code** level, with handlers guarding on the flag and not merely hidden by CSS
+(F2); lock-aware Share panel offering only locked links (F3); admin unlock via
+hold-a-corner gesture → PIN keypad (F4, with PIN-storage options and a
+recommendation: salted hash in the board JSON + a device-local unlock token);
+content stays fully interactive while locked (F5: params, auto-refresh, galleries,
+media, QR); optional view-only indicator (F6); kiosk profile + idle param reset
+(F7). Browser E2E asserting the lock holds against Escape, direct clicks and the
+Share panel, that unlock works, and that **reload re-locks**.
+
+**Honest limit:** client-side code removes *UI* paths only — it is accident-proofing,
+not a security boundary (devtools can edit state; the plain board URL still opens
+the editor). Real deployments pair this with OS kiosk mode (iPad Guided Access,
+ChromeOS kiosk) and/or serve the locked URL as the only published one.
+
+**Note:** renumbered 68 → 69 — the docs-facts/lookup-params work took ISSUE-68 (merged as PR #68).
+
+**Status:** open. Source: user direction 2026-09-10 (kiosk/view-only analysis).
