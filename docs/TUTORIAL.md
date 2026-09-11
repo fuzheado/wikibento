@@ -152,8 +152,22 @@ did not name. Verified by ablation: with the ffmpeg binary renamed aside, record
 
 **Two different ffmpegs, on purpose:** recording uses Playwright's build (above); the
 *assembling* step (`tutorial:build`) shells out to the **system** `ffmpeg` and `ffprobe`
-for stretching, captions and concatenation, so those must be on `PATH` (`brew install ffmpeg`
-here; verified present 2026-09-11).
+for trimming, stretching, muxing and concatenation, so those must be on `PATH`
+(`brew install ffmpeg` here; verified present 2026-09-11). The system ffmpeg does **not** need
+text support: every caption, badge and card is rendered by a real browser into a PNG and composited
+with the `overlay` filter, so a build without `drawtext` (or `libfreetype`, or DejaVu fonts) works
+fine — which is exactly the situation on macOS.
+
+**Prerequisite for narration:** a text-to-speech engine, only for the `tutorial:narrate` step.
+The default is [edge-tts](https://github.com/rany2/edge-tts) — free, no API key, no account:
+
+```bash
+uv tool install edge-tts        # or: pip install edge-tts
+```
+
+On macOS you can skip the install entirely and use the built-in voice with
+`--provider say`. Unchanged lines are cached, so re-running after editing one beat re-synthesizes
+only that line.
 
 **Output directory:** `--out <dir>` (or `WIKIBENTO_TUTORIAL_OUT`). The default is the recording
 host's `/opt/data/staging/wikibento-tutorial` when that exists, otherwise a temp dir — so the
@@ -161,14 +175,19 @@ pipeline also runs on a laptop. The recorder prints the resolved path as `clips 
 
 The **narration and the on-screen timing** live in `scripts/tutorial-video/SCRIPT.md`,
 which is the editable source of truth: each scene is a list of beats, and every beat
-says which action must happen while that line is spoken. Edit the words there, not in
-`scenes.json` (which the recorder reads).
+says which action must happen while that line is spoken. The pipeline itself reads the
+same words from `scenes.json` (that is what the recorder and the voiceover generator
+consume), so a change to the script still has to be reflected there — see
+[`TUTORIAL-VIDEO-STATUS.md`](TUTORIAL-VIDEO-STATUS.md) for that known gap.
 
 ```bash
-npm run build && node scripts/tutorial-video/record.mjs      # one clip per scene
-# narration: TTS each string in scenes.json → /opt/data/staging/wikibento-tutorial/narration/<id>.ogg
-node scripts/tutorial-video/build.mjs                        # stretch, caption, mux, concat
+npm run build && npm run tutorial:record      # one clip per scene
+npm run tutorial:narrate                      # voiceover → out/narration/<scene-id>.ogg
+npm run tutorial:build                        # trim, stretch, caption, mux, concat
 ```
+
+Each step takes `--out <dir>` to work in a different directory, and `--only <scene-id>` to redo a
+single scene. The resolution is printed by each script.
 
 Because each scene is recorded separately, a single changed step can be re-recorded with
 `--only <scene-id>` without touching the rest. `scenes.json` holds the narration, the on-screen

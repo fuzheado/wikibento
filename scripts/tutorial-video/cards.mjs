@@ -3,10 +3,11 @@
  * escaping pitfalls), at the video's own resolution.
  */
 import { createRequire } from 'node:module';
+import { resolveOut } from './paths.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
 
-const OUT = process.argv[2] || '/opt/data/staging/wikibento-tutorial';
+const OUT = resolveOut(process.argv[2] || null);
 const W = 1920, H = 1080;
 
 const card = (id, html, name) => () => ({ id, html, name });

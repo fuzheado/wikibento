@@ -9,10 +9,11 @@
 import { createRequire } from 'node:module';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { resolveOut, arg } from './paths.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
 
-const OUT = '/opt/data/staging/fx-proof';
+const OUT = resolveOut(arg('out', null), { sub: 'fx-proof' });
 const APP = 'https://wikibento.toolforge.org/';
 mkdirSync(OUT, { recursive: true });
 

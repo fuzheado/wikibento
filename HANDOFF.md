@@ -292,7 +292,18 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
 
 ## Tutorial video (state as of 2026-09-11)
 
-> Detail, evidence and the fix order live in **[docs/TUTORIAL-VIDEO-STATUS.md](docs/TUTORIAL-VIDEO-STATUS.md)** — read that before touching the pipeline. Short version: `record.mjs` works here (verified, a real 18.7 s clip); `build.mjs` cannot run here (this machine's ffmpeg has no `drawtext`, and its font paths are Debian-only); there is no narration yet and no TTS step in the repo.
+> **Read first:** [docs/TUTORIAL-VIDEO-STATUS.md](docs/TUTORIAL-VIDEO-STATUS.md) (our pipeline, how to
+> run and verify it) and [docs/TUTORIAL-VIDEO-TOOLING.md](docs/TUTORIAL-VIDEO-TOOLING.md) (which
+> off-the-shelf tools were evaluated, what we grafted from them, what was rejected for licensing).
+>
+> Short version: **record → narrate → assemble now runs end to end on macOS** and produces a narrated
+> MP4 (`npm run tutorial:record` / `tutorial:narrate` / `tutorial:build`). Voiceover is **edge-tts**
+> (free, no key; `--provider say` needs no install), content-hash cached. All on-screen text is
+> rendered by a browser into PNGs (`cards.mjs`, `overlays.mjs`) and composited with ffmpeg `overlay`,
+> so the assembler needs **no `drawtext`, no font files** — that is what unblocked the Mac. Fixed on
+> the way: an end card that played second, and a white flash at every scene boundary.
+> Still open: `SCRIPT.md` is not authoritative for `scenes.json`; the fx layer is unwired; nobody has
+> listened to the synthesized narration yet.
 
 Goal: a narrated screencast that teaches the eight basic steps (what it is; read a shared board; clear
 it; add a card and set its subject; move/resize; export; store the JSON; reload with `?config=`).
@@ -302,33 +313,43 @@ Where it stands:
 - `scripts/tutorial-video/SCRIPT.md` — **the editable source of truth**: narration in beats, each with
   the action that must happen during that line, plus zoom / ring / sound / caption markers. Andrew is
   editing this; the wording and beat order drive everything else.
-- `scripts/tutorial-video/scenes.json` — the recorder's scene plan (starting state per scene).
+- `scripts/tutorial-video/scenes.json` — the recorder's scene plan and the narration text the pipeline
+  actually reads (starting state per scene, captions per scene).
+- `scripts/tutorial-video/paths.mjs` — the one output-directory rule and the Playwright ffmpeg-cache
+  probe, shared by every script (they each used to carry their own, three of them Linux-only).
 - `scripts/tutorial-video/record.mjs` — records one clip per scene by driving the live app; `--only <id>`
-  re-records a single scene. Has a preflight for Playwright's own ffmpeg (see below).
-- `scripts/tutorial-video/build.mjs` + `cards.mjs` — assembles: stretch each clip to its voiceover
-  (max 1.5x, then freeze), burn in step badges / URL cards / captions, mux narration, concat behind a
-  browser-rendered title card and in front of an end card, emit an `.srt`.
-- `scripts/tutorial-video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with
-  a label, per-keystroke click sounds timed from the page, growing typed-text chip.
-- Artifacts (not in git; regenerable): `/opt/data/staging/wikibento-tutorial/` (final mp4 ≈3:40, 1080p25,
-  ~11 MB, narration + `.srt`) and `/opt/data/staging/fx-proof/fx-proof.mp4` (15 s proof, 1.4 MB).
+  re-records a single scene.
+- `scripts/tutorial-video/narration.mjs` — synthesizes `<out>/narration/<id>.ogg` via edge-tts / `say` /
+  piper, skipping any line whose content hash is unchanged.
+- `scripts/tutorial-video/build.mjs` + `cards.mjs` + `overlays.mjs` — assembles: trim each clip's blank
+  lead-in, stretch it to its voiceover (max 1.5x, then freeze), composite browser-rendered badges / URL
+  cards / captions, mux narration, concat behind a title card and in front of an end card, emit an `.srt`.
+- `scripts/tutorial-video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with a
+  label, per-keystroke click sounds timed from the page, growing typed-text chip. **Not wired in yet.**
+- Artifacts (not in git; regenerable): the recorded take lives under the resolved `--out` directory
+  (`/opt/data/staging/wikibento-tutorial/` on the recording host; a temp dir elsewhere). The last full
+  take there was ≈3:40, 1080p25.
 
 **The known defect to fix next:** the assembler stretches a whole clip to fit its voiceover, so individual
 actions drift several seconds away from the words that describe them. Fix = make actions land on their
 beat *at record time* (narration as a phrase list with measured offsets; the recorder waits for the offset
 before clicking), so no clip is ever stretched. `SCRIPT.md` is structured as beats for exactly this reason.
 
-**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; and the product
-decisions in issue #75 (Reset has no confirmation; Reset does not clear the board `params` block; Export
-and Share omit `params`), which the tutorial currently documents as "Known gaps" — fixing them means
-re-recording scene 3 (`--only 03-reset`).
+**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; make `SCRIPT.md`
+authoritative for `scenes.json`; and the product decisions in issue #75 (Reset has no confirmation; Reset
+does not clear the board `params` block; Export and Share omit `params`), which the tutorial currently
+documents as "Known gaps" — fixing them means re-recording scene 3 (`--only 03-reset`).
 
 Measured facts worth keeping (2026-09-11, this host):
 
 - In-page zoom works: a CSS transform on `#root` magnifies **1.80x** (a 461 px card measures 830 px), and
   magnified text stays crisp because the browser re-renders it — upscaling in ffmpeg cannot.
-- `recordVideo` needs **Playwright's own** ffmpeg (`ffmpeg-<rev>/` under `PLAYWRIGHT_BROWSERS_PATH`), not
-  the system ffmpeg. `record.mjs` preflights it; the fix is `npx playwright install ffmpeg` (~1.6 MB).
+- `recordVideo` needs **Playwright's own** ffmpeg (`ffmpeg-<rev>/` under `PLAYWRIGHT_BROWSERS_PATH`, else
+  the platform default cache), not the system ffmpeg. `record.mjs` preflights it. The one-time fix is
+  `node node_modules/playwright-core/cli.js install ffmpeg` — **not** `npx playwright install ffmpeg`,
+  which resolves a different playwright version and prunes the engines you do not name.
+- The system ffmpeg here has **no text filters at all** (no `drawtext`, no freetype) and Homebrew ships
+  `libopus` but not `libvorbis` — the pipeline is built to not care about either.
 - Real selectors (guessing them by text costs a whole take): the top button is a plain
   `button.btn.btn-primary` reading "+ Add Widget"; the picker's field is `.add-widget-search`
   (placeholder "Search widgets… (name, source, category)"), and it is **inside `#root`**, so transforms

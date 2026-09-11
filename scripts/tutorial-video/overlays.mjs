@@ -1,0 +1,94 @@
+/**
+ * Render every on-screen overlay — the step badge, the URL card, and each caption line — as a
+ * TRANSPARENT FULL-CANVAS PNG in a real browser, for `build.mjs` to composite with ffmpeg's
+ * `overlay` filter.
+ *
+ * Why not drawtext, which is what this replaced (found + fixed 2026-09-11):
+ *
+ *   · The Homebrew ffmpeg on the macOS dev machine has NO text filters at all — no drawtext, no
+ *     subtitles, no ass, and no --enable-libfreetype — so the entire caption path failed there.
+ *   · build.mjs pointed drawtext at Debian's /usr/share/fonts/truetype/dejavu/*.ttf, which does
+ *     not exist on macOS. Even a freetype-enabled ffmpeg would have found no font.
+ *   · Text in a filter graph needs its own escaping (':' and ',' inside textfile= paths).
+ *
+ * Rendering in the browser removes all three problems at once, and it is the same machinery the
+ * cards already used: real fonts, real CSS, real line-breaking, no escaping, and the caption text
+ * is legible at 1080p because a browser laid it out rather than a font shim.
+ *
+ * Each PNG is a full 1920x1080 transparent canvas, so build.mjs only ever needs `overlay=0:0` —
+ * the browser owns the positioning, ffmpeg owns the timing.
+ *
+ * Usage: node scripts/tutorial-video/overlays.mjs [--out DIR] [--force]
+ * Input:  <out>/timeline.json   (written by record.mjs)
+ * Output: <out>/overlays/<scene-id>-{badge,url,cap0,cap1,...}.png
+ */
+import { createRequire } from 'node:module';
+import { readFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { resolveOut, arg } from './paths.mjs';
+
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright-core');
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const OUT = resolveOut(arg('out', null));
+const FORCE = process.argv.includes('--force');
+const DIR = join(OUT, 'overlays');
+const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
+const { width: W, height: H } = timeline.video;
+
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** a translucent rounded plate around the text — the look the drawtext boxes produced */
+const plate = (extra, text) =>
+  `<span style="display:inline-block;background:rgba(0,0,0,.62);padding:14px 20px;border-radius:8px;${extra}">${esc(text)}</span>`;
+const at = (style, text) => `<div style="position:absolute;${style}">${plate('', text)}</div>`;
+
+const FONT = `font-family:system-ui,-apple-system,'Segoe UI',Roboto,'DejaVu Sans',sans-serif`;
+const MONO = `font-family:ui-monospace,Menlo,Consolas,monospace`;
+const page_ = (inner) =>
+  `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">${inner}</body></html>`;
+
+// positions mirror the drawtext coordinates they replace (badge x=36/y=30, url y=H-208, caption y=H-104)
+const badgeHtml = (s) => page_(at(`left:36px;top:26px;font-size:38px;font-weight:700;color:#fff`, `Step ${s.step} · ${s.title}`));
+const urlHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.url));
+const capHtml = (t) =>
+  page_(`<div style="position:absolute;left:0;right:0;top:958px;display:flex;justify-content:center">
+           ${plate(`background:rgba(0,0,0,.68);font-size:33px;font-weight:700;color:#fff;padding:14px 22px`, t)}</div>`);
+
+// ── plan every overlay before launching a browser ────────────────────────────
+const jobs = [];
+for (const scene of timeline.scenes) {
+  jobs.push({ file: `${scene.id}-badge.png`, html: badgeHtml(scene) });
+  if (scene.url) jobs.push({ file: `${scene.id}-url.png`, html: urlHtml(scene) });
+  (scene.captions || []).forEach((c, i) => jobs.push({ file: `${scene.id}-cap${i}.png`, html: capHtml(c) }));
+
+  // drop caption PNGs left over from a longer earlier cut, or they linger in <out>/overlays
+  const n = (scene.captions || []).length;
+  const stale = readdirSyncSafe(DIR).filter((f) => {
+    const m = f.match(new RegExp(`^${scene.id}-cap(\\d+)\\.png$`));
+    return m && Number(m[1]) >= n;
+  });
+  stale.forEach((f) => rmSync(join(DIR, f), { force: true }));
+}
+
+function readdirSyncSafe(d) { try { return readdirSync(d); } catch { return []; } }
+
+const todo = FORCE ? jobs : jobs.filter((j) => !existsSync(join(DIR, j.file)));
+if (!todo.length) {
+  console.log(`overlays up to date (${jobs.length}) → ${DIR}`);
+  process.exit(0);
+}
+
+mkdirSync(DIR, { recursive: true });
+const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+const page = await ctx.newPage();
+for (const job of todo) {
+  await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(job.html)}`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: join(DIR, job.file), omitBackground: true });
+}
+await browser.close();
+console.log(`rendered ${todo.length}/${jobs.length} overlays → ${DIR}`);

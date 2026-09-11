@@ -9,38 +9,21 @@
  * Env:    PLAYWRIGHT_BROWSERS_PATH (scoped to the command — never exported globally)
  */
 import { createRequire } from 'node:module';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { tmpdir, homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { resolveOut, arg, playwrightCacheWithFfmpeg } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
 
-// ── preflight: recordVideo needs Playwright's OWN ffmpeg build ───────────────
-// Not the system ffmpeg. Playwright keeps it in its browser cache as ffmpeg-<rev>/
-// — PLAYWRIGHT_BROWSERS_PATH when set, otherwise the platform default. Checking
-// only the env var made this fail on a machine where ffmpeg-1011 WAS installed at
-// ~/Library/Caches/ms-playwright, and told the user to run an install that would
-// have pruned other engines (found + fixed 2026-09-11).
-function playwrightCacheWithFfmpeg() {
-  const candidates = [
-    process.env.PLAYWRIGHT_BROWSERS_PATH,
-    join(homedir(), 'Library', 'Caches', 'ms-playwright'), // macOS
-    join(homedir(), '.cache', 'ms-playwright'),            // Linux/XDG
-    join(homedir(), 'AppData', 'Local', 'ms-playwright'),  // Windows
-  ].filter(Boolean);
-  for (const dir of candidates) {
-    try {
-      if (readdirSync(dir).some((d) => d.startsWith('ffmpeg-'))) return dir;
-    } catch { /* not this one */ }
-  }
-  return null;
-}
+// ── preflight: recordVideo needs Playwright's OWN ffmpeg build, not the system one ──
+// The cache probe lives in paths.mjs (it is the same resolution Playwright itself does: the env
+// var, then the platform default) — checking ONLY the env var made this fail on a machine where
+// ffmpeg-1011 was installed at ~/Library/Caches/ms-playwright (found + fixed 2026-09-11).
 {
-  const cache = playwrightCacheWithFfmpeg();
-  if (!cache) {
+  if (!playwrightCacheWithFfmpeg()) {
     console.error(
       '✘ Playwright recording ffmpeg is missing.\n' +
       '  Looked for an ffmpeg-* directory in PLAYWRIGHT_BROWSERS_PATH (if set) and the\n' +
@@ -55,12 +38,7 @@ function playwrightCacheWithFfmpeg() {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
-const arg = (name, dflt) => {
-  const i = process.argv.indexOf(`--${name}`);
-  return i > -1 ? process.argv[i + 1] : dflt;
-};
-const OUT = arg('out', process.env.WIKIBENTO_TUTORIAL_OUT
-  || (existsSync('/opt/data/staging') ? '/opt/data/staging/wikibento-tutorial' : join(tmpdir(), 'wikibento-tutorial')));
+const OUT = resolveOut(arg('out', null));
 const ONLY = arg('only', null);
 const BASE = 'https://wikibento.toolforge.org';
 const { width, height } = plan.video;
