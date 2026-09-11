@@ -84,6 +84,35 @@ for, not a claim about behaviour today.
 | 2026-08-13 | `index-CF9Vo_m5.js` | `b9d62f7` | Article Vitals: 📄 Excerpt, 🕓 Edit History, 🏅 ORES Quality, 🧭 WikiProject Assessment |
 | 2026-08-12 | — | — | First Toolforge deploy: `node20` webservice serving `dist/`, plus `/api/proxy`, `/api/resolve` |
 
+## Repository housekeeping
+
+### Stale remote branches deleted (2026-09-11)
+
+Four remote branches sat on GitHub long after their content had landed on `main`
+(they were listed as unmerged only because the *files* arrived by another route).
+Each was re-checked against `main` before deletion, and the record is kept here so
+the old wording survives the branch:
+
+| branch | tip | what it held | why it could go |
+|---|---|---|---|
+| `docs-tapestry-eval` | `8d93eb9` (2026-09-08) | `docs/TAPESTRY-EVALUATION.md`, 233 lines | **byte-identical** to `main`'s copy |
+| `docs-research-landscape` | `7cc4637` (2026-09-08) | the same file, 233 lines | **byte-identical** to `main`'s copy |
+| `docs-demo-ideas` | `8f813f3` (2026-09-08) | `docs/DEMO-IDEAS.md`, 209 lines | `main`'s copy is the expanded one (403 lines; +198/−4) — a superseded draft |
+| `docs-issue-65` | `becf32f` (2026-09-10) | the `ISSUE-65` entry in `docs/ISSUES.md` | `main` carries the same entry marked **done (branch `feature-qr-widget`)** with its progress notes; the branch still said **open** |
+
+The only text that existed solely on a branch was four draft lines in
+`docs-demo-ideas`, kept here for completeness (main's Voyager catalog replaces them):
+
+```
+(prioritized plan), `MODULARITY-AND-DATAFLOW.md` (params + dataflow), and
+`docs/AGENT-MEMO.md` (conventions). Each entry lists what's on the board,
+- Voyager Company (Wikipedia): A Hard Day's Night · The Complete Maus · Who
+  Built America? · Criterion Goes to the Movies, etc.
+```
+
+Deleted with `git push origin --delete`; nothing else was unique to them, and the
+content above is the whole delta.
+
 ## Notable deploy-time findings
 
 The lessons that only showed up *after* deploying — worth keeping because each
