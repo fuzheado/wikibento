@@ -3080,8 +3080,9 @@ false "not registered" warnings for working categories — the Met (389,036 file
 the Rijksmuseum, the Library of Congress and the National Gallery of Art are all
 allow-listed and **none of them transclude the template**. (Corrected 2026-09-11
 from the `wikimedia-commons` skill's Commons Impact Metrics section, which also
-records the 98.4% measurement; the branch that fixed the skill is
-`fix/cim-registration` on `Wikipedia-AI-Skills`.)
+records the 98.4% measurement; that skill fix is now merged into the
+`Wikipedia-AI-Skills` repo's `main` — it landed on a branch called
+`fix/cim-registration`, which was deleted after the merge.)
 
 **The authoritative source is a published TSV, and it is enumerable:**
 
