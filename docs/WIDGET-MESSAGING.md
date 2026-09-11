@@ -313,7 +313,7 @@ nothing about the four things that actually block third-party authorship today.
 | HyperCard | own object + the hierarchy above it | copy the object | none | stacks shared, no component market |
 | mTropolis | the whole modifier web | re-attach behaviours | none enforced | none survived |
 | OpenDoc + SOM | the part interface | part into any document | **formal, cross-vendor** | PartBank, C100 — a real (brief) market |
-| OLE/ActiveX | interface + host rules | control into any container | formal, but heavy | **large** (VBX/OCX), with security fallout |
+| OLE/ActiveX | interface + host rules | control into any container | formal, but heavy | **large** (VBX/OCX) — and the first ecosystem to pay for it, once the web made control distribution frictionless: **signed native code with the user's full privileges and no sandbox** |
 | JavaBeans | listener interfaces | bean into any builder | typed, point-to-point | BeanBox never took off |
 | Grafana | variables + plugin API | panel plugin anywhere | formal + **signed** | **large and alive** |
 | Node-RED | `msg` shape per node | node into any flow | informal, by convention | **large** (npm) |
@@ -322,7 +322,7 @@ nothing about the four things that actually block third-party authorship today.
 | **WikiBento today** | **names it needs + one source** | **registry entry on any board** | **constitution + convention (partial)** | **none yet — fork-and-PR** |
 
 The pattern: the tools with a **hub *and* an enforced, distributable contract** grew
-ecosystems (Grafana, Node-RED, and historically VBX/OCX — which paid for it in security).
+ecosystems (Grafana, Node-RED, and historically OLE/ActiveX — whose ecosystem existed first as retail VBX/OCX controls, and whose *internet-era* turn shipped signed native code with the user's full privileges and no sandbox, which is where the security bill came due).
 Tools with a hub and no contract (Yahoo Pipes) or a mesh and no contract (mTropolis) did not.
 Our hub is the precondition; the contract and the distribution channel are the missing half.
 
@@ -337,7 +337,10 @@ Our hub is the precondition; the contract and the distribution channel are the m
 4. **Publish the manifest as the interface** — the same manifest that feeds Ask becomes the
    discoverability layer a plugin author writes against.
 5. **A trust model.** Declarative-first; code plugins signed and opt-in; never full
-   permissions in the host process by default (the ActiveX lesson).
+   permissions in the host process by default. Signing alone is not a safety property: in
+   ActiveX, verification *worked* — the certificates were valid, the warnings appeared, and a
+   properly signed demonstration control still formatted a floppy drive live on stage at JavaOne
+   in 1997. Trust-by-reputation without a sandbox only tells you who to blame afterwards.
 
 **Bottom line:** the messaging architecture removes the reason third-party authoring was
 impossible in the CD-ROM era (the N² knowledge web), and gives us the derived graph that
