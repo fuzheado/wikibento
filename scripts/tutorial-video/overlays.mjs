@@ -39,6 +39,16 @@ const DIR = join(OUT, 'overlays');
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
 const { width: W, height: H } = timeline.video;
 
+// Captions come from SCRIPT.md's beats (beats.mjs), not from scenes.json's hand-kept copies — one
+// caption per beat, with 📝 overriding the spoken line. Falls back to the timeline's captions for a
+// scene the script does not describe.
+let scriptCaptions = null;
+try {
+  const doc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
+  scriptCaptions = new Map(doc.scenes.map((s) => [s.id, s.captions]));
+} catch { /* no beats.json — use whatever the timeline carries */ }
+const captionsOf = (scene) => scriptCaptions?.get(scene.id) || scene.captions || [];
+
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /** a translucent rounded plate around the text — the look the drawtext boxes produced */
@@ -77,14 +87,15 @@ const jobs = [];
 for (const scene of timeline.scenes) {
   jobs.push({ file: `${scene.id}-badge.png`, html: badgeHtml(scene) });
   if (scene.url) jobs.push({ file: `${scene.id}-url.png`, html: urlHtml(scene) });
-  (scene.captions || []).forEach((c, i) => jobs.push({ file: `${scene.id}-cap${i}.png`, html: capHtml(c) }));
+  const caps = captionsOf(scene);
+  caps.forEach((c, i) => jobs.push({ file: `${scene.id}-cap${i}.png`, html: capHtml(c) }));
 }
 
 // drop caption PNGs (and manifest entries) left over from a longer earlier cut, or they linger in
 // <out>/overlays and can be picked up by a stale build
 const planned = new Set(jobs.map((j) => j.file));
 for (const scene of timeline.scenes) {
-  const n = (scene.captions || []).length;
+  const n = captionsOf(scene).length;
   for (const f of dirSafe(DIR)) {
     const m = f.match(new RegExp(`^${scene.id}-cap(\\d+)\\.png$`));
     if (m && Number(m[1]) >= n) { rmSync(join(DIR, f), { force: true }); delete manifest[f]; }

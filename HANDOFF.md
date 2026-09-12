@@ -335,8 +335,19 @@ actions drift several seconds away from the words that describe them. Fix = make
 beat *at record time* (narration as a phrase list with measured offsets; the recorder waits for the offset
 before clicking), so no clip is ever stretched. `SCRIPT.md` is structured as beats for exactly this reason.
 
-**Also queued:** apply zooms/rings/sounds across all eight scenes from `SCRIPT.md`; and make
-`SCRIPT.md` authoritative for `scenes.json`.
+**Done 2026-09-11 (second pass):** `SCRIPT.md` is now the pipeline's real input — `beats.mjs` parses
+it into beats, the voiceover is synthesized **one clip per beat** with measured offsets
+(`narration/timing.json`), the recorder starts a beat clock and waits for each beat before acting, and
+the 🔍/⭕ fx is applied **in-page** (CSS transform zoom + red ring) as part of the recording. Scene 1 is
+wired end to end as the proof: a 1.2× push onto the third card held under the sentence describing it,
+with rings on each card as it is named, and one caption per beat. Also fixed: the lead-in is now
+*measured* (scene 1 spent 10.6s loading the board; the heuristic trimmed ~1s of it). See
+[`docs/TUTORIAL-VIDEO-STATUS.md`](docs/TUTORIAL-VIDEO-STATUS.md) — `tutorial:beats` reports how much fx
+is still prose (1 of 10 zooms wired, 3 of 15 rings).
+
+**Also queued:** replace the remaining `settle()` sleeps in the scene actions with `await at(beat)` so
+the other seven scenes stop drifting; wire the rest of the fx markers (add `@ selectors`); the 🔊 sound
+markers need post-production (no audio is recorded).
 
 **Done 2026-09-11** (the tutorial needed them true, so the product changed rather than the narration):
 Reset now asks — Cancel · **Blank board** · **Starter set** — and clears the board's `params` block;

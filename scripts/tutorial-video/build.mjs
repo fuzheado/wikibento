@@ -31,6 +31,17 @@ const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.j
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
 const { width: W, height: H, fps } = plan.video;
 
+// Parse SCRIPT.md first: captions now come from the script's beats rather than from a hand-kept copy
+// in scenes.json. Cheap (no browser) and it fails loudly if the script and scenes.json disagree.
+execFileSync('node', [join(root, 'scripts/tutorial-video/beats.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
+const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
+
+// Beat offsets, measured from the voiceover (narration/timing.json). Absent until the scene has been
+// narrated, in which case captions fall back to splitting the scene across its caption lines.
+let TIMING = null;
+try { TIMING = JSON.parse(readFileSync(join(OUT, 'narration', 'timing.json'), 'utf8')); }
+catch { /* not narrated yet */ }
+
 const BG = '0x14161a';
 const BUILD = join(OUT, 'build');
 mkdirSync(BUILD, { recursive: true });
@@ -162,7 +173,10 @@ for (const scene of scenes) {
   const dClip = probe(clip);
   const dNarr = probe(narration);
   const buf = sampleClip(clip);
-  const lead = leadInFrames(buf) / fps;             // blank page before the app paints
+  // Prefer the recorder's own measurement of the pre-action lead-in: it knows exactly when the beat
+  // clock started (scene 1 = 10.6s of the board loading, which the pixel heuristic trimmed only ~1s
+  // of, leaving nine seconds of loading in the take). The heuristic remains for older clips.
+  const lead = typeof scene.leadIn === 'number' ? scene.leadIn : leadInFrames(buf) / fps;
   const blank = blankFraction(buf);
   const dEff = Math.max(0.5, dClip - lead);
   const target = dNarr + 1.0;                       // a beat of silence at the end
@@ -195,18 +209,32 @@ for (const scene of scenes) {
   overlay(ov(`${scene.id}-badge.png`));                                  // whole scene
   if (scene.url) overlay(ov(`${scene.id}-url.png`), [1.0, target]);      // once the page has settled
 
-  // captions: split the scene's length evenly across its lines, weighted by length
+  // Captions. With a beat timeline each caption sits under the beat that speaks it — the offsets are
+  // relative to the beat clock, which is exactly where the clip starts once the lead-in is trimmed,
+  // so they need no adjustment. Text comes from SCRIPT.md (per beat; 📝 overrides the spoken line).
+  const beats = TIMING?.scenes?.[scene.id]?.beats;
   const caps = scene.captions || [];
-  const weights = caps.map((c) => c.length + 12);
-  const wTotal = weights.reduce((s, x) => s + x, 0) || 1;
-  let t0 = 0.8;
-  caps.forEach((cap, i) => {
-    const span = ((target - 1.0) * weights[i]) / wTotal;
-    if (existsSync(ov(`${scene.id}-cap${i}.png`))) overlay(ov(`${scene.id}-cap${i}.png`), [t0, t0 + span]);
-    else console.error(`✘ missing overlay ${scene.id}-cap${i}.png`);
-    srt.push({ start: srtTime + t0, end: srtTime + t0 + span, text: cap });
-    t0 += span;
-  });
+  if (beats?.length) {
+    beats.forEach((b, i) => {
+      const cap = b.caption || b.text;
+      if (!cap) return;
+      if (existsSync(ov(`${scene.id}-cap${i}.png`))) overlay(ov(`${scene.id}-cap${i}.png`), [b.start, b.end]);
+      else console.error(`✘ missing overlay ${scene.id}-cap${i}.png`);
+      srt.push({ start: srtTime + b.start, end: srtTime + b.end, text: cap });
+    });
+  } else {
+    // fallback for a scene without a narrated beat timeline: split the scene across its caption lines
+    const weights = caps.map((c) => c.length + 12);
+    const wTotal = weights.reduce((s, x) => s + x, 0) || 1;
+    let t0 = 0.8;
+    caps.forEach((cap, i) => {
+      const span = ((target - 1.0) * weights[i]) / wTotal;
+      if (existsSync(ov(`${scene.id}-cap${i}.png`))) overlay(ov(`${scene.id}-cap${i}.png`), [t0, t0 + span]);
+      else console.error(`✘ missing overlay ${scene.id}-cap${i}.png`);
+      srt.push({ start: srtTime + t0, end: srtTime + t0 + span, text: cap });
+      t0 += span;
+    });
+  }
 
   filters.push('[1:a]adelay=500|500,apad[a]');
   const out = join(BUILD, `${scene.id}.mp4`);

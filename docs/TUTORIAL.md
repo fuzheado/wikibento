@@ -180,19 +180,22 @@ only that line.
 host's `/opt/data/staging/wikibento-tutorial` when that exists, otherwise a temp dir — so the
 pipeline also runs on a laptop. The recorder prints the resolved path as `clips → …`.
 
-The **narration and the on-screen timing** live in `scripts/tutorial-video/SCRIPT.md`,
-which is the editable source of truth: each scene is a list of beats, and every beat
-says which action must happen while that line is spoken. The pipeline itself reads the
-same words from `scenes.json` (that is what the recorder and the voiceover generator
-consume), so a change to the script still has to be reflected there — see
-[`TUTORIAL-VIDEO-STATUS.md`](TUTORIAL-VIDEO-STATUS.md) for that known gap.
+The **narration, captions and on-screen effects** all come from
+`scripts/tutorial-video/SCRIPT.md`, which is the editable source of truth: each scene is a list of
+beats, and every beat says which action must happen while that line is spoken. `tutorial:beats` parses
+it into the beats the rest of the pipeline works from, and `tutorial:narrate` synthesizes **one clip
+per beat** so each beat has a measured offset — which is what lets an action land on the words
+describing it. A marker becomes something the recorder can actually draw when it names its target —
+`🔍 1.2× @ .grid-item:nth-child(3)` — and `tutorial:beats` prints how many still need one.
 
 ```bash
-npm run build && npm run tutorial:record      # one clip per scene
-npm run tutorial:narrate                      # voiceover → out/narration/<scene-id>.ogg
-npm run tutorial:build                        # trim, stretch, caption, mux, concat
+npm run tutorial:beats                            # SCRIPT.md → beats (also validates it)
+npm run tutorial:narrate                          # one clip per beat → narration/timing.json
+npm run build && npm run tutorial:record          # records, timed to those beats
+npm run tutorial:build                            # trim, stretch, caption, mux, concat
 ```
 
+**Narrate before recording** — the recorder times its actions from the measured voiceover offsets.
 Each step takes `--out <dir>` to work in a different directory, and `--only <scene-id>` to redo a
 single scene. The resolution is printed by each script.
 

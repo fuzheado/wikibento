@@ -85,6 +85,144 @@ const cards = (page) => page.evaluate(() => Array.from(document.querySelectorAll
   };
 }));
 
+// ── fx layer: zoom and highlight, applied INSIDE the page ───────────────────
+//
+// Drawn in-page rather than in post-production, for two reasons: a CSS transform on #root magnifies
+// real text (the browser re-renders it, so it stays crisp where upscaling pixels in ffmpeg cannot),
+// and the effect is simply part of the recording. Proved by fx-proof.mjs (1.80x measured on a card),
+// wired in here 2026-09-11.
+//
+// Installed with addInitScript so it survives the navigations some scenes perform (07-store goes to a
+// data: card and back, 02-read loads a ?config= URL).
+const FX = `
+window.__fx = {
+  zoom(rect, factor, ms) {
+    const root = document.getElementById('root') || document.body;
+    root.style.transition = 'transform ' + ms + 'ms cubic-bezier(0.33, 0, 0.2, 1)';
+    root.style.willChange = 'transform';
+    if (factor <= 1.001) { root.style.transform = 'none'; return; }
+    const cx = rect.x + rect.width / 2, cy = rect.y + rect.height / 2;
+    root.style.transformOrigin = cx + 'px ' + cy + 'px';
+    // Magnify about the target's centre, then shift the minimum amount needed to keep the whole
+    // target on screen. Scaling about a point on the left edge pushes half the card off screen (a
+    // 1.2x push on the leftmost card lost its title), while always centring the target pans the whole
+    // board for a subtle push. Clamping gives the gentle move without either problem.
+    const shift = (lo, hi, min, max, size, margin) => {
+      const a = margin - min, b = size - margin - max;   // allowed range for the translation
+      if (a > b) return (a + b) / 2;                      // target bigger than the viewport: centre it
+      return Math.min(Math.max(0, a), b);
+    };
+    const minX = cx + (rect.x - cx) * factor, maxX = cx + (rect.x + rect.width - cx) * factor;
+    const minY = cy + (rect.y - cy) * factor, maxY = cy + (rect.y + rect.height - cy) * factor;
+    const tx = shift(0, 0, minX, maxX, window.innerWidth, 24);
+    const ty = shift(0, 0, minY, maxY, window.innerHeight, 24);
+    root.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + factor + ')';
+  },
+  ring(rect, ms, label) {
+    document.querySelectorAll('.fx-ring').forEach((n) => n.remove());
+    const pad = 8;
+    const el = document.createElement('div');
+    el.className = 'fx-ring';
+    el.style.cssText = 'position:fixed;left:' + (rect.x - pad) + 'px;top:' + (rect.y - pad) + 'px;' +
+      'width:' + (rect.width + pad * 2) + 'px;height:' + (rect.height + pad * 2) + 'px;' +
+      'border:3px solid #ff2d2d;border-radius:999px;box-shadow:0 0 0 3px rgba(255,45,45,.20);' +
+      'pointer-events:none;z-index:2147483647;opacity:0;transition:opacity 220ms ease-out';
+    document.body.appendChild(el);
+    requestAnimationFrame(() => { el.style.opacity = '1'; });
+    if (label) {
+      const t = document.createElement('div');
+      t.className = 'fx-ring';
+      t.textContent = label;
+      t.style.cssText = 'position:fixed;left:' + (rect.x - pad) + 'px;top:' + (rect.y + rect.height + 10) + 'px;' +
+        'font:600 22px system-ui,sans-serif;color:#ff2d2d;background:rgba(20,22,26,.86);padding:4px 10px;' +
+        'border-radius:6px;pointer-events:none;z-index:2147483647;opacity:0;transition:opacity 220ms';
+      document.body.appendChild(t);
+      requestAnimationFrame(() => { t.style.opacity = '1'; });
+    }
+    setTimeout(() => {
+      document.querySelectorAll('.fx-ring').forEach((n) => {
+        n.style.opacity = '0';
+        setTimeout(() => n.remove(), 400);
+      });
+    }, ms);
+  },
+};
+'ok';
+`;
+
+/** the on-screen box of a selector, or null if it is not there (or has no size) */
+const fxBox = (page, selector) => page.evaluate((sel) => {
+  let el = null;
+  try { el = document.querySelector(sel); } catch { return null; }
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+}, selector);
+
+// ── the beat clock ──────────────────────────────────────────────────────────
+// Beat offsets come from the measured voiceover (narration/timing.json), so an action can be made to
+// land on the words describing it — which is what the script's ⚠ notes ask for and what a whole-clip
+// stretch could never do.
+let TIMING = null;
+try { TIMING = JSON.parse(readFileSync(join(OUT, 'narration', 'timing.json'), 'utf8')); }
+catch { /* not narrated yet — fx and beat timing are simply unavailable */ }
+
+let T0 = Date.now();
+const at = async (seconds) => {
+  const waitMs = seconds * 1000 - (Date.now() - T0);
+  if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
+};
+
+/**
+ * Play a scene's fx from its beat markers, on the beat clock.
+ *
+ * Runs concurrently with the scene's actions rather than before or after them: it is a schedule of its
+ * own, and the page can be driven while a zoom is easing. Markers with no `@selector` are intent only
+ * and are skipped (beats.mjs counts how many are still prose). Several rings in one beat are staggered
+ * evenly across it, which is how the script describes "ring each card as it is named".
+ */
+async function playFx(page, scene) {
+  const beats = TIMING?.scenes?.[scene.id]?.beats;
+  if (!beats) return;
+  let played = 0;
+  for (const b of beats) {
+    const zooms = (b.zoom || []).filter((z) => z.selector);
+    const rings = (b.ring || []).filter((r) => r.selector);
+    if (!zooms.length && !rings.length) continue;
+
+    // Zoom IN first and let the transition settle before anything is drawn over the page: a ring
+    // positioned while the camera is still moving lands in the wrong place (its coordinates are read
+    // from the live DOM, and the transform is still animating).
+    for (const z of zooms) {
+      await at(b.start);
+      const box = await fxBox(page, z.selector);
+      if (!box) { console.log(`   ⚠ fx: no element for ${z.selector}`); continue; }
+      await page.evaluate(([r, f]) => window.__fx?.zoom(r, f, 600), [box, z.scale || 1.2]);
+      await settle(page, 750);
+      console.log(`   fx zoom ${z.scale}× ${z.selector}`);
+      played += 1;
+    }
+    // then the rings, staggered across what is left of the beat
+    const ringStart = zooms.length ? 0.75 : 0;
+    for (const [i, r] of rings.entries()) {
+      const span = Math.max(0.1, b.duration - ringStart);
+      await at(b.start + ringStart + (span * i) / Math.max(1, rings.length));
+      const box = await fxBox(page, r.selector);
+      if (!box) { console.log(`   ⚠ fx: no element for ${r.selector}`); continue; }
+      await page.evaluate(([rect, ms]) => window.__fx?.ring(rect, ms), [box, 1100]);
+      console.log(`   fx ring ${r.selector}`);
+      played += 1;
+    }
+    // and zoom back out at the end of the beat, after the rings have faded
+    if (zooms.length) {
+      await at(b.end - 0.2);
+      await page.evaluate(() => window.__fx?.zoom({ x: 0, y: 0, width: 1, height: 1 }, 1, 500));
+    }
+  }
+  if (played) console.log(`   fx: ${played} marker(s) played`);
+}
+
 // ── start states: how each scene begins, deterministically ─────────────────
 async function setPickerSearch(page, term) {
   await clickHuman(page, 'button:has-text("Add Widget")');
@@ -395,13 +533,22 @@ for (const scene of plan.scenes) {
     viewport: { width, height },
     recordVideo: { dir: clipDir, size: { width, height } },
   });
+  await ctx.addInitScript(FX);           // survives the navigations some scenes perform
+  const ctxStart = Date.now();           // ≈ when the video starts rolling
   const page = await ctx.newPage();
   page.__mouse = { x: width / 2, y: height / 2 };
   console.log(`\n▶ ${scene.id} — ${scene.title}`);
+  let leadIn = 0;
   try {
     await applyStart(page, scene.start);
     await settle(page, 900);
+    // the beat clock starts here: everything before this is the app loading, which build.mjs trims.
+    // Measured rather than guessed, so the trim and the offsets agree exactly.
+    leadIn = (Date.now() - ctxStart) / 1000;
+    T0 = Date.now();
+    const fx = playFx(page, scene);      // its own schedule, concurrent with the actions below
     await ACTIONS[scene.id]?.(page);
+    await fx.catch((e) => console.log(`   ⚠ fx error: ${String(e.message).slice(0, 120)}`));
     await settle(page, 1400);            // tail so the build can breathe
   } catch (e) {
     console.log(`   ✘ action error: ${String(e.message).slice(0, 160)}`);
@@ -416,8 +563,8 @@ for (const scene of plan.scenes) {
     duration = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration',
       '-of', 'default=noprint_wrappers=1:nokey=1', dest], { encoding: 'utf8' }).trim());
   } catch { /* ffprobe missing */ }
-  console.log(`   clip: ${dest} — ${duration.toFixed(2)}s`);
-  timeline.push({ ...scene, clip: dest, duration });
+  console.log(`   clip: ${dest} — ${duration.toFixed(2)}s${leadIn ? ` (${leadIn.toFixed(1)}s lead-in)` : ''}`);
+  timeline.push({ ...scene, clip: dest, duration, leadIn: Number(leadIn.toFixed(3)) });
 }
 await browser.close();
 

@@ -16,12 +16,29 @@ How to read a beat:
 | 🔊 | sound effect |
 | 📝 | caption text, when it is *not* simply the spoken line |
 
+**A marker becomes machine-readable when it names its target with `@ <css selector>`**, so the
+pipeline can actually draw it instead of leaving it as a note for a human:
+
+```
+🔍 1.2× @ .grid-item:nth-child(3) — the one zoom in this scene
+⭕ @ .grid-item:nth-child(1) .widget-title — as its name is spoken
+```
+
+Everything after the em dash is prose for you, and one beat may carry several markers (three ⭕ lines
+ring three things in turn, staggered across the beat). A marker with **no** `@` is intent only: the
+recorder skips it and `beats.mjs` counts it as unwired, so `npm run tutorial:beats` tells you how much
+of the script is still waiting to be made mechanical.
+
 Rules of thumb the pipeline enforces: a zoom never starts while something is moving; a drag is
 never interrupted; every action must finish before the beat that describes it ends. If you add a
 beat, the video gets longer by that line's spoken length and the rest re-times itself.
 
-Status: **draft for your edits.** The current published take does not yet honour 🔍/⭕/🔊; the beats
-marked ⚠ are the ones where the action now lands several seconds after the words (your point 2).
+Status: **draft for your edits — and now the pipeline's real input.** `npm run tutorial:beats` parses
+this file into beats, `tutorial:narrate` synthesizes one clip per beat, and the recorder times its
+actions and fx from the measured offsets. Scene 1's 🔍/⭕ markers are wired (their `@` targets are real
+selectors); `tutorial:beats` prints how many of the rest still are not. The 🔊 markers are not
+implemented — no audio is recorded, so a sound effect has to be added in post. The beats marked ⚠ are
+the ones whose action still lands after the words: timing them is what the offsets are for.
 
 ---
 
@@ -35,15 +52,18 @@ marked ⚠ are the ones where the action now lands several seconds after the wor
    🖱 slow pointer drift across the board; nothing clicked
 3. 🗣 "What you are looking at is the starter board — three cards: pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
    🖱 point at each card in turn (a quick pulse, not a click), one per clause
-   ⭕ ring each card's title as it is named — 0.6s each, thin ring, no zoom (three zooms in a row is seasick)
-   🔍 1.2× push onto the third card as it is described, held to the end of the sentence — the one zoom in this scene
+   ⭕ @ .grid-item:nth-child(1) .widget-title — as the first card is named
+   ⭕ @ .grid-item:nth-child(2) .widget-title — as the link count is named
+   ⭕ @ .grid-item:nth-child(3) .widget-title — as the ranking is named
+   🔍 1.2× @ .grid-item:nth-child(3) — push onto the third card for the last clause, held to the end of the sentence
 4. 🗣 "All of it is live."
    🖱 settle; pointer away from the cards
    📝 "Live data · no login · no server"
 
-Zoom: **accepted 2026-09-11** — the 1.2× push above. Not in the current take: the fx layer is proved
-(`fx-proof.mjs`) but not yet wired into the recorder, so 🔍/⭕/🔊 markers record intent, not frames.
-This is the gentlest scene to prove it on — there are no actions, so a zoom has nothing to interrupt.
+Zoom: **accepted 2026-09-11**, and wired the same day — the fx layer is applied inside the page (a CSS
+transform on `#root`, and a red ring drawn over the target), so it is part of the recording rather than
+post-production, and magnified text stays crisp because the browser re-renders it. The beat offsets
+that time it come from the voiceover, and the targets come from the `@` selectors above.
 
 ---
 
