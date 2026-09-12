@@ -42,7 +42,18 @@ test('beat metadata is read: step, title, starting state, target length', () => 
 test('narration is the beats joined, in order', () => {
   const s = byId.get('01-what');
   assert.equal(narrationOf(s), s.beats.filter((b) => b.text && !b.silent).map((b) => b.text).join(' '));
-  assert.match(narrationOf(s), /^WikiBento is a dashboard you build yourself/);
+  assert.match(narrationOf(s), /^Every box here is a widget/);
+});
+
+test('the opening line is spoken over the title card, so the video starts talking', () => {
+  // five silent seconds over a logo was a reviewer's first note on the finished take
+  const t = byId.get('00-title');
+  assert.ok(t, 'SCRIPT.md should carry a 00-title card section');
+  assert.equal(t.start, null, 'a card has no starting state — it is not a recorded scene');
+  assert.match(narrationOf(t), /^WikiBento is a dashboard you build yourself/);
+  assert.equal(captionsOf(t).length, 1, 'the opening line is a caption too');
+  assert.equal(narrationOf(byId.get('01-what')).includes('WikiBento is a dashboard'), false,
+    'the opening line must not be said twice');
 });
 
 test('captions are per beat: the spoken line, unless 📝 overrides it', () => {
