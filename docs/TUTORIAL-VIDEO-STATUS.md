@@ -126,6 +126,24 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
+### Scene 3 played as 17 seconds of white (2026-09-12)
+
+Reported from watching: "the to start your own board section has a big white blank screen". Exactly so —
+scene 3 was `255,255,255` at every second. The clip was fine and the lead-in trim was fine; **five of
+scene 3's overlay PNGs had been rendered `rgb24` instead of `rgba`, i.e. opaque white full-canvas images**,
+and since they are full-canvas, an opaque one whites out everything under it. All 41 other overlays were
+correct, which is why only that scene went blank.
+
+The worse half is why it persisted: overlays are cached by a hash of their markup, so a bad render was
+recorded as *current* and never re-rendered — the same failure shape as the stale captions, a wrong
+artifact that caching makes permanent. `overlays.mjs` now:
+  - checks the PNG header (IHDR colour type 6 = RGBA) for **every** planned overlay, so a file that lost
+    its transparency is re-rendered rather than trusted;
+  - waits for the page to be painted (an element with a size and some text) and for two animation frames
+    before the screenshot;
+  - retries once, then **exits non-zero rather than caching an opaque overlay** — the build stops instead
+    of compositing a white screen.
+
 ### Second review pass 2026-09-12 (from watching the take again)
 
 - **3:41 → 3:00.** The ending was over-explained. Scene 7 is now two beats — "that JSON needs a home your
@@ -179,7 +197,11 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
 6. **Typing is instantaneous** rather than keystroke-by-keystroke (scene 4), which needs the
    keystroke-chip + click-sound work from `fx-proof.mjs`.
 
-## Reviewing a take
+## Reviewing a take — and comparing takes
+
+**Every `tutorial:review` run writes a new timestamped version and never overwrites an older one**, so
+takes can be compared side by side; that comparison is how "the move does not move" and the white scene 3
+were both caught. A `-latest` symlink points at the newest of each. `--label v3` names a version by hand.
 
 `npm run tutorial:review` writes the three artifacts a person needs, so nobody has to go looking for
 them — **watch** `~/Movies/wikibento-tutorial.mp4`, **listen** to `~/Movies/wikibento-narration.m4a`

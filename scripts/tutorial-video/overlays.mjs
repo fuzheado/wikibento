@@ -23,7 +23,7 @@
  * Output: <out>/overlays/<scene-id>-{badge,note,cap0,cap1,...}.png
  */
 import { createRequire } from 'node:module';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync, openSync, readSync, closeSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -89,6 +89,25 @@ const MANIFEST = join(DIR, 'manifest.json');
 const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
 const hashOf = (html) => createHash('sha256').update(html).digest('hex').slice(0, 16);
 
+/**
+ * Is this a PNG with an alpha channel?
+ *
+ * These overlays are full-canvas and mostly empty, so the ONLY thing that makes them overlays is their
+ * transparency. A screenshot without alpha is an opaque white rectangle that whites out the whole
+ * scene — and because renders are cached by content hash, a bad render is cached as current and keeps
+ * doing it. That happened: five of scene 3's PNGs came back rgb24 and blank, so that scene played as
+ * 17 seconds of white while everything said it was fine (found 2026-09-12 by looking at the take).
+ * Colour type 6 in the IHDR chunk is RGBA; 2 is RGB.
+ */
+const isRgbaPng = (file) => {
+  try {
+    const b = Buffer.alloc(26);
+    const fd = openSync(file, 'r');
+    try { readSync(fd, b, 0, 26, 0); } finally { closeSync(fd); }
+    return b.readUInt32BE(0) === 0x89504e47 && b.readUInt32BE(12) === 0x49484452 && b[25] === 6;
+  } catch { return false; }
+};
+
 const jobs = [];
 for (const scene of timeline.scenes) {
   jobs.push({ file: `${scene.id}-badge.png`, html: badgeHtml(scene) });
@@ -110,7 +129,14 @@ for (const scene of timeline.scenes) {
 for (const f of Object.keys(manifest)) if (!planned.has(f)) delete manifest[f];
 
 for (const job of jobs) job.hash = hashOf(job.html);
-const todo = FORCE ? jobs : jobs.filter((j) => !existsSync(join(DIR, j.file)) || manifest[j.file] !== j.hash);
+// Re-render when the file is missing, when the markup changed, or when the file on disk is not a
+// transparent PNG — a cached bad render must never be treated as current
+const todo = FORCE ? jobs : jobs.filter((j) => {
+  const f = join(DIR, j.file);
+  return !existsSync(f) || manifest[j.file] !== j.hash || !isRgbaPng(f);
+});
+const suspect = jobs.filter((j) => existsSync(join(DIR, j.file)) && !isRgbaPng(join(DIR, j.file)));
+if (suspect.length) console.log(`re-rendering ${suspect.length} overlay(s) that lost their transparency: ${suspect.map((j) => j.file).join(', ')}`);
 if (!todo.length) {
   console.log(`overlays up to date (${jobs.length}) → ${DIR}`);
   process.exit(0);
@@ -121,9 +147,28 @@ const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] }
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 for (const job of todo) {
-  await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(job.html)}`, { waitUntil: 'domcontentloaded' });
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: join(DIR, job.file), omitBackground: true });
+  let ok = false;
+  for (let attempt = 0; attempt < 2 && !ok; attempt += 1) {
+    await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(job.html)}`, { waitUntil: 'load' });
+    await page.evaluate(() => document.fonts.ready);
+    // make sure there is something painted and laid out before the shot: a screenshot of an unpainted
+    // page is blank, and blank plus opaque is exactly what whited out scene 3
+    const painted = await page.evaluate(() => {
+      const el = document.querySelector('body *');
+      if (!el) return 0;
+      const r = el.getBoundingClientRect();
+      return Math.round(r.width) + Math.round(r.height) + (document.body.innerText || '').trim().length;
+    });
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    await page.screenshot({ path: join(DIR, job.file), omitBackground: true });
+    ok = isRgbaPng(join(DIR, job.file)) && painted > 0;
+    if (!ok) console.log(`   ⚠ ${job.file} came back without transparency (painted=${painted}) — retrying`);
+  }
+  if (!ok) {
+    console.error(`✘ ${job.file}: could not render a transparent overlay — refusing to cache it. ` +
+      `An opaque one whites out the whole scene.`);
+    process.exit(1);
+  }
   manifest[job.file] = job.hash;
   writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 }

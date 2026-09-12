@@ -368,6 +368,10 @@ the ✕ first** so the Marie Curie widget is built on an empty grid, its figure 
 (the recorder captures the pre-apply value, clicks Apply & Reload, and polls — `207,055,573 → 161,964`),
 and the URL pill shows the address **decoded**. `scenes.json` no longer carries narration or captions.
 
+**Versions are kept:** `tutorial:review` writes `wikibento-tutorial-<stamp>.mp4` (+ narration, transcript,
+subtitles) and a `-latest` symlink, so takes no longer overwrite each other and can be compared
+(`--label v3` names one by hand).
+
 **Second review pass 2026-09-12:** the tutorial is **3:00** (was 3:41) — the ending was over-explained, so
 scene 7 is two beats about a *JSON file on a wiki* (no MediaWiki-API or CORS talk) and scene 8 ends on the
 payoff plus the share/QR. The widget in scene 5 now actually moves (the zoom on that beat was transforming

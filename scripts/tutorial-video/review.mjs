@@ -10,9 +10,13 @@
  * 0.5s into each scene, so a reader watching the video and a reader listening to the audio land on the
  * same line. Generated rather than hand-kept, because a stale transcript is worse than none.
  *
- * Usage: node scripts/tutorial-video/review.mjs [--out DIR] [--dest ~/Movies]
+ * **Every run writes a NEW, timestamped version and never overwrites an old one**, so takes can be
+ * compared side by side (that is how "the move does not move" and a scene that had gone white were both
+ * caught). A `-latest` symlink points at the newest of each, for convenience.
+ *
+ * Usage: node scripts/tutorial-video/review.mjs [--out DIR] [--dest ~/Movies] [--label v3]
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, symlinkSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -52,17 +56,24 @@ for (const scene of timeline.scenes) {
 }
 
 // 1. the video + its subtitles
-const videoOut = join(DEST, 'wikibento-tutorial.mp4');
+// a stamp per run: either --label v3 (a name you choose) or the local date and time
+const now = new Date();
+const pad = (n) => String(n).padStart(2, '0');
+const STAMP = arg('label', null) || `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+  `-${pad(now.getHours())}${pad(now.getMinutes())}`;
+const named = (what, ext) => join(DEST, `wikibento-${what}-${STAMP}${ext}`);
+
+const videoOut = named('tutorial', '.mp4');
 copyFileSync(VIDEO, videoOut);
 let srtOut = null;
 if (existsSync(join(OUT, 'wikibento-tutorial.srt'))) {
-  srtOut = join(DEST, 'wikibento-tutorial.srt');
+  srtOut = named('tutorial', '.srt');
   copyFileSync(join(OUT, 'wikibento-tutorial.srt'), srtOut);
 }
 
 // 2. the narration alone, taken from the video's own audio track: it is already muxed correctly, so
 //    there is no packet-level surgery on Ogg Opus boundaries (which glitches)
-const audioOut = join(DEST, 'wikibento-narration.m4a');
+const audioOut = named('narration', '.m4a');
 execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', VIDEO,
   '-vn', '-c:a', 'aac', '-b:a', '96k', audioOut], { stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -93,12 +104,32 @@ for (const scene of timeline.scenes) {
   }
   lines.push('');
 }
-const textOut = join(DEST, 'wikibento-transcript.txt');
+const textOut = named('transcript', '.txt');
 writeFileSync(textOut, lines.join('\n'));
 
 const beats = (timing ? Object.values(timing.scenes) : []).reduce((n, s) => n + s.beats.length, 0);
-console.log('review bundle — nothing to hunt for:');
+// a -latest symlink for each artifact, so the newest is always easy to open without hunting
+for (const [link, target] of [['tutorial.mp4', videoOut], ['narration.m4a', audioOut],
+                              ['transcript.txt', textOut], ...(srtOut ? [['tutorial.srt', srtOut]] : [])]) {
+  const l = join(DEST, `wikibento-${link.replace(/(\.\w+)$/, '-latest$1')}`);
+  rmSync(l, { force: true });
+  try { symlinkSync(target, l); } catch { /* symlinks are a convenience, not a requirement */ }
+}
+
+console.log(`review bundle (version ${STAMP}) — nothing to hunt for:`);
 console.log(`  watch      ${videoOut}   (${dur(videoOut).toFixed(0)}s, with picture)`);
 if (srtOut) console.log(`  subtitles  ${srtOut}`);
 console.log(`  listen     ${audioOut}   (${dur(audioOut).toFixed(0)}s, voice only)`);
 console.log(`  follow     ${textOut}   (${beats} beats, timestamped to the video)`);
+
+// list the versions so takes can be compared, newest first
+const versions = readdirSync(DEST)
+  .filter((f) => /^wikibento-tutorial-.*\.mp4$/.test(f) && !f.includes('-latest'))
+  .sort().reverse();
+if (versions.length > 1) {
+  console.log(`\n  other versions in ${DEST} (newest first):`);
+  for (const v of versions) {
+    const p = join(DEST, v);
+    console.log(`    ${v}   ${dur(p).toFixed(0)}s${v === `wikibento-tutorial-${STAMP}.mp4` ? '   ← this run' : ''}`);
+  }
+}
