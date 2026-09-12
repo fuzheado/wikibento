@@ -142,6 +142,15 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
+### Fifth note 2026-09-12: a highlight reveals its own target
+
+"A gallery of images" was said while the gallery sat below the fold — the board is taller than the viewport.
+The fix is in the engine, not the scene: before drawing a ring or a zoom, `revealSelector()` scrolls the target
+into view (smoothly, only if it is actually off screen) and waits for the scroll to settle, so the order is
+always **reveal → settle → measure → draw**. Measuring before a scroll would place the ring in the wrong spot.
+The project's `hoverWidget()` does the same, so the pointer and the highlight agree. Any future marker is now
+covered by construction — the scene did not have to know the gallery was off screen.
+
 ### Fourth review pass 2026-09-12 (the showcase board, and speed)
 
 - **Hear something, see something.** Scene 1 promised "a pageview count, a table, a chart, a gallery" over

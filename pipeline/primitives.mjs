@@ -85,6 +85,31 @@ export async function hoverSelector(page, selector) {
 export const dataUrl = (html) => `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 export const escHtml = (s) => String(s).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
 
+/**
+ * Bring a selector into view before anything is drawn on it, and wait for the scroll to settle.
+ *
+ * A highlight is only a highlight if the viewer can see the thing — and a board, a document or a long page is
+ * routinely taller than the viewport, so the widget being named can be below the fold. (This was a real note
+ * on the finished take: the narration said "a gallery of images" while the gallery was off screen.) Drawing a
+ * ring at coordinates read before a scroll also lands it in the wrong place, so the order is always
+ * reveal → settle → measure → draw.
+ */
+export async function revealSelector(page, selector, { block = 'center', margin = 60, settleMs = 650 } = {}) {
+  const moved = await page.evaluate(([sel, blk, m]) => {
+    let el = null;
+    try { el = document.querySelector(sel); } catch { return false; }
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    const vh = window.innerHeight, vw = window.innerWidth;
+    const off = r.bottom > vh - m || r.top < m || r.right > vw - 40 || r.left < 40;
+    if (!off) return false;
+    el.scrollIntoView({ block: blk, inline: 'nearest', behavior: 'smooth' });
+    return true;
+  }, [selector, block, margin]);
+  if (moved) await settle(page, settleMs);
+  return moved;
+}
+
 // ── the beat clock ──────────────────────────────────────────────────────────
 let T0 = Date.now();
 

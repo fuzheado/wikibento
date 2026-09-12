@@ -12,7 +12,7 @@
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import {
-  settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, at, spread,
+  settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, at, spread, revealSelector,
 } from '../pipeline/primitives.mjs';
 
 /** set by the engine before any scene runs, so this module knows where to write and what to drive */
@@ -47,6 +47,7 @@ let PRE_APPLY_VALUE = null;
 
 /** move the pointer onto a widget named by its id — the same names the script's markers use */
 async function hoverWidget(page, id) {
+  await revealSelector(page, `[data-widget-id="${id}"]`);   // scroll it into view first, as the fx layer does
   const box = await fxBox(page, `[data-widget-id="${id}"]`);
   if (!box) { console.log(`   ⚠ no widget "${id}" on this board`); return false; }
   await glide(page, box.x + Math.round(box.width / 2), box.y + 24);

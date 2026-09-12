@@ -14,7 +14,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { resolveOut, arg, loadConfig, cfgPath, playwrightCacheWithFfmpeg } from './paths.mjs';
-import { settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, setClock, at, spread, elapsed } from './primitives.mjs';
+import { settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, setClock, at, spread, elapsed,
+  revealSelector } from './primitives.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
@@ -190,6 +191,7 @@ async function playFx(page, scene) {
     // from the live DOM, and the transform is still animating).
     for (const z of zooms) {
       await at(b.start);
+      await revealSelector(page, z.selector);          // a zoom on something off screen zooms nothing
       const box = await fxBox(page, z.selector);
       if (!box) { console.log(`   ⚠ fx: no element for ${z.selector}`); continue; }
       await page.evaluate(([r, f]) => window.__fx?.zoom(r, f, 600), [box, z.scale || 1.2]);
@@ -202,6 +204,7 @@ async function playFx(page, scene) {
     for (const [i, r] of rings.entries()) {
       const span = Math.max(0.1, b.duration - ringStart);
       await at(b.start + ringStart + (span * i) / Math.max(1, rings.length));
+      await revealSelector(page, r.selector);          // scroll first: a ring drawn pre-scroll lands wrong
       const box = await fxBox(page, r.selector);
       if (!box) { console.log(`   ⚠ fx: no element for ${r.selector}`); continue; }
       await page.evaluate(([rect, ms]) => window.__fx?.ring(rect, ms), [box, 1100]);
