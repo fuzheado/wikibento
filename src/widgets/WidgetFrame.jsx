@@ -62,7 +62,7 @@ function ParamPicker({ value, paramSpecs, onChange }) {
           <span>{spec.label || name} <code>{name}</code></span>
         </label>
       ))}
-      <small className="config-hint">Only checked params render on this card — none checked shows all.</small>
+      <small className="config-hint">Only checked params render on this widget — none checked shows all.</small>
     </div>
   );
 }
@@ -954,7 +954,7 @@ function QrCard({ data }) {
       {(data.note || data.dense) && (
         <div className="qr-notes">
           {data.note ? <span className="qr-warn">{data.note}</span> : null}
-          {data.dense ? <span className="qr-warn">dense — scan from a larger card, or print it</span> : null}
+          {data.dense ? <span className="qr-warn">dense — scan from a larger widget, or print it</span> : null}
         </div>
       )}
     </div>

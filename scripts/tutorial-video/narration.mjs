@@ -157,6 +157,7 @@ const timing = existsSync(TIMING) ? JSON.parse(readFileSync(TIMING, 'utf8')) : {
 
 let synthesized = 0, cached = 0, failed = 0, spokenTotal = 0;
 for (const scene of targets) {
+  let spokenHere = 0;                     // per scene, so the printed figure is not cumulative
   const beats = scene.beats.filter((b) => b.text && !b.silent);
   const captions = captionsOf(scene);
   const files = [];
@@ -201,6 +202,7 @@ for (const scene of targets) {
       zoom: beat.zoom, ring: beat.ring, sound: beat.sound, action: beat.action,
     });
     spokenTotal += dur;
+    spokenHere += dur;
     t += dur + GAP;
   }
 
@@ -215,7 +217,7 @@ for (const scene of targets) {
     offsetsFrom: 'start of the scene audio track',
   };
   writeFileSync(TIMING, `${JSON.stringify(timing, null, 2)}\n`);
-  console.log(`  ${scene.id.padEnd(12)} ${marks.length} beats · ${spokenTotal.toFixed(1)}s spoken` +
+  console.log(`  ${scene.id.padEnd(12)} ${marks.length} beats · ${spokenHere.toFixed(1)}s spoken` +
     ` + ${(marks.length - 1) * GAP}s gaps → ${total.toFixed(1)}s track`);
   for (const m of marks) {
     const fx = [m.zoom.length && '🔍', m.ring.length && '⭕', m.sound.length && '🔊'].filter(Boolean).join('');

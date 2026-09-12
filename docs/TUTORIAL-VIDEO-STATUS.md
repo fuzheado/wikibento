@@ -1,6 +1,6 @@
 # Tutorial video — pipeline status
 
-**Status as of 2026-09-11.** What the pipeline is, what is verified working, what is still missing,
+**Status as of 2026-09-12.** What the pipeline is, what is verified working, what is still missing,
 and how to check any of it. Written so the work can be resumed from this file alone.
 
 **One-line verdict:** `SCRIPT.md` is now the pipeline's real input — it is parsed into beats, the
@@ -88,6 +88,36 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   actions began; the old blank-pixel heuristic trimmed only ~1s of that, so nine seconds of loading
   sat at the head of the take. `build.mjs` now trims the recorder's own measurement.
 - 312 tests, `docs-facts` 7/7.
+
+### Review pass 2026-09-12 (from watching the take)
+
+- **Everything is a widget now.** The narration said “card” in some scenes and “widget” in others, which
+  makes a viewer wonder whether they are different things. The script says widget throughout, a test
+  (`the script only ever calls a widget a widget`) keeps it that way, and the **product copy was fixed to
+  match** — the Reset dialog, the picker's widget descriptions, the config panel's “Params on this
+  widget”, two widget hints and the QR warning all said “card”, and the dialog and picker are on camera.
+  “Card” now means only the video's own title and closing screens.
+- **Scene 1 introduces the noun and what a widget can hold** — “Every box here is a widget. A widget shows
+  one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another
+  service worth composing with.” Tightened to ~36s after a first attempt ran to 40s.
+- **The title card is 2.5s, not 4.5s** — scenery, not content; the reviewer wanted the tutorial to start
+  sooner.
+- **Scene 4 starts by clearing the board.** It removes all three starter widgets with their ✕ (which is
+  how you start from nothing), then adds Article Pageviews and points it at Marie Curie on an otherwise
+  empty grid — the widget is readable instead of cramped in a corner next to three others.
+- **The Marie Curie figure really changes now.** Two bugs: the recorder set the field and moved on (the
+  narration's “watch it fetch real data” was false — also because `Enter` submitted the field's form and
+  closed the panel, so the project-selector ring had nothing to draw on), and the check that was supposed
+  to catch it read its baseline *after* applying, so it could not see a change. Now the pre-apply figure
+  is captured first, the subject is applied with the panel's own **Apply & Reload**, and the recorder
+  polls until the figure differs — it reports `207,055,573 → 161,964 (📊 Marie Curie…)` in 0.4s.
+  That also removed a 17s and a 15s beat overrun, and the clip went 65s → 49s.
+- **The URL pill shows the address decoded** — `?config=https://w.wiki/TR9R`, not `%3A%2F%2F` — because
+  the escaping is what makes the link work, not what makes it readable.
+- **`scenes.json` stopped carrying the words.** Its `narration` and `captions` copies are gone (`SCRIPT.md`
+  owns both), and the on-screen step badge now takes its number and title from the script, so a heading
+  edit cannot leave a stale title on screen. What remains is per-scene setup only:
+  `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
 ### Fixed along the way (each found by reading frames, not logs)
 

@@ -12,97 +12,56 @@
       "step": 1,
       "title": "What WikiBento is",
       "note": "wikibento.toolforge.org",
-      "start": "home",
-      "narration": "WikiBento is a dashboard you build yourself, out of live Wikimedia data. There is no login and no server to run: you drag cards onto a grid, point each one at a subject, and it fetches the data straight from the Wikimedia APIs. What you are looking at is the starter board \u2014 three cards: pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias. All of it is live.",
-      "captions": [
-        "WikiBento: a dashboard you build from live Wikimedia data",
-        "No login. No server. Cards on a grid."
-      ]
+      "start": "home"
     },
     {
       "id": "02-read",
       "step": 2,
       "title": "Read a board someone shared",
       "note": "wikibento.toolforge.org/?config=https://w.wiki/TR9R",
-      "start": "config:https://w.wiki/TR9R",
-      "narration": "Boards travel as URLs. This one is the WikiPortraits demo, and the entire configuration is in the link: config equals, followed by a wiki page address. WikiBento fetches that page and builds the board from it. Every card has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it. The name chip next to the title is the card's identity \u2014 other cards can refer to it by that name.",
-      "captions": [
-        "A board is a URL: ?config=<wiki page address>",
-        "\u24d8 where the data comes from \u00b7 \u2699 settings \u00b7 \u21bb refresh \u00b7 \u2715 remove"
-      ]
+      "start": "config:https://w.wiki/TR9R"
     },
     {
       "id": "03-reset",
       "step": 3,
       "title": "Clear it and start your own",
       "note": "wikibento.toolforge.org",
-      "start": "home",
-      "narration": "To start your own board, you can clear this one. Reset asks first \u2014 you can go back to the starter set, or begin with an empty board. Anything you had is gone, so export first if you want to keep it. From here, everything you add is yours.",
-      "captions": [
-        "\u21ba Reset asks first: starter set, or a blank board",
-        "Export first if you want to keep a board"
-      ]
+      "start": "home"
     },
     {
       "id": "04-add",
       "step": 4,
-      "title": "Add a card and point it at a subject",
+      "title": "Clear the board, then add a widget",
       "note": "Add Widget \u2192 search \u2192 \uff0b \u2192 \u2699",
-      "start": "home",
-      "narration": "Click Add Widget. The picker lists every card type, grouped by category, and you can search it. I will search for pageviews and add Article Pageviews. A new card appears with a placeholder subject. Open its gear to configure it: here is the article field \u2014 type or paste the exact article title \u2014 and the project selector beside it. Watch the total and the daily bars fill in with real data for that article. Anything you change takes effect immediately.",
-      "captions": [
-        "+ Add Widget: search or browse by category",
-        "\u2699 Configure: set the article, pick the project \u2014 it updates live"
-      ]
+      "start": "home"
     },
     {
       "id": "05-move",
       "step": 5,
       "title": "Move and resize",
       "note": "drag the top bar to move \u00b7 the corner to resize",
-      "start": "home",
-      "narration": "Drag a card by its top bar to move it, and the rest of the board reflows around it. Drag the bottom corner to resize. The grid keeps everything aligned, and each card has a minimum size so it cannot be squashed into something unreadable.",
-      "captions": [
-        "Drag by the top bar to move \u00b7 drag the corner to resize",
-        "The grid keeps the board aligned"
-      ]
+      "start": "home"
     },
     {
       "id": "06-export",
       "step": 6,
       "title": "Export the board",
       "note": "\u2b07 Export \u2192 dashboard.json",
-      "start": "home-addpageviews",
-      "narration": "When the board looks right, click Export. WikiBento writes the whole thing \u2014 every card, its settings, and its position \u2014 as a small JSON file. That file is the board: there is nothing else to save.",
-      "captions": [
-        "\u2b07 Export writes the whole board as JSON",
-        "Cards + settings + positions \u2014 that file is the board"
-      ]
+      "start": "home-addpageviews"
     },
     {
       "id": "07-store",
       "step": 7,
       "title": "Put the JSON where it can be fetched",
       "note": "commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json",
-      "start": "wikiPage:https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json",
-      "narration": "That JSON needs a home your browser can read. The easy place is a wiki page: paste it onto a subpage of your user page, and it lives there with the wiki's own history and permissions. WikiBento reads wiki pages through the CORS-enabled MediaWiki API, which is why this works without any extra hosting. This is the page behind the demo board. If you host the file somewhere else instead, it has to allow cross-origin requests \u2014 otherwise you will see \"could not load dashboard from URL\" and the board falls back to the starter set.",
-      "captions": [
-        "Paste the JSON into a wiki page (e.g. your user subpage)",
-        "Wiki pages work: the app reads them via the CORS-enabled MediaWiki API",
-        "Other hosts must allow cross-origin requests, or the load fails"
-      ]
+      "start": "wikiPage:https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json"
     },
     {
       "id": "08-reload",
       "step": 8,
       "title": "Load it anywhere",
       "note": "wikibento.toolforge.org/?config=https://w.wiki/TR9R",
-      "start": "config:https://w.wiki/TR9R",
-      "narration": "And that is the payoff. Your wiki page plus config equals is a complete, portable board. Open that URL on any machine, or on a lobby kiosk, and the same dashboard appears. The link is the whole thing: share it, bookmark it, or turn it into a QR code.",
-      "captions": [
-        "The link IS the board \u2014 portable, bookmarkable, kiosk-ready",
-        "Share it, or make a QR code"
-      ]
+      "start": "config:https://w.wiki/TR9R"
     }
   ]
 }

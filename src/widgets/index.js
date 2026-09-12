@@ -534,9 +534,9 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Text / Markdown',
     icon: '📝',
-    description: 'Free-form Markdown card — notes, headings, links, explanations',
+    description: 'Free-form Markdown widget — notes, headings, links, explanations',
     defaults: {
-      text: '## Welcome\n\nThis is a **Markdown** card. Click ⚙ to edit the text.',
+      text: '## Welcome\n\nThis is a **Markdown** widget. Click ⚙ to edit the text.',
       allowExternalImages: false,
       refreshSeconds: 86400,
     },
@@ -576,7 +576,7 @@ export const WIDGET_TYPES = {
         type: 'textarea',
         rows: 4,
         placeholder: 'https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons',
-        hint: 'Any text works; a URL is the common case. Board params ({{param}}) and other widgets\' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews card has selected).',
+        hint: 'Any text works; a URL is the common case. Board params ({{param}}) and other widgets\' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews widget has selected).',
       },
       {
         key: 'ecLevel',
@@ -1277,7 +1277,7 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'title', label: 'Title', type: 'text', placeholder: 'Board Controls' },
       { key: 'spec', label: 'Params (one per line: name | type | Label | options)', type: 'textarea', rows: 6, placeholder: 'category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\ncount | number | Photos | 3, 12, 1\nmonth | month | Data month\nyear | select | Year | 2023, 2024\ninstitution | lookup | Institution | cim-category', hint: 'One param per line — name | type | Label | options. Types: buttons/select/text/number/month/lookup. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). lookup (ISSUE-68): a validated combobox — the 4th field is the option SOURCE (cim-category, commons-category, commons-file, article, wikidata-item), so the value is suggested and checked against live Wikimedia data. Saving updates the board params; widgets referencing {{name}} re-fetch.' },
-      { key: 'show', label: 'Params on this card', type: 'params', hint: 'Only the checked params render here — lets you split controls across cards (one for the article, one for the language). None checked = every board param.' },
+      { key: 'show', label: 'Params on this widget', type: 'params', hint: 'Only the checked params render here — lets you split controls across widgets (one for the article, one for the language). None checked = every board param.' },
     ],
     // Static — the spec (params block) + values + setter arrive as WidgetFrame props;
     // transform carries the title + this card's param allow-list (ISSUE-59).

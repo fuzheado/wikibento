@@ -765,7 +765,7 @@ const handleAutoHeight = useCallback((id, px) => {
       {showResetDialog && (
         <ConfirmDialog
           title="Start a new board?"
-          message="This clears the current board — every card, and the board's parameters. It cannot be undone, so export first if you want to keep it. Choose what to start from: the three-card starter set, or an empty board."
+          message="This clears the current board — every widget, and the board's parameters. It cannot be undone, so export first if you want to keep it. Choose what to start from: the three-card starter set, or an empty board."
           cancelLabel="Cancel"
           secondaryLabel="Blank board"
           onSecondary={() => handleReset('blank')}

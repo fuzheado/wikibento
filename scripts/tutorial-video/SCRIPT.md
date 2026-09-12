@@ -46,21 +46,28 @@ words or a shorter action.
 
 ## 1. What WikiBento is
 
-`scene 01-what` · starts from: the starter board (three cards) · target ~27s
+`scene 01-what` · starts from: the starter board (three widgets) · target ~30s
 
 1. 🗣 "WikiBento is a dashboard you build yourself, out of live Wikimedia data."
    🖱 board already loaded; no pointer movement — let the numbers be read
-2. 🗣 "There is no login and no server to run: you drag cards onto a grid, point each one at a subject, and it fetches the data straight from the Wikimedia APIs."
+2. 🗣 "Every box here is a widget. A widget shows one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another service worth composing with."
    🖱 slow pointer drift across the board; nothing clicked
-3. 🗣 "What you are looking at is the starter board — three cards: pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
-   🖱 point at each card in turn (a quick pulse, not a click), one per clause
-   ⭕ @ .grid-item:nth-child(1) .widget-title — as the first card is named
+   🔍 1.2× @ .grid-item:nth-child(1) — a gentle push on the first widget while it is being described
+3. 🗣 "This is the starter board: three widgets — pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
+   🖱 point at each widget in turn (a quick pulse, not a click), one per clause
+   ⭕ @ .grid-item:nth-child(1) .widget-title — as the first widget is named
    ⭕ @ .grid-item:nth-child(2) .widget-title — as the link count is named
    ⭕ @ .grid-item:nth-child(3) .widget-title — as the ranking is named
-   🔍 1.2× @ .grid-item:nth-child(3) — push onto the third card for the last clause, held to the end of the sentence
-4. 🗣 "All of it is live."
-   🖱 settle; pointer away from the cards
+4. 🗣 "No login, no server to run: you drag widgets onto the grid and point each one at a subject."
+   🖱 settle; pointer stays with the board
+5. 🗣 "And all of it is live."
+   🖱 pointer away from the widgets
    📝 "Live data · no login · no server"
+
+Words: the tutorial says **widget** everywhere, and only ever widget — it is what the product calls
+them (the button says “+ Add Widget”), and calling the same box a “card” in one scene and a “widget” in
+the next makes the viewer wonder whether they are different things. “Card” is reserved for the video's
+own title and closing screens.
 
 Zoom: **accepted 2026-09-11**, and wired the same day — the fx layer is applied inside the page (a CSS
 transform on `#root`, and a red ring drawn over the target), so it is part of the recording rather than
@@ -77,10 +84,12 @@ that time it come from the voiceover, and the targets come from the `@` selector
    🖱 pointer rests on the address bar area / the board's top bar
    ⭕ @ .fx-url-config — ring the `?config=` part of the URL, exactly your "red circle" case. The
       recorder draws this URL pill, because a browser's address bar is not part of the recording:
-      the frame is the page viewport only.
+      the frame is the page viewport only. It shows the address **decoded** —
+      `?config=https://w.wiki/TR9R`, not the `%3A%2F%2F` form — because the escaping is what makes
+      the link work, not what makes it readable.
 2. 🗣 "WikiBento fetches that page and builds the board from it."
    🖱 slight scroll, or nothing (the board is already built)
-3. 🗣 "Every card has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it."
+3. 🗣 "Every widget has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it."
    🖱 four separate hovers, in that order: ⓘ → ⚙ → ↻ → ✕
    🔍 1.6× @ .grid-item:nth-child(1) .widget-header — the four icons are ~20px each; at 1.6× they are legible on a phone
    ⭕ @ .grid-item:nth-child(1) button[title="About this widget"] — as “the i” is named
@@ -88,7 +97,7 @@ that time it come from the voiceover, and the targets come from the `@` selector
    ⭕ @ .grid-item:nth-child(1) button[title="Refresh"] — as “the arrow” is named
    ⭕ @ .grid-item:nth-child(1) button[title="Remove"] — as “the cross” is named
    (four rings spread across this beat, so each lands on its own name)
-4. 🗣 "The name chip next to the title is the card's identity — other cards can refer to it by that name."
+4. 🗣 "The name chip next to the title is the widget's identity — other widgets can refer to it by that name."
    🖱 hover the name chip; a tooltip appears
    🔍 1.6× @ .grid-item:nth-child(2) .widget-header — hold the zoom, and move the window to include the chip
    ⭕ @ .grid-item:nth-child(2) .widget-id-chip — the name chip itself
@@ -109,11 +118,11 @@ that time it come from the voiceover, and the targets come from the `@` selector
    🖱 click **Starter set**; the board refreshes
 
 **Built 2026-09-11** (this replaced an open question). Reset now asks: it offers the starter set, a
-blank board, or cancel, and it clears the board's `params` block along with the cards. The empty
+blank board, or cancel, and it clears the board's `params` block along with the widgets. The empty
 state says "No widgets yet. Click + Add Widget to get started."
 
 Take note: the recorder clicks **Starter set**, so this scene ends on the board the next scene expects.
-The alternative take — choose **Blank board**, then let scene 4 add the first card to an empty grid — is
+The alternative take — choose **Blank board**, then let scene 4 start from an empty grid — is
 the better story arc (you watch a board being built from nothing), and it needs scene 4's start state
 changed to a blank board along with it. Not done yet.
 
@@ -122,40 +131,49 @@ wanted. The dialog is the warning.
 
 ---
 
-## 4. Add a card and point it at a subject
+## 4. Clear the board, then add a widget and point it at a subject
 
-`scene 04-add` · starts from: the starter board · target ~33s · **the busiest scene; most of the drift is here**
+`scene 04-add` · starts from: the starter board · target ~45s · **the busiest scene; still the most timing risk**
 
-1. 🗣 "Click Add Widget."
+1. 🗣 "Let us start from nothing. Each widget has a cross on its top bar, and that removes it."
+   🖱 click the ✕ on the first widget
+   ⭕ @ .grid-item:nth-child(1) button[title="Remove"] — the cross, just before the click
+2. 🗣 "Remove the other two the same way, and the board is empty."
+   🖱 click the ✕ on the remaining two widgets, one after the other
+   ⭕ @ .grid-item:last-child button[title="Remove"] — the last one, as it goes
+3. 🗣 "Now add a widget: click Add Widget."
    🖱 click ＋ Add Widget
    ⭕ @ .btn.btn-primary — the Add Widget button, just before the click
-2. 🗣 "The picker lists every card type, grouped by category, and you can search it."
+4. 🗣 "The picker lists every widget type, grouped by category, and you can search it."
    🖱 modal opens; a slow scroll through the categories
    🔍 1.25× @ .add-widget-panel — onto the picker for the scroll, then release
-3. 🗣 "I will search for pageviews and add Article Pageviews."
-   🖱 click the search field, type "pageviews" — the typing is timed to this beat; the keystroke sound and
-      typed-text chip are still to come (no audio is recorded, so that is post-production)
+5. 🗣 "Search for pageviews and add Article Pageviews."
+   🖱 click the search field, type "pageviews"
    🔍 1.8× @ .add-widget-search — onto the search field while typing
-   🔊 a soft click per keystroke (throttled — one per ~90ms, not one per character of a fast typist)
+   🔊 a soft click per keystroke (needs post-production — no audio is recorded)
    📝 the typed string shown large, e.g. `pageviews` in a corner chip
-4. 🗣 "A new card appears with a placeholder subject."
-   🖱 the card is added; the modal closes
-   ⭕ @ .grid-item:last-child .widget-title — the card that just appeared
-5. 🗣 "Open its gear to configure it: here is the article field — type or paste the exact article title — and the project selector beside it."
-   🖱 click ⚙, then click into the article field and type the subject — timed to this beat; same note as
-      beat 3 about the zoom, keystroke sound and typed-text chip
+6. 🗣 "A new widget appears with a placeholder subject."
+   🖱 the widget is added; the modal closes
+   ⭕ @ .grid-item:last-child .widget-title — the widget that just appeared
+7. 🗣 "Open its gear to set the subject: the article field is here, and the project selector beside it."
+   🖱 click ⚙, click the article field, set it to Marie Curie, then click **Apply & Reload**
    🔍 1.6× @ .widget-config — hold on the settings panel while the subject is set
    ⭕ @ .widget-config input[placeholder="Main_Page"] — the article field, as it is named
    ⭕ @ .widget-config select — the project selector beside it
-6. 🗣 "Watch the total and the daily bars fill in with real data for that article."
-   🖱 typing stops; the panel stays open; the data lands
-   🔍 1.6× @ .grid-item:last-child — hold on the new card's numbers so the change is visible at phone size
-7. 🗣 "Anything you change takes effect immediately."
-   🖱 close the panel; a small settle
+8. 🗣 "Watch it fetch real data for that article."
+   🖱 **wait for the numbers to actually change** — the recorder polls until the widget's value stops
+      being the Main Page figure, and says so if it never does
+   🔍 1.6× @ .grid-item:last-child — hold on the widget while the data lands
+9. 🗣 "Anything you change takes effect immediately."
+   🖱 close the panel
+
+Why the removals are here: the board is otherwise crowded, the widget being configured sits in the
+bottom-left where it is hard to read, and starting from an empty grid is the moment to show the ✕. The
+narration says the data arrives, so the recorder must **wait for the fetch** (beat 8) rather than move
+on: the first take set the field to Marie Curie and never showed her numbers, which made the line false.
 
 Subject: **Marie Curie** (changed from Albert Einstein, 2026-09-11). A WikiPortraits subject rather
-than a default-looking one, and the recording types this into the article field — so every number on
-screen is hers.
+than a default-looking one.
 
 ---
 
@@ -163,36 +181,36 @@ screen is hers.
 
 `scene 05-move` · starts from: the starter board · target ~16s
 
-1. 🗣 "Drag a card by its top bar to move it, and the rest of the board reflows around it."
-   🖱 drag the first card one column right — **the drag starts on "Drag" and is still moving while the
+1. 🗣 "Drag a widget by its top bar to move it, and the rest of the board reflows around it."
+   🖱 drag the first widget one column right — **the drag starts on "Drag" and is still moving while the
       clause about reflowing is spoken**, which is what the recorder now does: the increments are spread
       across this beat
    🔍 1.15× @ .grid-item:nth-child(1) — only for the duration of the drag (a zoom on a moving target
       is where tutorial videos usually look bad — keep it gentle)
-   ⭕ *not wired, deliberately*: the ring is drawn once, at fixed coordinates, so on the card being
-      moved it would sit still while the card slid out from under it. Reads as noise — stays prose.
+   ⭕ *not wired, deliberately*: the ring is drawn once, at fixed coordinates, so on the widget being
+      moved it would sit still while the widget slid out from under it. Reads as noise — stays prose.
    🔊 optional soft "pick up / put down" ticks — needs post-production; no audio is recorded
 2. 🗣 "Drag the bottom corner to resize."
    🖱 resize from the corner handle
    ⭕ @ .grid-item:nth-child(1) .react-resizable-handle — the corner handle, as the drag starts
-3. 🗣 "The grid keeps everything aligned, and each card has a minimum size so it cannot be squashed into something unreadable."
+3. 🗣 "The grid keeps everything aligned, and each widget has a minimum size so it cannot be squashed into something unreadable."
    🖱 a small overshoot that snaps back (deliberate demonstration of the minimum), or nothing
 
 Measured recipe, so nobody has to rediscover it: one column ≈ 262px of pointer travel at 1920px
-wide; a card in the leftmost column cannot move left (it snaps back); the drag must be handed to
-the card's top bar, not its body. This scene is why it stays on the plain three-card board — with
-extra cards added, the wide bottom card refuses to shift.
+wide; a widget in the leftmost column cannot move left (it snaps back); the drag must be handed to
+the widget's top bar, not its body. This scene is why it stays on the plain three-widget board — the
+wide bottom widget refuses to shift when anything else is added.
 
 ---
 
 ## 6. Export the board
 
-`scene 06-export` · starts from: the board with the added card · target ~15s
+`scene 06-export` · starts from: the board with the added widget · target ~15s
 
 1. 🗣 "When the board looks right, click Export."
    🖱 click ⬇ Export — **on the word "Export"**, which is where the recorder now clicks
    ⭕ @ button[title="Export dashboard config as JSON"] — the Export button, before the click
-2. 🗣 "WikiBento writes the whole thing — every card, its settings, and its position — as a small JSON file."
+2. 🗣 "WikiBento writes the whole thing — every widget, its settings, and its position — as a small JSON file."
    🖱 the download happens; open the downloaded file (we show it from a local copy to avoid a frozen browser download shelf)
    🔍 1.35× @ pre — onto the JSON's first lines (the recorder renders the board's own JSON here,
       because the download event never fires in headless Chromium; see TUTORIAL-VIDEO-STATUS.md)
@@ -226,12 +244,12 @@ are within their beats.
       element to target, so there is nothing to ring. Left as prose rather than faked.
    📝 "Your user subpage — history, permissions and watchlists come free"
 3. 🗣 "WikiBento reads wiki pages through the CORS-enabled MediaWiki API, which is why this works without any extra hosting."
-   🖱 cut to the "two kinds of host" card (rendered, not scraped)
+   🖱 cut to the "two kinds of host" panel (rendered, not scraped)
    📝 "Wiki page ✓  read via the MediaWiki API — no hosting needed"
 4. 🗣 "This is the page behind the demo board."
    🖱 back to the raw page, scrolled to a recognisable line
 5. 🗣 "If you host the file somewhere else instead, it has to allow cross-origin requests — otherwise you will see 'could not load dashboard from URL' and the board falls back to the starter set."
-   🖱 the same card, second line
+   🖱 the same panel, second line
    📝 "Any other host ✗  must allow cross-origin requests (CORS), or the load fails"
 
 ---
@@ -253,7 +271,7 @@ are within their beats.
 
 ---
 
-## End card
+## Closing screen
 
 `scene 99-end` · target 5.5s
 

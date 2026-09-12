@@ -190,21 +190,25 @@ window.__fx = {
     lock.textContent = '🔒';
     lock.style.cssText = 'font-size:17px;opacity:.65';
     const text = document.createElement('span');
-    // NOTE: this string is a JS template literal, so a single backslash before ? would be swallowed
-    // (\`\?\` → \`?\`), leaving an invalid regex, and the WHOLE injected script then fails to parse — which
-    // silently disabled every fx marker in the take, because the calls use optional chaining. Escape it
-    // as \\? so the page receives the regex we mean. Found 2026-09-11 by testing the produced string.
-    const m = String(url).match(/^(.*?)(\\?config=.*)$/);
-    if (m) {
-      text.textContent = m[1];
+    // Show the address DECODED — ?config=https://w.wiki/TR9R rather than %3A%2F%2F — because the escaping
+    // is what makes the link work, not what makes it readable. Parsed with URL() rather than matched with
+    // a regex, which also steps around a template-literal trap: a single backslash before ? is swallowed
+    // when this string is injected, and an invalid regex here silently killed EVERY fx marker in a take
+    // (the calls use optional chaining), so the recorder now checks that the fx layer installed.
+    let head = String(url), cfgText = null;
+    try {
+      const u = new URL(url);
+      const cfg = u.searchParams.get('config');
+      if (cfg) { head = u.origin + u.pathname; cfgText = '?config=' + decodeURIComponent(cfg); }
+    } catch { /* not a URL we can parse — show it as it came */ }
+    text.textContent = head;
+    if (cfgText) {
       const cfg = document.createElement('span');
       cfg.className = 'fx-url-config';
-      cfg.textContent = m[2];
+      cfg.textContent = cfgText;
       cfg.style.cssText = 'color:#8fc0ff;background:rgba(143,192,255,.12);border-radius:6px;' +
         'padding:3px 8px;margin-left:2px';
       text.appendChild(cfg);
-    } else {
-      text.textContent = String(url);
     }
     wrap.append(lock, text);
     document.body.appendChild(wrap);
@@ -301,6 +305,21 @@ async function playFx(page, scene) {
 }
 
 // ── start states: how each scene begins, deterministically ─────────────────
+/** the figure the widget showed before the subject was applied — beat 8 compares against this */
+let PRE_APPLY_VALUE = null;
+
+/** remove the widget at an index via its ✕ on the top bar */
+async function removeWidget(page, index = 0) {
+  const clicked = await page.evaluate((i) => {
+    const card = document.querySelectorAll('.grid-item')[i];
+    const b = card && card.querySelector('button[title="Remove"]');
+    if (b) { b.click(); return true; }
+    return false;
+  }, index);
+  await settle(page, clicked ? 700 : 200);
+  return clicked;
+}
+
 /** open the Add Widget picker */
 async function openPicker(page) {
   await clickHuman(page, 'button:has-text("Add Widget")');
@@ -462,14 +481,27 @@ const STEPS = {
   ],
 
   '04-add': [
-    { beat: 1, label: 'click + Add Widget', run: async (page) => { await openPicker(page); } },
-    { beat: 2, label: 'scroll the categories', run: async (page, b) => {
+    { beat: 1, label: 'remove the first widget with its ✕', run: async (page) => {
+      const before = await cards(page);
+      await removeWidget(page, 0);
+      const after = await cards(page);
+      console.log(`   removed "${before[0]?.title || '?'}" → ${after.length} widget(s) left`);
+    } },
+    { beat: 2, label: 'remove the rest — a clean slate', run: async (page) => {
+      // always index 0: the grid re-flows after each removal, so "the last one" would move
+      let guard = 8;
+      while ((await cards(page)).length && guard--) await removeWidget(page, 0);
+      console.log(`   board cleared → ${(await cards(page)).length} widget(s)`);
+      await settle(page, 500);
+    } },
+    { beat: 3, label: 'click + Add Widget', run: async (page) => { await openPicker(page); } },
+    { beat: 4, label: 'scroll the categories', run: async (page, b) => {
       for (const [i, px] of [180, 180, 180].entries()) {
         await at(spread(b, i, 3));
         await page.evaluate((y) => { const p = document.querySelector('.add-widget-panel'); if (p) p.scrollBy({ top: y, behavior: 'smooth' }); }, px);
       }
     } },
-    { beat: 3, label: 'search for pageviews and add Article Pageviews', run: async (page) => {
+    { beat: 5, label: 'search for pageviews and add Article Pageviews', run: async (page) => {
       const typed = await pickerType(page, 'pageviews');
       await settle(page, 900);
       const list = await page.evaluate(() => Array.from(document.querySelectorAll('.add-widget-item'))
@@ -481,24 +513,22 @@ const STEPS = {
       });
       await settle(page, 900);
     } },
-    { beat: 4, label: 'the card appears; close the picker', run: async (page) => {
+    { beat: 6, label: 'the widget appears; close the picker', run: async (page) => {
       await page.keyboard.press('Escape');
       await settle(page, 700);
     } },
-    { beat: 5, label: 'open its gear and set the article', run: async (page) => {
+    { beat: 7, label: 'open its gear, set the subject, and apply it', run: async (page, b) => {
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
         const gear = all[all.length - 1].querySelector('button[title="Configure"]');
         if (gear) gear.click();
       });
       await settle(page, 900);
-      // Two earlier versions of this failed silently: one clicked at a computed offset (box.x + 40)
-      // which landed outside the input, so focus went to the panel and every keystroke was lost; the
-      // other used elementHandle.click(), which times out because the field sits in a clipped config
-      // panel and never becomes "actionable". The narration promises "type or paste the exact article
-      // title" and "the data fills in for that article" — with the field left empty the card kept
-      // Main_Page and the promise was false. So: click the live coordinates, check that focus really
-      // landed, and fall back to a React-safe programmatic set. The field's value is always logged.
+      // Three earlier versions of this failed, all silently: a click at a computed offset that landed
+      // outside the input (keystrokes lost), elementHandle.click() (times out — the field sits in a
+      // clipped panel), and setting the field without committing it. The narration promises "watch it
+      // fetch real data for that article", so the value must be set AND committed, and the fetch waited
+      // for (beat 8) — the first take set the field, moved on, and left Main Page's figure on screen.
       const spot = await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
         const cfg = all[all.length - 1].querySelector('.widget-config');
@@ -510,6 +540,15 @@ const STEPS = {
         const r = f.getBoundingClientRect();
         return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
       });
+      // remember what the widget shows BEFORE the subject is applied: beat 8 has to prove the figure
+      // changed, and reading the baseline after applying proves nothing (the first attempt did that and
+      // reported "the fetch did not land" while the value had in fact already changed to Marie Curie's).
+      PRE_APPLY_VALUE = await page.evaluate(() => {
+        const all = [...document.querySelectorAll('.grid-item')];
+        const l = all[all.length - 1];
+        return ((l && l.querySelector('.stat-value')) || {}).innerText || null;
+      });
+      console.log(`   before applying: "${(PRE_APPLY_VALUE || '?').trim()}"`);
       let typed = false;
       if (spot) {
         await clickHuman(page, { x: spot.x, y: spot.y });
@@ -519,10 +558,9 @@ const STEPS = {
         });
       }
       if (typed) {
-        const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';  // Control+A is not select-all on macOS
+        const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';   // Control+A is not select-all on macOS
         await page.keyboard.press(`${MOD}+A`);
         await typeHuman(page, 'Marie Curie', 90);
-        await page.keyboard.press('Enter');
       } else {
         console.log('   (field not focusable by click — setting the value directly)');
         await page.evaluate(() => {
@@ -535,19 +573,45 @@ const STEPS = {
           f.dispatchEvent(new Event('input', { bubbles: true }));
           f.focus();
         });
-        await page.keyboard.press('Enter');
       }
-      const fields = await page.evaluate(() => {
-        const all = Array.from(document.querySelectorAll('.grid-item'));
-        const cfg = all[all.length - 1].querySelector('.widget-config');
-        return Array.from(cfg.querySelectorAll('input[type="text"], textarea')).map((x) => (x.value || '').trim());
+      console.log(`   subject set (${typed ? 'typed' : 'set directly'})`);
+      // Apply at the END of the beat, and do not press Enter: the field is in a form, so Enter submits
+      // it and the panel closes — which took the project-selector ring's target away mid-beat.
+      await at(Math.max((Date.now() - T0) / 1000 + 1.5, b ? b.end - 0.8 : 0));
+      const applied = await page.evaluate(() => {
+        const btns = [...document.querySelectorAll('.widget-config button, .add-widget-panel button')];
+        const b = btns.find((x) => /apply\s*&?\s*reload/i.test(x.innerText || ''));
+        if (b) { b.click(); return b.innerText.trim(); }
+        return null;
       });
-      console.log(`   subject set (${typed ? 'typed' : 'set directly'}) → fields: ${JSON.stringify(fields)}`);
+      console.log(applied ? `   clicked "${applied}"` : '   ⚠ no Apply & Reload button found — Enter only');
     } },
-    { beat: 6, label: 'the data lands for that article', run: async (page) => {
-      await settle(page, 1200);        // the card is fetching; this beat is "watch it fill in"
+    { beat: 8, label: 'WAIT for the figure to actually change', run: async (page, b) => {
+      const read = async () => {
+        const c = await cards(page);
+        const last = c[c.length - 1] || {};
+        return { title: (last.title || '').trim(), value: (last.value || '').trim() };
+      };
+      const before = (PRE_APPLY_VALUE || '').trim();
+      // give the fetch the beat it was written for, plus a few seconds — but do not stretch the take
+      // for a fetch that is not coming
+      const budget = Math.min(20, Math.max(6, (b ? b.duration : 4) + 4));
+      const started = Date.now();
+      let now = await read();
+      for (let i = 0; i < Math.ceil((budget * 1000) / 400); i += 1) {
+        await settle(page, 400);
+        now = await read();
+        if (before && now.value && now.value !== before) break;
+      }
+      const waited = ((Date.now() - started) / 1000).toFixed(1);
+      if (before && now.value && now.value !== before) {
+        console.log(`   figure changed after ${waited}s: "${before}" → "${now.value}" (${now.title})`);
+        if (!/marie curie/i.test(now.title)) console.log(`   ⚠ the widget is titled "${now.title}" — expected Marie Curie`);
+      } else {
+        console.log(`   ⚠ still "${now.value}" after ${waited}s (was "${before}") — the fetch did not land`);
+      }
     } },
-    { beat: 7, label: 'close the panel', run: async (page) => {
+    { beat: 9, label: 'close the panel', run: async (page) => {
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
         const gear = all[all.length - 1].querySelector('button[title="Configure"]');

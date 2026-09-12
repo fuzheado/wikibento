@@ -140,7 +140,8 @@ const cardPart = (png, dur) => {
 mkdirSync(join(OUT, 'cards'), { recursive: true });
 let srtTime = 0;
 const srt = [];
-const TITLE_DUR = 4.5, END_DUR = 5.5;
+const TITLE_DUR = 2.5, END_DUR = 5.5;   // the title card is scenery, not content: 2.5s to read three lines
+                                     // (it was 4.5s, which the reviewer called too long a wait before the tutorial starts)
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
 execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });

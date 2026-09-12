@@ -63,15 +63,27 @@ test('a marker with @target is machine-readable; one without is prose only', () 
   assert.equal(prose.scale, null);
 });
 
-test('scene 1 fx is wired: one 1.2× zoom and three rings, each with a target', () => {
+test('scene 1 fx is wired: one gentle zoom and a ring per widget', () => {
   const s = byId.get('01-what');
   const zooms = s.beats.flatMap((b) => b.zoom);
   const rings = s.beats.flatMap((b) => b.ring);
   assert.equal(zooms.length, 1);
   assert.equal(zooms[0].scale, 1.2);
-  assert.equal(zooms[0].selector, '.grid-item:nth-child(3)');
+  // assert the shape, not one particular widget: the script is edited by a human and the target moves
+  assert.match(zooms[0].selector, /^\.grid-item:nth-child\(\d\)$/);
   assert.equal(rings.length, 3);
   for (const r of rings) assert.match(r.selector, /^\.grid-item:nth-child\(\d\) \.widget-title$/);
+});
+
+test('the script only ever calls a widget a widget', () => {
+  // the video says "widget" throughout, because that is what the product calls them; "card" is left for
+  // the video's own title and closing screens. This guards the sweep that made it consistent.
+  const speech = parseScript(SCRIPT).scenes
+    .flatMap((s) => s.beats)
+    .flatMap((b) => [b.text, b.caption].filter(Boolean))
+    .join(' ');
+  const hits = [...speech.matchAll(/.{0,28}\bcards?\b.{0,28}/gi)].map((m) => m[0]);
+  assert.deepEqual(hits, [], `the narration still says "card": ${JSON.stringify(hits)}`);
 });
 
 test('a silent beat (the end card) contributes no narration and no caption', () => {

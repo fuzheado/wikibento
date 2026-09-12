@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-11T14:34:28.311Z",
+ "generatedAt": "2026-09-12T13:57:08.216Z",
  "widgetCount": 39,
  "widgets": [
   {
@@ -454,7 +454,7 @@
    "id": "markdown",
    "name": "Text / Markdown",
    "icon": "📝",
-   "description": "Free-form Markdown card — notes, headings, links, explanations",
+   "description": "Free-form Markdown widget — notes, headings, links, explanations",
    "dataSource": "static (no fetch)",
    "category": "Content & Embeds",
    "type": "embed",
@@ -500,7 +500,7 @@
      "key": "text",
      "type": "textarea",
      "label": "Text or URL to encode ({{params}} / {{widget:id}} resolve here)",
-     "hint": "Any text works; a URL is the common case. Board params ({{param}}) and other widgets' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews card has selected).",
+     "hint": "Any text works; a URL is the common case. Board params ({{param}}) and other widgets' outputs ({{widget:id}}) are substituted before encoding — so a QR can point at whatever the board is currently showing (e.g. the article a pageviews widget has selected).",
      "placeholder": "https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons"
     },
     {
@@ -1384,8 +1384,8 @@
     {
      "key": "show",
      "type": "params",
-     "label": "Params on this card",
-     "hint": "Only the checked params render here — lets you split controls across cards (one for the article, one for the language). None checked = every board param."
+     "label": "Params on this widget",
+     "hint": "Only the checked params render here — lets you split controls across widgets (one for the article, one for the language). None checked = every board param."
     }
    ],
    "defaults": [

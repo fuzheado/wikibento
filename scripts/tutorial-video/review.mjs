@@ -34,7 +34,7 @@ const dur = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
 const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
 const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
-const titles = new Map(plan.scenes.map((s) => [s.id, s.title]));
+const titles = new Map(plan.scenes.map((s) => [s.id, s.title]));   // fallback only: beats.json owns them
 
 let timing = null;
 try { timing = JSON.parse(readFileSync(join(OUT, 'narration', 'timing.json'), 'utf8')); }

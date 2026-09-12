@@ -41,7 +41,7 @@ const INTENT_PATTERNS = [
   { re: /(view|traffic|popular).{0,30}(category|file)/, w: 'cimTrend', reason: 'CIM Views Over Time charts a category\'s monthly pageview trend.' },
   { re: /sparql|query|wikidata/, w: 'sparql', reason: 'SPARQL Query runs any query against Wikidata or Commons.' },
   { re: /(embed|iframe|page).{0,20}(wiki|page)/, w: 'wikiPage', reason: 'Wiki Page embeds any MediaWiki page as an iframe.' },
-  { re: /(note|text|markdown|write)/, w: 'markdown', reason: 'Text/Markdown is a free-form note card.' },
+  { re: /(note|text|markdown|write)/, w: 'markdown', reason: 'Text/Markdown is a free-form note widget.' },
   { re: /gallery|images? (of|from|for) .{0,30}(article|page)/, w: 'gallery', reason: 'Article Gallery shows the significant images of an article.' },
   { re: /leaderboard|ranking|top 100|top100/, w: 'cimLeaderboard', reason: 'CIM Global Leaderboard ranks the most-viewed Commons categories.' },
 ];

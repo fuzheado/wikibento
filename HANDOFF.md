@@ -361,6 +361,13 @@ single `\?` inside the injected fx template literal collapsed to `?`, producing 
 made the whole `window.__fx` script fail to parse — every marker in that take was a silent no-op, so
 the recorder now says so if the fx layer does not install.
 
+**Reviewed and revised 2026-09-12** after watching a take: the tutorial now says **widget** everywhere
+(the product copy was fixed to match — Reset dialog, picker descriptions, config labels), scene 1
+introduces the noun and what a widget can hold, the title card is 2.5s, scene 4 **clears the board with
+the ✕ first** so the Marie Curie widget is built on an empty grid, its figure is now *proved* to change
+(the recorder captures the pre-apply value, clicks Apply & Reload, and polls — `207,055,573 → 161,964`),
+and the URL pill shows the address **decoded**. `scenes.json` no longer carries narration or captions.
+
 **Also queued:** the 3 🔊 sound markers need post-production (no audio is recorded); scene 5's beat 2
 overruns by 0.5s (needs more words or a quicker gesture); and a human listen to the narration. The
 `note` field in scenes.json (the lower-left annotation line) is not derived from SCRIPT.md, which is

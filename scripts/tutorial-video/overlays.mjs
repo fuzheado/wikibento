@@ -42,12 +42,18 @@ const { width: W, height: H } = timeline.video;
 // Captions come from SCRIPT.md's beats (beats.mjs), not from scenes.json's hand-kept copies — one
 // caption per beat, with 📝 overriding the spoken line. Falls back to the timeline's captions for a
 // scene the script does not describe.
-let scriptCaptions = null;
+let scriptScenes = null;
 try {
   const doc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
-  scriptCaptions = new Map(doc.scenes.map((s) => [s.id, s.captions]));
+  scriptScenes = new Map(doc.scenes.map((s) => [s.id, s]));
 } catch { /* no beats.json — use whatever the timeline carries */ }
-const captionsOf = (scene) => scriptCaptions?.get(scene.id) || scene.captions || [];
+const captionsOf = (scene) => scriptScenes?.get(scene.id)?.captions || scene.captions || [];
+/** the badge's step number and title come from SCRIPT.md too — the badge is on screen, so a copy left
+ *  behind in scenes.json would show a stale title the moment the script's heading changed. */
+const badgeOf = (scene) => {
+  const fromScript = scriptScenes?.get(scene.id);
+  return { step: fromScript?.step ?? scene.step, title: fromScript?.title ?? scene.title };
+};
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -62,7 +68,7 @@ const page_ = (inner) =>
   `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">${inner}</body></html>`;
 
 // positions mirror the drawtext coordinates they replace (badge x=36/y=30, note y=H-208, caption y=H-104)
-const badgeHtml = (s) => page_(at(`left:36px;top:26px;font-size:38px;font-weight:700;color:#fff`, `Step ${s.step} · ${s.title}`));
+const badgeHtml = (s) => { const { step, title } = badgeOf(s); return page_(at(`left:36px;top:26px;font-size:38px;font-weight:700;color:#fff`, `Step ${step} · ${title}`)); };
 const noteHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.note));
 const capHtml = (t) =>
   page_(`<div style="position:absolute;left:0;right:0;top:958px;display:flex;justify-content:center">
