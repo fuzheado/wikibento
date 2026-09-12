@@ -184,6 +184,9 @@ for (const scene of scenes) {
   const stretched = dEff * stretch;
   const pad = Math.max(0, target - stretched);
 
+  // the scene's beat windows (with the fx markers attached to them), or undefined if not narrated
+  const beats = TIMING?.scenes?.[scene.id]?.beats;
+
   const inputs = ['-i', clip, '-i', narration];
   const head = lead > 0.05
     ? `[0:v]trim=start=${lead.toFixed(2)},setpts=(PTS-STARTPTS)*${stretch.toFixed(4)}`
@@ -207,12 +210,16 @@ for (const scene of scenes) {
   };
 
   overlay(ov(`${scene.id}-badge.png`));                                  // whole scene
-  if (scene.url) overlay(ov(`${scene.id}-url.png`), [1.0, target]);      // once the page has settled
+  // The lower-left note is a static burn-in of the scene's address (or of a one-line process hint —
+  // `note` in scenes.json is both). Skip it for a scene that rings `.fx-url-config`, because the
+  // recorder drew a live URL pill there: the real href, in-page, with the ?config= part ringable.
+  // Burning the text a second time would just repeat it on screen.
+  const drawsUrlChip = beats?.some((b) => (b.ring || []).some((r) => r.selector === '.fx-url-config'));
+  if (scene.note && !drawsUrlChip) overlay(ov(`${scene.id}-note.png`), [1.0, target]);
 
   // Captions. With a beat timeline each caption sits under the beat that speaks it — the offsets are
   // relative to the beat clock, which is exactly where the clip starts once the lead-in is trimmed,
   // so they need no adjustment. Text comes from SCRIPT.md (per beat; 📝 overrides the spoken line).
-  const beats = TIMING?.scenes?.[scene.id]?.beats;
   const caps = scene.captions || [];
   if (beats?.length) {
     beats.forEach((b, i) => {

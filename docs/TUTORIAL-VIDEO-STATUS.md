@@ -31,7 +31,7 @@ SCRIPT.md  ──parse──▶  beats.json  ──tts──▶  per-beat .ogg +
 | file | role | reads | writes |
 |---|---|---|---|
 | `SCRIPT.md` | **The source of truth**: per-beat spoken lines, captions (📝 overrides), and fx markers. A marker is machine-readable when it names a target — `🔍 1.2× @ .grid-item:nth-child(3)`, `⭕ @ .grid-item:nth-child(1) .widget-title`. | — | (human edits) |
-| `scenes.json` | Only the operational setup prose cannot express: each scene's starting state (`start`), `step`, `title`. | — | — |
+| `scenes.json` | Only the operational setup prose cannot express: each scene's starting state (`start`), `step`, `title`, and its lower-left `note` (the board's address, or a one-line process hint — the field was called `url` until it turned out two of the eight notes are not URLs). | — | — |
 | **`beats.mjs`** | Parses the script into beats; validates it against the scene ids and reports how much fx is still prose. `--check` is the gate; `npm test` covers it. | `SCRIPT.md`, `scenes.json` | `beats.json` |
 | **`narration.mjs`** | Synthesizes **one clip per beat**, measures each, and writes the beat timeline. Providers: edge-tts (default), `say`, piper. Content-hash cached, so an unchanged line is never re-synthesized. | `SCRIPT.md` (via beats.mjs) | `narration/<scene>-b<n>.ogg`, `narration/<scene>.ogg`, `narration/timing.json` |
 | `record.mjs` | Drives the live app and records one clip per scene. Starts a beat clock when the scene's actions begin, waits for each beat before acting, plays the 🔍/⭕ fx in-page, and records the measured lead-in. | `scenes.json`, `narration/timing.json` | `clips/*.webm`, `timeline.json` |
@@ -74,9 +74,15 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   is *byte-identical* to the hand-maintained copy in `scenes.json` (the 8th differs only in quote
   style), so switching the pipeline to the script changed no words. `tests/tutorial-beats.test.mjs`
   (9 cases) pins the parsing rules.
-- **fx is really applied**: the zoom is a CSS transform in-page (text stays crisp because the browser
-  re-renders it) and the ring is an SVG-free overlay drawn over the target — both part of the
-  recording, not post-production.
+- **fx is really applied, on every scene**: 27 markers fire across the eight scenes (the log names
+  each one, and the recorder warns if a target never appears). The zoom is a CSS transform in-page —
+  text stays crisp because the browser re-renders it — and the ring is an overlay drawn over the
+  target; both are part of the recording, not post-production.
+- **The URL pill.** A browser's address bar is not part of a Playwright recording, so two of the
+  script's markers ("ring the `?config=` part", scenes 2 and 8) had no target at all. The recorder now
+  draws a pill showing the real `location.href`, with the `?config=` part in its own span
+  (`.fx-url-config`) for the ring to find — and `build.mjs` skips its static URL burn-in for those
+  scenes so the address is not on screen twice.
 - **The lead-in is measured, not guessed.** Scene 1 spent **10.6s** loading the board before its
   actions began; the old blank-pixel heuristic trimmed only ~1s of that, so nine seconds of loading
   sat at the head of the take. `build.mjs` now trims the recorder's own measurement.
@@ -94,10 +100,11 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
 
 ## Still missing
 
-1. **Most fx markers are still prose.** `tutorial:beats` reports it live: **10 🔍, 2 with a `@target`;
-   15 ⭕, 3 with a `@target`; 3 🔊**. The recorder plays whatever carries a target, so wiring the rest is
-   mostly adding `@ selectors` to `SCRIPT.md` — plus the 3 sound effects, which need post-production
-   because no audio is recorded at all.
+1. **Two markers cannot be wired, and the script says why.** `tutorial:beats` now reports **10 🔍, all 10
+   with a `@target`; 19 ⭕, 17 with a `@target`; 3 🔊**. The two unwired rings are deliberate and noted in
+   `SCRIPT.md`: a ring on scene 5's *moving* card would sit still while the card slid out from under it
+   (it is drawn once, at fixed coordinates), and scene 7's raw wiki page has no title element to ring.
+   The 3 🔊 markers still need post-production, because no audio is recorded at all.
 2. ~~Only scene 1's actions are beat-timed.~~ **Done 2026-09-11**: every scene is a list of steps, each
    naming the beat whose words describe it (`STEPS` in `record.mjs`); the runner waits for that beat and
    warns when a step overruns it. Sub-actions inside one beat are spread across its window, which is how

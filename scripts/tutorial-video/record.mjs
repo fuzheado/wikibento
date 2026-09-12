@@ -173,19 +173,69 @@ window.__fx = {
       });
     }, ms);
   },
+  // A pill showing the URL the board was loaded from, with the ?config= part wrapped in
+  // .fx-url-config so a marker can ring exactly that. The recorder draws it because a browser's own
+  // address bar is NOT part of a Playwright recording — the frame is the page viewport only, so two
+  // of the script's markers ("ring the ?config= part", in scenes 2 and 8) had no target at all until
+  // this existed. It also happens to be the point of both scenes: the URL is the board.
+  urlChip(url) {
+    document.querySelectorAll('.fx-url').forEach((n) => n.remove());
+    const wrap = document.createElement('div');
+    wrap.className = 'fx-url';
+    wrap.style.cssText = 'position:fixed;left:24px;top:18px;z-index:2147483646;display:flex;' +
+      'align-items:center;gap:10px;background:#1b1e23;border:1px solid #2a2f37;border-radius:999px;' +
+      'padding:10px 18px;font:500 22px/1 ui-monospace,Menlo,Consolas,monospace;color:#b9c2cf;' +
+      'box-shadow:0 6px 20px rgba(0,0,0,.45)';
+    const lock = document.createElement('span');
+    lock.textContent = '🔒';
+    lock.style.cssText = 'font-size:17px;opacity:.65';
+    const text = document.createElement('span');
+    // NOTE: this string is a JS template literal, so a single backslash before ? would be swallowed
+    // (\`\?\` → \`?\`), leaving an invalid regex, and the WHOLE injected script then fails to parse — which
+    // silently disabled every fx marker in the take, because the calls use optional chaining. Escape it
+    // as \\? so the page receives the regex we mean. Found 2026-09-11 by testing the produced string.
+    const m = String(url).match(/^(.*?)(\\?config=.*)$/);
+    if (m) {
+      text.textContent = m[1];
+      const cfg = document.createElement('span');
+      cfg.className = 'fx-url-config';
+      cfg.textContent = m[2];
+      cfg.style.cssText = 'color:#8fc0ff;background:rgba(143,192,255,.12);border-radius:6px;' +
+        'padding:3px 8px;margin-left:2px';
+      text.appendChild(cfg);
+    } else {
+      text.textContent = String(url);
+    }
+    wrap.append(lock, text);
+    document.body.appendChild(wrap);
+  },
+  hideUrlChip() { document.querySelectorAll('.fx-url').forEach((n) => n.remove()); },
 };
 'ok';
 `;
 
-/** the on-screen box of a selector, or null if it is not there (or has no size) */
-const fxBox = (page, selector) => page.evaluate((sel) => {
-  let el = null;
-  try { el = document.querySelector(sel); } catch { return null; }
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (!r.width || !r.height) return null;
-  return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
-}, selector);
+/**
+ * The on-screen box of a selector, or null if it never appears.
+ *
+ * Retries, because fx is scheduled on the beat clock and some targets only exist moments later: scene 6
+ * navigates to the JSON page during the same beat that zooms it, and scene 8's QR lives in a panel the
+ * same beat opens. Failing immediately would silently drop those markers.
+ */
+const fxBox = async (page, selector, { tries = 10, delayMs = 250 } = {}) => {
+  for (let i = 0; i < tries; i += 1) {
+    const box = await page.evaluate((sel) => {
+      let el = null;
+      try { el = document.querySelector(sel); } catch { return null; }
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      return { x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) };
+    }, selector);
+    if (box) return box;
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return null;
+};
 
 // ── the beat clock ──────────────────────────────────────────────────────────
 // Beat offsets come from the measured voiceover (narration/timing.json), so an action can be made to
@@ -366,6 +416,10 @@ const STEPS = {
 
   '02-read': [
     { beat: 1, label: 'rest on the first card top bar', run: async (page) => {
+      // show the URL the board was loaded from, so "the entire configuration is in the link" is
+      // something the viewer can see (the browser's own address bar is not recorded)
+      await page.evaluate(() => window.__fx?.urlChip(location.href));
+      await settle(page, 300);
       const c = await cards(page);
       if (c[0]) await clickHuman(page, { x: c[0].box.x, y: c[0].box.y, width: c[0].box.w, height: 34 }, { dx: 60, dy: 16 });
     } },
@@ -555,8 +609,9 @@ const STEPS = {
   '06-export': [
     { beat: 1, label: 'click Export', run: async (page) => {
       // The download event never fires in this headless setup (reproduced, diagnosed 2026-09-11), so
-      // the wait is short: it used to hold 20s and made this take four times longer than its narration.
-      const dl = page.waitForEvent('download', { timeout: 4000 }).catch(() => null);
+      // the wait is short: it used to hold 20s, which made this take four times longer than its
+      // narration, and 4s still overran beat 1 (0-2.9s) in the recorder's own overrun report.
+      const dl = page.waitForEvent('download', { timeout: 1500 }).catch(() => null);
       await clickHuman(page, 'button[title="Export dashboard config as JSON"]');
       const download = await dl;
       if (download) {
@@ -606,6 +661,8 @@ const STEPS = {
 
   '08-reload': [
     { beat: 1, label: 'hover the first card, URL in view', run: async (page) => {
+      await page.evaluate(() => window.__fx?.urlChip(location.href));   // the callback to scene 2
+      await settle(page, 300);
       const c = await cards(page);
       if (c[0]) await clickHuman(page, c[0].box, { dy: 16 });
     } },
@@ -683,6 +740,11 @@ for (const scene of plan.scenes) {
     // Measured rather than guessed, so the trim and the offsets agree exactly.
     leadIn = (Date.now() - ctxStart) / 1000;
     T0 = Date.now();
+    // The fx calls use optional chaining, so a broken fx layer is silent — and a single bad escape in
+    // the injected script once disabled every marker in a whole take (found 2026-09-11). Say so.
+    if (!(await page.evaluate(() => typeof window.__fx === 'object'))) {
+      console.log('   ⚠ fx layer did not install in the page — zoom and ring markers will be skipped');
+    }
     const fx = playFx(page, scene);      // its own schedule, concurrent with the actions below
     await runSteps(page, scene);
     await fx.catch((e) => console.log(`   ⚠ fx error: ${String(e.message).slice(0, 120)}`));

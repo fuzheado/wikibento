@@ -75,18 +75,23 @@ that time it come from the voiceover, and the targets come from the `@` selector
 
 1. 🗣 "Boards travel as URLs. This one is the WikiPortraits demo, and the entire configuration is in the link: config equals, followed by a wiki page address."
    🖱 pointer rests on the address bar area / the board's top bar
-   ⭕ ring the `?config=` part of the URL — this is a small thing to see, exactly your "red circle" case
+   ⭕ @ .fx-url-config — ring the `?config=` part of the URL, exactly your "red circle" case. The
+      recorder draws this URL pill, because a browser's address bar is not part of the recording:
+      the frame is the page viewport only.
 2. 🗣 "WikiBento fetches that page and builds the board from it."
    🖱 slight scroll, or nothing (the board is already built)
 3. 🗣 "Every card has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it."
    🖱 four separate hovers, in that order: ⓘ → ⚙ → ↻ → ✕
-   🔍 zoom 1.6× onto the top bar of ONE card for the whole sentence — the four icons are ~20px each; at 1.6× they are legible on a phone
-   ⭕ ring each icon *as its name is spoken* — the four are spread across this beat, so each lands on its own name
+   🔍 1.6× @ .grid-item:nth-child(1) .widget-header — the four icons are ~20px each; at 1.6× they are legible on a phone
+   ⭕ @ .grid-item:nth-child(1) button[title="About this widget"] — as “the i” is named
+   ⭕ @ .grid-item:nth-child(1) button[title="Configure"] — as “the gear” is named
+   ⭕ @ .grid-item:nth-child(1) button[title="Refresh"] — as “the arrow” is named
+   ⭕ @ .grid-item:nth-child(1) button[title="Remove"] — as “the cross” is named
+   (four rings spread across this beat, so each lands on its own name)
 4. 🗣 "The name chip next to the title is the card's identity — other cards can refer to it by that name."
    🖱 hover the name chip; a tooltip appears
-   🔍 1.6× @ .grid-item:nth-child(2) — hold the zoom and include the name chip (the zoom is wired; this
-      marker needs its target to match the icon zoom above, which is still prose)
-   ⭕ ring the chip
+   🔍 1.6× @ .grid-item:nth-child(2) .widget-header — hold the zoom, and move the window to include the chip
+   ⭕ @ .grid-item:nth-child(2) .widget-id-chip — the name chip itself
 
 ---
 
@@ -96,7 +101,8 @@ that time it come from the voiceover, and the targets come from the `@` selector
 
 1. 🗣 "To start your own board, you can clear this one. Reset asks first — you can go back to the starter set, or begin with an empty board."
    🖱 click ↺ Reset — **on the word "Reset"** — and the dialog opens: Cancel · Blank board · Starter set
-   ⭕ ring the Reset button before the click (1.2s), then ring the two options as each is named
+   ⭕ @ button[title="Reset to defaults"] — so the viewer sees where you are going before the click
+      (the dialog's own buttons are drawn by the app, so they need no ring from us)
 2. 🗣 "Anything you had is gone, so export first if you want to keep it."
    🖱 hold on the dialog, pointer away from the buttons (give the warning room)
 3. 🗣 "From here, everything you add is yours."
@@ -122,27 +128,28 @@ wanted. The dialog is the warning.
 
 1. 🗣 "Click Add Widget."
    🖱 click ＋ Add Widget
-   ⭕ ring the button just before the click
+   ⭕ @ .btn.btn-primary — the Add Widget button, just before the click
 2. 🗣 "The picker lists every card type, grouped by category, and you can search it."
    🖱 modal opens; a slow scroll through the categories
-   🔍 1.25× onto the category column for the scroll, then release
+   🔍 1.25× @ .add-widget-panel — onto the picker for the scroll, then release
 3. 🗣 "I will search for pageviews and add Article Pageviews."
    🖱 click the search field, type "pageviews" — the typing is timed to this beat; the keystroke sound and
       typed-text chip are still to come (no audio is recorded, so that is post-production)
-   🔍 1.8× onto the search field while typing
+   🔍 1.8× @ .add-widget-search — onto the search field while typing
    🔊 a soft click per keystroke (throttled — one per ~90ms, not one per character of a fast typist)
    📝 the typed string shown large, e.g. `pageviews` in a corner chip
 4. 🗣 "A new card appears with a placeholder subject."
    🖱 the card is added; the modal closes
-   ⭕ ring the new card's title
+   ⭕ @ .grid-item:last-child .widget-title — the card that just appeared
 5. 🗣 "Open its gear to configure it: here is the article field — type or paste the exact article title — and the project selector beside it."
    🖱 click ⚙, then click into the article field and type the subject — timed to this beat; same note as
       beat 3 about the zoom, keystroke sound and typed-text chip
-   🔍 1.6× onto the settings panel; hold while typing
-   ⭕ ring the article field, then the project selector, as each is named
+   🔍 1.6× @ .widget-config — hold on the settings panel while the subject is set
+   ⭕ @ .widget-config input[placeholder="Main_Page"] — the article field, as it is named
+   ⭕ @ .widget-config select — the project selector beside it
 6. 🗣 "Watch the total and the daily bars fill in with real data for that article."
    🖱 typing stops; the panel stays open; the data lands
-   🔍 hold the zoom on the card's numbers so the change is visible at phone size
+   🔍 1.6× @ .grid-item:last-child — hold on the new card's numbers so the change is visible at phone size
 7. 🗣 "Anything you change takes effect immediately."
    🖱 close the panel; a small settle
 
@@ -160,12 +167,14 @@ screen is hers.
    🖱 drag the first card one column right — **the drag starts on "Drag" and is still moving while the
       clause about reflowing is spoken**, which is what the recorder now does: the increments are spread
       across this beat
-   🔍 1.15× only for the duration of the drag (a zoom on a moving target is where tutorial videos usually look bad — keep it gentle)
-   ⭕ thin ring on the card being moved, following it — or nothing, if it reads as noise
-   🔊 optional soft "pick up / put down" ticks
+   🔍 1.15× @ .grid-item:nth-child(1) — only for the duration of the drag (a zoom on a moving target
+      is where tutorial videos usually look bad — keep it gentle)
+   ⭕ *not wired, deliberately*: the ring is drawn once, at fixed coordinates, so on the card being
+      moved it would sit still while the card slid out from under it. Reads as noise — stays prose.
+   🔊 optional soft "pick up / put down" ticks — needs post-production; no audio is recorded
 2. 🗣 "Drag the bottom corner to resize."
    🖱 resize from the corner handle
-   ⭕ ring the corner handle before the drag starts, then hide the ring as it moves
+   ⭕ @ .grid-item:nth-child(1) .react-resizable-handle — the corner handle, as the drag starts
 3. 🗣 "The grid keeps everything aligned, and each card has a minimum size so it cannot be squashed into something unreadable."
    🖱 a small overshoot that snaps back (deliberate demonstration of the minimum), or nothing
 
@@ -182,10 +191,11 @@ extra cards added, the wide bottom card refuses to shift.
 
 1. 🗣 "When the board looks right, click Export."
    🖱 click ⬇ Export — **on the word "Export"**, which is where the recorder now clicks
-   ⭕ ring the button before the click
+   ⭕ @ button[title="Export dashboard config as JSON"] — the Export button, before the click
 2. 🗣 "WikiBento writes the whole thing — every card, its settings, and its position — as a small JSON file."
    🖱 the download happens; open the downloaded file (we show it from a local copy to avoid a frozen browser download shelf)
-   🔍 1.35× onto the JSON's first lines
+   🔍 1.35× @ pre — onto the JSON's first lines (the recorder renders the board's own JSON here,
+      because the download event never fires in headless Chromium; see TUTORIAL-VIDEO-STATUS.md)
 3. 🗣 "That file is the board: there is nothing else to save."
    🖱 scroll the JSON a little
    📝 "dashboard.json — the whole board in one small file"
@@ -212,7 +222,8 @@ are within their beats.
    🖱 the wiki page's raw JSON on screen; pointer at the top
 2. 🗣 "The easy place is a wiki page: paste it onto a subpage of your user page, and it lives there with the wiki's own history and permissions."
    🖱 scroll the page slowly; the page title and the JSON are both visible
-   ⭕ ring the page title (small text — this is another red-circle case)
+   ⭕ *not wired*: on the raw wiki page (`?action=raw`) Chromium renders plain text with no title
+      element to target, so there is nothing to ring. Left as prose rather than faked.
    📝 "Your user subpage — history, permissions and watchlists come free"
 3. 🗣 "WikiBento reads wiki pages through the CORS-enabled MediaWiki API, which is why this works without any extra hosting."
    🖱 cut to the "two kinds of host" card (rendered, not scraped)
@@ -231,12 +242,13 @@ are within their beats.
 
 1. 🗣 "And that is the payoff. Your wiki page plus config equals is a complete, portable board."
    🖱 the board as it loads; the URL visible at the top
-   ⭕ ring the `?config=` part again — the callback to scene 2 is the point of the whole video
+   ⭕ @ .fx-url-config — ring the `?config=` part again: the callback to scene 2 is the point of the
+      whole video (same recorder-drawn URL pill as scene 2)
 2. 🗣 "Open that URL on any machine, or on a lobby kiosk, and the same dashboard appears."
    🖱 nothing, or a slow drift; let the board breathe
 3. 🗣 "The link is the whole thing: share it, bookmark it, or turn it into a QR code."
    🖱 open the Share panel and the QR code
-   🔍 1.5× onto the QR code so it is clean enough to understand, not necessarily to scan
+   🔍 1.5× @ .share-qr-card svg — onto the QR code so it is clear enough to understand, not necessarily to scan
    📝 "Share · bookmark · QR code"
 
 ---

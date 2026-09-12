@@ -352,9 +352,19 @@ inside a beat are spread across it, so "four hovers as each icon is named" is fo
 and scene 5's drag continues *while* the reflow clause is spoken. The script's stale ⚠ "the action lands
 after the words" notes are gone.
 
-**Also queued:** wire the rest of the fx markers (mostly adding `@ selectors` in `SCRIPT.md` — 9 of 10
-zooms and 12 of 15 rings are still prose); the 3 🔊 sound markers need post-production (no audio is
-recorded); and the beats that overrun want more words or a quicker action.
+**Done 2026-09-11 (fourth pass):** every fx marker that *can* be drawn now is — **10 of 10 zooms and
+17 of 19 rings** carry a `@target`; the two that do not are deliberate and documented in `SCRIPT.md`
+(a ring cannot follow a card that is being dragged, and the raw wiki page has no title element). The
+recorder draws a **URL pill** so scenes 2 and 8 can actually show `?config=` — a browser's address bar
+is not part of a recording, so those two markers had no target at all before. Found while doing it: a
+single `\?` inside the injected fx template literal collapsed to `?`, producing an invalid regex that
+made the whole `window.__fx` script fail to parse — every marker in that take was a silent no-op, so
+the recorder now says so if the fx layer does not install.
+
+**Also queued:** the 3 🔊 sound markers need post-production (no audio is recorded); scene 5's beat 2
+overruns by 0.5s (needs more words or a quicker gesture); and a human listen to the narration. The
+`note` field in scenes.json (the lower-left annotation line) is not derived from SCRIPT.md, which is
+the one piece of on-screen text the script does not own yet.
 
 **Done 2026-09-11** (the tutorial needed them true, so the product changed rather than the narration):
 Reset now asks — Cancel · **Blank board** · **Starter set** — and clears the board's `params` block;

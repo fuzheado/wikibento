@@ -20,7 +20,7 @@
  *
  * Usage: node scripts/tutorial-video/overlays.mjs [--out DIR] [--force]
  * Input:  <out>/timeline.json   (written by record.mjs)
- * Output: <out>/overlays/<scene-id>-{badge,url,cap0,cap1,...}.png
+ * Output: <out>/overlays/<scene-id>-{badge,note,cap0,cap1,...}.png
  */
 import { createRequire } from 'node:module';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
@@ -61,9 +61,9 @@ const MONO = `font-family:ui-monospace,Menlo,Consolas,monospace`;
 const page_ = (inner) =>
   `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">${inner}</body></html>`;
 
-// positions mirror the drawtext coordinates they replace (badge x=36/y=30, url y=H-208, caption y=H-104)
+// positions mirror the drawtext coordinates they replace (badge x=36/y=30, note y=H-208, caption y=H-104)
 const badgeHtml = (s) => page_(at(`left:36px;top:26px;font-size:38px;font-weight:700;color:#fff`, `Step ${s.step} · ${s.title}`));
-const urlHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.url));
+const noteHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.note));
 const capHtml = (t) =>
   page_(`<div style="position:absolute;left:0;right:0;top:958px;display:flex;justify-content:center">
            ${plate(`background:rgba(0,0,0,.68);font-size:33px;font-weight:700;color:#fff;padding:14px 22px`, t)}</div>`);
@@ -86,7 +86,7 @@ const hashOf = (html) => createHash('sha256').update(html).digest('hex').slice(0
 const jobs = [];
 for (const scene of timeline.scenes) {
   jobs.push({ file: `${scene.id}-badge.png`, html: badgeHtml(scene) });
-  if (scene.url) jobs.push({ file: `${scene.id}-url.png`, html: urlHtml(scene) });
+  if (scene.note) jobs.push({ file: `${scene.id}-note.png`, html: noteHtml(scene) });
   const caps = captionsOf(scene);
   caps.forEach((c, i) => jobs.push({ file: `${scene.id}-cap${i}.png`, html: capHtml(c) }));
 }
