@@ -21,6 +21,7 @@
     "tutorial:narrate": "node scripts/tutorial-video/narration.mjs",
     "tutorial:beats": "node scripts/tutorial-video/beats.mjs",
     "tutorial:build": "node scripts/tutorial-video/build.mjs",
+    "tutorial:review": "node scripts/tutorial-video/review.mjs",
     "update:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs",
     "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check"
   },

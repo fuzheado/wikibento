@@ -41,7 +41,8 @@ SCRIPT.md  ──parse──▶  beats.json  ──tts──▶  per-beat .ogg +
 | `fx-proof.mjs` | The standalone proof the in-page fx came from (zoom, ring, typing clicks, `events.json`). The zoom/ring half now lives in `record.mjs`; this stays as the reference. | — | `events.json` |
 | `paths.mjs` | The shared output-directory rule and the Playwright ffmpeg-cache probe. | argv, env | — |
 
-npm scripts: `tutorial:beats`, `tutorial:narrate`, `tutorial:record`, `tutorial:build`.
+npm scripts: `tutorial:beats`, `tutorial:narrate`, `tutorial:record`, `tutorial:build`,
+`tutorial:review`.
 
 ## Running it
 
@@ -117,6 +118,16 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
 5. **Where the published take lives is not recorded** — no link anywhere in the repo.
 6. **Typing is instantaneous** rather than keystroke-by-keystroke (scene 4), which needs the
    keystroke-chip + click-sound work from `fx-proof.mjs`.
+
+## Reviewing a take
+
+`npm run tutorial:review` writes the three artifacts a person needs, so nobody has to go looking for
+them — **watch** `~/Movies/wikibento-tutorial.mp4`, **listen** to `~/Movies/wikibento-narration.m4a`
+(the take's own audio, 3½ minutes), **follow** `~/Movies/wikibento-transcript.txt` (every beat with its
+position in the *video*, and which fx it triggers). `--dest <dir>` puts them elsewhere.
+
+The transcript is generated from the measured timings rather than hand-kept, because a stale transcript
+is worse than none.
 
 ## How to verify
 

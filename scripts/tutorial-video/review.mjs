@@ -1,0 +1,104 @@
+/**
+ * Build the review bundle: the three artifacts a human needs to check a take without hunting for
+ * anything. Run it after `tutorial:build`.
+ *
+ *   wikibento-tutorial.mp4       the finished take, with picture and sound
+ *   wikibento-narration.m4a      the same audio alone — 3½ minutes to listen to while walking
+ *   wikibento-transcript.txt     every beat with its position in the VIDEO, to follow along in either
+ *
+ * The timings in the transcript are video positions, not narration positions: the scene audio is muxed
+ * 0.5s into each scene, so a reader watching the video and a reader listening to the audio land on the
+ * same line. Generated rather than hand-kept, because a stale transcript is worse than none.
+ *
+ * Usage: node scripts/tutorial-video/review.mjs [--out DIR] [--dest ~/Movies]
+ */
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { resolveOut, arg } from './paths.mjs';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const OUT = resolveOut(arg('out', null));
+const DEST = arg('dest', join(homedir(), 'Movies'));
+const VIDEO = join(OUT, 'wikibento-tutorial.mp4');
+if (!existsSync(VIDEO)) {
+  console.error(`✘ no finished video at ${VIDEO}\n  run: node scripts/tutorial-video/build.mjs --out ${OUT}`);
+  process.exit(2);
+}
+
+const dur = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration',
+  '-of', 'default=noprint_wrappers=1:nokey=1', f], { encoding: 'utf8' }).trim());
+
+const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
+const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
+const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
+const titles = new Map(plan.scenes.map((s) => [s.id, s.title]));
+
+let timing = null;
+try { timing = JSON.parse(readFileSync(join(OUT, 'narration', 'timing.json'), 'utf8')); }
+catch { /* no beat timing: the transcript falls back to scene headings only */ }
+
+mkdirSync(DEST, { recursive: true });
+
+// where each scene begins in the finished video (title card first, end card last)
+const starts = new Map();
+let t = dur(join(OUT, 'build', 'title-card.mp4'));
+for (const scene of timeline.scenes) {
+  starts.set(scene.id, t);
+  const part = join(OUT, 'build', `${scene.id}.mp4`);
+  if (existsSync(part)) t += dur(part);
+}
+
+// 1. the video + its subtitles
+const videoOut = join(DEST, 'wikibento-tutorial.mp4');
+copyFileSync(VIDEO, videoOut);
+let srtOut = null;
+if (existsSync(join(OUT, 'wikibento-tutorial.srt'))) {
+  srtOut = join(DEST, 'wikibento-tutorial.srt');
+  copyFileSync(join(OUT, 'wikibento-tutorial.srt'), srtOut);
+}
+
+// 2. the narration alone, taken from the video's own audio track: it is already muxed correctly, so
+//    there is no packet-level surgery on Ogg Opus boundaries (which glitches)
+const audioOut = join(DEST, 'wikibento-narration.m4a');
+execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', VIDEO,
+  '-vn', '-c:a', 'aac', '-b:a', '96k', audioOut], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+// 3. the transcript, on the video's clock
+const lines = [
+  'WikiBento tutorial — narration transcript',
+  '',
+  'Timings are positions in the VIDEO (wikibento-tutorial.mp4), so the same line numbers work whether',
+  'you watch the take or listen to the audio alone. Text comes from SCRIPT.md via beats.mjs; the',
+  'per-beat timings come from the measured voiceover (narration/timing.json).',
+  '',
+];
+for (const scene of timeline.scenes) {
+  const at = starts.get(scene.id) ?? 0;
+  lines.push(`── ${String(scene.step ?? '').padStart(2, ' ')}. ${titles.get(scene.id) || scene.id}` +
+    `   (${scene.id} · starts ${Math.floor(at / 60)}:${String(Math.round(at % 60)).padStart(2, '0')})`);
+  const beats = timing?.scenes?.[scene.id]?.beats;
+  if (beats) {
+    for (const b of beats) {
+      const s = at + 0.5 + b.start;                      // the scene audio is delayed 0.5s
+      const mark = `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+      const onScreen = new Set([...(b.zoom || []), ...(b.ring || [])].filter((x) => x.selector).map((x) => x.selector));
+      lines.push(`[${mark}]  ${String(b.n).padStart(2)}  ${b.text}${onScreen.size ? `   ⟨on screen: ${[...onScreen].join(', ')}⟩` : ''}`);
+    }
+  } else {
+    const b = beatsDoc.scenes.find((s) => s.id === scene.id);
+    for (const beat of b?.beats || []) lines.push(`         ${String(beat.n).padStart(2)}  ${beat.text}`);
+  }
+  lines.push('');
+}
+const textOut = join(DEST, 'wikibento-transcript.txt');
+writeFileSync(textOut, lines.join('\n'));
+
+const beats = (timing ? Object.values(timing.scenes) : []).reduce((n, s) => n + s.beats.length, 0);
+console.log('review bundle — nothing to hunt for:');
+console.log(`  watch      ${videoOut}   (${dur(videoOut).toFixed(0)}s, with picture)`);
+if (srtOut) console.log(`  subtitles  ${srtOut}`);
+console.log(`  listen     ${audioOut}   (${dur(audioOut).toFixed(0)}s, voice only)`);
+console.log(`  follow     ${textOut}   (${beats} beats, timestamped to the video)`);
