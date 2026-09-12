@@ -25,6 +25,12 @@ recordings, pointed at web apps. Our design is not unusual; it is the emerging n
 So the decision is **graft the commodity parts, keep our pipeline**. What we grafted is listed
 below; the parts we did not take are listed with reasons, so the decision is not re-litigated.
 
+The **technique** is written up separately as a reusable skill —
+`~/.pi/agent/skills/narrated-tutorial-video/SKILL.md` — which is the thing to read before building this
+kind of pipeline again: the architecture, the order to wire it up in, and a catalogue of the traps that
+cost time here (blank lead-ins, stale content-hash caching, React inputs, clipped panels, injected-script
+escapes, encoder probing, and deploy-before-record).
+
 ## What we grafted
 
 | taken | from | why |
