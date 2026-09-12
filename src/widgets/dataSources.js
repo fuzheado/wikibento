@@ -307,7 +307,7 @@ export async function aggregateGlamStats(files, usage, { year, month, topN, show
   const keysToFetch = partialViews
     ? [...pageKeys].sort((a, b) => pages[b].weight - pages[a].weight).slice(0, viewBudget)
     : pageKeys;
-  let viewsFailed = 0; // pages whose view fetch failed (429 after retries / 5xx / network) — surfaced on the card
+  let viewsFailed = 0; // pages whose view fetch failed (429 after retries / 5xx / network) — surfaced on the widgetrd
   await pool(keysToFetch, 6, async (k) => {
     const v = await views(pages[k].wiki, pages[k].page, year, month);
     if (v == null) viewsFailed++;

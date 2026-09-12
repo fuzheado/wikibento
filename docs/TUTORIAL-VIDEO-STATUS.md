@@ -114,6 +114,13 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   That also removed a 17s and a 15s beat overrun, and the clip went 65s → 49s.
 - **The URL pill shows the address decoded** — `?config=https://w.wiki/TR9R`, not `%3A%2F%2F` — because
   the escaping is what makes the link work, not what makes it readable.
+- **The app copy had to change too, and then be deployed before re-recording.** The Reset dialog and the
+  picker are on camera, so the terminology sweep reached `src/` — the dialog, the Markdown widget's text,
+  the registry description, the config panel's labels, the params hint and the QR warning. The first
+  re-record happened *before* that deploy, so the take still showed the old dialog ("every card"), and a
+  second scan (the first missed hyphenated uses like "three-card") turned up four more. Re-deployed, then
+  re-recorded: `index-DkeLIrq2.js`. **Order matters — deploy the copy before recording a scene that shows
+  it.**
 - **`scenes.json` stopped carrying the words.** Its `narration` and `captions` copies are gone (`SCRIPT.md`
   owns both), and the on-screen step badge now takes its number and title from the script, so a heading
   edit cannot leave a stale title on screen. What remains is per-scene setup only:

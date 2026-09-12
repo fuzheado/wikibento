@@ -430,7 +430,7 @@ const handleAutoHeight = useCallback((id, px) => {
   }, [widgets, layout, persist, paramBlock]);
 
   /**
-   * Reset the board. `mode` is 'blank' (an empty board) or 'starter' (the three-card default); both
+   * Reset the board. `mode` is 'blank' (an empty board) or 'starter' (the three-widget default); both
    * are chosen explicitly from the confirm dialog, which is why this is never called from a bare
    * click any more. Both also clear the board params block — a reset that left `params` behind is not
    * a reset, and the params block is part of the board (it was previously left untouched).
@@ -765,7 +765,7 @@ const handleAutoHeight = useCallback((id, px) => {
       {showResetDialog && (
         <ConfirmDialog
           title="Start a new board?"
-          message="This clears the current board — every widget, and the board's parameters. It cannot be undone, so export first if you want to keep it. Choose what to start from: the three-card starter set, or an empty board."
+          message="This clears the current board — every widget, and the board's parameters. It cannot be undone, so export first if you want to keep it. Choose what to start from: the three-widget starter set, or an empty board."
           cancelLabel="Cancel"
           secondaryLabel="Blank board"
           onSecondary={() => handleReset('blank')}

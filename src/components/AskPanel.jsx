@@ -65,7 +65,7 @@ async function askRelay(prompt, mode) {
 
 export default function AskPanel({ onAdd, onAddBoard, onClose }) {
   const [prompt, setPrompt] = useState('');
-  const [mode, setMode] = useState('suggest'); // 'suggest' (widget cards) | 'board' (assemble a wired board)
+  const [mode, setMode] = useState('suggest'); // 'suggest' (one widget per suggestion) | 'board' (assemble a wired board)
   const [turns, setTurns] = useState([]); // { role, prompt?, options?, board?, note?, source?, error? }
   const [busy, setBusy] = useState(false);
   const [manifest, setManifest] = useState(null);

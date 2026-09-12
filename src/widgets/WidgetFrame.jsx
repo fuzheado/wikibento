@@ -1014,7 +1014,7 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
       )}
       {declared.length > 0 && names.length === 0 && (
         <div className="widget-empty">
-          None of this card's selected params exist on the board — pick params in ⚙
+          None of this widget's selected params exist on the board — pick params in ⚙
           (or clear the selection to show all).
         </div>
       )}
