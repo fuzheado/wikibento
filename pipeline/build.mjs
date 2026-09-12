@@ -15,7 +15,7 @@
  * Two different ffmpegs, deliberately: recording uses Playwright's own build (record.mjs); this
  * assembling step uses the system `ffmpeg`/`ffprobe` for trimming, scaling, muxing and concatenation.
  *
- * Usage: node scripts/tutorial-video/build.mjs [--out /opt/data/staging/wikibento-tutorial]
+ * Usage: node pipeline/build.mjs [--config video/demo.config.mjs] [--out DIR]
  * Inputs (produced by record.mjs + narration.mjs): out/timeline.json, out/clips/*.webm,
  *                                                  out/narration/<scene-id>.ogg
  */
@@ -24,20 +24,20 @@ import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { resolveOut, arg } from './paths.mjs';
+import { resolveOut, arg, loadConfig, cfgPath } from './paths.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const OUT = resolveOut(arg('out', null));
-const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
+const cfg = await loadConfig(arg('config', null));
+const OUT = resolveOut(arg('out', null), cfg);
+const plan = JSON.parse(readFileSync(cfgPath(cfg, cfg.plan), 'utf8'));
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
-const { width: W, height: H, fps } = plan.video;
+const { width: W, height: H, fps } = cfg.video;
 
 // Parse SCRIPT.md first: captions now come from the script's beats rather than from a hand-kept copy
 // in scenes.json. Cheap (no browser) and it fails loudly if the script and scenes.json disagree.
-execFileSync('node', [join(root, 'scripts/tutorial-video/beats.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
+execFileSync('node', [join(import.meta.dirname, 'beats.mjs'), '--config', cfg.__path, '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
 /** the line SCRIPT.md writes over the title card (it is not a recorded scene, so it is not in the timeline) */
-const TITLE_LINE = (beatsDoc.scenes.find((sc) => sc.id === '00-title') || {}).narration || '';
+const TITLE_LINE = (beatsDoc.scenes.find((sc) => sc.id === (cfg.titleCardScene || '00-title')) || {}).narration || '';
 
 // Beat offsets, measured from the voiceover (narration/timing.json). Absent until the scene has been
 // narrated, in which case captions fall back to splitting the scene across its caption lines.
@@ -177,17 +177,18 @@ const srt = [];
 // The title card is no longer scenery: SCRIPT.md's `00-title` scene speaks over it (the line that used
 // to open scene 1), so its length follows that line. Silence over a logo wastes the moment attention is
 // highest — five silent seconds was the reviewer's first note on the finished take.
-const TITLE_VOICE = join(OUT, 'narration', '00-title.ogg');
+const TITLE_SCENE = cfg.titleCardScene || '00-title';
+const TITLE_VOICE = join(OUT, 'narration', `${TITLE_SCENE}.ogg`);
 const TITLE_DUR = existsSync(TITLE_VOICE) ? Math.max(2.5, probe(TITLE_VOICE) + 0.8) : 2.5;
 const END_DUR = 3.0;
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
-execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
+execFileSync('node', [join(import.meta.dirname, 'cards.mjs'), '--config', cfg.__path, '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 // The card PNGs are re-rendered on every build (cheap, and it stops a stale card surviving), so their
 // mtime always changes. Key them by the thing that produces them — cards.mjs — plus the length and the
 // voice, so an unchanged build does not re-encode them.
 const cardKey = (name, dur, voice) => keyOf(`card-${name}`, {
-  src: stampOf(join(root, 'scripts/tutorial-video/cards.mjs')),
+  src: stampOf(join(import.meta.dirname, 'cards.mjs')),
   name, dur: dur.toFixed(2), voice: stampOf(voice || ''),
 });
 const cardPartCached = (name, dur, voice) => {
@@ -199,8 +200,10 @@ const cardPartCached = (name, dur, voice) => {
   remember(id, key, `${name} ${dur.toFixed(1)}s`);
   return out;
 };
-if (existsSync(join(OUT, 'cards', 'title.png'))) {
-  parts.push(cardPartCached('title.png', TITLE_DUR, TITLE_VOICE));
+const TITLE_CARD = (cfg.cards && cfg.cards[0] && cfg.cards[0].file) || 'title.png';
+const END_CARD = (cfg.cards && cfg.cards[1] && cfg.cards[1].file) || 'end.png';
+if (existsSync(join(OUT, 'cards', TITLE_CARD))) {
+  parts.push(cardPartCached(TITLE_CARD, TITLE_DUR, TITLE_VOICE));
   // the opening line belongs in the subtitles too, so a reader gets the whole narration
   if (TITLE_LINE) srt.push({ start: 0.3, end: TITLE_DUR - 0.2, text: TITLE_LINE });
   srtTime += TITLE_DUR;
@@ -210,8 +213,8 @@ else console.error('✘ missing cards/title.png');
 // the end card is appended AFTER the scenes — it used to be pushed here alongside the title, which
 // put a closing card immediately after the opening one; the drawtext end card that followed it has
 // been dropped in favour of this single browser-rendered one.
-const endCard = existsSync(join(OUT, 'cards', 'end.png')) ? cardPartCached('end.png', END_DUR, null)
-  : (console.error('✘ missing cards/end.png'), null);
+const endCard = existsSync(join(OUT, 'cards', END_CARD)) ? cardPartCached(END_CARD, END_DUR, null)
+  : (console.error('✘ missing the closing card'), null);
 
 /** takes that assembled, but look wrong — reported at the end so a broken clip cannot ship unnoticed */
 const suspects = [];
@@ -223,7 +226,7 @@ const ov = (name) => join(OVL, name);
 // immediately when nothing changed. Gating it here on "is a PNG missing?" was a bug — an edited
 // caption left the old PNG on disk, so the fresh narration played under the previous take's words
 // (found 2026-09-11 by reading a frame of the rebuilt scene 3).
-execFileSync('node', [join(root, 'scripts/tutorial-video/overlays.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
+execFileSync('node', [join(import.meta.dirname, 'overlays.mjs'), '--config', cfg.__path, '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 
 // ── scenes ───────────────────────────────────────────────────────────────────
 for (const scene of scenes) {
@@ -351,7 +354,7 @@ for (const scene of scenes) {
   if (blank > 0.25) {
     suspects.push(`${scene.id} (${(blank * 100).toFixed(0)}% blank)`);
     console.warn(`  ⚠ ${scene.id}: ${(blank * 100).toFixed(0)}% of this clip is a blank page — the take looks broken.` +
-      ` Re-record it:  node scripts/tutorial-video/record.mjs --only ${scene.id} --out ${OUT}`);
+      ` Re-record it:  node pipeline/record.mjs --config ${cfg.__path} --only ${scene.id} --out ${OUT}`);
   }
   if (pad > 8) {
     suspects.push(`${scene.id} (${pad.toFixed(1)}s freeze)`);
@@ -365,14 +368,14 @@ if (endCard) parts.push(endCard);
 // ── concatenate ──────────────────────────────────────────────────────────────
 const listFile = join(BUILD, 'concat.txt');
 writeFileSync(listFile, parts.map((p) => `file '${p}'`).join('\n'));
-const final = join(OUT, 'wikibento-tutorial.mp4');
+const final = join(OUT, `${cfg.name}.mp4`);
 ff(['-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+faststart', final], 'concat');
-writeFileSync(join(OUT, 'wikibento-tutorial.srt'),
+writeFileSync(join(OUT, `${cfg.name}.srt`),
   srt.map((l, i) => `${i + 1}\n${srtStamp(l.start)} --> ${srtStamp(l.end)}\n${l.text}\n`).join('\n'));
 
 console.log(`\n✔ ${final}   (${reusedCount} chapter(s) reused, ${builtCount} encoded)`);
 console.log(`  duration ${probe(final).toFixed(1)}s · ${(statSync(final).size / 1048576).toFixed(1)} MB · ${W}x${H}@${fps}`);
-console.log(`  captions: ${join(OUT, 'wikibento-tutorial.srt')}`);
+console.log(`  captions: ${join(OUT, `${cfg.name}.srt`)}`);
 if (suspects.length) {
   console.warn(`\n⚠ ${suspects.length} clip(s) assembled but look wrong: ${suspects.join(', ')}`);
   console.warn(`  The video is complete; re-record those scenes and rebuild before publishing.\n`);

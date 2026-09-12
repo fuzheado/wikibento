@@ -22,13 +22,13 @@
  * "voiceover + burnt-in caption".
  *
  * Usage:
- *   node scripts/tutorial-video/beats.mjs [--out DIR]     parse → <out>/beats.json
- *   node scripts/tutorial-video/beats.mjs --check         validate only, exit 1 on a problem
+ *   node pipeline/beats.mjs [--config video/demo.config.mjs] [--out DIR]   parse → <out>/beats.json
+ *   node pipeline/beats.mjs --check                                        validate only, exit 1 on a problem
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveOut, arg } from './paths.mjs';
+import { resolveOut, arg, loadConfig, cfgPath } from './paths.mjs';
 
 // Paths are resolved inside main(), not at module top level: importing this module (the tests bundle
 // it) must not touch the filesystem, and under bundling import.meta.url points at the bundle anyway.
@@ -40,8 +40,8 @@ const MARKER_RE = new RegExp(`^\\s*(${Object.keys(KINDS).join('|')})\\s*(.*)$`);
 /**
  * A marker becomes machine-readable when it names a target with `@ <css selector>`:
  *
- *   🔍 1.2× @ .grid-item:nth-child(3) — the one zoom in this scene
- *   ⭕ @ .grid-item:nth-child(1) .widget-title — as its name is spoken
+ *   🔍 1.2× @ .chart-card — the one zoom in this scene
+ *   ⭕ @ [data-item-id="views"] .item-title — as its name is spoken
  *
  * The em dash separates the spec from the prose explaining it, so the words after it are free text.
  * A marker with no `@` is intent only: the parser reports it as prose and the recorder skips it, which
@@ -170,12 +170,10 @@ export const narrationOf = (scene) =>
 export const captionsOf = (scene) =>
   scene.beats.filter((b) => b.text && !b.silent).map((b) => b.caption || b.text);
 
-function main() {
-  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-  const SCRIPT = join(root, 'scripts/tutorial-video/SCRIPT.md');
-  const PLAN = join(root, 'scripts/tutorial-video/scenes.json');
-  const md = readFileSync(SCRIPT, 'utf8');
-  const plan = JSON.parse(readFileSync(PLAN, 'utf8'));
+async function main() {
+  const cfg = await loadConfig(arg('config', null));
+  const md = readFileSync(cfgPath(cfg, cfg.script), 'utf8');
+  const plan = JSON.parse(readFileSync(cfgPath(cfg, cfg.plan), 'utf8'));
   const known = plan.scenes.map((s) => s.id);
   const { scenes, warnings } = parseScript(md, { knownSceneIds: known });
 
@@ -197,11 +195,11 @@ function main() {
     return;
   }
 
-  const out = resolveOut(arg('out', null));
+  const out = resolveOut(arg('out', null), cfg);
   mkdirSync(out, { recursive: true });
   const dest = join(out, 'beats.json');
   writeFileSync(dest, `${JSON.stringify({
-    generated: 'from scripts/tutorial-video/SCRIPT.md by beats.mjs — do not edit by hand',
+    generated: `from ${cfg.script} by beats.mjs — do not edit by hand`,
     scenes: scenes.map((s) => ({ ...s, narration: narrationOf(s), captions: captionsOf(s) })),
   }, null, 2)}\n`);
 
@@ -218,4 +216,4 @@ function main() {
 // module is bundled (the tests bundle it with esbuild) import.meta.url becomes the bundle's URL, which
 // made the guard fire and sent main() looking for SCRIPT.md next to the bundle.
 const invokedAs = (process.argv[1] || '').replace(/\\/g, '/');
-if (invokedAs.endsWith('beats.mjs')) main();
+if (invokedAs.endsWith('beats.mjs')) await main();

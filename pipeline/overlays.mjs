@@ -18,7 +18,7 @@
  * Each PNG is a full 1920x1080 transparent canvas, so build.mjs only ever needs `overlay=0:0` —
  * the browser owns the positioning, ffmpeg owns the timing.
  *
- * Usage: node scripts/tutorial-video/overlays.mjs [--out DIR] [--force]
+ * Usage: node pipeline/overlays.mjs [--config video/demo.config.mjs] [--out DIR] [--force]
  * Input:  <out>/timeline.json   (written by record.mjs)
  * Output: <out>/overlays/<scene-id>-{badge,note,cap0,cap1,...}.png
  */
@@ -27,13 +27,14 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { resolveOut, arg } from './paths.mjs';
+import { resolveOut, arg, loadConfig } from './paths.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright-core');
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const OUT = resolveOut(arg('out', null));
+const cfg = await loadConfig(arg('config', null));
+const OUT = resolveOut(arg('out', null), cfg);
 const FORCE = process.argv.includes('--force');
 const DIR = join(OUT, 'overlays');
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));

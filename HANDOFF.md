@@ -292,6 +292,11 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
 
 ## Tutorial video (state as of 2026-09-11)
 
+**Layout (2026-09-12):** `pipeline/` is the reusable engine (no WikiBento strings; contract in
+`pipeline/README.md`), `video/` is the WikiBento project (script, scene plan, `demo.config.mjs`,
+`actions.mjs`). npm scripts `tutorial:beats|narrate|record|build|review` all pass
+`--config video/demo.config.mjs`. `tutorial:build` is per-chapter cached, so an edit costs seconds.
+
 > **Read first:** [docs/TUTORIAL-VIDEO-STATUS.md](docs/TUTORIAL-VIDEO-STATUS.md) (our pipeline, how to
 > run and verify it) and [docs/TUTORIAL-VIDEO-TOOLING.md](docs/TUTORIAL-VIDEO-TOOLING.md) (which
 > off-the-shelf tools were evaluated, what we grafted from them, what was rejected for licensing).
@@ -310,21 +315,21 @@ it; add a card and set its subject; move/resize; export; store the JSON; reload 
 
 Where it stands:
 
-- `scripts/tutorial-video/SCRIPT.md` — **the editable source of truth**: narration in beats, each with
+- `video/SCRIPT.md` — **the editable source of truth**: narration in beats, each with
   the action that must happen during that line, plus zoom / ring / sound / caption markers. Andrew is
   editing this; the wording and beat order drive everything else.
-- `scripts/tutorial-video/scenes.json` — the recorder's scene plan and the narration text the pipeline
+- `video/scenes.json` — the recorder's scene plan and the narration text the pipeline
   actually reads (starting state per scene, captions per scene).
-- `scripts/tutorial-video/paths.mjs` — the one output-directory rule and the Playwright ffmpeg-cache
+- `pipeline/paths.mjs` — the one output-directory rule and the Playwright ffmpeg-cache
   probe, shared by every script (they each used to carry their own, three of them Linux-only).
-- `scripts/tutorial-video/record.mjs` — records one clip per scene by driving the live app; `--only <id>`
+- `pipeline/record.mjs` — records one clip per scene by driving the live app; `--only <id>`
   re-records a single scene.
-- `scripts/tutorial-video/narration.mjs` — synthesizes `<out>/narration/<id>.ogg` via edge-tts / `say` /
+- `pipeline/narration.mjs` — synthesizes `<out>/narration/<id>.ogg` via edge-tts / `say` /
   piper, skipping any line whose content hash is unchanged.
-- `scripts/tutorial-video/build.mjs` + `cards.mjs` + `overlays.mjs` — assembles: trim each clip's blank
+- `pipeline/build.mjs` + `cards.mjs` + `overlays.mjs` — assembles: trim each clip's blank
   lead-in, stretch it to its voiceover (max 1.5x, then freeze), composite browser-rendered badges / URL
   cards / captions, mux narration, concat behind a title card and in front of an end card, emit an `.srt`.
-- `scripts/tutorial-video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with a
+- `video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with a
   label, per-keystroke click sounds timed from the page, growing typed-text chip. **Not wired in yet.**
 - Artifacts (not in git; regenerable): the recorded take lives under the resolved `--out` directory
   (`/opt/data/staging/wikibento-tutorial/` on the recording host; a temp dir elsewhere). The last full

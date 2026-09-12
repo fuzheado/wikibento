@@ -8,7 +8,7 @@
  * words" for exactly this reason. One clip per beat gives every beat a measured offset, which the
  * recorder uses to time its actions and the assembler uses to place captions and fx.
  *
- * Beats come from `SCRIPT.md` (via beats.mjs), so editing the script changes the voiceover.
+ * Beats come from the project's script (via beats.mjs), so editing the script changes the voiceover.
  *
  * Outputs, under <out>/narration/:
  *   <scene>-b<n>.ogg    one clip per beat (content-hash cached — an untouched line is never re-sent)
@@ -17,7 +17,7 @@
  *
  * Providers: edge (default; free, no API key), say (macOS, zero install), piper (offline).
  *
- * Usage: node scripts/tutorial-video/narration.mjs [--only 03-reset] [--out DIR]
+ * Usage: node pipeline/narration.mjs [--config video/demo.config.mjs] [--only 03-reset] [--out DIR]
  *        [--provider edge|say|piper] [--voice NAME] [--rate -10%] [--force]
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, statSync } from 'node:fs';
@@ -26,22 +26,21 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { resolveOut, arg } from './paths.mjs';
+import { resolveOut, arg, loadConfig, cfgPath } from './paths.mjs';
 import { parseScript, captionsOf } from './beats.mjs';
 
 /** silence between beats — long enough to breathe, short enough not to sag */
 const GAP = 0.35;
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const scriptPath = join(root, 'scripts/tutorial-video/SCRIPT.md');
-const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
-const { scenes, warnings } = parseScript(readFileSync(scriptPath, 'utf8'),
+const cfg = await loadConfig(arg('config', null));
+const plan = JSON.parse(readFileSync(cfgPath(cfg, cfg.plan), 'utf8'));
+const { scenes, warnings } = parseScript(readFileSync(cfgPath(cfg, cfg.script), 'utf8'),
   { knownSceneIds: plan.scenes.map((s) => s.id) });
 for (const w of warnings) console.error(`  ⚠ ${w}`);
 
-const OUT = resolveOut(arg('out', null));
+const OUT = resolveOut(arg('out', null), cfg);
 const ONLY = arg('only', null);
-const PROVIDER = arg('provider', process.env.WIKIBENTO_TTS_PROVIDER || 'edge');
+const PROVIDER = arg('provider', process.env.DEMO_VIDEO_TTS_PROVIDER || (cfg.tts && cfg.tts.provider) || 'edge');
 const FORCE = process.argv.includes('--force');
 const NARR = join(OUT, 'narration');
 const MANIFEST = join(NARR, 'manifest.json');
@@ -57,7 +56,7 @@ if (!P) {
   console.error(`✘ unknown --provider "${PROVIDER}" — use one of: ${Object.keys(PROVIDERS).join(', ')}`);
   process.exit(2);
 }
-const VOICE = arg('voice', P.voice);
+const VOICE = arg('voice', (cfg.tts && cfg.tts.voice) || P.voice);
 const RATE = arg('rate', null);
 
 const onPath = (cmd) => {
@@ -229,4 +228,4 @@ for (const scene of targets) {
 console.log(`\n${synthesized} synthesized · ${cached} cached · ${failed} failed · ${spokenTotal.toFixed(1)}s of speech`);
 console.log(`beat timing → ${TIMING}`);
 if (failed) process.exit(1);
-console.log(`next: node scripts/tutorial-video/record.mjs --out ${OUT}   (actions are timed from this)`);
+console.log(`next: node pipeline/record.mjs --config ${cfg.__path} --out ${OUT}   (actions are timed from this)`);

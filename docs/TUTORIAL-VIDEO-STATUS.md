@@ -9,10 +9,26 @@ measured offsets. Recording, narration and assembly all run on this macOS machin
 
 Related: [`TUTORIAL.md`](TUTORIAL.md) (the written tutorial + *Re-making the video*),
 [`TUTORIAL-VIDEO-TOOLING.md`](TUTORIAL-VIDEO-TOOLING.md) (the ecosystem research and what we grafted
-from it), [`../scripts/tutorial-video/SCRIPT.md`](../scripts/tutorial-video/SCRIPT.md) (the shooting
-script), HANDOFF § *Tutorial video*.
+from it), [`../video/SCRIPT.md`](../video/SCRIPT.md) (the shooting script), [`../pipeline/README.md`](../pipeline/README.md)
+(the engine's contract), HANDOFF § *Tutorial video*.
 
 ---
+
+## Two layers: an engine and a project
+
+As of 2026-09-12 the pipeline is split so the reusable half is separable:
+
+- **`pipeline/` is the engine.** Beats, voiceover, overlays, encoding, review bundles — and **no WikiBento
+  strings at all** (the check is `grep -i wikibento pipeline/*.mjs`). Its contract is
+  [`../pipeline/README.md`](../pipeline/README.md).
+- **`video/` is the project.** `SCRIPT.md`, `scenes.json`, `demo.config.mjs` (name, app URL, TTS defaults,
+  the title/closing card text) and `actions.mjs` (where each scene starts, what it does on screen). Everything
+  that would change for another app lives here.
+
+The engine reaches the project through `--config video/demo.config.mjs` (the default), and
+`video/actions.mjs` imports the shared mouse/keyboard/beat-clock primitives from `pipeline/primitives.mjs`.
+The point is not tidiness: it is that a second project can copy `video/` and keep `pipeline/` as it is — and
+the extraction stayed cheap because it followed a second consumer's needs rather than guessing them.
 
 ## The data flow
 
@@ -256,17 +272,17 @@ is worse than none.
 export PATH="$HOME/.local/bin:$PATH"           # edge-tts from uv
 
 # 1. the script parses, and matches the scene plan
-node scripts/tutorial-video/beats.mjs --check
+node pipeline/beats.mjs --check
 
 # 2. narration: per-beat, with offsets (2nd run is all cache hits)
-node scripts/tutorial-video/narration.mjs --only 01-what --out /tmp/tut
-node scripts/tutorial-video/narration.mjs --only 01-what --out /tmp/tut
+node pipeline/narration.mjs --only 01-what --out /tmp/tut
+node pipeline/narration.mjs --only 01-what --out /tmp/tut
 
 # 3. record — the log names every fx marker it played and the measured lead-in
-node scripts/tutorial-video/record.mjs --only 01-what --out /tmp/tut
+node pipeline/record.mjs --only 01-what --out /tmp/tut
 
 # 4. assemble — works with a partial timeline, so one scene proves the chain
-node scripts/tutorial-video/build.mjs --out /tmp/tut
+node pipeline/build.mjs --out /tmp/tut
 
 # 5. this machine's ffmpeg still has no text filters, and that is fine
 ffmpeg -hide_banner -filters | grep -c drawtext        # 0

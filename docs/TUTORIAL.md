@@ -1,8 +1,8 @@
 # WikiBento — how to build a board (written tutorial)
 
 **Status:** verified against the live site on 2026-09-11. There is a narrated video version of this
-tutorial; it is produced by the pipeline in `scripts/tutorial-video/` (see *Re-making the video* at
-the end). The narration text for each step lives in `scripts/tutorial-video/scenes.json`.
+tutorial; it is produced by the pipeline in `pipeline/` from the project in `video/` (see *Re-making
+the video* at the end). The narration text for each step lives in `video/SCRIPT.md`.
 
 **Who this is for:** someone who has opened WikiBento, clicked around for two minutes, and wants to
 know how to get from "there are some widgets here" to "here is my board, and here is its URL".
@@ -186,7 +186,7 @@ host's `/opt/data/staging/wikibento-tutorial` when that exists, otherwise a temp
 pipeline also runs on a laptop. The recorder prints the resolved path as `clips → …`.
 
 The **narration, captions and on-screen effects** all come from
-`scripts/tutorial-video/SCRIPT.md`, which is the editable source of truth: each scene is a list of
+`video/SCRIPT.md`, which is the editable source of truth: each scene is a list of
 beats, and every beat says which action must happen while that line is spoken. `tutorial:beats` parses
 it into the beats the rest of the pipeline works from, and `tutorial:narrate` synthesizes **one clip
 per beat** so each beat has a measured offset — which is what lets an action land on the words

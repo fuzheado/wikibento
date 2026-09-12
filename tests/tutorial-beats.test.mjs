@@ -8,11 +8,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseScript, narrationOf, captionsOf, parseFx } from '../scripts/tutorial-video/beats.mjs';
+import { parseScript, narrationOf, captionsOf, parseFx } from '../pipeline/beats.mjs';
 
 // process.cwd() rather than import.meta.url: the test runner bundles each test file with esbuild, so
 // import.meta.url points at the bundle rather than at this file (the repo's other tests do the same).
-const DIR = join(process.cwd(), 'scripts/tutorial-video');
+const DIR = join(process.cwd(), 'video');
 const SCRIPT = readFileSync(join(DIR, 'SCRIPT.md'), 'utf8');
 const PLAN = JSON.parse(readFileSync(join(DIR, 'scenes.json'), 'utf8'));
 const { scenes, warnings } = parseScript(SCRIPT, { knownSceneIds: PLAN.scenes.map((s) => s.id) });

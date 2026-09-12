@@ -2,9 +2,9 @@
  * Build the review bundle: the three artifacts a human needs to check a take without hunting for
  * anything. Run it after `tutorial:build`.
  *
- *   wikibento-tutorial.mp4       the finished take, with picture and sound
- *   wikibento-narration.m4a      the same audio alone — 3½ minutes to listen to while walking
- *   wikibento-transcript.txt     every beat with its position in the VIDEO, to follow along in either
+ *   <name>.mp4                  the finished take, with picture and sound
+ *   <name>-narration.m4a       the same audio alone — a few minutes to listen to while walking
+ *   <name>-transcript.txt      every beat with its position in the VIDEO, to follow along in either
  *
  * The timings in the transcript are video positions, not narration positions: the scene audio is muxed
  * 0.5s into each scene, so a reader watching the video and a reader listening to the audio land on the
@@ -14,21 +14,21 @@
  * compared side by side (that is how "the move does not move" and a scene that had gone white were both
  * caught). A `-latest` symlink points at the newest of each, for convenience.
  *
- * Usage: node scripts/tutorial-video/review.mjs [--out DIR] [--dest ~/Movies] [--label v3]
+ * Usage: node pipeline/review.mjs [--config video/demo.config.mjs] [--out DIR] [--dest ~/Movies] [--label v3]
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, symlinkSync, rmSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
-import { resolveOut, arg } from './paths.mjs';
+import { resolveOut, arg, loadConfig, cfgPath } from './paths.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const OUT = resolveOut(arg('out', null));
+const cfg = await loadConfig(arg('config', null));
+const OUT = resolveOut(arg('out', null), cfg);
 const DEST = arg('dest', join(homedir(), 'Movies'));
-const VIDEO = join(OUT, 'wikibento-tutorial.mp4');
+const VIDEO = join(OUT, `${cfg.name}.mp4`);
 if (!existsSync(VIDEO)) {
-  console.error(`✘ no finished video at ${VIDEO}\n  run: node scripts/tutorial-video/build.mjs --out ${OUT}`);
+  console.error(`✘ no finished video at ${VIDEO}\n  run: node pipeline/build.mjs --config ${cfg.__path} --out ${OUT}`);
   process.exit(2);
 }
 
@@ -37,7 +37,7 @@ const dur = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries
 
 const timeline = JSON.parse(readFileSync(join(OUT, 'timeline.json'), 'utf8'));
 const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
-const plan = JSON.parse(readFileSync(join(root, 'scripts/tutorial-video/scenes.json'), 'utf8'));
+const plan = JSON.parse(readFileSync(cfgPath(cfg, cfg.plan), 'utf8'));
 const titles = new Map(plan.scenes.map((s) => [s.id, s.title]));   // fallback only: beats.json owns them
 
 let timing = null;
@@ -61,14 +61,14 @@ const now = new Date();
 const pad = (n) => String(n).padStart(2, '0');
 const STAMP = arg('label', null) || `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
   `-${pad(now.getHours())}${pad(now.getMinutes())}`;
-const named = (what, ext) => join(DEST, `wikibento-${what}-${STAMP}${ext}`);
+const named = (what, ext) => join(DEST, `${cfg.name}${what ? `-${what}` : ''}-${STAMP}${ext}`);
 
-const videoOut = named('tutorial', '.mp4');
+const videoOut = named('', '.mp4');
 copyFileSync(VIDEO, videoOut);
 let srtOut = null;
-if (existsSync(join(OUT, 'wikibento-tutorial.srt'))) {
-  srtOut = named('tutorial', '.srt');
-  copyFileSync(join(OUT, 'wikibento-tutorial.srt'), srtOut);
+if (existsSync(join(OUT, `${cfg.name}.srt`))) {
+  srtOut = named('', '.srt');
+  copyFileSync(join(OUT, `${cfg.name}.srt`), srtOut);
 }
 
 // 2. the narration alone, taken from the video's own audio track: it is already muxed correctly, so
@@ -79,9 +79,9 @@ execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', VIDEO,
 
 // 3. the transcript, on the video's clock
 const lines = [
-  'WikiBento tutorial — narration transcript',
+  cfg.transcriptTitle || `${cfg.name} — narration transcript`,
   '',
-  'Timings are positions in the VIDEO (wikibento-tutorial.mp4), so the same line numbers work whether',
+  `Timings are positions in the VIDEO (${cfg.name}.mp4), so the same line numbers work whether`,
   'you watch the take or listen to the audio alone. Text comes from SCRIPT.md via beats.mjs; the',
   'per-beat timings come from the measured voiceover (narration/timing.json).',
   '',
@@ -109,9 +109,10 @@ writeFileSync(textOut, lines.join('\n'));
 
 const beats = (timing ? Object.values(timing.scenes) : []).reduce((n, s) => n + s.beats.length, 0);
 // a -latest symlink for each artifact, so the newest is always easy to open without hunting
-for (const [link, target] of [['tutorial.mp4', videoOut], ['narration.m4a', audioOut],
-                              ['transcript.txt', textOut], ...(srtOut ? [['tutorial.srt', srtOut]] : [])]) {
-  const l = join(DEST, `wikibento-${link.replace(/(\.\w+)$/, '-latest$1')}`);
+for (const [suffix, target] of [['.mp4', videoOut], ['-narration.m4a', audioOut],
+                              ['-transcript.txt', textOut], ...(srtOut ? [['.srt', srtOut]] : [])]) {
+  const ext = suffix.match(/\.\w+$/)[0];
+  const l = join(DEST, `${cfg.name}${suffix.replace(/\.\w+$/, '')}-latest${ext}`);
   rmSync(l, { force: true });
   try { symlinkSync(target, l); } catch { /* symlinks are a convenience, not a requirement */ }
 }
@@ -124,12 +125,12 @@ console.log(`  follow     ${textOut}   (${beats} beats, timestamped to the video
 
 // list the versions so takes can be compared, newest first
 const versions = readdirSync(DEST)
-  .filter((f) => /^wikibento-tutorial-.*\.mp4$/.test(f) && !f.includes('-latest'))
+  .filter((f) => f.startsWith(`${cfg.name}-`) && f.endsWith('.mp4') && !f.includes('-latest'))
   .sort().reverse();
 if (versions.length > 1) {
   console.log(`\n  other versions in ${DEST} (newest first):`);
   for (const v of versions) {
     const p = join(DEST, v);
-    console.log(`    ${v}   ${dur(p).toFixed(0)}s${v === `wikibento-tutorial-${STAMP}.mp4` ? '   ← this run' : ''}`);
+    console.log(`    ${v}   ${dur(p).toFixed(0)}s${v === `${cfg.name}-${STAMP}.mp4` ? '   ← this run' : ''}`);
   }
 }
