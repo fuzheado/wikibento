@@ -1,325 +1,171 @@
 # Tutorial video — pipeline status
 
-**Status as of 2026-09-12 (second review pass).** What the pipeline is, what is verified working, what is still missing,
-and how to check any of it. Written so the work can be resumed from this file alone.
+**Status: 2026-09-12.** The pipeline runs end to end on macOS and produces a finished narrated take:
+**2:42**, version `wikibento-tutorial-2026-09-12-1431.mp4`, with six earlier takes kept beside it for
+comparison.
 
-**One-line verdict:** `SCRIPT.md` is now the pipeline's real input — it is parsed into beats, the
-voiceover is synthesized one clip per beat, and the recorder times its actions and fx from the
-measured offsets. Recording, narration and assembly all run on this macOS machine.
+**One-line verdict:** recording, narration, highlights and assembly all work and are cheap to re-run
+(a chapter cache means an edit costs seconds); what is left is small, listed under *Still missing*, and
+nothing blocks a re-make.
 
-Related: [`TUTORIAL.md`](TUTORIAL.md) (the written tutorial + *Re-making the video*),
-[`TUTORIAL-VIDEO-TOOLING.md`](TUTORIAL-VIDEO-TOOLING.md) (the ecosystem research and what we grafted
-from it), [`../video/SCRIPT.md`](../video/SCRIPT.md) (the shooting script), [`../pipeline/README.md`](../pipeline/README.md)
-(the engine's contract), HANDOFF § *Tutorial video*.
+Related: [`../pipeline/README.md`](../pipeline/README.md) (the engine's contract) ·
+[`../video/SCRIPT.md`](../video/SCRIPT.md) (the shooting script) · [`TUTORIAL.md`](TUTORIAL.md) (the
+written tutorial) · [`TUTORIAL-VIDEO-TOOLING.md`](TUTORIAL-VIDEO-TOOLING.md) (the tooling research) ·
+the reusable technique: `~/.pi/agent/skills/narrated-tutorial-video/SKILL.md`.
 
 ---
 
+## If you are picking this up
+
+1. **Read the engine contract** — [`../pipeline/README.md`](../pipeline/README.md): the config shape, the
+   script format, and the rules the engine enforces. Then read the skill listed above; it carries the traps
+   that were paid for here (silent failures, ffmpeg deadlocks, stale caches) so they need not be paid again.
+2. **Find the current take** — `~/Movies/wikibento-tutorial-latest.mp4` (`-latest` is a symlink; every run
+   writes a new timestamped version rather than overwriting). The `~/Movies` copies are **not in git**;
+   everything in them is regenerable from the repo.
+3. **Permissions and tools** — Node 20+, the repo's `playwright-core` engines, Playwright's *own* ffmpeg in
+   its browser cache, system `ffmpeg`/`ffprobe`, and a TTS engine (`uv tool install edge-tts`, or macOS
+   `say` with no install). See [`TUTORIAL.md`](TUTORIAL.md) *Prerequisite* for the exact commands.
+4. **Re-run it** (see *Running it* below). Only the repo is the source of truth: the recorded clips and
+   narration live in a working directory (`--out`, a temp dir by default) and re-recording against the live
+   site takes ~6 minutes.
+5. **Check nothing regressed** — `npm test` (315 tests, including the ones that enforce this project's
+   video rules: highlights point at widgets that exist, the narration names what it shows, the opening line
+   is spoken over the title card, and a widget is only ever called a widget).
+
 ## Two layers: an engine and a project
 
-As of 2026-09-12 the pipeline is split so the reusable half is separable:
-
 - **`pipeline/` is the engine.** Beats, voiceover, overlays, encoding, review bundles — and **no WikiBento
-  strings at all** (the check is `grep -i wikibento pipeline/*.mjs`). Its contract is
+  strings at all** (the check is `grep -i wikibento pipeline/*.mjs`). Contract:
   [`../pipeline/README.md`](../pipeline/README.md).
 - **`video/` is the project.** `SCRIPT.md`, `scenes.json`, `demo.config.mjs` (name, app URL, TTS defaults,
-  the title/closing card text) and `actions.mjs` (where each scene starts, what it does on screen). Everything
-  that would change for another app lives here.
+  the title/closing card text) and `actions.mjs` (where each scene starts, what it does on screen).
+  Everything that would change for another app lives here.
 
-The engine reaches the project through `--config video/demo.config.mjs` (the default), and
-`video/actions.mjs` imports the shared mouse/keyboard/beat-clock primitives from `pipeline/primitives.mjs`.
-The point is not tidiness: it is that a second project can copy `video/` and keep `pipeline/` as it is — and
-the extraction stayed cheap because it followed a second consumer's needs rather than guessing them.
+A second project copies `video/` and leaves `pipeline/` alone.
 
 ## The data flow
 
 ```
-SCRIPT.md  ──parse──▶  beats.json  ──tts──▶  per-beat .ogg + timing.json
-   │                                              │
-   │ the words, captions, fx markers              │ measured beat offsets (start/end per beat)
-   │                                              ▼
-   └──────────────────────────────▶  record.mjs  ──▶  clips/*.webm + timeline.json
-                                     (actions and fx timed to the beats)
-                                              │
-                                              ▼
-                                        build.mjs  ──▶  wikibento-tutorial.mp4 + .srt
+SCRIPT.md ──parse──▶ beats.json ──tts──▶ per-beat .ogg + timing.json (offsets)
+   │ the words, captions, fx markers            │
+   └────────────▶ record.mjs ──▶ clips/*.webm + timeline.json (actions timed to beats)
+                                              └──▶ build.mjs ──▶ <name>.mp4 + .srt
 ```
 
-| file | role | reads | writes |
-|---|---|---|---|
-| `SCRIPT.md` | **The source of truth**: per-beat spoken lines, captions (📝 overrides), and fx markers. A marker is machine-readable when it names a target — `🔍 1.2× @ .grid-item:nth-child(3)`, `⭕ @ .grid-item:nth-child(1) .widget-title`. | — | (human edits) |
-| `scenes.json` | Only the operational setup prose cannot express: each scene's starting state (`start`), `step`, `title`, and its lower-left `note` (the board's address, or a one-line process hint — the field was called `url` until it turned out two of the eight notes are not URLs). | — | — |
-| **`beats.mjs`** | Parses the script into beats; validates it against the scene ids and reports how much fx is still prose. `--check` is the gate; `npm test` covers it. | `SCRIPT.md`, `scenes.json` | `beats.json` |
-| **`narration.mjs`** | Synthesizes **one clip per beat**, measures each, and writes the beat timeline. Providers: edge-tts (default), `say`, piper. Content-hash cached, so an unchanged line is never re-synthesized. | `SCRIPT.md` (via beats.mjs) | `narration/<scene>-b<n>.ogg`, `narration/<scene>.ogg`, `narration/timing.json` |
-| `record.mjs` | Drives the live app and records one clip per scene. Starts a beat clock when the scene's actions begin, waits for each beat before acting, plays the 🔍/⭕ fx in-page, and records the measured lead-in. | `scenes.json`, `narration/timing.json` | `clips/*.webm`, `timeline.json` |
-| `overlays.mjs` | Renders badge, URL card and **one caption PNG per beat** in a real browser (transparent, full-canvas), content-hash cached. | `timeline.json`, `beats.json` | `overlays/*.png` |
-| `cards.mjs` | Renders `title.png` / `end.png` in a browser. | (in-code HTML) | `cards/*.png` |
-| `build.mjs` | Parses the script, trims each clip's measured lead-in, stretches to the narration, composites the overlays (each caption under **its own beat's** window), muxes narration, concatenates behind a title card and in front of an end card, emits an `.srt`. | `timeline.json`, `clips/*`, `narration/*`, `beats.json`, `timing.json` | `build/*`, `wikibento-tutorial.mp4`, `.srt` |
-| `fx-proof.mjs` | The standalone proof the in-page fx came from (zoom, ring, typing clicks, `events.json`). The zoom/ring half now lives in `record.mjs`; this stays as the reference. | — | `events.json` |
-| `paths.mjs` | The shared output-directory rule and the Playwright ffmpeg-cache probe. | argv, env | — |
+| file | role |
+|---|---|
+| `pipeline/beats.mjs` | parses the script into beats; `--check` validates and counts prose-only markers |
+| `pipeline/narration.mjs` | one TTS clip per beat, content-hash cached; writes the beat timeline |
+| `pipeline/record.mjs` | drives the app, one clip per scene, actions and fx timed to beats; runs the project's `startState`/`steps`; reveals a highlight's target before drawing it |
+| `pipeline/overlays.mjs` | captions, step badge and note as transparent PNGs (validated, content-hash cached) |
+| `pipeline/cards.mjs` | the project's title/closing cards, rendered in a browser |
+| `pipeline/build.mjs` | trim/stretch/composite/mux/concat, **per-chapter cached** |
+| `pipeline/review.mjs` | the timestamped review bundle: take, audio, transcript |
+| `pipeline/primitives.mjs` | mouse/typing/selector helpers and the beat clock, shared with the project |
+| `pipeline/paths.mjs` | config loading, the output-directory rule, the Playwright ffmpeg probe |
 
-npm scripts: `tutorial:beats`, `tutorial:narrate`, `tutorial:record`, `tutorial:build`,
-`tutorial:review`.
+npm scripts: `tutorial:beats`, `tutorial:narrate`, `tutorial:record`, `tutorial:build`, `tutorial:review`
+(each already passes `--config video/demo.config.mjs`).
 
 ## Running it
 
 ```bash
-uv tool install edge-tts             # one-time; or pip install edge-tts
-npm run tutorial:beats               # parse SCRIPT.md → beats.json (also validates it)
-npm run tutorial:narrate             # one clip per beat + timing.json   ← BEFORE recording
-npm run tutorial:record              # records, timed to the beats
-npm run tutorial:build                # assemble          → out/wikibento-tutorial.mp4
+uv tool install edge-tts         # one-time; or use --provider say on macOS
+npm run tutorial:beats           # parse SCRIPT.md → beats.json (also validates)
+npm run tutorial:narrate         # one clip per beat + timing.json  ← BEFORE recording
+npm run tutorial:record          # records, timed to the beats
+npm run tutorial:build           # → <out>/wikibento-tutorial.mp4 + .srt
+npm run tutorial:review          # → timestamped take + audio + transcript in ~/Movies
 ```
 
-**Narrate before recording** — the recorder needs the beat offsets, and the offsets come from the
-measured voiceover. Each step takes `--out <dir>` (or `WIKIBENTO_TUTORIAL_OUT`; with neither, the
-recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a temp dir) and
-`--only <scene-id>`. `--provider say` needs no install at all on macOS.
+**Narrate before recording** — the recorder times its actions from the measured voiceover offsets. Every
+step takes `--out DIR` (default: the recording host's `/opt/data/staging/<name>` if it exists, else a temp
+dir; `DEMO_VIDEO_OUT` overrides) and `--only <scene-id>`.
 
-## Verified working on this machine
+## What an edit costs
 
-- **The whole chain, on every scene.** Parse → per-beat voiceover with measured offsets → record (each
-  action waits for the beat whose words describe it) → assemble (one caption per beat, in that beat's
-  window). Spot-checked in the finished video: scene 1's **1.2× push onto the third card, held under the
-  sentence describing it, with rings on each card as it is named**; scene 3's Reset dialog **open while
-  its two options are described** and dismissed on "From here, everything you add is yours"; scene 5's
-  card **still moving while the clause about the board reflowing is spoken**, then resized.
-- **The recorder reports actions that overrun their beat** — the script's rule ("every action must
-  finish before the beat that describes it ends") as a log line rather than something to spot in the
-  finished video. On the 2026-09-11 pass it flagged exactly one: scene 5's resize finishes 0.5s after
-  beat 2 ends, so that beat wants a few more words or a quicker gesture.
-- **The parser is faithful**: for 7 of the 8 recorded scenes the narration derived from `SCRIPT.md`
-  is *byte-identical* to the hand-maintained copy in `scenes.json` (the 8th differs only in quote
-  style), so switching the pipeline to the script changed no words. `tests/tutorial-beats.test.mjs`
-  (9 cases) pins the parsing rules.
-- **fx is really applied, on every scene**: 27 markers fire across the eight scenes (the log names
-  each one, and the recorder warns if a target never appears). The zoom is a CSS transform in-page —
-  text stays crisp because the browser re-renders it — and the ring is an overlay drawn over the
-  target; both are part of the recording, not post-production.
-- **The URL pill.** A browser's address bar is not part of a Playwright recording, so two of the
-  script's markers ("ring the `?config=` part", scenes 2 and 8) had no target at all. The recorder now
-  draws a pill showing the real `location.href`, with the `?config=` part in its own span
-  (`.fx-url-config`) for the ring to find — and `build.mjs` skips its static URL burn-in for those
-  scenes so the address is not on screen twice.
-- **The lead-in is measured, not guessed.** Scene 1 spent **10.6s** loading the board before its
-  actions began; the old blank-pixel heuristic trimmed only ~1s of that, so nine seconds of loading
-  sat at the head of the take. `build.mjs` now trims the recorder's own measurement.
-- 312 tests, `docs-facts` 7/7.
+`build/manifest.json` keys each scene's encoded part by everything that shaped it, so a rebuild costs what
+actually changed. Measured on this 10-scene project:
 
-### Review pass 2026-09-12 (from watching the take)
+| you changed | re-run | cost |
+|---|---|---|
+| a caption, the note line, the badge | `tutorial:build` | ~6s if nothing else changed; ~18s for one scene |
+| spoken words | `narrate` + `build` | **no re-recording** — the clip stretches to the new narration |
+| an action, a selector, fx | `record --only <id>` + `build` | ~1 min |
+| the app's copy or UI | deploy first, then re-record the scenes that show it | ~1 min/scene |
+| everything | `record` + `narrate` + `build` | ~6–8 min |
 
-- **Everything is a widget now.** The narration said “card” in some scenes and “widget” in others, which
-  makes a viewer wonder whether they are different things. The script says widget throughout, a test
-  (`the script only ever calls a widget a widget`) keeps it that way, and the **product copy was fixed to
-  match** — the Reset dialog, the picker's widget descriptions, the config panel's “Params on this
-  widget”, two widget hints and the QR warning all said “card”, and the dialog and picker are on camera.
-  “Card” now means only the video's own title and closing screens.
-- **Scene 1 introduces the noun and what a widget can hold** — “Every box here is a widget. A widget shows
-  one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another
-  service worth composing with.” Tightened to ~36s after a first attempt ran to 40s.
-- **The title card is 2.5s, not 4.5s** — scenery, not content; the reviewer wanted the tutorial to start
-  sooner.
-- **Scene 4 starts by clearing the board.** It removes all three starter widgets with their ✕ (which is
-  how you start from nothing), then adds Article Pageviews and points it at Marie Curie on an otherwise
-  empty grid — the widget is readable instead of cramped in a corner next to three others.
-- **The Marie Curie figure really changes now.** Two bugs: the recorder set the field and moved on (the
-  narration's “watch it fetch real data” was false — also because `Enter` submitted the field's form and
-  closed the panel, so the project-selector ring had nothing to draw on), and the check that was supposed
-  to catch it read its baseline *after* applying, so it could not see a change. Now the pre-apply figure
-  is captured first, the subject is applied with the panel's own **Apply & Reload**, and the recorder
-  polls until the figure differs — it reports `207,055,573 → 161,964 (📊 Marie Curie…)` in 0.4s.
-  That also removed a 17s and a 15s beat overrun, and the clip went 65s → 49s.
-- **The URL pill shows the address decoded** — `?config=https://w.wiki/TR9R`, not `%3A%2F%2F` — because
-  the escaping is what makes the link work, not what makes it readable.
-- **The app copy had to change too, and then be deployed before re-recording.** The Reset dialog and the
-  picker are on camera, so the terminology sweep reached `src/` — the dialog, the Markdown widget's text,
-  the registry description, the config panel's labels, the params hint and the QR warning. The first
-  re-record happened *before* that deploy, so the take still showed the old dialog ("every card"), and a
-  second scan (the first missed hyphenated uses like "three-card") turned up four more. Re-deployed, then
-  re-recorded: `index-DkeLIrq2.js`. **Order matters — deploy the copy before recording a scene that shows
-  it.**
-- **`scenes.json` stopped carrying the words.** Its `narration` and `captions` copies are gone (`SCRIPT.md`
-  owns both), and the on-screen step badge now takes its number and title from the script, so a heading
-  edit cannot leave a stale title on screen. What remains is per-scene setup only:
-  `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
+## Verified working (2026-09-12)
 
-### Sixth pass 2026-09-12 (four notes from watching)
-
-- **The step badge moved to the upper right, and retires.** It was a long strip across the top-left — where
-  the board's first card is and where a viewer looks first — so it sat on content and on highlights. It is now
-  a compact box in the upper-right below the app's toolbar, and it is composited **only for the first 5.5s of
-  each scene** (`BADGE_SECONDS`), so it cannot cover an action later in the scene.
-- **The board's interactivity is demonstrated, not described.** Scene 1 opens on **Albert Einstein** and, on
-  the words "this card points all of them at once", clicks **Marie Curie**; the next beat names the views as
-  they refetch ("One click, and the whole board follows: the article, its chart, its quality rating, its
-  images"). The recorder clicks the subject, then **polls until at least three widgets actually show the new
-  subject** and reports it (`the board followed: 4/4 widgets now show Marie Curie`). A man's article, then a
-  woman's — and the change is visible rather than asserted.
-- **Starting a board is no longer a lecture.** Scene 3 is two beats and 6.2s (was 17s): "Let us start a brand
-  new board." → Reset (the dialog asks) → "Take the blank one — and we are ready." The walk-through of the
-  dialog's options is gone. Because the scene now ends **blank**, scene 4 begins from an empty board and its
-  two widget-removal beats are gone too (2:56 → **2:42**). Trade-off recorded deliberately: the ✕ is no longer
-  *taught*, only visible.
-- Two bugs found while recording these, both caught by the signals added for the purpose: `clickHuman` had been
-  routed through `document.querySelector`, so a scene that clicked a button **by its text**
-  (`:has-text("Add Widget")`) never opened the picker — it now uses the test framework's locator first, with a
-  CSS fallback; and the extracted app module still referenced the engine's old clock, which made a step throw,
-  so the runner now **counts failed steps and calls them out** per scene.
-
-### Fifth note 2026-09-12: a highlight reveals its own target
-
-"A gallery of images" was said while the gallery sat below the fold — the board is taller than the viewport.
-The fix is in the engine, not the scene: before drawing a ring or a zoom, `revealSelector()` scrolls the target
-into view (smoothly, only if it is actually off screen) and waits for the scroll to settle, so the order is
-always **reveal → settle → measure → draw**. Measuring before a scroll would place the ring in the wrong spot.
-The project's `hoverWidget()` does the same, so the pointer and the highlight agree. Any future marker is now
-covered by construction — the scene did not have to know the gallery was off screen.
-
-### Fourth review pass 2026-09-12 (the showcase board, and speed)
-
-- **Hear something, see something.** Scene 1 promised "a pageview count, a table, a chart, a gallery" over
-  the three-widget starter board — three numbers and a ranking, no chart and no gallery. It now shows the
-  shipped **`public/article-vitals-demo.json`** ("one article, six angles"): a pageview **chart**, an
-  assessments **table**, a **gallery**, the **article** card, its **quality** rating, its **edit history**,
-  and the **subject picker** — and a ring lands on each as it is named. The claim about "another service"
-  was **cut**, because nothing on that board shows one; a line the viewer cannot see is what the rule
-  forbids. Markers now address widgets as `[data-widget-id="views"]` (the app renders that attribute) rather
-  than `:nth-child(3)`, so re-laying the board cannot point a highlight at the wrong card. `npm test` now
-  enforces the rule: every widget scene 1 highlights must exist on the board it starts from, and the
-  narration must name a chart, table, gallery, article, quality and history.
-- **Chapters are cached, so an iteration costs seconds not minutes.** Each scene's encoded part is keyed by
-  everything that shaped it — clip, narration, caption text, note, overlay PNGs, timing maths — in
-  `build/manifest.json`. Measured: a build with nothing changed reuses 10 of 10 parts in ~6s; a caption-only
-  edit re-encodes one scene (~18s); a re-recorded scene re-encodes that one. What used to be a ~70s full
-  rebuild is now proportional to what actually changed. Caption *text* now comes from the script and only
-  its *window* from the timeline, so fixing a typo in a caption needs no re-narration at all.
-  - The discipline this makes affordable: **changing words needs no re-recording** (the clip is stretched to
-    the new narration), **changing captions or notes needs neither recording nor narration**, and only
-    changed **actions or fx** mean re-recording a scene.
-
-### Third review pass 2026-09-12 (two notes from watching)
-
-- **The title card speaks now.** Five silent seconds over a logo wasted the moment attention is highest. The
-  opening line moved out of scene 1 and onto the card: SCRIPT.md has a `00-title` section (a card, not a
-  recorded scene), `narration.mjs` synthesizes it like any other beat, and `build.mjs` muxes that line over
-  the title card and sizes the card to it (5.9s here). The line is also in the `.srt`. Scene 1 now opens on
-  "Every box here is a widget", so nothing is said twice. Take: 3:00 → 2:58, and the story starts at 0:00.
-- **A JSON file is read from its top-left at 1×.** In scene 6 the zoom was on the whole `<pre>`, which is
-  larger than the viewport, so scaling it pushed the left edge and the header off screen and the viewer saw
-  the middle of the file with every line clipped off at the left — exactly the note "it gets cut off… you
-  don't want to zoom into the middle". The zoom is gone from that beat (a file does not need magnifying),
-  the page's text is 16px and wraps (`overflow-wrap: anywhere`) so long values cannot run off the right, and
-  the scroll is gentle enough to keep the header in view. Underneath, the fx layer now **anchors an
-  oversized target to its top-left instead of centring it**, which is the general fix for any zoom on a
-  document-sized element.
-- The title card also said "in four minutes" while the take is 2:58; it says three minutes now.
-
-### Scene 3 played as 17 seconds of white (2026-09-12)
-
-Reported from watching: "the to start your own board section has a big white blank screen". Exactly so —
-scene 3 was `255,255,255` at every second. The clip was fine and the lead-in trim was fine; **five of
-scene 3's overlay PNGs had been rendered `rgb24` instead of `rgba`, i.e. opaque white full-canvas images**,
-and since they are full-canvas, an opaque one whites out everything under it. All 41 other overlays were
-correct, which is why only that scene went blank.
-
-The worse half is why it persisted: overlays are cached by a hash of their markup, so a bad render was
-recorded as *current* and never re-rendered — the same failure shape as the stale captions, a wrong
-artifact that caching makes permanent. `overlays.mjs` now:
-  - checks the PNG header (IHDR colour type 6 = RGBA) for **every** planned overlay, so a file that lost
-    its transparency is re-rendered rather than trusted;
-  - waits for the page to be painted (an element with a size and some text) and for two animation frames
-    before the screenshot;
-  - retries once, then **exits non-zero rather than caching an opaque overlay** — the build stops instead
-    of compositing a white screen.
-
-### Second review pass 2026-09-12 (from watching the take again)
-
-- **3:41 → 3:00.** The ending was over-explained. Scene 7 is now two beats — "that JSON needs a home your
-  browser can read; the easiest is a file on a wiki" — and the takedown of the MediaWiki API and the
-  cross-origin/hosting discussion are gone. Scene 8 loses the kiosk beat and is now the payoff plus the
-  share/QR. An ordinary user does not need an API to paste a file. One optional beat went too (scene 2's
-  name chip, a dataflow detail). Also: pause after each scene 1.0 → 0.35s, closing card 5.5 → 3.0s.
-- **“Wiki page” → “a JSON file on a wiki”.** Saying “wiki page” makes a viewer picture a Wikipedia article;
-  what the app actually reads is a small config file, served from a Wikimedia server, that happens to hold
-  JSON. The script and the written tutorial both say file now.
-- **The move in scene 5 really moves.** It had not been: the widget stayed at x=20 and the recorder's check
-  said `moved: true` anyway, because it compared whole box objects and passed on a 1px width rounding. Two
-  causes — the zoom on that beat is a CSS transform on the app root, which moves the widget under the
-  pointer mid-gesture, so the drag never engaged (`dragging-class: 0`); and the check was too loose. The
-  zoom moved to the closing beat (where nothing is moving, as the script's own rule requires) and the check
-  now requires a real Δx/Δy. It reports `dx 315`.
-- **The intermittent 10-minute build hang is fixed.** ffmpeg was deadlocking in shutdown: output `-t` plus
-  endless `-loop 1` image inputs meant it encoded to within 0.1s of the target, the overlay inputs reported
-  "All consumers of this stream are done", and it waited forever — reproducibly (3/8 runs), including when
-  the exact command was run by hand. The graph is now **fully finite**: clone-then-`trim=end` the video,
-  `apad,atrim=end` the audio, give each image input an explicit `-t`, and drop the output `-t`. 8/8, and a
-  full build takes **~70 seconds**.
-
-### Fixed along the way (each found by reading frames, not logs)
-
-- The end card played second, and there were two of them.
-- A white flash at every scene-boundary (the app's unpainted page).
-- Stale captions: overlays were cached by filename, so edited words never reached the video. Now
-  cached by content hash, and `build.mjs` always invokes the renderer.
-- Scene 4 never set its subject (the click at a computed offset missed the field), so
-  "the data fills in for that article" was false on screen.
-- The Reset dialog: recorded scenes now drive it (and the product itself gained it).
+- **The whole chain, every scene** — parse → per-beat voiceover with measured offsets → record (actions and
+  fx on the beat clock) → assemble, with captions in their own beat's window.
+- **The take shows what it claims.** Scene 1 demonstrates the board (chart, table, gallery, article,
+  quality, history) and then clicks **Marie Curie**, the change rippling through the widgets while the
+  narration names them; scene 5 really drags a widget; scene 3's Reset dialog is on screen while its options
+  are described; scene 6 shows the exported JSON from its top-left.
+- **31 fx markers** fire across the scenes (8 zooms, 23 rings), each targeting a widget **by name**
+  (`[data-widget-id="views"]`), and each revealing its target first if it is below the fold.
+- **The step badge** is a compact box in the upper-right, shown only for the first 5.5s of a scene.
+- **315 tests + docs-facts 7/7**, including video-specific rules (above).
 
 ## Still missing
 
-1. **Two markers cannot be wired, and the script says why.** `tutorial:beats` now reports **10 🔍, all 10
-   with a `@target`; 19 ⭕, 17 with a `@target`; 3 🔊**. The two unwired rings are deliberate and noted in
-   `SCRIPT.md`: a ring on scene 5's *moving* card would sit still while the card slid out from under it
-   (it is drawn once, at fixed coordinates), and scene 7's raw wiki page has no title element to ring.
-   The 3 🔊 markers still need post-production, because no audio is recorded at all.
-2. ~~Only scene 1's actions are beat-timed.~~ **Done 2026-09-11**: every scene is a list of steps, each
-   naming the beat whose words describe it (`STEPS` in `record.mjs`); the runner waits for that beat and
-   warns when a step overruns it. Sub-actions inside one beat are spread across its window, which is how
-   "four hovers as each icon is named" became four points inside the beat.
-3. **Scene 6's export never downloads** in headless Playwright — reproduced and diagnosed. Worked
-   around 2026-09-11: the wait is now 4s (it used to be 20s, which made that take four times longer than
-   its narration) and the scene renders the board's own JSON — which after the export fix is exactly what
-   the file contains — so the viewer sees the file's contents instead of a dead pause.
-4. **Nobody has listened to the narration.** It is edge-tts reading the script verbatim.
-5. **Where the published take lives is not recorded** — no link anywhere in the repo.
-6. **Typing is instantaneous** rather than keystroke-by-keystroke (scene 4), which needs the
-   keystroke-chip + click-sound work from `fx-proof.mjs`.
+1. **No sound effects.** The script carries 2 🔊 markers (keystroke clicks, pick-up/put-down ticks). Nothing
+   records audio from the browser, so they need post-production: lay a click track in `build.mjs` from a
+   timeline of keystroke times (the old `video/fx-proof.mjs` records such a timeline to `events.json`).
+2. **The `note` line is the last on-screen text the script does not own.** Each scene's lower-left
+   annotation (`article-vitals-demo.json — one article, six angles`, `Reset → Blank board`, …) lives in
+   `video/scenes.json`. Moving it into `SCRIPT.md` as a per-scene marker would complete "the script is the
+   source of truth".
+3. **Removing a widget is no longer taught** — it is only visible. Scene 3 now ends on a blank board (which
+   is why scene 4 no longer has to clear three widgets), and the ✕ beat went with the shortened opening.
+   One beat would put it back.
+4. **"Or from another service worth composing with" is not in the narration** — true of the app (Internet
+   Archive, Wayback, SPARQL), but nothing on the demo board shows it. One extra widget on
+   `public/article-vitals-demo.json` would earn the line back (and the existing test would then enforce it).
+5. **The take is not published anywhere.** When it is, record the URL here so the next re-make can compare
+   against what is public.
 
 ## Reviewing a take — and comparing takes
 
-**Every `tutorial:review` run writes a new timestamped version and never overwrites an older one**, so
-takes can be compared side by side; that comparison is how "the move does not move" and the white scene 3
-were both caught. A `-latest` symlink points at the newest of each. `--label v3` names a version by hand.
-
-`npm run tutorial:review` writes the three artifacts a person needs, so nobody has to go looking for
-them — **watch** `~/Movies/wikibento-tutorial.mp4`, **listen** to `~/Movies/wikibento-narration.m4a`
-(the take's own audio, 3½ minutes), **follow** `~/Movies/wikibento-transcript.txt` (every beat with its
-position in the *video*, and which fx it triggers). `--dest <dir>` puts them elsewhere.
-
-The transcript is generated from the measured timings rather than hand-kept, because a stale transcript
-is worse than none.
+Every `tutorial:review` run writes a **new timestamped version** and never overwrites an older one, with a
+`-latest` symlink per artifact, and prints the versions it finds. Comparing two takes side by side is how a
+drag that did not move, a scene that had gone white, and a highlight that never revealed its target were all
+caught. `--label v3` names a version by hand.
 
 ## How to verify
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"           # edge-tts from uv
 
-# 1. the script parses, and matches the scene plan
-node pipeline/beats.mjs --check
+node pipeline/beats.mjs --check                                    # the script parses and matches the plan
+node pipeline/narration.mjs --only 01-what --out /tmp/tut          # per-beat voiceover + offsets
+node pipeline/narration.mjs --only 01-what --out /tmp/tut          # 2nd run: all cache hits
+node pipeline/record.mjs --config video/demo.config.mjs --only 01-what --out /tmp/tut
+node pipeline/build.mjs --out /tmp/tut                             # a partial timeline is enough to prove the chain
+node pipeline/review.mjs --out /tmp/tut
 
-# 2. narration: per-beat, with offsets (2nd run is all cache hits)
-node pipeline/narration.mjs --only 01-what --out /tmp/tut
-node pipeline/narration.mjs --only 01-what --out /tmp/tut
-
-# 3. record — the log names every fx marker it played and the measured lead-in
-node pipeline/record.mjs --only 01-what --out /tmp/tut
-
-# 4. assemble — works with a partial timeline, so one scene proves the chain
-node pipeline/build.mjs --out /tmp/tut
-
-# 5. this machine's ffmpeg still has no text filters, and that is fine
-ffmpeg -hide_banner -filters | grep -c drawtext        # 0
+ffmpeg -hide_banner -filters | grep -c drawtext                    # 0 on this machine, and that is fine
 ```
 
-Acceptance for the text layer: a full take assembles with **no `drawtext`** and **no reference to
-`/usr/share/fonts`**, captions legible at 1080p. Acceptance for the beats layer: `tutorial:beats
---check` is clean, and a caption's on-screen window equals its beat's window in `timing.json`.
+Acceptance for the text layer: a take assembles with **no `drawtext`** and no reference to
+`/usr/share/fonts`, captions legible at 1080p. Acceptance for the beats layer: `beats --check` is clean and
+a caption's window equals its beat's window in `timing.json`.
+
+---
+
+## History
+
+Newest first. Each pass was driven by watching the previous take; the generic lessons from all of them were
+lifted into the skill, so this is the project's own record rather than a tutorial.
+
+| date | what happened |
+|---|---|
+| 2026-09-12 · sixth | Ripple demo (click Marie Curie, poll until the widgets follow); scene 3 cut to two beats (17s → 6.2s) and scene 4 starts blank with its removal beats dropped (**2:56 → 2:42**); the step badge moved to a compact upper-right box and retires after 5.5s. Two bugs: `clickHuman` could not take Playwright selectors (a scene silently recorded no widget), and the extracted app module referenced the engine's old clock (a step threw silently) — the runner now counts and calls out failed steps. |
+| 2026-09-12 · fifth | A highlight reveals its own target: the fx layer scrolls a target into view before drawing, so "a gallery of images" is actually on screen when it is said. |
+| 2026-09-12 · fourth | Scene 1 moved onto the shipped `article-vitals-demo.json` so the narration's nouns are all visible; markers address widgets `[data-widget-id]` rather than by position; a test enforces the rule. Chapter caching added (nothing changed ≈ 6s). |
+| 2026-09-12 · third | Narration over the title card (the opening line moved off scene 1); scene 6 shows the JSON at 1× from its top-left instead of a zoom that clipped it. |
+| 2026-09-12 · second | Scene 3's five overlay PNGs had been cached as opaque white (`rgb24`), which played the scene as 17 seconds of white; `overlays.mjs` now validates transparency, waits for a painted page, and refuses to cache a bad render. Takes became versioned. |
+| 2026-09-12 · first | Ending cut from 3:41 to 3:00 (no API/CORS talk, straight to the payoff and the QR); "wiki page" → "a JSON file on a wiki"; scene 5's drag really moves (the zoom on that beat was transforming the app root mid-gesture, and the check that should have caught it passed on 1px rounding). |
+| 2026-09-11 | Built the pipeline: SCRIPT.md as the source of truth with a beats parser, per-beat voiceover with measured offsets, beat-timed actions, in-page zoom/ring, browser-rendered overlays (no ffmpeg text support needed), and the ffmpeg shutdown deadlock fixed by making every stream finite. |

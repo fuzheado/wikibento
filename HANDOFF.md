@@ -290,139 +290,33 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
   WikiPortraits project hosts it; coordinate changes with that page's editors. Its
   size tracks that page, not this repo.
 
-## Tutorial video (state as of 2026-09-11)
+## Tutorial video (state as of 2026-09-12)
 
-**Layout (2026-09-12):** `pipeline/` is the reusable engine (no WikiBento strings; contract in
-`pipeline/README.md`), `video/` is the WikiBento project (script, scene plan, `demo.config.mjs`,
-`actions.mjs`). npm scripts `tutorial:beats|narrate|record|build|review` all pass
-`--config video/demo.config.mjs`. `tutorial:build` is per-chapter cached, so an edit costs seconds.
+> **Picking this up? Read [`docs/TUTORIAL-VIDEO-STATUS.md`](docs/TUTORIAL-VIDEO-STATUS.md) first** — it opens
+> with a five-step "if you are picking this up", then the layout, the costs, and what is still missing.
+> The reusable technique (and every trap paid for) is the skill at
+> `~/.pi/agent/skills/narrated-tutorial-video/SKILL.md`; the engine's contract is
+> [`pipeline/README.md`](pipeline/README.md).
 
-> **Read first:** [docs/TUTORIAL-VIDEO-STATUS.md](docs/TUTORIAL-VIDEO-STATUS.md) (our pipeline, how to
-> run and verify it) and [docs/TUTORIAL-VIDEO-TOOLING.md](docs/TUTORIAL-VIDEO-TOOLING.md) (which
-> off-the-shelf tools were evaluated, what we grafted from them, what was rejected for licensing).
->
-> Short version: **record → narrate → assemble now runs end to end on macOS** and produces a narrated
-> MP4 (`npm run tutorial:record` / `tutorial:narrate` / `tutorial:build`). Voiceover is **edge-tts**
-> (free, no key; `--provider say` needs no install), content-hash cached. All on-screen text is
-> rendered by a browser into PNGs (`cards.mjs`, `overlays.mjs`) and composited with ffmpeg `overlay`,
-> so the assembler needs **no `drawtext`, no font files** — that is what unblocked the Mac. Fixed on
-> the way: an end card that played second, and a white flash at every scene boundary.
-> Still open: `SCRIPT.md` is not authoritative for `scenes.json`; the fx layer is unwired; nobody has
-> listened to the synthesized narration yet.
+**Two layers.** `pipeline/` is the engine (beats, voiceover, overlays, encoding, review) and holds **no
+WikiBento strings**; `video/` is this project (script, scene plan, `demo.config.mjs`, `actions.mjs`). A second
+project copies `video/` and leaves `pipeline/` alone. npm scripts `tutorial:beats|narrate|record|build|review`
+each pass `--config video/demo.config.mjs`.
 
-Goal: a narrated screencast that teaches the eight basic steps (what it is; read a shared board; clear
-it; add a card and set its subject; move/resize; export; store the JSON; reload with `?config=`).
+**Current take:** 2:42, `~/Movies/wikibento-tutorial-latest.mp4` (timestamped versions kept beside it; the
+`~/Movies` copies are not in git). Verified end to end, including that each scene shows what its narration
+claims: scene 1 clicks a subject and the board ripples to Marie Curie, scene 5 really drags a widget, scene 3's
+Reset dialog is on screen while its options are described.
 
-Where it stands:
+**Cheap to iterate:** `build` is per-chapter cached — a caption edit ≈ 18s, a scene re-record + build ≈ 1 min,
+a full rebuild ≈ 90s. Changing only words needs no re-recording at all.
 
-- `video/SCRIPT.md` — **the editable source of truth**: narration in beats, each with
-  the action that must happen during that line, plus zoom / ring / sound / caption markers. Andrew is
-  editing this; the wording and beat order drive everything else.
-- `video/scenes.json` — the recorder's scene plan and the narration text the pipeline
-  actually reads (starting state per scene, captions per scene).
-- `pipeline/paths.mjs` — the one output-directory rule and the Playwright ffmpeg-cache
-  probe, shared by every script (they each used to carry their own, three of them Linux-only).
-- `pipeline/record.mjs` — records one clip per scene by driving the live app; `--only <id>`
-  re-records a single scene.
-- `pipeline/narration.mjs` — synthesizes `<out>/narration/<id>.ogg` via edge-tts / `say` /
-  piper, skipping any line whose content hash is unchanged.
-- `pipeline/build.mjs` + `cards.mjs` + `overlays.mjs` — assembles: trim each clip's blank
-  lead-in, stretch it to its voiceover (max 1.5x, then freeze), composite browser-rendered badges / URL
-  cards / captions, mux narration, concat behind a title card and in front of an end card, emit an `.srt`.
-- `video/fx-proof.mjs` — proof of the highlighting layer: in-page zoom, red ring with a
-  label, per-keystroke click sounds timed from the page, growing typed-text chip. **Not wired in yet.**
-- Artifacts (not in git; regenerable): the recorded take lives under the resolved `--out` directory
-  (`/opt/data/staging/wikibento-tutorial/` on the recording host; a temp dir elsewhere). The last full
-  take there was ≈3:40, 1080p25.
+**Open, and none of it blocks a re-make:** sound effects (2 🔊 markers need post-production — nothing records
+audio from the browser); the per-scene `note` line still lives in `video/scenes.json` rather than the script;
+removing a widget is now only visible, not taught; the "another service" line waits on one extra widget on the
+demo board; and the take is not published anywhere yet — record the URL here when it is.
 
-**The known defect to fix next:** the assembler stretches a whole clip to fit its voiceover, so individual
-actions drift several seconds away from the words that describe them. Fix = make actions land on their
-beat *at record time* (narration as a phrase list with measured offsets; the recorder waits for the offset
-before clicking), so no clip is ever stretched. `SCRIPT.md` is structured as beats for exactly this reason.
-
-**Done 2026-09-11 (second pass):** `SCRIPT.md` is now the pipeline's real input — `beats.mjs` parses
-it into beats, the voiceover is synthesized **one clip per beat** with measured offsets
-(`narration/timing.json`), the recorder starts a beat clock and waits for each beat before acting, and
-the 🔍/⭕ fx is applied **in-page** (CSS transform zoom + red ring) as part of the recording. Scene 1 is
-wired end to end as the proof: a 1.2× push onto the third card held under the sentence describing it,
-with rings on each card as it is named, and one caption per beat. Also fixed: the lead-in is now
-*measured* (scene 1 spent 10.6s loading the board; the heuristic trimmed ~1s of it). See
-[`docs/TUTORIAL-VIDEO-STATUS.md`](docs/TUTORIAL-VIDEO-STATUS.md) — `tutorial:beats` reports how much fx
-is still prose (1 of 10 zooms wired, 3 of 15 rings).
-
-**Done 2026-09-11 (third pass):** every scene's actions are now beat-timed — `STEPS` in `record.mjs`
-names, per step, the beat whose words describe it; the runner waits for that beat and **warns when a
-step overruns its beat** (it flagged one: scene 5's resize finishes 0.5s after beat 2 ends). Sub-actions
-inside a beat are spread across it, so "four hovers as each icon is named" is four points in the beat,
-and scene 5's drag continues *while* the reflow clause is spoken. The script's stale ⚠ "the action lands
-after the words" notes are gone.
-
-**Done 2026-09-11 (fourth pass):** every fx marker that *can* be drawn now is — **10 of 10 zooms and
-17 of 19 rings** carry a `@target`; the two that do not are deliberate and documented in `SCRIPT.md`
-(a ring cannot follow a card that is being dragged, and the raw wiki page has no title element). The
-recorder draws a **URL pill** so scenes 2 and 8 can actually show `?config=` — a browser's address bar
-is not part of a recording, so those two markers had no target at all before. Found while doing it: a
-single `\?` inside the injected fx template literal collapsed to `?`, producing an invalid regex that
-made the whole `window.__fx` script fail to parse — every marker in that take was a silent no-op, so
-the recorder now says so if the fx layer does not install.
-
-**Reviewed and revised 2026-09-12** after watching a take: the tutorial now says **widget** everywhere
-(the product copy was fixed to match — Reset dialog, picker descriptions, config labels), scene 1
-introduces the noun and what a widget can hold, the title card is 2.5s, scene 4 **clears the board with
-the ✕ first** so the Marie Curie widget is built on an empty grid, its figure is now *proved* to change
-(the recorder captures the pre-apply value, clicks Apply & Reload, and polls — `207,055,573 → 161,964`),
-and the URL pill shows the address **decoded**. `scenes.json` no longer carries narration or captions.
-
-**Fourth pass 2026-09-12:** scene 1 shows a board that demonstrates what the narration claims (the shipped
-`article-vitals-demo.json` — chart, table, gallery, article, quality, history, subject picker), highlights
-address widgets by `[data-widget-id]` so they cannot drift, and a test enforces "hear something, see
-something". Builds are now **per-chapter cached** (`build/manifest.json`): nothing changed → ~6s, one
-caption edited → ~18s, instead of a ~70s full rebuild.
-
-**Versions are kept:** `tutorial:review` writes `wikibento-tutorial-<stamp>.mp4` (+ narration, transcript,
-subtitles) and a `-latest` symlink, so takes no longer overwrite each other and can be compared
-(`--label v3` names one by hand).
-
-**Second review pass 2026-09-12:** the tutorial is **3:00** (was 3:41) — the ending was over-explained, so
-scene 7 is two beats about a *JSON file on a wiki* (no MediaWiki-API or CORS talk) and scene 8 ends on the
-payoff plus the share/QR. The widget in scene 5 now actually moves (the zoom on that beat was transforming
-the app root mid-drag, so the drag never engaged — and the check that should have caught it compared whole
-box objects and passed on a 1px rounding). And an intermittent ffmpeg shutdown deadlock — output `-t` plus
-endless `-loop 1` image inputs — is gone now that every stream in the graph is finite: builds went from
-10-minute hangs to ~70 seconds.
-
-**Also queued:** the 3 🔊 sound markers need post-production (no audio is recorded); scene 5's beat 2
-overruns by 0.5s (needs more words or a quicker gesture); and a human listen to the narration. The
-`note` field in scenes.json (the lower-left annotation line) is not derived from SCRIPT.md, which is
-the one piece of on-screen text the script does not own yet.
-
-**Done 2026-09-11** (the tutorial needed them true, so the product changed rather than the narration):
-Reset now asks — Cancel · **Blank board** · **Starter set** — and clears the board's `params` block;
-**Export and the 🔗 Share link both carry `params`** (they silently dropped it, so a parameterised
-board lost its controls through Export → wiki page → `?config=`, and a shared link arrived with the
-cards but not the controls); and `persist()` at five call sites wrote `params: null` when only
-widgets/layout changed, erasing the block from localStorage as soon as a card was moved — those now
-keep the current block. Verified in a real browser (22 checks: reset flow, blank-board reload, export
-payload, drag survival, share-link recipient) and by `tests/saved-board.test.mjs`. Scenes 3 and 4 need
-re-recording (`--only 03-reset`, `--only 04-add`).
-
-Measured facts worth keeping (2026-09-11, this host):
-
-- In-page zoom works: a CSS transform on `#root` magnifies **1.80x** (a 461 px card measures 830 px), and
-  magnified text stays crisp because the browser re-renders it — upscaling in ffmpeg cannot.
-- `recordVideo` needs **Playwright's own** ffmpeg (`ffmpeg-<rev>/` under `PLAYWRIGHT_BROWSERS_PATH`, else
-  the platform default cache), not the system ffmpeg. `record.mjs` preflights it. The one-time fix is
-  `node node_modules/playwright-core/cli.js install ffmpeg` — **not** `npx playwright install ffmpeg`,
-  which resolves a different playwright version and prunes the engines you do not name.
-- The system ffmpeg here has **no text filters at all** (no `drawtext`, no freetype) and Homebrew ships
-  `libopus` but not `libvorbis` — the pipeline is built to not care about either.
-- Real selectors (guessing them by text costs a whole take): the top button is a plain
-  `button.btn.btn-primary` reading "+ Add Widget"; the picker's field is `.add-widget-search`
-  (placeholder "Search widgets… (name, source, category)"), and it is **inside `#root`**, so transforms
-  applied there affect it.
-- The auto-zoom tutorial tools (OpenScreen / Recordly / OpenScreen Studio) cannot run here: this host is
-  **aarch64** and OpenScreen v1.11.0 ships no arm64 Linux asset (AppImage/deb/rpm/pacman only), Recordly
-  has no releases. They also infer zooms from cursor position, whereas we know the exact bounding box of
-  the element we are pointing at.
-- Drag recipe (measured): one column of the grid is ≈262 px of pointer travel at 1920 px wide; a card in
-  the leftmost column cannot move left (it snaps back) and drags must be handed to the card's top bar.
+**Decisions worth not re-litigating:** two ffmpegs on purpose (Playwright's own for recording, the system one
+for assembling); text is rendered by a browser, never by ffmpeg (this machine's ffmpeg has no text filters at
+all); fx runs in-page so magnified text stays crisp; the script owns the words, captions and markers, and
+`scenes.json` keeps only what prose cannot express.
