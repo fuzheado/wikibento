@@ -89,7 +89,8 @@ its settings, and its position on the grid. That file *is* the board; there is n
 
 ## 7. Put the JSON somewhere it can be fetched
 
-The file needs a home your browser is allowed to read. **The easy place is a wiki page:**
+The file needs a home your browser is allowed to read. **The easy place is a file on a wiki:** — a small
+JSON file on a Wikimedia server, not a wiki article:
 
 1. Create a page — a subpage of your user page is the natural spot, e.g.
    `https://commons.wikimedia.org/wiki/User:YourName/My-board.json`
@@ -100,7 +101,7 @@ The file needs a home your browser is allowed to read. **The easy place is a wik
 https://wikibento.toolforge.org/?config=https://commons.wikimedia.org/wiki/User:YourName/My-board.json
 ```
 
-**Why wiki pages work:** WikiBento fetches wiki pages through the MediaWiki Action API
+**Why wiki files work:** WikiBento reads them through the MediaWiki Action API
 (`action=parse`), which is CORS-enabled — so no hosting, no server, and you keep the wiki's history
 and permissions. Short links work too: `?config=https://w.wiki/TR9R` resolves the short URL
 server-side and then loads the page it points at.
@@ -115,7 +116,7 @@ to read that URL", not "the file is missing".
 
 ## 8. Load it anywhere
 
-That wiki page plus `?config=` is a complete, portable board. Open the URL on another machine, a
+That wiki file plus `?config=` is a complete, portable board. Open the URL on another machine, a
 lobby kiosk, or send it to a colleague: the same dashboard appears, rebuilt from the page. The link
 is the whole thing — bookmark it, or use **🔗 Share** to get a QR code for it.
 
@@ -129,7 +130,7 @@ For a screen that should not be edited, add `?lean=1` (chrome-free, still resiza
 Documentation is only honest if it says where the tool currently lets you down. These are real, and
 filed rather than hidden:
 
-- **The `?config=` URL must be CORS-fetchable** (wiki pages are, most static hosts are not) — see
+- **The `?config=` URL must be CORS-fetchable** (wiki files are, most static hosts are not) — see
   step 7. There is no server-side proxy for arbitrary hosts.
 
 Fixed on 2026-09-11 — the tutorial needed them to be true, so the product changed rather than the
@@ -138,7 +139,7 @@ narration:
 - **Reset now asks.** It opens a dialog offering the starter set, a blank board, or cancel — and it
   clears the board's `params` block along with the widgets.
 - **Export carries the `params` block.** The exported JSON was `version`, `widgets`, `layout` only, so
-  a parameterised board lost its parameters through Export → wiki page → `?config=`. It now writes
+  a parameterised board lost its parameters through Export → wiki file → `?config=`. It now writes
   `params` too, matching the documented format.
 
 ## Re-making the video

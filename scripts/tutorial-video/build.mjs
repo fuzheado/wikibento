@@ -48,7 +48,7 @@ mkdirSync(BUILD, { recursive: true });
 
 const ff = (args, label) => {
   try {
-    execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: ['ignore', 'ignore', 'pipe'] });
   } catch (e) {
     console.error(`✘ ${label} failed:`, String(e.stderr || e.message).slice(0, 400));
     throw e;
@@ -140,7 +140,7 @@ const cardPart = (png, dur) => {
 mkdirSync(join(OUT, 'cards'), { recursive: true });
 let srtTime = 0;
 const srt = [];
-const TITLE_DUR = 2.5, END_DUR = 5.5;   // the title card is scenery, not content: 2.5s to read three lines
+const TITLE_DUR = 2.5, END_DUR = 3.0;   // the title card is scenery, not content: 2.5s to read three lines
                                      // (it was 4.5s, which the reviewer called too long a wait before the tutorial starts)
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
@@ -180,7 +180,7 @@ for (const scene of scenes) {
   const lead = typeof scene.leadIn === 'number' ? scene.leadIn : leadInFrames(buf) / fps;
   const blank = blankFraction(buf);
   const dEff = Math.max(0.5, dClip - lead);
-  const target = dNarr + 1.0;                       // a beat of silence at the end
+  const target = dNarr + 0.35;                      // a short beat of silence at the end (was 1.0s, then 0.5s)
   const stretch = Math.min(1.5, Math.max(1.0, target / dEff));
   const stretched = dEff * stretch;
   const pad = Math.max(0, target - stretched);
@@ -189,20 +189,32 @@ for (const scene of scenes) {
   const beats = TIMING?.scenes?.[scene.id]?.beats;
 
   const inputs = ['-i', clip, '-i', narration];
+  // Every stream in this graph is FINITE, and the output is cut by trimming rather than by `-t`.
+  //
+  // Why that matters: with `-t` plus endless `-loop 1` image inputs, ffmpeg deadlocked on shutdown
+  // roughly half the time — it would encode to within 0.1s of the target, the overlay inputs would
+  // report "All consumers of this stream are done", and the process would sit there forever with the
+  // CPU frozen and the output file half-written. It looked like a hang in the recorder, then like an
+  // orphaned process; running the exact command by hand failed too (3/8 runs), and watching it with
+  // `-loglevel verbose` showed the graph being torn down mid-shutdown. Making everything finite —
+  // clone-then-trim the video to exactly the target, pad-then-atrim the audio to the same length, and
+  // give each image input an explicit duration — took it to 8/8. Recorded because it cost hours and
+  // presented as a mystery hang.
   const head = lead > 0.05
     ? `[0:v]trim=start=${lead.toFixed(2)},setpts=(PTS-STARTPTS)*${stretch.toFixed(4)}`
     : `[0:v]setpts=PTS*${stretch.toFixed(4)}`;
   const filters = [[
     head,
     `fps=${fps}`,
-    ...(pad > 0.05 ? [`tpad=stop_mode=clone:stop_duration=${pad.toFixed(2)}`] : []),
     `scale=${W}:${H}:force_original_aspect_ratio=decrease`,
     `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=${BG}`,
+    `tpad=stop_mode=clone:stop_duration=${(pad + 1).toFixed(2)}`,   // clone the last frame to cover any shortfall
+    `trim=end=${target.toFixed(3)},setpts=PTS-STARTPTS`,           // ...then cut to exactly the target
   ].join(',') + '[base]'];
   let last = 'base';
   let idx = 2;
   const overlay = (png, window) => {
-    inputs.push('-loop', '1', '-i', png);
+    inputs.push('-loop', '1', '-t', (target + 1).toFixed(2), '-i', png);   // finite, not endless
     const tag = `o${idx}`;
     const enable = window ? `:enable='between(t,${window[0].toFixed(2)},${window[1].toFixed(2)})'` : '';
     filters.push(`[${last}][${idx}:v]overlay=0:0:eof_action=repeat${enable}[${tag}]`);
@@ -244,11 +256,11 @@ for (const scene of scenes) {
     });
   }
 
-  filters.push('[1:a]adelay=500|500,apad[a]');
+  filters.push(`[1:a]adelay=500|500,apad,atrim=end=${target.toFixed(3)},asetpts=PTS-STARTPTS[a]`);
   const out = join(BUILD, `${scene.id}.mp4`);
   ff([...inputs,
       '-filter_complex', filters.join(';'),
-      '-map', `[${last}]`, '-map', '[a]', '-t', target.toFixed(2),
+      '-map', `[${last}]`, '-map', '[a]',            // no -t: both streams already end at the target
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-pix_fmt', 'yuv420p', '-r', String(fps),
       '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', out], scene.id);
   console.log(`  ${scene.id}: clip ${dClip.toFixed(1)}s${lead > 0.05 ? ` − ${lead.toFixed(1)}s blank` : ''} × ${stretch.toFixed(2)} + ${pad.toFixed(1)}s pad → ${target.toFixed(1)}s (narration ${dNarr.toFixed(1)}s)`);

@@ -102,7 +102,7 @@ const OGG = pickOggEncoder();
 
 const toOgg = (src, dest) => execFileSync('ffmpeg',
   ['-hide_banner', '-loglevel', 'error', '-y', '-i', src, '-ac', '1', ...OGG, dest],
-  { stdio: ['ignore', 'pipe', 'pipe'] });
+  { stdio: ['ignore', 'ignore', 'pipe'] });
 
 function synthesize(text, dest) {
   const tmp = join(tmpdir(), `tts-${randomUUID()}`);
@@ -111,12 +111,12 @@ function synthesize(text, dest) {
     writeFileSync(textFile, text);
     const args = ['--voice', VOICE, '--file', textFile, '--write-media', `${tmp}.mp3`];
     if (RATE) args.push(`--rate=${RATE}`);
-    try { execFileSync('edge-tts', args, { stdio: ['ignore', 'pipe', 'pipe'] }); }
+    try { execFileSync('edge-tts', args, { stdio: ['ignore', 'ignore', 'pipe'] }); }
     finally { rmSync(textFile, { force: true }); }
     toOgg(`${tmp}.mp3`, dest);
     rmSync(`${tmp}.mp3`, { force: true });
   } else if (PROVIDER === 'say') {
-    execFileSync('say', ['-v', VOICE, '-o', `${tmp}.aiff`, text], { stdio: ['ignore', 'pipe', 'pipe'] });
+    execFileSync('say', ['-v', VOICE, '-o', `${tmp}.aiff`, text], { stdio: ['ignore', 'ignore', 'pipe'] });
     toOgg(`${tmp}.aiff`, dest);
     rmSync(`${tmp}.aiff`, { force: true });
   } else if (PROVIDER === 'piper') {
@@ -133,7 +133,7 @@ const gapFile = join(NARR, '_gap.ogg');
 if (!existsSync(gapFile)) {
   execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi',
     '-i', 'anullsrc=r=48000:cl=mono', '-t', String(GAP), '-ac', '1', ...OGG, gapFile],
-    { stdio: ['ignore', 'pipe', 'pipe'] });
+    { stdio: ['ignore', 'ignore', 'pipe'] });
 }
 
 /** concatenate the beats (and gaps) into the scene's single track */
@@ -144,7 +144,7 @@ function assembleScene(files, dest) {
   writeFileSync(list, entries.map((f) => `file '${f.replace(/'/g, "'\\''")}'`).join('\n'));
   try {
     execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat',
-      '-safe', '0', '-i', list, '-c', 'copy', dest], { stdio: ['ignore', 'pipe', 'pipe'] });
+      '-safe', '0', '-i', list, '-c', 'copy', dest], { stdio: ['ignore', 'ignore', 'pipe'] });
   } finally { rmSync(list, { force: true }); }
 }
 

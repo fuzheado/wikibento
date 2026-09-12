@@ -46,7 +46,7 @@ words or a shorter action.
 
 ## 1. What WikiBento is
 
-`scene 01-what` · starts from: the starter board (three widgets) · target ~30s
+`scene 01-what` · starts from: the starter board (three widgets) · target ~28s
 
 1. 🗣 "WikiBento is a dashboard you build yourself, out of live Wikimedia data."
    🖱 board already loaded; no pointer movement — let the numbers be read
@@ -58,7 +58,7 @@ words or a shorter action.
    ⭕ @ .grid-item:nth-child(1) .widget-title — as the first widget is named
    ⭕ @ .grid-item:nth-child(2) .widget-title — as the link count is named
    ⭕ @ .grid-item:nth-child(3) .widget-title — as the ranking is named
-4. 🗣 "No login, no server to run: you drag widgets onto the grid and point each one at a subject."
+4. 🗣 "No login, no server: you point each widget at a subject."
    🖱 settle; pointer stays with the board
 5. 🗣 "And all of it is live."
    🖱 pointer away from the widgets
@@ -80,14 +80,14 @@ that time it come from the voiceover, and the targets come from the `@` selector
 
 `scene 02-read` · starts from: `?config=https://w.wiki/TR9R` (the WikiPortraits demo board) · target ~33s
 
-1. 🗣 "Boards travel as URLs. This one is the WikiPortraits demo, and the entire configuration is in the link: config equals, followed by a wiki page address."
+1. 🗣 "Boards travel as URLs. This one is the WikiPortraits demo, and the whole configuration is in the link: config equals, then the address of a JSON file on a Wikimedia server."
    🖱 pointer rests on the address bar area / the board's top bar
    ⭕ @ .fx-url-config — ring the `?config=` part of the URL, exactly your "red circle" case. The
       recorder draws this URL pill, because a browser's address bar is not part of the recording:
       the frame is the page viewport only. It shows the address **decoded** —
       `?config=https://w.wiki/TR9R`, not the `%3A%2F%2F` form — because the escaping is what makes
       the link work, not what makes it readable.
-2. 🗣 "WikiBento fetches that page and builds the board from it."
+2. 🗣 "WikiBento fetches that file and builds the board from it."
    🖱 slight scroll, or nothing (the board is already built)
 3. 🗣 "Every widget has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it."
    🖱 four separate hovers, in that order: ⓘ → ⚙ → ↻ → ✕
@@ -97,10 +97,9 @@ that time it come from the voiceover, and the targets come from the `@` selector
    ⭕ @ .grid-item:nth-child(1) button[title="Refresh"] — as “the arrow” is named
    ⭕ @ .grid-item:nth-child(1) button[title="Remove"] — as “the cross” is named
    (four rings spread across this beat, so each lands on its own name)
-4. 🗣 "The name chip next to the title is the widget's identity — other widgets can refer to it by that name."
-   🖱 hover the name chip; a tooltip appears
-   🔍 1.6× @ .grid-item:nth-child(2) .widget-header — hold the zoom, and move the window to include the chip
-   ⭕ @ .grid-item:nth-child(2) .widget-id-chip — the name chip itself
+Cut (2026-09-12): a beat about the name chip — "the widget's identity; other widgets can refer to it by
+that name". True and useful, but it is a dataflow detail an ordinary user does not need, and the tutorial
+is meant to run under three minutes.
 
 ---
 
@@ -185,16 +184,18 @@ than a default-looking one.
    🖱 drag the first widget one column right — **the drag starts on "Drag" and is still moving while the
       clause about reflowing is spoken**, which is what the recorder now does: the increments are spread
       across this beat
-   🔍 1.15× @ .grid-item:nth-child(1) — only for the duration of the drag (a zoom on a moving target
-      is where tutorial videos usually look bad — keep it gentle)
-   ⭕ *not wired, deliberately*: the ring is drawn once, at fixed coordinates, so on the widget being
-      moved it would sit still while the widget slid out from under it. Reads as noise — stays prose.
+   ⭕🔍 *no fx during the drag, deliberately.* The script's own rule is that a zoom never runs while
+      something is moving, and here it is not just taste: the zoom is a CSS transform on the app root, so
+      it moves the widget under the pointer mid-gesture. A take with a 1.15× push on this beat recorded a
+      drag that silently did nothing — the widget never moved. The ring is drawn once at fixed
+      coordinates, so on a moving widget it would sit still as the widget slid out from under it.
    🔊 optional soft "pick up / put down" ticks — needs post-production; no audio is recorded
 2. 🗣 "Drag the bottom corner to resize."
    🖱 resize from the corner handle
    ⭕ @ .grid-item:nth-child(1) .react-resizable-handle — the corner handle, as the drag starts
-3. 🗣 "The grid keeps everything aligned, and each widget has a minimum size so it cannot be squashed into something unreadable."
+3. 🗣 "The grid keeps everything aligned, and widgets have a minimum size."
    🖱 a small overshoot that snaps back (deliberate demonstration of the minimum), or nothing
+   🔍 1.15× @ .grid-item:nth-child(1) — the gentle push belongs here, on a board that has stopped moving
 
 Measured recipe, so nobody has to rediscover it: one column ≈ 262px of pointer travel at 1920px
 wide; a widget in the leftmost column cannot move left (it snaps back); the drag must be handed to
@@ -232,42 +233,42 @@ are within their beats.
 
 ---
 
-## 7. Put the JSON where it can be fetched
+## 7. Put the JSON file where it can be fetched
 
-`scene 07-store` · starts from: the raw wiki page holding the demo JSON · target ~36s
+`scene 07-store` · starts from: the raw wiki file holding the demo JSON · target ~12s
 
-1. 🗣 "That JSON needs a home your browser can read."
-   🖱 the wiki page's raw JSON on screen; pointer at the top
-2. 🗣 "The easy place is a wiki page: paste it onto a subpage of your user page, and it lives there with the wiki's own history and permissions."
-   🖱 scroll the page slowly; the page title and the JSON are both visible
-   ⭕ *not wired*: on the raw wiki page (`?action=raw`) Chromium renders plain text with no title
-      element to target, so there is nothing to ring. Left as prose rather than faked.
-   📝 "Your user subpage — history, permissions and watchlists come free"
-3. 🗣 "WikiBento reads wiki pages through the CORS-enabled MediaWiki API, which is why this works without any extra hosting."
-   🖱 cut to the "two kinds of host" panel (rendered, not scraped)
-   📝 "Wiki page ✓  read via the MediaWiki API — no hosting needed"
-4. 🗣 "This is the page behind the demo board."
-   🖱 back to the raw page, scrolled to a recognisable line
-5. 🗣 "If you host the file somewhere else instead, it has to allow cross-origin requests — otherwise you will see 'could not load dashboard from URL' and the board falls back to the starter set."
-   🖱 the same panel, second line
-   📝 "Any other host ✗  must allow cross-origin requests (CORS), or the load fails"
+1. 🗣 "That JSON needs a home your browser can read. The easiest is a file on a wiki — paste it onto a subpage of your user page."
+   🖱 the raw file on screen; pointer at the top
+   📝 "A wiki file: the board's JSON, on a Wikimedia server"
+2. 🗣 "It sits there with the wiki's own history and permissions."
+   🖱 scroll the file slowly
+   ⭕ *not wired*: on the raw file (`?action=raw`) Chromium renders plain text with no title element to target.
+
+Words matter here: it is a **file holding JSON**, not a “wiki page”. Saying “wiki page” makes a viewer
+picture a Wikipedia article, and this is neither an article nor prose — it is a small configuration file,
+served from a Wikimedia server, that the app reads.
+
+Deliberately cut (2026-09-12): the MediaWiki-API explanation and the cross-origin/hosting discussion. The
+audience is an ordinary user; “CORS-enabled MediaWiki API” is not a sentence that helps them paste a file,
+and the tutorial is stronger ending at the payoff.
 
 ---
 
-## 8. Load it anywhere
+## 8. The payoff: a link you can share
 
-`scene 08-reload` · starts from: `?config=https://w.wiki/TR9R` · target ~20s
+`scene 08-reload` · starts from: `?config=https://w.wiki/TR9R` · target ~13s
 
-1. 🗣 "And that is the payoff. Your wiki page plus config equals is a complete, portable board."
-   🖱 the board as it loads; the URL visible at the top
-   ⭕ @ .fx-url-config — ring the `?config=` part again: the callback to scene 2 is the point of the
-      whole video (same recorder-drawn URL pill as scene 2)
-2. 🗣 "Open that URL on any machine, or on a lobby kiosk, and the same dashboard appears."
-   🖱 nothing, or a slow drift; let the board breathe
-3. 🗣 "The link is the whole thing: share it, bookmark it, or turn it into a QR code."
-   🖱 open the Share panel and the QR code
+1. 🗣 "And that is the payoff. Your wiki file plus config equals is a complete, portable board."
+   🖱 the board as it loads; the URL pill at the top
+   ⭕ @ .fx-url-config — the callback to scene 2 is the point of the whole video (same recorder-drawn URL
+      pill, shown decoded)
+2. 🗣 "The link is the whole thing: share it, bookmark it, or turn it into a QR code."
+   🖱 open the Share panel and its QR code
    🔍 1.5× @ .share-qr-card svg — onto the QR code so it is clear enough to understand, not necessarily to scan
    📝 "Share · bookmark · QR code"
+
+Cut (2026-09-12): the “open it on any machine, or a lobby kiosk” beat. Ending on the payoff and the share
+is a better close, and the tutorial is meant to be short.
 
 ---
 

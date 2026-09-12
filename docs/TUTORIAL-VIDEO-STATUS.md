@@ -1,6 +1,6 @@
 # Tutorial video — pipeline status
 
-**Status as of 2026-09-12.** What the pipeline is, what is verified working, what is still missing,
+**Status as of 2026-09-12 (second review pass).** What the pipeline is, what is verified working, what is still missing,
 and how to check any of it. Written so the work can be resumed from this file alone.
 
 **One-line verdict:** `SCRIPT.md` is now the pipeline's real input — it is parsed into beats, the
@@ -125,6 +125,29 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   owns both), and the on-screen step badge now takes its number and title from the script, so a heading
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
+
+### Second review pass 2026-09-12 (from watching the take again)
+
+- **3:41 → 3:00.** The ending was over-explained. Scene 7 is now two beats — "that JSON needs a home your
+  browser can read; the easiest is a file on a wiki" — and the takedown of the MediaWiki API and the
+  cross-origin/hosting discussion are gone. Scene 8 loses the kiosk beat and is now the payoff plus the
+  share/QR. An ordinary user does not need an API to paste a file. One optional beat went too (scene 2's
+  name chip, a dataflow detail). Also: pause after each scene 1.0 → 0.35s, closing card 5.5 → 3.0s.
+- **“Wiki page” → “a JSON file on a wiki”.** Saying “wiki page” makes a viewer picture a Wikipedia article;
+  what the app actually reads is a small config file, served from a Wikimedia server, that happens to hold
+  JSON. The script and the written tutorial both say file now.
+- **The move in scene 5 really moves.** It had not been: the widget stayed at x=20 and the recorder's check
+  said `moved: true` anyway, because it compared whole box objects and passed on a 1px width rounding. Two
+  causes — the zoom on that beat is a CSS transform on the app root, which moves the widget under the
+  pointer mid-gesture, so the drag never engaged (`dragging-class: 0`); and the check was too loose. The
+  zoom moved to the closing beat (where nothing is moving, as the script's own rule requires) and the check
+  now requires a real Δx/Δy. It reports `dx 315`.
+- **The intermittent 10-minute build hang is fixed.** ffmpeg was deadlocking in shutdown: output `-t` plus
+  endless `-loop 1` image inputs meant it encoded to within 0.1s of the target, the overlay inputs reported
+  "All consumers of this stream are done", and it waited forever — reproducibly (3/8 runs), including when
+  the exact command was run by hand. The graph is now **fully finite**: clone-then-`trim=end` the video,
+  `apad,atrim=end` the audio, give each image input an explicit `-t`, and drop the output `-t`. 8/8, and a
+  full build takes **~70 seconds**.
 
 ### Fixed along the way (each found by reading frames, not logs)
 

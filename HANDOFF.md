@@ -368,6 +368,14 @@ the ✕ first** so the Marie Curie widget is built on an empty grid, its figure 
 (the recorder captures the pre-apply value, clicks Apply & Reload, and polls — `207,055,573 → 161,964`),
 and the URL pill shows the address **decoded**. `scenes.json` no longer carries narration or captions.
 
+**Second review pass 2026-09-12:** the tutorial is **3:00** (was 3:41) — the ending was over-explained, so
+scene 7 is two beats about a *JSON file on a wiki* (no MediaWiki-API or CORS talk) and scene 8 ends on the
+payoff plus the share/QR. The widget in scene 5 now actually moves (the zoom on that beat was transforming
+the app root mid-drag, so the drag never engaged — and the check that should have caught it compared whole
+box objects and passed on a 1px rounding). And an intermittent ffmpeg shutdown deadlock — output `-t` plus
+endless `-loop 1` image inputs — is gone now that every stream in the graph is finite: builds went from
+10-minute hangs to ~70 seconds.
+
 **Also queued:** the 3 🔊 sound markers need post-production (no audio is recorded); scene 5's beat 2
 overruns by 0.5s (needs more words or a quicker gesture); and a human listen to the narration. The
 `note` field in scenes.json (the lower-left annotation line) is not derived from SCRIPT.md, which is

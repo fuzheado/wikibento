@@ -407,18 +407,6 @@ async function applyStart(page, spec) {
 /** when the i-th of n sub-actions within beat b should happen */
 const spread = (b, i, n) => (b ? b.start + ((b.end - b.start) * i) / n : 0);
 
-/** the "where should the JSON live" card scene 7 cuts to (and back from) */
-const HOST_CARD = `<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:20px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
-  <div style="padding:64px 80px">
-    <div style="font-size:34px;font-weight:700;margin-bottom:28px">Where the JSON should live</div>
-    <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ A wiki page (easiest)</span> — read through the CORS-enabled MediaWiki API, and it keeps the wiki's history and permissions.</div>
-    <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ Any host that sends</span> <code style="background:#20242b;padding:2px 8px;border-radius:4px">Access-Control-Allow-Origin</code>.</div>
-    <div style="margin-top:36px;padding:20px 24px;border-left:4px solid #d9a13b;background:#1b1e23">
-      <div style="color:#d9a13b;font-weight:700;margin-bottom:6px">If the browser is not allowed to read it</div>
-      <div style="color:#b9c2cf">⚠ Could not load dashboard from URL: Failed to fetch — and the board falls back to the starter set.</div>
-    </div>
-  </div></body></html>`;
-
 const STEPS = {
   '01-what': [
     { beat: 2, label: 'drift across the board', run: async (page) => { await glide(page, 1400, 300); } },
@@ -450,10 +438,6 @@ const STEPS = {
         await at(spread(b, i, Math.max(1, btns.length)));
         await glide(page, btn.x, btn.y);
       }
-    } },
-    { beat: 4, label: 'hover the name chip', run: async (page) => {
-      const c = await cards(page);
-      if (c[1]) await clickHuman(page, c[1].box, { dx: 90, dy: 16 });
     } },
   ],
 
@@ -643,8 +627,18 @@ const STEPS = {
       console.log(`   dragging-class: ${dragging}`);
       await settle(page, 800);
       const after = await cards(page);
-      console.log(`   after ${JSON.stringify(after[0] && after[0].box)} | moved:`,
-        JSON.stringify(after[0] && after[0].box) !== JSON.stringify(card.box));
+      const b0 = card.box, b1 = (after[0] || {}).box || {};
+      // Compare x/y, not the whole box: the first version compared JSON and passed on a 1px width
+      // rounding while the widget had not moved at all — so the take shipped a "move" that never moved,
+      // and only a human watching it noticed.
+      const movedX = Math.abs((b1.x ?? b0.x) - b0.x) >= 20;
+      const movedY = Math.abs((b1.y ?? b0.y) - b0.y) >= 20;
+      console.log(`   after ${JSON.stringify(b1)} | moved: ${movedX || movedY}` +
+        ` (dx ${(b1.x ?? b0.x) - b0.x}, dy ${(b1.y ?? b0.y) - b0.y})`);
+      if (!movedX && !movedY) {
+        console.log('   ⚠ the widget did NOT move — the drag did not take (check for fx running during the gesture)');
+      }
+      if (!dragging) console.log('   ⚠ react-draggable never reported a drag (no .react-draggable-dragging)');
     } },
     { beat: 2, label: 'resize from the corner handle', run: async (page, b) => {
       const handle = await page.evaluate(() => {
@@ -706,39 +700,40 @@ const STEPS = {
   ],
 
   '07-store': [
-    { beat: 1, label: 'the raw wiki JSON on screen', run: async (page) => { await glide(page, 900, 140); } },
-    { beat: 2, label: 'scroll the page slowly', run: async (page, b) => {
+    { beat: 1, label: 'the raw JSON file on screen', run: async (page) => {
+      // the scene starts ON the file (start: wikiPage:...), so this is just the pointer and a beat of
+      // stillness: the narration is explaining what the thing on screen is
+      await glide(page, 900, 140);
+      await settle(page, 400);
+    } },
+    { beat: 2, label: 'scroll the file slowly', run: async (page, b) => {
       const steps = [220, 240, 280, 300, 240];
       for (const [i, px] of steps.entries()) {
         await at(spread(b, i, steps.length));
         await page.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), px);
       }
     } },
-    { beat: 3, label: 'cut to the "where the JSON should live" card', run: async (page) => {
-      await page.goto(dataUrl(HOST_CARD), { waitUntil: 'domcontentloaded' });
-    } },
-    { beat: 4, label: 'back to the raw page', run: async (page) => { await page.goBack().catch(() => {}); } },
-    { beat: 5, label: 'the card again (the CORS warning)', run: async (page) => {
-      await page.goto(dataUrl(HOST_CARD), { waitUntil: 'domcontentloaded' });
-    } },
   ],
 
   '08-reload': [
-    { beat: 1, label: 'hover the first card, URL in view', run: async (page) => {
+    { beat: 1, label: 'the board, with the URL in view', run: async (page) => {
       await page.evaluate(() => window.__fx?.urlChip(location.href));   // the callback to scene 2
       await settle(page, 300);
       const c = await cards(page);
       if (c[0]) await clickHuman(page, c[0].box, { dy: 16 });
     } },
-    { beat: 2, label: 'let the board breathe', run: async (page) => { await glide(page, 1200, 700); } },
-    { beat: 3, label: 'open the Share panel (QR)', run: async (page) => {
+    { beat: 2, label: 'open the Share panel (the QR)', run: async (page) => {
       await page.evaluate(() => {
         const b = document.querySelector('button[title*="Share"]');
         if (b) b.click();
       });
       await settle(page, 900);
+      const qr = await fxBox(page, '.share-qr-card svg', { tries: 6, delayMs: 200 });
+      console.log(qr ? '   share panel open, QR present' : '   ⚠ share panel opened but no QR found');
+      await settle(page, 500);
     } },
   ],
+
 };
 
 /**
