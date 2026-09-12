@@ -35,6 +35,8 @@ const { width: W, height: H, fps } = plan.video;
 // in scenes.json. Cheap (no browser) and it fails loudly if the script and scenes.json disagree.
 execFileSync('node', [join(root, 'scripts/tutorial-video/beats.mjs'), '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
 const beatsDoc = JSON.parse(readFileSync(join(OUT, 'beats.json'), 'utf8'));
+/** the line SCRIPT.md writes over the title card (it is not a recorded scene, so it is not in the timeline) */
+const TITLE_LINE = (beatsDoc.scenes.find((sc) => sc.id === '00-title') || {}).narration || '';
 
 // Beat offsets, measured from the voiceover (narration/timing.json). Absent until the scene has been
 // narrated, in which case captions fall back to splitting the scene across its caption lines.
@@ -127,25 +129,41 @@ const parts = [];
 
 // ── browser-rendered static cards ────────────────────────────────────────────
 // A silent mp4 from a PNG, at the video's own resolution and framerate.
-const cardPart = (png, dur) => {
+const cardPart = (png, dur, voice = null) => {
   const out = join(BUILD, `${png.replace('.png', '')}-card.mp4`);
-  ff(['-loop', '1', '-t', String(dur), '-i', join(OUT, 'cards', png),
-      '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo',
-      '-vf', `scale=${W}:${H},format=yuv420p`,
-      '-shortest', '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '128k', '-r', String(fps), out], `card ${png}`);
+  // Finite streams throughout (see the note on the scene graph): the image is looped only for `dur`, and
+  // a spoken line is padded with `atrim` rather than an endless `apad`.
+  const hasVoice = voice && existsSync(voice);
+  const audio = hasVoice ? ['-i', voice] : ['-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo'];
+  const graph = hasVoice
+    ? `[0:v]scale=${W}:${H},format=yuv420p[v];[1:a]apad,atrim=end=${dur.toFixed(3)},asetpts=PTS-STARTPTS[a]`
+    : `[0:v]scale=${W}:${H},format=yuv420p[v];[1:a]anull,atrim=end=${dur.toFixed(3)},asetpts=PTS-STARTPTS[a]`;
+  ff(['-loop', '1', '-t', String(dur), '-i', join(OUT, 'cards', png), ...audio,
+      '-filter_complex', graph, '-map', '[v]', '-map', '[a]',
+      '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-r', String(fps), out], `card ${png}`);
   return out;
 };
 
 mkdirSync(join(OUT, 'cards'), { recursive: true });
 let srtTime = 0;
 const srt = [];
-const TITLE_DUR = 2.5, END_DUR = 3.0;   // the title card is scenery, not content: 2.5s to read three lines
-                                     // (it was 4.5s, which the reviewer called too long a wait before the tutorial starts)
+// The title card is no longer scenery: SCRIPT.md's `00-title` scene speaks over it (the line that used
+// to open scene 1), so its length follows that line. Silence over a logo wastes the moment attention is
+// highest — five silent seconds was the reviewer's first note on the finished take.
+const TITLE_VOICE = join(OUT, 'narration', '00-title.ogg');
+const TITLE_DUR = existsSync(TITLE_VOICE) ? Math.max(2.5, probe(TITLE_VOICE) + 0.8) : 2.5;
+const END_DUR = 3.0;
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
 execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
-if (existsSync(join(OUT, 'cards', 'title.png'))) { parts.push(cardPart('title.png', TITLE_DUR)); srtTime += TITLE_DUR; }
+if (existsSync(join(OUT, 'cards', 'title.png'))) {
+  parts.push(cardPart('title.png', TITLE_DUR, TITLE_VOICE));
+  // the opening line belongs in the subtitles too, so a reader gets the whole narration
+  if (TITLE_LINE) srt.push({ start: 0.3, end: TITLE_DUR - 0.2, text: TITLE_LINE });
+  srtTime += TITLE_DUR;
+  if (existsSync(TITLE_VOICE)) console.log(`title card: speaking over it (${TITLE_DUR.toFixed(1)}s)`);
+}
 else console.error('✘ missing cards/title.png');
 // the end card is appended AFTER the scenes — it used to be pushed here alongside the title, which
 // put a closing card immediately after the opening one; the drawtext end card that followed it has

@@ -134,15 +134,19 @@ window.__fx = {
     // target on screen. Scaling about a point on the left edge pushes half the card off screen (a
     // 1.2x push on the leftmost card lost its title), while always centring the target pans the whole
     // board for a subtle push. Clamping gives the gentle move without either problem.
-    const shift = (lo, hi, min, max, size, margin) => {
-      const a = margin - min, b = size - margin - max;   // allowed range for the translation
-      if (a > b) return (a + b) / 2;                      // target bigger than the viewport: centre it
+    const shift = (min, max, size, margin) => {
+      const a = margin - min, b = size - margin - max;   // the allowed range for the translation
+      // Target bigger than the viewport (a document, a long list): anchor its TOP-LEFT. Centring it
+      // instead shows the middle with the left edge clipped — which is what a zoom on a JSON file's
+      // <pre> did: the viewer saw line endings and no beginnings. Text starts at the top left, so that
+      // is what must stay on screen.
+      if (a > b) return a;
       return Math.min(Math.max(0, a), b);
     };
     const minX = cx + (rect.x - cx) * factor, maxX = cx + (rect.x + rect.width - cx) * factor;
     const minY = cy + (rect.y - cy) * factor, maxY = cy + (rect.y + rect.height - cy) * factor;
-    const tx = shift(0, 0, minX, maxX, window.innerWidth, 24);
-    const ty = shift(0, 0, minY, maxY, window.innerHeight, 24);
+    const tx = shift(minX, maxX, window.innerWidth, 24);
+    const ty = shift(minY, maxY, window.innerHeight, 24);
     root.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + factor + ')';
   },
   ring(rect, ms, label) {
@@ -409,8 +413,8 @@ const spread = (b, i, n) => (b ? b.start + ((b.end - b.start) * i) / n : 0);
 
 const STEPS = {
   '01-what': [
-    { beat: 2, label: 'drift across the board', run: async (page) => { await glide(page, 1400, 300); } },
-    { beat: 3, label: 'point at each card as it is named', run: async (page, b) => {
+    { beat: 1, label: 'drift across the board', run: async (page) => { await glide(page, 1400, 300); } },
+    { beat: 2, label: 'point at each widget as it is named', run: async (page, b) => {
       const c = await cards(page);
       for (const [i, card] of c.entries()) {
         if (!card) continue;
@@ -418,7 +422,8 @@ const STEPS = {
         await clickHuman(page, card.box, { dy: 16 });
       }
     } },
-    { beat: 4, label: 'pointer away from the cards', run: async (page) => { await glide(page, 1500, 900); } },
+    { beat: 3, label: 'pointer away from the widgets', run: async (page) => { await glide(page, 1500, 900); } },
+    { beat: 4, label: '(that is the whole tour)', run: async () => {} },
   ],
 
   '02-read': [
@@ -691,11 +696,17 @@ const STEPS = {
         console.log('   rendering the board JSON from localStorage (nothing to download)');
       }
       const pretty = JSON.stringify(JSON.parse(json), null, 2).slice(0, 2200);
-      await page.goto(dataUrl(`<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace"><div style="padding:18px 24px;border-bottom:1px solid #2a2f37;color:#9aa4b2">dashboard.json — the whole board: cards, settings, positions, params</div><pre style="padding:18px 24px;margin:0;white-space:pre-wrap">${escHtml(pretty)}</pre></body></html>`), { waitUntil: 'domcontentloaded' });
+      // The header and the text are wrapped in .json-doc, which is what the script's zoom targets: a
+      // zoom on the <pre> alone would be a zoom on something taller than the viewport. white-space:
+      // pre-wrap plus overflow-wrap keeps long values from running off the right edge, so the file reads
+      // from its top-left corner like a file should.
+      await page.goto(dataUrl(`<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace"><div class="json-doc" style="padding:0"><div class="json-head" style="padding:18px 24px;border-bottom:1px solid #2a2f37;color:#9aa4b2">dashboard.json — the whole board: widgets, settings, positions, params</div><pre style="padding:18px 24px;margin:0;white-space:pre-wrap;overflow-wrap:anywhere">${escHtml(pretty)}</pre></div></body></html>`), { waitUntil: 'domcontentloaded' });
       console.log(`   showed ${pretty.length} chars of JSON`);
     } },
     { beat: 3, label: 'scroll the JSON a little', run: async (page) => {
-      await page.evaluate(() => window.scrollBy({ top: 320, behavior: 'smooth' }));
+      // gently, and not far: the header and the first widget should stay on screen so the file still reads
+      // as a file rather than as an anonymous wall of text
+      await page.evaluate(() => window.scrollBy({ top: 150, behavior: 'smooth' }));
     } },
   ],
 

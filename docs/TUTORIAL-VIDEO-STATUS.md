@@ -126,6 +126,23 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
+### Third review pass 2026-09-12 (two notes from watching)
+
+- **The title card speaks now.** Five silent seconds over a logo wasted the moment attention is highest. The
+  opening line moved out of scene 1 and onto the card: SCRIPT.md has a `00-title` section (a card, not a
+  recorded scene), `narration.mjs` synthesizes it like any other beat, and `build.mjs` muxes that line over
+  the title card and sizes the card to it (5.9s here). The line is also in the `.srt`. Scene 1 now opens on
+  "Every box here is a widget", so nothing is said twice. Take: 3:00 → 2:58, and the story starts at 0:00.
+- **A JSON file is read from its top-left at 1×.** In scene 6 the zoom was on the whole `<pre>`, which is
+  larger than the viewport, so scaling it pushed the left edge and the header off screen and the viewer saw
+  the middle of the file with every line clipped off at the left — exactly the note "it gets cut off… you
+  don't want to zoom into the middle". The zoom is gone from that beat (a file does not need magnifying),
+  the page's text is 16px and wraps (`overflow-wrap: anywhere`) so long values cannot run off the right, and
+  the scroll is gentle enough to keep the header in view. Underneath, the fx layer now **anchors an
+  oversized target to its top-left instead of centring it**, which is the general fix for any zoom on a
+  document-sized element.
+- The title card also said "in four minutes" while the take is 2:58; it says three minutes now.
+
 ### Scene 3 played as 17 seconds of white (2026-09-12)
 
 Reported from watching: "the to start your own board section has a big white blank screen". Exactly so —

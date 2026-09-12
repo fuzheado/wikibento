@@ -14,7 +14,7 @@ const card = (id, html, name) => () => ({ id, html, name });
 const cards = [
   card('title', `
     <div style="font-size:112px;font-weight:700;letter-spacing:-2px">WikiBento</div>
-    <div style="font-size:40px;color:#b9c2cf;margin-top:26px">Build a dashboard from live Wikimedia data — in four minutes</div>
+    <div style="font-size:40px;color:#b9c2cf;margin-top:26px">Build a dashboard from live Wikimedia data — in three minutes</div>
     <div style="font-size:33px;color:#8fc0ff;margin-top:34px;font-family:ui-monospace,Menlo,monospace">wikibento.toolforge.org</div>`,
     'title.png'),
   card('end', `

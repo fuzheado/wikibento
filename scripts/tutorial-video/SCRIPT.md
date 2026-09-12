@@ -44,23 +44,34 @@ words or a shorter action.
 
 ---
 
-## 1. What WikiBento is
+## Title card
 
-`scene 01-what` · starts from: the starter board (three widgets) · target ~28s
+`scene 00-title` · target ~5s
 
 1. 🗣 "WikiBento is a dashboard you build yourself, out of live Wikimedia data."
-   🖱 board already loaded; no pointer movement — let the numbers be read
-2. 🗣 "Every box here is a widget. A widget shows one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another service worth composing with."
+   🖱 the title card is on screen; nothing to do — this line plays over it
+
+Narrating the title card (2026-09-12): five seconds of silence while a logo sits there wastes the moment
+when attention is highest. The line that used to open scene 1 opens the video instead, so the story
+starts the instant the picture does.
+
+---
+
+## 1. What WikiBento is
+
+`scene 01-what` · starts from: the starter board (three widgets) · target ~24s
+
+1. 🗣 "Every box here is a widget. A widget shows one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another service worth composing with."
    🖱 slow pointer drift across the board; nothing clicked
    🔍 1.2× @ .grid-item:nth-child(1) — a gentle push on the first widget while it is being described
-3. 🗣 "This is the starter board: three widgets — pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
+2. 🗣 "This is the starter board: three widgets — pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
    🖱 point at each widget in turn (a quick pulse, not a click), one per clause
    ⭕ @ .grid-item:nth-child(1) .widget-title — as the first widget is named
    ⭕ @ .grid-item:nth-child(2) .widget-title — as the link count is named
    ⭕ @ .grid-item:nth-child(3) .widget-title — as the ranking is named
-4. 🗣 "No login, no server: you point each widget at a subject."
+3. 🗣 "No login, no server: you point each widget at a subject."
    🖱 settle; pointer stays with the board
-5. 🗣 "And all of it is live."
+4. 🗣 "And all of it is live."
    🖱 pointer away from the widgets
    📝 "Live data · no login · no server"
 
@@ -213,8 +224,11 @@ wide bottom widget refuses to shift when anything else is added.
    ⭕ @ button[title="Export dashboard config as JSON"] — the Export button, before the click
 2. 🗣 "WikiBento writes the whole thing — every widget, its settings, and its position — as a small JSON file."
    🖱 the download happens; open the downloaded file (we show it from a local copy to avoid a frozen browser download shelf)
-   🔍 1.35× @ pre — onto the JSON's first lines (the recorder renders the board's own JSON here,
-      because the download event never fires in headless Chromium; see TUTORIAL-VIDEO-STATUS.md)
+   *no zoom here, deliberately.* A file is read from its top-left corner at 1×. Zooming it was the earlier
+      mistake: the target is larger than the viewport, so scaling it pushed the left edge and the header
+      off-screen and the viewer saw the middle of the file with every line clipped. (The fx layer now
+      anchors an oversized target to its top-left rather than centring it, which fixes the general case —
+      but a JSON file does not need magnifying, so this beat simply shows it.)
 3. 🗣 "That file is the board: there is nothing else to save."
    🖱 scroll the JSON a little
    📝 "dashboard.json — the whole board in one small file"
