@@ -312,6 +312,14 @@ async function playFx(page, scene) {
 /** the figure the widget showed before the subject was applied — beat 8 compares against this */
 let PRE_APPLY_VALUE = null;
 
+/** move the pointer onto a widget named by its id — the same names the script's markers use */
+async function hoverWidget(page, id) {
+  const box = await fxBox(page, `[data-widget-id="${id}"]`);
+  if (!box) { console.log(`   ⚠ no widget "${id}" on this board`); return false; }
+  await glide(page, box.x + Math.round(box.width / 2), box.y + 24);
+  return true;
+}
+
 /** remove the widget at an index via its ✕ on the top bar */
 async function removeWidget(page, index = 0) {
   const clicked = await page.evaluate((i) => {
@@ -413,17 +421,25 @@ const spread = (b, i, n) => (b ? b.start + ((b.end - b.start) * i) / n : 0);
 
 const STEPS = {
   '01-what': [
-    { beat: 1, label: 'drift across the board', run: async (page) => { await glide(page, 1400, 300); } },
-    { beat: 2, label: 'point at each widget as it is named', run: async (page, b) => {
-      const c = await cards(page);
-      for (const [i, card] of c.entries()) {
-        if (!card) continue;
-        await at(spread(b, i, c.length));
-        await clickHuman(page, card.box, { dy: 16 });
+    // The rings and the zoom come from the script's markers; these steps just move the pointer to what is
+    // being named, so the scene reads as someone showing you around rather than a slideshow.
+    { beat: 1, label: 'drift across the board', run: async (page) => { await glide(page, 1500, 320); } },
+    { beat: 2, label: 'the chart, the table, the gallery', run: async (page, b) => {
+      for (const [i, id] of ['views', 'assessments', 'images'].entries()) {
+        await at(spread(b, i, 3));
+        await hoverWidget(page, id);
       }
     } },
-    { beat: 3, label: 'pointer away from the widgets', run: async (page) => { await glide(page, 1500, 900); } },
-    { beat: 4, label: '(that is the whole tour)', run: async () => {} },
+    { beat: 3, label: 'the article, its quality, its history', run: async (page, b) => {
+      for (const [i, id] of ['excerpt', 'quality', 'edits'].entries()) {
+        await at(spread(b, i, 3));
+        await hoverWidget(page, id);
+      }
+    } },
+    { beat: 4, label: 'the card that sets the subject', run: async (page) => {
+      await hoverWidget(page, 'pick');
+    } },
+    { beat: 5, label: 'pointer away', run: async (page) => { await glide(page, 1500, 950); } },
   ],
 
   '02-read': [

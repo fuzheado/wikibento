@@ -126,6 +126,28 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
+### Fourth review pass 2026-09-12 (the showcase board, and speed)
+
+- **Hear something, see something.** Scene 1 promised "a pageview count, a table, a chart, a gallery" over
+  the three-widget starter board — three numbers and a ranking, no chart and no gallery. It now shows the
+  shipped **`public/article-vitals-demo.json`** ("one article, six angles"): a pageview **chart**, an
+  assessments **table**, a **gallery**, the **article** card, its **quality** rating, its **edit history**,
+  and the **subject picker** — and a ring lands on each as it is named. The claim about "another service"
+  was **cut**, because nothing on that board shows one; a line the viewer cannot see is what the rule
+  forbids. Markers now address widgets as `[data-widget-id="views"]` (the app renders that attribute) rather
+  than `:nth-child(3)`, so re-laying the board cannot point a highlight at the wrong card. `npm test` now
+  enforces the rule: every widget scene 1 highlights must exist on the board it starts from, and the
+  narration must name a chart, table, gallery, article, quality and history.
+- **Chapters are cached, so an iteration costs seconds not minutes.** Each scene's encoded part is keyed by
+  everything that shaped it — clip, narration, caption text, note, overlay PNGs, timing maths — in
+  `build/manifest.json`. Measured: a build with nothing changed reuses 10 of 10 parts in ~6s; a caption-only
+  edit re-encodes one scene (~18s); a re-recorded scene re-encodes that one. What used to be a ~70s full
+  rebuild is now proportional to what actually changed. Caption *text* now comes from the script and only
+  its *window* from the timeline, so fixing a typo in a caption needs no re-narration at all.
+  - The discipline this makes affordable: **changing words needs no re-recording** (the clip is stretched to
+    the new narration), **changing captions or notes needs neither recording nor narration**, and only
+    changed **actions or fx** mean re-recording a scene.
+
 ### Third review pass 2026-09-12 (two notes from watching)
 
 - **The title card speaks now.** Five silent seconds over a logo wasted the moment attention is highest. The

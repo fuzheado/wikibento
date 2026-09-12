@@ -368,6 +368,12 @@ the ✕ first** so the Marie Curie widget is built on an empty grid, its figure 
 (the recorder captures the pre-apply value, clicks Apply & Reload, and polls — `207,055,573 → 161,964`),
 and the URL pill shows the address **decoded**. `scenes.json` no longer carries narration or captions.
 
+**Fourth pass 2026-09-12:** scene 1 shows a board that demonstrates what the narration claims (the shipped
+`article-vitals-demo.json` — chart, table, gallery, article, quality, history, subject picker), highlights
+address widgets by `[data-widget-id]` so they cannot drift, and a test enforces "hear something, see
+something". Builds are now **per-chapter cached** (`build/manifest.json`): nothing changed → ~6s, one
+caption edited → ~18s, instead of a ~70s full rebuild.
+
 **Versions are kept:** `tutorial:review` writes `wikibento-tutorial-<stamp>.mp4` (+ narration, transcript,
 subtitles) and a `-latest` symlink, so takes no longer overwrite each other and can be compared
 (`--label v3` names one by hand).

@@ -59,31 +59,41 @@ starts the instant the picture does.
 
 ## 1. What WikiBento is
 
-`scene 01-what` · starts from: the starter board (three widgets) · target ~24s
+`scene 01-what` · starts from: `?config=/article-vitals-demo.json` (the shipped "Article vitals" board) · target ~30s
 
-1. 🗣 "Every box here is a widget. A widget shows one thing — a pageview count, a table, a chart, a gallery — from a Wikimedia project, or from another service worth composing with."
-   🖱 slow pointer drift across the board; nothing clicked
-   🔍 1.2× @ .grid-item:nth-child(1) — a gentle push on the first widget while it is being described
-2. 🗣 "This is the starter board: three widgets — pageviews for the Main Page, a link count, and a ranking of the largest Wikipedias."
-   🖱 point at each widget in turn (a quick pulse, not a click), one per clause
-   ⭕ @ .grid-item:nth-child(1) .widget-title — as the first widget is named
-   ⭕ @ .grid-item:nth-child(2) .widget-title — as the link count is named
-   ⭕ @ .grid-item:nth-child(3) .widget-title — as the ranking is named
-3. 🗣 "No login, no server: you point each widget at a subject."
-   🖱 settle; pointer stays with the board
-4. 🗣 "And all of it is live."
+1. 🗣 "Every box here is a widget."
+   🖱 pointer drifts across the board; nothing clicked
+2. 🗣 "A widget shows one thing. Here: a pageview chart, a table of WikiProject assessments, and a gallery of images."
+   🖱 pointer moves from the chart to the table to the gallery, one per clause
+   ⭕ @ [data-widget-id="views"] — as the chart is named
+   ⭕ @ [data-widget-id="assessments"] — as the table is named
+   ⭕ @ [data-widget-id="images"] — as the gallery is named
+3. 🗣 "Or the article itself, with its quality rating and its edit history."
+   🖱 pointer to the article card, then the quality card, then the history list
+   🔍 1.2× @ [data-widget-id="excerpt"] — a gentle push on the article card
+   ⭕ @ [data-widget-id="quality"] — as the quality rating is named
+   ⭕ @ [data-widget-id="edits"] — as the edit history is named
+4. 🗣 "You point each one at a subject — like this one, which sets it for all of them. No login, no server to run."
+   🖱 pointer to the "Pick an article" card
+   ⭕ @ [data-widget-id="pick"] — the card that sets the subject for the others
+5. 🗣 "And all of it is live."
    🖱 pointer away from the widgets
    📝 "Live data · no login · no server"
 
-Words: the tutorial says **widget** everywhere, and only ever widget — it is what the product calls
-them (the button says “+ Add Widget”), and calling the same box a “card” in one scene and a “widget” in
-the next makes the viewer wonder whether they are different things. “Card” is reserved for the video's
-own title and closing screens.
+**Hear something, see something** (2026-09-12). This scene used to promise "a pageview count, a table, a
+chart, a gallery" while the screen showed the three-widget starter board — three numbers and a ranking, no
+chart and no gallery. Every noun in the narration now has a widget on screen, and a ring lands on it as it
+is named. The board is the shipped `public/article-vitals-demo.json` ("one article, six angles"), so the
+scene demonstrates rather than promises. It is also why the widgets are addressed by
+`[data-widget-id="…"]` rather than by grid position: the marker names the widget it means, so re-laying the
+board cannot silently point a highlight at the wrong card.
 
-Zoom: **accepted 2026-09-11**, and wired the same day — the fx layer is applied inside the page (a CSS
-transform on `#root`, and a red ring drawn over the target), so it is part of the recording rather than
-post-production, and magnified text stays crisp because the browser re-renders it. The beat offsets
-that time it come from the voiceover, and the targets come from the `@` selectors above.
+Zones: **every spoken noun must be visible when it is said.** If a line cannot be shown, either show it or
+cut it — do not keep the claim.
+
+Cut here: "or from another service worth composing with". True of the app (Internet Archive, Wayback,
+SPARQL), but nothing on this board shows it, and a claim the viewer cannot see is what the rule forbids.
+One extra widget on the board would earn that line back.
 
 ---
 

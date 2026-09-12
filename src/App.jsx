@@ -595,7 +595,7 @@ const handleAutoHeight = useCallback((id, px) => {
   }
 
   const widgetItems = widgets.map(w => (
-    <div key={w.id} className="grid-item">
+    <div key={w.id} className="grid-item" data-widget-id={w.id}>
       <ErrorBoundary
         resetKey={w.config}
         label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}

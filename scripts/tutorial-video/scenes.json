@@ -11,8 +11,8 @@
       "id": "01-what",
       "step": 1,
       "title": "What WikiBento is",
-      "note": "wikibento.toolforge.org",
-      "start": "home"
+      "note": "article-vitals-demo.json \u2014 one article, six angles",
+      "start": "config:/article-vitals-demo.json"
     },
     {
       "id": "02-read",

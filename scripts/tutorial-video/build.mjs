@@ -20,6 +20,7 @@
  *                                                  out/narration/<scene-id>.ogg
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -59,6 +60,31 @@ const ff = (args, label) => {
 const probe = (file, entries = 'format=duration') => Number(execFileSync('ffprobe',
   ['-v', 'error', '-show_entries', entries, '-of', 'default=noprint_wrappers=1:nokey=1', file],
   { encoding: 'utf8' }).trim());
+
+/**
+ * Incremental build — the video is a set of chapters, and only the chapters whose inputs changed are
+ * encoded again.
+ *
+ * Each scene already records independently (`record.mjs --only`), narration is cached per beat, and
+ * overlays by content hash. The last piece is here: a scene's encoded part is keyed by everything that
+ * went into it — the clip bytes, its narration, its captions, the note, the badge text, and the timing
+ * maths — so editing one line re-encodes one scene instead of all eight. `build/manifest.json` records
+ * what each part was built from.
+ *
+ * Rules of thumb this enables: changing WORDS needs no re-recording at all (the clip is stretched to the
+ * new narration), changing ACTIONS or fx means re-recording that scene only, and changing a caption or a
+ * note needs neither — just a rebuild.
+ */
+const MANIFEST = join(BUILD, 'manifest.json');
+const built = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {};
+const stampOf = (f) => { try { const st = statSync(f); return `${st.size}:${Math.round(st.mtimeMs)}`; } catch { return 'missing'; } };
+const keyOf = (id, fields) => createHash('sha256').update(`${id}|${JSON.stringify(fields)}`).digest('hex').slice(0, 16);
+const reusable = (id, key) => built[id]?.key === key && existsSync(join(BUILD, `${id}.mp4`));
+const remember = (id, key, note) => {
+  built[id] = { key, note, at: new Date().toISOString() };
+  writeFileSync(MANIFEST, `${JSON.stringify(built, null, 2)}\n`);
+};
+let reusedCount = 0, builtCount = 0;
 
 const srtStamp = (seconds) => {
   const s = Math.max(0, seconds);
@@ -157,8 +183,24 @@ const END_DUR = 3.0;
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
 execFileSync('node', [join(root, 'scripts/tutorial-video/cards.mjs'), OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
+// The card PNGs are re-rendered on every build (cheap, and it stops a stale card surviving), so their
+// mtime always changes. Key them by the thing that produces them — cards.mjs — plus the length and the
+// voice, so an unchanged build does not re-encode them.
+const cardKey = (name, dur, voice) => keyOf(`card-${name}`, {
+  src: stampOf(join(root, 'scripts/tutorial-video/cards.mjs')),
+  name, dur: dur.toFixed(2), voice: stampOf(voice || ''),
+});
+const cardPartCached = (name, dur, voice) => {
+  const id = `${name.replace('.png', '')}-card`;   // must match the file cardPart writes: title-card.mp4
+  const key = cardKey(name, dur, voice);
+  if (reusable(id, key)) { reusedCount += 1; return join(BUILD, `${name.replace('.png', '')}-card.mp4`); }
+  const out = cardPart(name, dur, voice);
+  builtCount += 1;
+  remember(id, key, `${name} ${dur.toFixed(1)}s`);
+  return out;
+};
 if (existsSync(join(OUT, 'cards', 'title.png'))) {
-  parts.push(cardPart('title.png', TITLE_DUR, TITLE_VOICE));
+  parts.push(cardPartCached('title.png', TITLE_DUR, TITLE_VOICE));
   // the opening line belongs in the subtitles too, so a reader gets the whole narration
   if (TITLE_LINE) srt.push({ start: 0.3, end: TITLE_DUR - 0.2, text: TITLE_LINE });
   srtTime += TITLE_DUR;
@@ -168,7 +210,7 @@ else console.error('✘ missing cards/title.png');
 // the end card is appended AFTER the scenes — it used to be pushed here alongside the title, which
 // put a closing card immediately after the opening one; the drawtext end card that followed it has
 // been dropped in favour of this single browser-rendered one.
-const endCard = existsSync(join(OUT, 'cards', 'end.png')) ? cardPart('end.png', END_DUR)
+const endCard = existsSync(join(OUT, 'cards', 'end.png')) ? cardPartCached('end.png', END_DUR, null)
   : (console.error('✘ missing cards/end.png'), null);
 
 /** takes that assembled, but look wrong — reported at the end so a broken clip cannot ship unnoticed */
@@ -253,8 +295,10 @@ for (const scene of scenes) {
   // so they need no adjustment. Text comes from SCRIPT.md (per beat; 📝 overrides the spoken line).
   const caps = scene.captions || [];
   if (beats?.length) {
+    // text from SCRIPT.md (so editing a caption needs only a rebuild), window from the measured timeline
+    const scriptBeats = (beatsDoc.scenes.find((sc) => sc.id === scene.id) || {}).beats || [];
     beats.forEach((b, i) => {
-      const cap = b.caption || b.text;
+      const cap = scriptBeats[i]?.caption || scriptBeats[i]?.text || b.caption || b.text;
       if (!cap) return;
       if (existsSync(ov(`${scene.id}-cap${i}.png`))) overlay(ov(`${scene.id}-cap${i}.png`), [b.start, b.end]);
       else console.error(`✘ missing overlay ${scene.id}-cap${i}.png`);
@@ -274,6 +318,26 @@ for (const scene of scenes) {
     });
   }
 
+  // decide before encoding: everything that shaped this part, so an unchanged scene is reused as-is
+  const partKeyValue = keyOf(scene.id, {
+    clip: stampOf(clip), narration: stampOf(narration),
+    captions: ((beatsDoc.scenes.find((sc) => sc.id === scene.id) || {}).beats || []).map((b) => b.caption || b.text),
+    note: scene.note || null,   // the badge's own PNG stamp is in `overlays` below
+    overlays: [ 'badge', ...(scene.note && !drawsUrlChip ? ['note'] : []), ...(beats || []).map((_, i) => `cap${i}`) ]
+      .map((n) => stampOf(join(OUT, 'overlays', `${scene.id}-${n}.png`))),
+    video: [W, H, fps], timing: [target.toFixed(3), stretch.toFixed(4), lead.toFixed(3), pad.toFixed(3)],
+  });
+  if (built[scene.id] && built[scene.id].key !== partKeyValue) {
+    console.log(`   (${scene.id} changed: ${built[scene.id].note} → ${target.toFixed(1)}s)`);
+  }
+  if (reusable(scene.id, partKeyValue)) {
+    reusedCount += 1;
+    console.log(`  ${scene.id}: reused (unchanged since ${built[scene.id].at.slice(11, 16)})`);
+    parts.push(join(BUILD, `${scene.id}.mp4`));
+    srtTime += target;
+    continue;
+  }
+
   filters.push(`[1:a]adelay=500|500,apad,atrim=end=${target.toFixed(3)},asetpts=PTS-STARTPTS[a]`);
   const out = join(BUILD, `${scene.id}.mp4`);
   ff([...inputs,
@@ -281,6 +345,8 @@ for (const scene of scenes) {
       '-map', `[${last}]`, '-map', '[a]',            // no -t: both streams already end at the target
       '-c:v', 'libx264', '-preset', 'medium', '-crf', '22', '-pix_fmt', 'yuv420p', '-r', String(fps),
       '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', out], scene.id);
+  builtCount += 1;
+  remember(scene.id, partKeyValue, `${target.toFixed(1)}s`);
   console.log(`  ${scene.id}: clip ${dClip.toFixed(1)}s${lead > 0.05 ? ` − ${lead.toFixed(1)}s blank` : ''} × ${stretch.toFixed(2)} + ${pad.toFixed(1)}s pad → ${target.toFixed(1)}s (narration ${dNarr.toFixed(1)}s)`);
   if (blank > 0.25) {
     suspects.push(`${scene.id} (${(blank * 100).toFixed(0)}% blank)`);
@@ -304,7 +370,7 @@ ff(['-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', '-movflags', '+f
 writeFileSync(join(OUT, 'wikibento-tutorial.srt'),
   srt.map((l, i) => `${i + 1}\n${srtStamp(l.start)} --> ${srtStamp(l.end)}\n${l.text}\n`).join('\n'));
 
-console.log(`\n✔ ${final}`);
+console.log(`\n✔ ${final}   (${reusedCount} chapter(s) reused, ${builtCount} encoded)`);
 console.log(`  duration ${probe(final).toFixed(1)}s · ${(statSync(final).size / 1048576).toFixed(1)} MB · ${W}x${H}@${fps}`);
 console.log(`  captions: ${join(OUT, 'wikibento-tutorial.srt')}`);
 if (suspects.length) {

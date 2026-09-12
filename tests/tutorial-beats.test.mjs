@@ -74,16 +74,42 @@ test('a marker with @target is machine-readable; one without is prose only', () 
   assert.equal(prose.scale, null);
 });
 
-test('scene 1 fx is wired: one gentle zoom and a ring per widget', () => {
+test('scene 1 addresses widgets by name, not by grid position', () => {
   const s = byId.get('01-what');
   const zooms = s.beats.flatMap((b) => b.zoom);
   const rings = s.beats.flatMap((b) => b.ring);
   assert.equal(zooms.length, 1);
   assert.equal(zooms[0].scale, 1.2);
-  // assert the shape, not one particular widget: the script is edited by a human and the target moves
-  assert.match(zooms[0].selector, /^\.grid-item:nth-child\(\d\)$/);
-  assert.equal(rings.length, 3);
-  for (const r of rings) assert.match(r.selector, /^\.grid-item:nth-child\(\d\) \.widget-title$/);
+  // `:nth-child(3)` silently points at whatever card happens to be third; a widget id cannot drift
+  assert.match(zooms[0].selector, /^\[data-widget-id="[^"]+"\]$/);
+  for (const r of rings) assert.match(r.selector, /^\[data-widget-id="[^"]+"\]$/);
+});
+
+test('hear something, see something: every widget scene 1 highlights exists on its board', () => {
+  // The scene used to promise "a pageview count, a table, a chart, a gallery" over a board that showed
+  // none of them. Now every noun in the narration has a widget, and this asserts the highlights point at
+  // widgets the board actually has — so a rewrite of the board cannot leave a marker aiming at nothing.
+  const scene = byId.get('01-what');
+  // the operational start state lives in scenes.json (what the recorder navigates to); the script's
+  // "starts from:" line is prose. Assert both, so one cannot quietly drift from the other.
+  const planStart = PLAN.scenes.find((x) => x.id === '01-what').start;
+  assert.equal(planStart, 'config:/article-vitals-demo.json', 'scene 1 should demo the Article vitals board');
+  assert.match(scene.start || '', /article-vitals-demo\.json/, 'the script should name the board it starts from');
+  const board = JSON.parse(readFileSync(join(process.cwd(), 'public/article-vitals-demo.json'), 'utf8'));
+  const ids = new Set(board.widgets.map((w) => w.id));
+  const targeted = [...scene.beats.flatMap((b) => [...b.zoom, ...b.ring])]
+    .map((f) => (f.selector || '').match(/\[data-widget-id="([^"]+)"\]/))
+    .filter(Boolean)
+    .map((m) => m[1]);
+  assert.ok(targeted.length >= 6, `expected several widgets to be highlighted, found ${targeted.length}`);
+  for (const id of targeted) {
+    assert.ok(ids.has(id), `scene 1 highlights "${id}", which is not a widget on article-vitals-demo.json`);
+  }
+  // and the words must name what is highlighted: a chart, a table, a gallery, the article, quality, history
+  const spoken = narrationOf(scene).toLowerCase();
+  for (const word of ['chart', 'table', 'gallery', 'article', 'quality', 'history']) {
+    assert.ok(spoken.includes(word), `the narration should name the ${word} it shows`);
+  }
 });
 
 test('the script only ever calls a widget a widget', () => {
