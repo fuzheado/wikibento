@@ -345,9 +345,16 @@ with rings on each card as it is named, and one caption per beat. Also fixed: th
 [`docs/TUTORIAL-VIDEO-STATUS.md`](docs/TUTORIAL-VIDEO-STATUS.md) — `tutorial:beats` reports how much fx
 is still prose (1 of 10 zooms wired, 3 of 15 rings).
 
-**Also queued:** replace the remaining `settle()` sleeps in the scene actions with `await at(beat)` so
-the other seven scenes stop drifting; wire the rest of the fx markers (add `@ selectors`); the 🔊 sound
-markers need post-production (no audio is recorded).
+**Done 2026-09-11 (third pass):** every scene's actions are now beat-timed — `STEPS` in `record.mjs`
+names, per step, the beat whose words describe it; the runner waits for that beat and **warns when a
+step overruns its beat** (it flagged one: scene 5's resize finishes 0.5s after beat 2 ends). Sub-actions
+inside a beat are spread across it, so "four hovers as each icon is named" is four points in the beat,
+and scene 5's drag continues *while* the reflow clause is spoken. The script's stale ⚠ "the action lands
+after the words" notes are gone.
+
+**Also queued:** wire the rest of the fx markers (mostly adding `@ selectors` in `SCRIPT.md` — 9 of 10
+zooms and 12 of 15 rings are still prose); the 3 🔊 sound markers need post-production (no audio is
+recorded); and the beats that overrun want more words or a quicker action.
 
 **Done 2026-09-11** (the tutorial needed them true, so the product changed rather than the narration):
 Reset now asks — Cancel · **Blank board** · **Starter set** — and clears the board's `params` block;

@@ -60,10 +60,16 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
 
 ## Verified working on this machine
 
-- **The whole chain**, most recently on scene 1: parse → 4 beats → per-beat voiceover with measured
-  offsets (`0.0–5.0, 5.4–15.3, 15.6–24.1, 24.4–26.1s`) → record (the fx log shows the 1.2× zoom and
-  three rings, on the beat clock) → assemble (a **1.2× push onto the third card, held under the
-  sentence that describes it, with red rings on each card as it is named**, and one caption per beat).
+- **The whole chain, on every scene.** Parse → per-beat voiceover with measured offsets → record (each
+  action waits for the beat whose words describe it) → assemble (one caption per beat, in that beat's
+  window). Spot-checked in the finished video: scene 1's **1.2× push onto the third card, held under the
+  sentence describing it, with rings on each card as it is named**; scene 3's Reset dialog **open while
+  its two options are described** and dismissed on "From here, everything you add is yours"; scene 5's
+  card **still moving while the clause about the board reflowing is spoken**, then resized.
+- **The recorder reports actions that overrun their beat** — the script's rule ("every action must
+  finish before the beat that describes it ends") as a log line rather than something to spot in the
+  finished video. On the 2026-09-11 pass it flagged exactly one: scene 5's resize finishes 0.5s after
+  beat 2 ends, so that beat wants a few more words or a quicker gesture.
 - **The parser is faithful**: for 7 of the 8 recorded scenes the narration derived from `SCRIPT.md`
   is *byte-identical* to the hand-maintained copy in `scenes.json` (the 8th differs only in quote
   style), so switching the pipeline to the script changed no words. `tests/tutorial-beats.test.mjs`
@@ -88,15 +94,18 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
 
 ## Still missing
 
-1. **Only scene 1's fx is wired.** `tutorial:beats` reports it: **10 🔍, 1 with a `@target`; 15 ⭕, 3
-   with a `@target`; 3 🔊** (sound is not implemented at all — no audio track is recorded, so it needs
-   post-production). Wiring the rest is mostly adding `@ selectors` to the markers in `SCRIPT.md`; the
-   recorder already plays whatever it finds.
-2. **Only scene 1's *actions* are beat-timed.** The clock and `at()` exist and the fx uses them, but
-   the older scenes still sleep their way through their actions (`settle(1500)`), so their ⚠ beats
-   still drift. The remaining work is replacing those sleeps with `await at(beat.start)`.
-3. **Scene 6's export never downloads** in headless Playwright — reproduced, diagnosed, not fixed; the
-   take keeps a 20s dead wait where the file should appear.
+1. **Most fx markers are still prose.** `tutorial:beats` reports it live: **10 🔍, 2 with a `@target`;
+   15 ⭕, 3 with a `@target`; 3 🔊**. The recorder plays whatever carries a target, so wiring the rest is
+   mostly adding `@ selectors` to `SCRIPT.md` — plus the 3 sound effects, which need post-production
+   because no audio is recorded at all.
+2. ~~Only scene 1's actions are beat-timed.~~ **Done 2026-09-11**: every scene is a list of steps, each
+   naming the beat whose words describe it (`STEPS` in `record.mjs`); the runner waits for that beat and
+   warns when a step overruns it. Sub-actions inside one beat are spread across its window, which is how
+   "four hovers as each icon is named" became four points inside the beat.
+3. **Scene 6's export never downloads** in headless Playwright — reproduced and diagnosed. Worked
+   around 2026-09-11: the wait is now 4s (it used to be 20s, which made that take four times longer than
+   its narration) and the scene renders the board's own JSON — which after the export fix is exactly what
+   the file contains — so the viewer sees the file's contents instead of a dead pause.
 4. **Nobody has listened to the narration.** It is edge-tts reading the script verbatim.
 5. **Where the published take lives is not recorded** — no link anywhere in the repo.
 6. **Typing is instantaneous** rather than keystroke-by-keystroke (scene 4), which needs the

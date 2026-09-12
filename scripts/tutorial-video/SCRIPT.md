@@ -37,8 +37,10 @@ Status: **draft for your edits — and now the pipeline's real input.** `npm run
 this file into beats, `tutorial:narrate` synthesizes one clip per beat, and the recorder times its
 actions and fx from the measured offsets. Scene 1's 🔍/⭕ markers are wired (their `@` targets are real
 selectors); `tutorial:beats` prints how many of the rest still are not. The 🔊 markers are not
-implemented — no audio is recorded, so a sound effect has to be added in post. The beats marked ⚠ are
-the ones whose action still lands after the words: timing them is what the offsets are for.
+implemented — no audio is recorded, so a sound effect has to be added in post. Actions are now timed to the
+beats, so the old "lands several seconds after the words" notes are gone; what remains is the recorder's
+own report — it prints ⚠ whenever an action finishes after its beat has ended, and those beats need more
+words or a shorter action.
 
 ---
 
@@ -79,10 +81,11 @@ that time it come from the voiceover, and the targets come from the `@` selector
 3. 🗣 "Every card has the same top bar: the i explains where its data comes from, the gear configures it, the arrow refreshes it, and the cross removes it."
    🖱 four separate hovers, in that order: ⓘ → ⚙ → ↻ → ✕
    🔍 zoom 1.6× onto the top bar of ONE card for the whole sentence — the four icons are ~20px each; at 1.6× they are legible on a phone
-   ⭕ ring each icon *as its name is spoken* (four rings, ~0.7s each) ⚠ currently all after the sentence
+   ⭕ ring each icon *as its name is spoken* — the four are spread across this beat, so each lands on its own name
 4. 🗣 "The name chip next to the title is the card's identity — other cards can refer to it by that name."
    🖱 hover the name chip; a tooltip appears
-   🔍 hold the zoom; move the window slightly to include the chip ⚠ currently never zoomed
+   🔍 1.6× @ .grid-item:nth-child(2) — hold the zoom and include the name chip (the zoom is wired; this
+      marker needs its target to match the icon zoom above, which is still prose)
    ⭕ ring the chip
 
 ---
@@ -124,7 +127,8 @@ wanted. The dialog is the warning.
    🖱 modal opens; a slow scroll through the categories
    🔍 1.25× onto the category column for the scroll, then release
 3. 🗣 "I will search for pageviews and add Article Pageviews."
-   🖱 click the search field, type "pageviews" ⚠ typing currently silent and un-zoomed
+   🖱 click the search field, type "pageviews" — the typing is timed to this beat; the keystroke sound and
+      typed-text chip are still to come (no audio is recorded, so that is post-production)
    🔍 1.8× onto the search field while typing
    🔊 a soft click per keystroke (throttled — one per ~90ms, not one per character of a fast typist)
    📝 the typed string shown large, e.g. `pageviews` in a corner chip
@@ -132,7 +136,8 @@ wanted. The dialog is the warning.
    🖱 the card is added; the modal closes
    ⭕ ring the new card's title
 5. 🗣 "Open its gear to configure it: here is the article field — type or paste the exact article title — and the project selector beside it."
-   🖱 click ⚙, then click into the article field and type the subject ⚠ same fix as beat 3: zoom + keystroke sound + large typed-text chip
+   🖱 click ⚙, then click into the article field and type the subject — timed to this beat; same note as
+      beat 3 about the zoom, keystroke sound and typed-text chip
    🔍 1.6× onto the settings panel; hold while typing
    ⭕ ring the article field, then the project selector, as each is named
 6. 🗣 "Watch the total and the daily bars fill in with real data for that article."
@@ -152,7 +157,9 @@ screen is hers.
 `scene 05-move` · starts from: the starter board · target ~16s
 
 1. 🗣 "Drag a card by its top bar to move it, and the rest of the board reflows around it."
-   🖱 drag the first card one column right — **the drag starts on "Drag" and is still moving while the clause about reflowing is spoken** ⚠ today the whole drag is over before the sentence
+   🖱 drag the first card one column right — **the drag starts on "Drag" and is still moving while the
+      clause about reflowing is spoken**, which is what the recorder now does: the increments are spread
+      across this beat
    🔍 1.15× only for the duration of the drag (a zoom on a moving target is where tutorial videos usually look bad — keep it gentle)
    ⭕ thin ring on the card being moved, following it — or nothing, if it reads as noise
    🔊 optional soft "pick up / put down" ticks
@@ -174,7 +181,7 @@ extra cards added, the wide bottom card refuses to shift.
 `scene 06-export` · starts from: the board with the added card · target ~15s
 
 1. 🗣 "When the board looks right, click Export."
-   🖱 click ⬇ Export — **on the word "Export"** ⚠ today the click precedes the sentence by ~1s
+   🖱 click ⬇ Export — **on the word "Export"**, which is where the recorder now clicks
    ⭕ ring the button before the click
 2. 🗣 "WikiBento writes the whole thing — every card, its settings, and its position — as a small JSON file."
    🖱 the download happens; open the downloaded file (we show it from a local copy to avoid a frozen browser download shelf)
@@ -188,8 +195,12 @@ lost its parameters through Export → wiki page → `?config=`. That was a real
 (`docs/JSON-FORMAT.md`) has always included `params`, and the loader reads it. Fixed, so the line
 "WikiBento writes the whole thing" is now true as written and the honesty caveat is gone.
 
-Still ⚠ in this scene: the click lands about a second before the word "Export". That is beat timing,
-not content — the same defect as the other ⚠ beats.
+Timing: the click is on the word "Export" (beat 1). The scene's remaining problem is different — the
+download event never fires in headless Chromium, so the take shows the board's JSON rendered from the
+app's own state instead of a file arriving (see TUTORIAL-VIDEO-STATUS.md).
+
+Overrun check: the recorder warns when an action finishes after its beat has ended, and this scene's
+are within their beats.
 
 ---
 

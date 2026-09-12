@@ -85,6 +85,33 @@ const cards = (page) => page.evaluate(() => Array.from(document.querySelectorAll
   };
 }));
 
+/** a data: URL for a locally built page (the recorder shows a few of these) */
+const dataUrl = (html) => `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+const escHtml = (s) => s.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+/** the four buttons in a card's top bar, left to right (the ⓘ ⚙ ↻ ✕ the script names) */
+const topBarButtons = (page, index = 0) => page.evaluate((i) => {
+  const card = document.querySelectorAll('.grid-item')[i];
+  if (!card) return [];
+  const cr = card.getBoundingClientRect();
+  return [...card.querySelectorAll('button')]
+    .map((b) => {
+      const r = b.getBoundingClientRect();
+      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2),
+               top: r.y - cr.y, title: b.title || '' };
+    })
+    .filter((b) => b.top >= 0 && b.top < 40)
+    .sort((a, b) => a.x - b.x);
+}, index);
+
+/** move the real pointer onto an element (so hover states actually fire) */
+async function hoverSelector(page, selector) {
+  const box = await fxBox(page, selector);
+  if (!box) return false;
+  await glide(page, box.x + box.width / 2, box.y + box.height / 2);
+  return true;
+}
+
 // ── fx layer: zoom and highlight, applied INSIDE the page ───────────────────
 //
 // Drawn in-page rather than in post-production, for two reasons: a CSS transform on #root magnifies
@@ -224,10 +251,15 @@ async function playFx(page, scene) {
 }
 
 // ── start states: how each scene begins, deterministically ─────────────────
-async function setPickerSearch(page, term) {
+/** open the Add Widget picker */
+async function openPicker(page) {
   await clickHuman(page, 'button:has-text("Add Widget")');
   await settle(page, 900);
-  const typed = await page.evaluate((t) => {
+}
+
+/** type into the picker's search field (React-safe: native setter + input event) */
+async function pickerType(page, term) {
+  return page.evaluate((t) => {
     const inp = document.querySelector('.add-widget-search input, input[placeholder*="Search widgets"]');
     if (!inp) return false;
     const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
@@ -235,6 +267,12 @@ async function setPickerSearch(page, term) {
     inp.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
   }, term);
+}
+
+/** open + search in one go (used when establishing a scene's starting state) */
+async function setPickerSearch(page, term) {
+  await openPicker(page);
+  const typed = await pickerType(page, term);
   await settle(page, 1300);
   return typed;
 }
@@ -287,234 +325,333 @@ async function applyStart(page, spec) {
 }
 
 // ── what each scene actually does on screen ─────────────────────────────────
-const ACTIONS = {
-  async '01-what'(page) {
-    const c = await cards(page);
-    if (c[2]) await clickHuman(page, c[2].box, { dy: 16 });        // hover the Top-10 card's header
-    await settle(page, 900);
-    await glide(page, 1400, 300);                                   // trace across the second card
-    await settle(page, 1200);
-    const c2 = await cards(page);
-    if (c2[0]) await clickHuman(page, c2[0].box, { dy: c2[0].box.h - 60 });  // hover the pageviews card body
-    await settle(page, 1500);
-  },
-  async '02-read'(page) {
-    const c = await cards(page);
-    const header = { x: c[0].box.x, y: c[0].box.y, width: c[0].box.w, height: 34 };
-    await clickHuman(page, header, { dx: 60, dy: 16 });
-    await settle(page, 2000);                                       // title tooltip
-    await page.evaluate(() => {
-      const b = document.querySelector('.grid-item button[title="About this widget"]');
-      if (b) b.click();
-    });
-    await settle(page, 3500);                                       // the ⓘ provenance panel
-    await page.keyboard.press('Escape');
-    await settle(page, 900);
-    if (c[1]) {
-      await clickHuman(page, c[1].box, { dx: 90, dy: 16 });          // hover the name chip
-      await settle(page, 1800);
-    }
-  },
-  async '03-reset'(page) {
-    await clickHuman(page, 'button[title="Reset to defaults"]');
-    await settle(page, 2400);
-    // Reset asks first (2026-09-11): Cancel · Blank board · Starter set. Click "Starter set" so this
-    // scene ends on the board the following scenes expect. SCRIPT.md has the alternative take
-    // (choose Blank board and start scene 4 from an empty grid).
-    const chose = await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll('.confirm-actions button'));
-      const wanted = btns.find((b) => /starter set/i.test((b.innerText || '').trim()));
-      if (wanted) { wanted.click(); return wanted.innerText.trim(); }
-      return null;
-    });
-    console.log(chose ? `   reset dialog → "${chose}"`
-                      : '   ⚠ no reset dialog — is the deployed app older than 2026-09-11?');
-    await settle(page, 3500);
-    const c = await cards(page);
-    console.log('   reset → cards:', c.map((x) => x.title).join(' | '));
-  },
-  async '04-add'(page) {
-    await setPickerSearch(page, 'pageviews');
-    const list = await page.evaluate(() => Array.from(document.querySelectorAll('.add-widget-item'))
-      .map((e) => (e.querySelector('.add-widget-name') || {}).innerText || '').slice(0, 4));
-    console.log('   picker results:', JSON.stringify(list));
-    await page.evaluate(() => {
-      const el = document.querySelector('[aria-label="Add Article Pageviews"]');
-      if (el) el.click();
-    });
-    await settle(page, 1400);
-    await page.keyboard.press('Escape');
-    await settle(page, 4500);
-    await page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll('.grid-item'));
-      const gear = all[all.length - 1].querySelector('button[title="Configure"]');
-      if (gear) gear.click();
-    });
-    await settle(page, 1600);
-    // Set the subject in the article field.
-    //
-    // Two earlier versions failed here, both silently: one clicked at a computed offset (box.x + 40)
-    // that landed outside the input, so focus went to the panel and every keystroke was lost; the
-    // other used elementHandle.click(), which times out because the field sits inside a card whose
-    // config panel is clipped, so it never becomes "actionable". The scene's narration promises
-    // "type or paste the exact article title" and "the data fills in for that article" — with the
-    // field left empty the card kept Main_Page and the promise was false (found 2026-09-11 by
-    // reading a frame of the clip; the record.mjs editor also ran on macOS, where Control+A is not
-    // select-all). So: click the live coordinates, check focus actually landed, and fall back to a
-    // React-safe programmatic set if it did not. Always log the value that ends up in the field.
-    const target = async () => page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll('.grid-item'));
-      const cfg = all[all.length - 1].querySelector('.widget-config');
-      if (!cfg) return null;
-      const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
-      const f = inputs.find((x) => (x.value || '').trim() === 'Main_Page') || inputs[0];
-      if (!f) return null;
-      f.scrollIntoView({ block: 'center' });
-      const r = f.getBoundingClientRect();
-      return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
-    });
-    const spot = await target();
-    let typed = false;
-    if (spot) {
-      await clickHuman(page, { x: spot.x, y: spot.y });
-      typed = await page.evaluate(() => {
-        const a = document.activeElement;
-        return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+// ── what each scene does on screen, timed to the beats ──────────────────────
+//
+// A step names the beat whose words describe it. The runner waits for that beat before running the
+// step, and says so when a step finishes after its beat has ended — the script's own rule ("every
+// action must finish before the beat that describes it ends"), checked by machine instead of by eye.
+// Without a narrated beat timeline the steps still run, just back to back.
+//
+// Sub-actions inside a single beat are spread across its window with spread(b, i, n): four hovers
+// "as each icon is named" are four points inside the beat, not four clicks in a row.
+
+/** when the i-th of n sub-actions within beat b should happen */
+const spread = (b, i, n) => (b ? b.start + ((b.end - b.start) * i) / n : 0);
+
+/** the "where should the JSON live" card scene 7 cuts to (and back from) */
+const HOST_CARD = `<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:20px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
+  <div style="padding:64px 80px">
+    <div style="font-size:34px;font-weight:700;margin-bottom:28px">Where the JSON should live</div>
+    <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ A wiki page (easiest)</span> — read through the CORS-enabled MediaWiki API, and it keeps the wiki's history and permissions.</div>
+    <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ Any host that sends</span> <code style="background:#20242b;padding:2px 8px;border-radius:4px">Access-Control-Allow-Origin</code>.</div>
+    <div style="margin-top:36px;padding:20px 24px;border-left:4px solid #d9a13b;background:#1b1e23">
+      <div style="color:#d9a13b;font-weight:700;margin-bottom:6px">If the browser is not allowed to read it</div>
+      <div style="color:#b9c2cf">⚠ Could not load dashboard from URL: Failed to fetch — and the board falls back to the starter set.</div>
+    </div>
+  </div></body></html>`;
+
+const STEPS = {
+  '01-what': [
+    { beat: 2, label: 'drift across the board', run: async (page) => { await glide(page, 1400, 300); } },
+    { beat: 3, label: 'point at each card as it is named', run: async (page, b) => {
+      const c = await cards(page);
+      for (const [i, card] of c.entries()) {
+        if (!card) continue;
+        await at(spread(b, i, c.length));
+        await clickHuman(page, card.box, { dy: 16 });
+      }
+    } },
+    { beat: 4, label: 'pointer away from the cards', run: async (page) => { await glide(page, 1500, 900); } },
+  ],
+
+  '02-read': [
+    { beat: 1, label: 'rest on the first card top bar', run: async (page) => {
+      const c = await cards(page);
+      if (c[0]) await clickHuman(page, { x: c[0].box.x, y: c[0].box.y, width: c[0].box.w, height: 34 }, { dx: 60, dy: 16 });
+    } },
+    { beat: 2, label: '(the board is already built)', run: async () => {} },
+    { beat: 3, label: 'hover the four icons in order', run: async (page, b) => {
+      const btns = await topBarButtons(page, 0);
+      console.log(`   top bar buttons: ${btns.map((x) => x.title || '?').join(' · ')}`);
+      for (const [i, btn] of btns.entries()) {
+        await at(spread(b, i, Math.max(1, btns.length)));
+        await glide(page, btn.x, btn.y);
+      }
+    } },
+    { beat: 4, label: 'hover the name chip', run: async (page) => {
+      const c = await cards(page);
+      if (c[1]) await clickHuman(page, c[1].box, { dx: 90, dy: 16 });
+    } },
+  ],
+
+  '03-reset': [
+    { beat: 1, label: 'click Reset — the dialog opens', run: async (page) => {
+      await clickHuman(page, 'button[title="Reset to defaults"]');
+      await settle(page, 600);
+      const open = await page.locator('.confirm-panel').count();
+      console.log(open ? '   reset dialog is open (Cancel · Blank board · Starter set)'
+                       : '   ⚠ no reset dialog — is the deployed app older than 2026-09-11?');
+    } },
+    { beat: 2, label: 'hold on the dialog (the warning)', run: async () => {} },
+    { beat: 3, label: 'choose Starter set', run: async (page) => {
+      const chose = await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('.confirm-actions button'));
+        const wanted = btns.find((b) => /starter set/i.test((b.innerText || '').trim()));
+        if (wanted) { wanted.click(); return wanted.innerText.trim(); }
+        return null;
       });
-    }
-    if (typed) {
-      const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';   // Control+A is not select-all on macOS
-      await page.keyboard.press(`${MOD}+A`);
-      await typeHuman(page, 'Marie Curie', 90);
-      await page.keyboard.press('Enter');
-    } else {
-      // React-compatible programmatic set: the native setter + an input event, so React state updates.
-      console.log('   (field not focusable by click — setting the value directly)');
+      console.log(chose ? `   reset dialog → "${chose}"` : '   ⚠ no Starter set button');
+      await settle(page, 1200);
+      const c = await cards(page);
+      console.log('   reset → cards:', c.map((x) => x.title).join(' | '));
+    } },
+  ],
+
+  '04-add': [
+    { beat: 1, label: 'click + Add Widget', run: async (page) => { await openPicker(page); } },
+    { beat: 2, label: 'scroll the categories', run: async (page, b) => {
+      for (const [i, px] of [180, 180, 180].entries()) {
+        await at(spread(b, i, 3));
+        await page.evaluate((y) => { const p = document.querySelector('.add-widget-panel'); if (p) p.scrollBy({ top: y, behavior: 'smooth' }); }, px);
+      }
+    } },
+    { beat: 3, label: 'search for pageviews and add Article Pageviews', run: async (page) => {
+      const typed = await pickerType(page, 'pageviews');
+      await settle(page, 900);
+      const list = await page.evaluate(() => Array.from(document.querySelectorAll('.add-widget-item'))
+        .map((e) => (e.querySelector('.add-widget-name') || {}).innerText || '').slice(0, 4));
+      console.log(`   search typed: ${typed} · results: ${JSON.stringify(list)}`);
+      await page.evaluate(() => {
+        const el = document.querySelector('[aria-label="Add Article Pageviews"]');
+        if (el) el.click();
+      });
+      await settle(page, 900);
+    } },
+    { beat: 4, label: 'the card appears; close the picker', run: async (page) => {
+      await page.keyboard.press('Escape');
+      await settle(page, 700);
+    } },
+    { beat: 5, label: 'open its gear and set the article', run: async (page) => {
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
+        const gear = all[all.length - 1].querySelector('button[title="Configure"]');
+        if (gear) gear.click();
+      });
+      await settle(page, 900);
+      // Two earlier versions of this failed silently: one clicked at a computed offset (box.x + 40)
+      // which landed outside the input, so focus went to the panel and every keystroke was lost; the
+      // other used elementHandle.click(), which times out because the field sits in a clipped config
+      // panel and never becomes "actionable". The narration promises "type or paste the exact article
+      // title" and "the data fills in for that article" — with the field left empty the card kept
+      // Main_Page and the promise was false. So: click the live coordinates, check that focus really
+      // landed, and fall back to a React-safe programmatic set. The field's value is always logged.
+      const spot = await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('.grid-item'));
         const cfg = all[all.length - 1].querySelector('.widget-config');
+        if (!cfg) return null;
         const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
         const f = inputs.find((x) => (x.value || '').trim() === 'Main_Page') || inputs[0];
-        const proto = f.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-        Object.getOwnPropertyDescriptor(proto, 'value').set.call(f, 'Marie Curie');
-        f.dispatchEvent(new Event('input', { bubbles: true }));
-        f.focus();
+        if (!f) return null;
+        f.scrollIntoView({ block: 'center' });
+        const r = f.getBoundingClientRect();
+        return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
       });
-      await page.keyboard.press('Enter');
-    }
-    const landed = await page.evaluate(() => {
-      const all = Array.from(document.querySelectorAll('.grid-item'));
-      const cfg = all[all.length - 1].querySelector('.widget-config');
-      const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
-      return inputs.map((x) => (x.value || '').trim());
-    });
-    console.log(`   subject set (${typed ? 'typed' : 'set directly'}) → fields:`, JSON.stringify(landed));
-    await settle(page, 6500);                                        // the data arrives
-  },
-  async '05-move'(page) {
-    // Proven gesture (measured at 1920x1080 on the 3-card starter board): dragging the first card's
-    // header right by 10 x 30 px moves it one column (x 20 -> 335). Keep this scene on the plain
-    // starter board — with an extra card added the wide bottom card refuses to shift.
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-    await settle(page, 1200);
-    const before = await cards(page);
-    const idx = 0;
-    const card = before[idx];
-    const from = { x: card.box.x + 60, y: card.box.y + 16 };
-    console.log(`   card ${idx} before: ${JSON.stringify(card.box)} | grab at ${from.x},${from.y}`);
-    await glide(page, from.x, from.y);
-    await settle(page, 400);
-    await page.mouse.down();
-    await settle(page, 250);
-    for (let i = 1; i <= 10; i++) {
-      await page.mouse.move(from.x + i * 30, from.y + i * 16, { steps: 5 });
-      await settle(page, 115);
-    }
-    const sawDragging = await page.evaluate(() => document.querySelectorAll('.react-draggable-dragging').length);
-    await page.mouse.up();
-    await settle(page, 2000);
-    const moved = await cards(page);
-    console.log(`   dragging-class: ${sawDragging} | after: ${JSON.stringify(moved[idx] && moved[idx].box)}`,
-      `| moved: ${JSON.stringify(moved[idx] && moved[idx].box) !== JSON.stringify(card.box)}`);
+      let typed = false;
+      if (spot) {
+        await clickHuman(page, { x: spot.x, y: spot.y });
+        typed = await page.evaluate(() => {
+          const a = document.activeElement;
+          return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+        });
+      }
+      if (typed) {
+        const MOD = process.platform === 'darwin' ? 'Meta' : 'Control';  // Control+A is not select-all on macOS
+        await page.keyboard.press(`${MOD}+A`);
+        await typeHuman(page, 'Marie Curie', 90);
+        await page.keyboard.press('Enter');
+      } else {
+        console.log('   (field not focusable by click — setting the value directly)');
+        await page.evaluate(() => {
+          const all = Array.from(document.querySelectorAll('.grid-item'));
+          const cfg = all[all.length - 1].querySelector('.widget-config');
+          const inputs = Array.from(cfg.querySelectorAll('input[type="text"], textarea'));
+          const f = inputs.find((x) => (x.value || '').trim() === 'Main_Page') || inputs[0];
+          const proto = f.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+          Object.getOwnPropertyDescriptor(proto, 'value').set.call(f, 'Marie Curie');
+          f.dispatchEvent(new Event('input', { bubbles: true }));
+          f.focus();
+        });
+        await page.keyboard.press('Enter');
+      }
+      const fields = await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('.grid-item'));
+        const cfg = all[all.length - 1].querySelector('.widget-config');
+        return Array.from(cfg.querySelectorAll('input[type="text"], textarea')).map((x) => (x.value || '').trim());
+      });
+      console.log(`   subject set (${typed ? 'typed' : 'set directly'}) → fields: ${JSON.stringify(fields)}`);
+    } },
+    { beat: 6, label: 'the data lands for that article', run: async (page) => {
+      await settle(page, 1200);        // the card is fetching; this beat is "watch it fill in"
+    } },
+    { beat: 7, label: 'close the panel', run: async (page) => {
+      await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('.grid-item'));
+        const gear = all[all.length - 1].querySelector('button[title="Configure"]');
+        if (gear) gear.click();
+      });
+      await settle(page, 700);
+    } },
+  ],
 
-    // resize that same card from its bottom-right handle (this gesture is reliable)
-    const handle = await page.evaluate((i) => {
-      const t = document.querySelectorAll('.grid-item')[i];
-      const h = t && t.querySelector('.react-resizable-handle');
-      if (!h) return null;
-      const r = h.getBoundingClientRect();
-      return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
-    }, idx);
-    if (handle) {
-      const hx = handle.x + Math.round(handle.w / 2);
-      const hy = handle.y + Math.round(handle.h / 2);
-      await glide(page, hx, hy);
-      await settle(page, 350);
+  '05-move': [
+    { beat: 1, label: 'drag the card by its top bar', run: async (page, b) => {
+      // Measured recipe (1920x1080, the 3-card starter board): 10 x 30px of travel moves the first card
+      // one column (x 20 -> 335). The increments are spread across the beat so the card is still moving
+      // while the clause about the board reflowing is spoken — the script's ⚠ note asks for exactly that.
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      const before = await cards(page);
+      const card = before[0];
+      const from = { x: card.box.x + 60, y: card.box.y + 16 };
+      console.log(`   card 0 before ${JSON.stringify(card.box)} — grab at ${from.x},${from.y}`);
+      await glide(page, from.x, from.y);
       await page.mouse.down();
-      await settle(page, 300);
+      const end = b ? Math.max(b.start + 1.5, b.end - 0.6) : null;
+      for (let i = 1; i <= 10; i++) {
+        if (end) await at(b.start + ((end - b.start) * i) / 10);
+        await page.mouse.move(from.x + i * 30, from.y + i * 16, { steps: 4 });
+      }
+      const dragging = await page.evaluate(() => document.querySelectorAll('.react-draggable-dragging').length);
+      await page.mouse.up();
+      console.log(`   dragging-class: ${dragging}`);
+      await settle(page, 800);
+      const after = await cards(page);
+      console.log(`   after ${JSON.stringify(after[0] && after[0].box)} | moved:`,
+        JSON.stringify(after[0] && after[0].box) !== JSON.stringify(card.box));
+    } },
+    { beat: 2, label: 'resize from the corner handle', run: async (page, b) => {
+      const handle = await page.evaluate(() => {
+        const t = document.querySelectorAll('.grid-item')[0];
+        const h = t && t.querySelector('.react-resizable-handle');
+        if (!h) return null;
+        const r = h.getBoundingClientRect();
+        return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+      });
+      if (!handle) { console.log('   (no resize handle found)'); return; }
+      await glide(page, handle.x, handle.y);
+      await page.mouse.down();
+      const end = b ? Math.max(b.start + 1.0, b.end - 0.3) : null;
       for (let i = 1; i <= 6; i++) {
-        await page.mouse.move(hx + i * 30, hy + i * 18, { steps: 5 });
-        await settle(page, 125);
+        if (end) await at(b.start + ((end - b.start) * i) / 6);
+        await page.mouse.move(handle.x + i * 30, handle.y + i * 18, { steps: 4 });
       }
       await page.mouse.up();
-      await settle(page, 1900);
-      const resized = await cards(page);
-      console.log('   resize:', JSON.stringify(moved[idx] && moved[idx].box), '→',
-        JSON.stringify(resized[idx] && resized[idx].box));
-    } else {
-      console.log('   (no resize handle found)');
-    }
-  },
-  async '06-export'(page) {
-    const dl = page.waitForEvent('download', { timeout: 20000 }).catch(() => null);
-    await clickHuman(page, 'button[title="Export dashboard config as JSON"]');
-    const download = await dl;
-    if (!download) { console.log('   no download event'); await settle(page, 2000); return; }
-    const saved = join(OUT, 'exported-dashboard.json');
-    await download.saveAs(saved);
-    const json = readFileSync(saved, 'utf8');
-    console.log('   exported:', download.suggestedFilename(), json.length, 'bytes');
-    await settle(page, 1500);
-    // show what the file looks like — dark, pretty-printed, as a real page
-    const pretty = JSON.stringify(JSON.parse(json), null, 2).slice(0, 2200);
-    const html = `<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace"><div style="padding:18px 24px;border-bottom:1px solid #2a2f37;color:#9aa4b2">dashboard.json — the whole board: cards, settings, positions</div><pre style="padding:18px 24px;margin:0;white-space:pre-wrap">${pretty.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre></body></html>`;
-    await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`, { waitUntil: 'domcontentloaded' });
-    await settle(page, 4500);
-  },
-  async '07-store'(page) {
-    // (a) the raw JSON of the page that backs the demo board, scrolled slowly
-    for (const px of [220, 240, 280, 300, 240]) {
-      await page.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), px);
-      await settle(page, 1500);
-    }
-    // (b) an explanatory card for the two rules the narration states
-    const card = `<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:20px/1.65 system-ui,-apple-system,Segoe UI,Roboto,sans-serif">
-      <div style="padding:64px 80px">
-        <div style="font-size:34px;font-weight:700;margin-bottom:28px">Where the JSON should live</div>
-        <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ A wiki page (easiest)</span> — read through the CORS-enabled MediaWiki API, and it keeps the wiki's history and permissions.</div>
-        <div style="margin-bottom:18px"><span style="color:#8fc0ff">✓ Any host that sends</span> <code style="background:#20242b;padding:2px 8px;border-radius:4px">Access-Control-Allow-Origin</code>.</div>
-        <div style="margin-top:36px;padding:20px 24px;border-left:4px solid #d9a13b;background:#1b1e23">
-          <div style="color:#d9a13b;font-weight:700;margin-bottom:6px">If the browser is not allowed to read it</div>
-          <div style="color:#b9c2cf">⚠ Could not load dashboard from URL: Failed to fetch — and the board falls back to the starter set.</div>
-        </div>
-      </div></body></html>`;
-    await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(card)}`, { waitUntil: 'domcontentloaded' });
-    await settle(page, 11000);
-    // (c) back to the page itself
-    await page.goBack().catch(() => {});
-    await settle(page, 5000);
-  },
-  async '08-reload'(page) {
-    const c = await cards(page);
-    if (c[0]) await clickHuman(page, c[0].box, { dy: 16 });
-    await settle(page, 1500);
-    await page.evaluate(() => {
-      const b = document.querySelector('button[title*="Share"]');
-      if (b) b.click();
-    });
-    await settle(page, 4000);
-  },
+      await settle(page, 700);
+      const now = await cards(page);
+      console.log(`   resize → ${JSON.stringify(now[0] && now[0].box)}`);
+    } },
+    { beat: 3, label: 'let it settle (the grid minimum)', run: async (page) => { await glide(page, 1200, 800); } },
+  ],
+
+  '06-export': [
+    { beat: 1, label: 'click Export', run: async (page) => {
+      // The download event never fires in this headless setup (reproduced, diagnosed 2026-09-11), so
+      // the wait is short: it used to hold 20s and made this take four times longer than its narration.
+      const dl = page.waitForEvent('download', { timeout: 4000 }).catch(() => null);
+      await clickHuman(page, 'button[title="Export dashboard config as JSON"]');
+      const download = await dl;
+      if (download) {
+        const saved = join(OUT, 'exported-dashboard.json');
+        await download.saveAs(saved);
+        console.log(`   exported ${download.suggestedFilename()} — ${readFileSync(saved, 'utf8').length} bytes`);
+      } else {
+        console.log('   no download event (known: headless Chromium does not fire it) — will render the board JSON instead');
+      }
+    } },
+    { beat: 2, label: 'show the exported JSON', run: async (page) => {
+      // Prefer the file Playwright captured; otherwise render the board's own JSON, which after the
+      // 2026-09-11 export fix is exactly what the file contains (cards, layout and params). Without
+      // this the scene showed nothing here, because the download never arrives.
+      let json = null;
+      try { json = readFileSync(join(OUT, 'exported-dashboard.json'), 'utf8'); } catch { /* fall back */ }
+      if (!json) {
+        json = await page.evaluate(() => localStorage.getItem('wikibento-layout'));
+        console.log('   rendering the board JSON from localStorage (nothing to download)');
+      }
+      const pretty = JSON.stringify(JSON.parse(json), null, 2).slice(0, 2200);
+      await page.goto(dataUrl(`<html><body style="margin:0;background:#14161a;color:#e8e8ea;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace"><div style="padding:18px 24px;border-bottom:1px solid #2a2f37;color:#9aa4b2">dashboard.json — the whole board: cards, settings, positions, params</div><pre style="padding:18px 24px;margin:0;white-space:pre-wrap">${escHtml(pretty)}</pre></body></html>`), { waitUntil: 'domcontentloaded' });
+      console.log(`   showed ${pretty.length} chars of JSON`);
+    } },
+    { beat: 3, label: 'scroll the JSON a little', run: async (page) => {
+      await page.evaluate(() => window.scrollBy({ top: 320, behavior: 'smooth' }));
+    } },
+  ],
+
+  '07-store': [
+    { beat: 1, label: 'the raw wiki JSON on screen', run: async (page) => { await glide(page, 900, 140); } },
+    { beat: 2, label: 'scroll the page slowly', run: async (page, b) => {
+      const steps = [220, 240, 280, 300, 240];
+      for (const [i, px] of steps.entries()) {
+        await at(spread(b, i, steps.length));
+        await page.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), px);
+      }
+    } },
+    { beat: 3, label: 'cut to the "where the JSON should live" card', run: async (page) => {
+      await page.goto(dataUrl(HOST_CARD), { waitUntil: 'domcontentloaded' });
+    } },
+    { beat: 4, label: 'back to the raw page', run: async (page) => { await page.goBack().catch(() => {}); } },
+    { beat: 5, label: 'the card again (the CORS warning)', run: async (page) => {
+      await page.goto(dataUrl(HOST_CARD), { waitUntil: 'domcontentloaded' });
+    } },
+  ],
+
+  '08-reload': [
+    { beat: 1, label: 'hover the first card, URL in view', run: async (page) => {
+      const c = await cards(page);
+      if (c[0]) await clickHuman(page, c[0].box, { dy: 16 });
+    } },
+    { beat: 2, label: 'let the board breathe', run: async (page) => { await glide(page, 1200, 700); } },
+    { beat: 3, label: 'open the Share panel (QR)', run: async (page) => {
+      await page.evaluate(() => {
+        const b = document.querySelector('button[title*="Share"]');
+        if (b) b.click();
+      });
+      await settle(page, 900);
+    } },
+  ],
 };
+
+/**
+ * Run a scene's steps on the beat clock, and report any step that finishes after its beat has ended.
+ * That overrun warning is the script's rule ("every action must finish before the beat that describes
+ * it ends") turned into something you can see in the log instead of in the finished video.
+ */
+async function runSteps(page, scene) {
+  const steps = STEPS[scene.id];
+  if (!steps) { console.log(`   (no steps defined for ${scene.id})`); return; }
+  const beats = TIMING?.scenes?.[scene.id]?.beats || [];
+  let overruns = 0;
+  for (const step of steps) {
+    const b = beats.find((x) => x.n === step.beat);
+    if (b) await at(b.start);
+    console.log(`   ▸ beat ${step.beat}${b ? ` @${b.start.toFixed(1)}s` : ''} — ${step.label}`);
+    try {
+      await step.run(page, b);
+    } catch (e) {
+      console.log(`   ✘ ${step.label}: ${String(e.message).slice(0, 140)}`);
+      continue;
+    }
+    if (b) {
+      const now = (Date.now() - T0) / 1000;
+      if (now > b.end + 0.4) {
+        overruns += 1;
+        console.log(`   ⚠ beat ${step.beat} ends at ${b.end.toFixed(1)}s but the action finished at ${now.toFixed(1)}s ` +
+          `(${(now - b.end).toFixed(1)}s over) — give this beat more words, or make the action shorter`);
+      }
+    }
+  }
+  if (overruns) console.log(`   ⚠ ${overruns} action(s) overran their beat`);
+}
+
 
 // ── record each scene ───────────────────────────────────────────────────────
 const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--force-device-scale-factor=1'] });
@@ -547,7 +684,7 @@ for (const scene of plan.scenes) {
     leadIn = (Date.now() - ctxStart) / 1000;
     T0 = Date.now();
     const fx = playFx(page, scene);      // its own schedule, concurrent with the actions below
-    await ACTIONS[scene.id]?.(page);
+    await runSteps(page, scene);
     await fx.catch((e) => console.log(`   ⚠ fx error: ${String(e.message).slice(0, 120)}`));
     await settle(page, 1400);            // tail so the build can breathe
   } catch (e) {
