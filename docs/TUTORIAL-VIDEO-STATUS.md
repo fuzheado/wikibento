@@ -142,6 +142,29 @@ recording host's `/opt/data/staging/wikibento-tutorial` if it exists, else a tem
   edit cannot leave a stale title on screen. What remains is per-scene setup only:
   `id`, `start`, `note` — plus `step`/`title` as fallbacks for when no `beats.json` exists.
 
+### Sixth pass 2026-09-12 (four notes from watching)
+
+- **The step badge moved to the upper right, and retires.** It was a long strip across the top-left — where
+  the board's first card is and where a viewer looks first — so it sat on content and on highlights. It is now
+  a compact box in the upper-right below the app's toolbar, and it is composited **only for the first 5.5s of
+  each scene** (`BADGE_SECONDS`), so it cannot cover an action later in the scene.
+- **The board's interactivity is demonstrated, not described.** Scene 1 opens on **Albert Einstein** and, on
+  the words "this card points all of them at once", clicks **Marie Curie**; the next beat names the views as
+  they refetch ("One click, and the whole board follows: the article, its chart, its quality rating, its
+  images"). The recorder clicks the subject, then **polls until at least three widgets actually show the new
+  subject** and reports it (`the board followed: 4/4 widgets now show Marie Curie`). A man's article, then a
+  woman's — and the change is visible rather than asserted.
+- **Starting a board is no longer a lecture.** Scene 3 is two beats and 6.2s (was 17s): "Let us start a brand
+  new board." → Reset (the dialog asks) → "Take the blank one — and we are ready." The walk-through of the
+  dialog's options is gone. Because the scene now ends **blank**, scene 4 begins from an empty board and its
+  two widget-removal beats are gone too (2:56 → **2:42**). Trade-off recorded deliberately: the ✕ is no longer
+  *taught*, only visible.
+- Two bugs found while recording these, both caught by the signals added for the purpose: `clickHuman` had been
+  routed through `document.querySelector`, so a scene that clicked a button **by its text**
+  (`:has-text("Add Widget")`) never opened the picker — it now uses the test framework's locator first, with a
+  CSS fallback; and the extracted app module still referenced the engine's old clock, which made a step throw,
+  so the runner now **counts failed steps and calls them out** per scene.
+
 ### Fifth note 2026-09-12: a highlight reveals its own target
 
 "A gallery of images" was said while the gallery sat below the fold — the board is taller than the viewport.

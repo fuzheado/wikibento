@@ -12,7 +12,7 @@
       "step": 1,
       "title": "What WikiBento is",
       "note": "article-vitals-demo.json \u2014 one article, six angles",
-      "start": "config:/article-vitals-demo.json"
+      "start": "vitals"
     },
     {
       "id": "02-read",
@@ -24,16 +24,16 @@
     {
       "id": "03-reset",
       "step": 3,
-      "title": "Clear it and start your own",
-      "note": "wikibento.toolforge.org",
-      "start": "home"
+      "title": "Start a brand new board",
+      "note": "Reset \u2192 Blank board",
+      "start": "vitals"
     },
     {
       "id": "04-add",
       "step": 4,
-      "title": "Clear the board, then add a widget",
+      "title": "Add a widget and point it at a subject",
       "note": "Add Widget \u2192 search \u2192 \uff0b \u2192 \u2699",
-      "start": "home"
+      "start": "blank"
     },
     {
       "id": "05-move",

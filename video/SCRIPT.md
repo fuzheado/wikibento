@@ -59,7 +59,7 @@ starts the instant the picture does.
 
 ## 1. What WikiBento is
 
-`scene 01-what` · starts from: `?config=/article-vitals-demo.json` (the shipped "Article vitals" board) · target ~30s
+`scene 01-what` · starts from: `?config=/article-vitals-demo.json` (the shipped "Article vitals" board) · target ~38s
 
 1. 🗣 "Every box here is a widget."
    🖱 pointer drifts across the board; nothing clicked
@@ -73,12 +73,23 @@ starts the instant the picture does.
    🔍 1.2× @ [data-widget-id="excerpt"] — a gentle push on the article card
    ⭕ @ [data-widget-id="quality"] — as the quality rating is named
    ⭕ @ [data-widget-id="edits"] — as the edit history is named
-4. 🗣 "You point each one at a subject — like this one, which sets it for all of them. No login, no server to run."
-   🖱 pointer to the "Pick an article" card
+4. 🗣 "Every widget is pointed at a subject — and this one points all of them at once."
+   🖱 pointer to the "Pick an article" card, then **click Marie Curie** on the word "Marie"
    ⭕ @ [data-widget-id="pick"] — the card that sets the subject for the others
-5. 🗣 "And all of it is live."
+5. 🗣 "One click, and the whole board follows: the article, its chart, its quality rating, its images."
+   🖱 let the widgets reload; the change ripples through as each is named
+   ⭕ @ [data-widget-id="excerpt"] — as the article is named
+   ⭕ @ [data-widget-id="views"] — as the chart is named
+   ⭕ @ [data-widget-id="quality"] — as the quality rating is named
+   ⭕ @ [data-widget-id="images"] — as the images are named
+6. 🗣 "And it is all live. No login, no server to run."
    🖱 pointer away from the widgets
    📝 "Live data · no login · no server"
+
+Interactivity, shown rather than claimed: the board opens on **Albert Einstein** and the scene ends on
+**Marie Curie**, so the viewer sees the change ripple across six widgets from one click — a man's article and
+then a woman's, which also quietly shows the range of subjects the card offers (four names, one of them the
+default). The alternative was saying "you point each one at a subject" while nothing moved.
 
 **Hear something, see something** (2026-09-12). This scene used to promise "a pageview count, a table, a
 chart, a gallery" while the screen showed the three-widget starter board — three numbers and a ranking, no
@@ -124,76 +135,64 @@ is meant to run under three minutes.
 
 ---
 
-## 3. Clear it and start your own
+## 3. Start a brand new board
 
-`scene 03-reset` · starts from: the starter board · target ~16s
+`scene 03-reset` · starts from: the showcase board · target ~8s
 
-1. 🗣 "To start your own board, you can clear this one. Reset asks first — you can go back to the starter set, or begin with an empty board."
-   🖱 click ↺ Reset — **on the word "Reset"** — and the dialog opens: Cancel · Blank board · Starter set
-   ⭕ @ button[title="Reset to defaults"] — so the viewer sees where you are going before the click
-      (the dialog's own buttons are drawn by the app, so they need no ring from us)
-2. 🗣 "Anything you had is gone, so export first if you want to keep it."
-   🖱 hold on the dialog, pointer away from the buttons (give the warning room)
-3. 🗣 "From here, everything you add is yours."
-   🖱 click **Starter set**; the board refreshes
+1. 🗣 "Let us start a brand new board."
+   🖱 click ↺ Reset — the dialog opens
+   ⭕ @ button[title="Reset to defaults"] — the button, on the word "Reset"
+2. 🗣 "Take the blank one — and we are ready."
+   🖱 click **Blank board**
+   ⭕ @ .confirm-actions button:nth-child(2) — the blank option, as it is chosen
 
-**Built 2026-09-11** (this replaced an open question). Reset now asks: it offers the starter set, a
-blank board, or cancel, and it clears the board's `params` block along with the widgets. The empty
-state says "No widgets yet. Click + Add Widget to get started."
+Cut (2026-09-12): the walk-through of the dialog's options. "Starter set or blank, and it clears the board's
+parameters too" is three sentences about a dialog the viewer can read for themselves, and it made starting a
+board feel like a decision to agonise over. Now: new board, blank, go. The dialog is on screen for a beat and
+a half, which is enough to see that it *does* ask — which was the real point of the scene.
 
-Take note: the recorder clicks **Starter set**, so this scene ends on the board the next scene expects.
-The alternative take — choose **Blank board**, then let scene 4 start from an empty grid — is
-the better story arc (you watch a board being built from nothing), and it needs scene 4's start state
-changed to a blank board along with it. Not done yet.
-
-🔊 dropped for this scene (decided 2026-09-11): a warning tone was proposed, never implemented, and not
-wanted. The dialog is the warning.
+Note: this scene now ends on a **blank** board, so scene 4 begins from nothing rather than clearing three
+starter widgets. That also removes scene 4's two removal beats: the ✕ no longer has to be taught, because
+nobody has to clear a board that is already empty. Removing a widget is still discoverable (every widget has
+its ✕), but it is no longer explained — an explicit trade for the shorter opening.
 
 ---
 
-## 4. Clear the board, then add a widget and point it at a subject
+## 4. Add a widget and point it at a subject
 
-`scene 04-add` · starts from: the starter board · target ~45s · **the busiest scene; still the most timing risk**
+`scene 04-add` · starts from: a blank board · target ~36s
 
-1. 🗣 "Let us start from nothing. Each widget has a cross on its top bar, and that removes it."
-   🖱 click the ✕ on the first widget
-   ⭕ @ .grid-item:nth-child(1) button[title="Remove"] — the cross, just before the click
-2. 🗣 "Remove the other two the same way, and the board is empty."
-   🖱 click the ✕ on the remaining two widgets, one after the other
-   ⭕ @ .grid-item:last-child button[title="Remove"] — the last one, as it goes
-3. 🗣 "Now add a widget: click Add Widget."
+1. 🗣 "Add a widget: click Add Widget."
    🖱 click ＋ Add Widget
-   ⭕ @ .btn.btn-primary — the Add Widget button, just before the click
-4. 🗣 "The picker lists every widget type, grouped by category, and you can search it."
+   ⭕ @ .btn.btn-primary — the button, just before the click
+2. 🗣 "The picker lists every widget type, grouped by category, and you can search it."
    🖱 modal opens; a slow scroll through the categories
    🔍 1.25× @ .add-widget-panel — onto the picker for the scroll, then release
-5. 🗣 "Search for pageviews and add Article Pageviews."
+3. 🗣 "Search for pageviews and add Article Pageviews."
    🖱 click the search field, type "pageviews"
    🔍 1.8× @ .add-widget-search — onto the search field while typing
    🔊 a soft click per keystroke (needs post-production — no audio is recorded)
    📝 the typed string shown large, e.g. `pageviews` in a corner chip
-6. 🗣 "A new widget appears with a placeholder subject."
+4. 🗣 "A new widget appears with a placeholder subject."
    🖱 the widget is added; the modal closes
    ⭕ @ .grid-item:last-child .widget-title — the widget that just appeared
-7. 🗣 "Open its gear to set the subject: the article field is here, and the project selector beside it."
+5. 🗣 "Open its gear to set the subject: the article field is here, and the project selector beside it."
    🖱 click ⚙, click the article field, set it to Marie Curie, then click **Apply & Reload**
    🔍 1.6× @ .widget-config — hold on the settings panel while the subject is set
    ⭕ @ .widget-config input[placeholder="Main_Page"] — the article field, as it is named
    ⭕ @ .widget-config select — the project selector beside it
-8. 🗣 "Watch it fetch real data for that article."
-   🖱 **wait for the numbers to actually change** — the recorder polls until the widget's value stops
-      being the Main Page figure, and says so if it never does
+6. 🗣 "Watch it fetch real data for that article."
+   🖱 **wait for the numbers to actually change** — the recorder polls until the widget stops showing the
+      Main Page figure, and says so if it never does
    🔍 1.6× @ .grid-item:last-child — hold on the widget while the data lands
-9. 🗣 "Anything you change takes effect immediately."
+7. 🗣 "Anything you change takes effect immediately."
    🖱 close the panel
 
-Why the removals are here: the board is otherwise crowded, the widget being configured sits in the
-bottom-left where it is hard to read, and starting from an empty grid is the moment to show the ✕. The
-narration says the data arrives, so the recorder must **wait for the fetch** (beat 8) rather than move
-on: the first take set the field to Marie Curie and never showed her numbers, which made the line false.
+Why it starts blank: scene 3 now ends on an empty board, so this one opens with nothing to clear. The two
+removal beats that used to start the scene are gone with it (see scene 3's note).
 
-Subject: **Marie Curie** (changed from Albert Einstein, 2026-09-11). A WikiPortraits subject rather
-than a default-looking one.
+The narration says the data arrives, so the recorder must **wait for the fetch** rather than move on: an
+earlier take set the field to Marie Curie and never showed her numbers, which made the line false.
 
 ---
 

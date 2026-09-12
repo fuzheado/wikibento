@@ -25,12 +25,24 @@ export async function glide(page, x, y, steps = 22) {
   page.__mouse = { x, y };
 }
 
-/** click a selector, or a box, with a small human wobble */
+/**
+ * Click a selector, or a box, with a small human wobble.
+ *
+ * Selectors go through Playwright's locator first, so engine-specific syntax works (`:has-text("Add
+ * Widget")`, `text=…`) as well as CSS — a project's actions are allowed to use either, and going straight to
+ * `document.querySelector` silently broke a scene that clicked a button by its text. The raw mouse is still
+ * what does the clicking: a synthetic `.click()` would not move the pointer, and the pointer is part of the
+ * demo.
+ */
 export async function clickHuman(page, selectorOrBox, opts = {}) {
   const { dx = 0, dy = 0 } = opts;
   let box = selectorOrBox;
   if (typeof selectorOrBox === 'string') {
-    box = await fxBox(page, selectorOrBox);
+    try {
+      const b = await page.locator(selectorOrBox).first().boundingBox({ timeout: 5000 });
+      if (b) box = { x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) };
+    } catch { /* not a Playwright selector, or not there yet — try CSS below */ }
+    if (!box || typeof box === 'string') box = await fxBox(page, selectorOrBox);
     if (!box) throw new Error(`clickHuman: no element for ${selectorOrBox}`);
   }
   const x = Math.round((box.x ?? 0) + (box.width ?? box.w ?? 0) / 2 + dx);

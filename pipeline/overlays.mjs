@@ -69,7 +69,23 @@ const page_ = (inner) =>
   `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">${inner}</body></html>`;
 
 // positions mirror the drawtext coordinates they replace (badge x=36/y=30, note y=H-208, caption y=H-104)
-const badgeHtml = (s) => { const { step, title } = badgeOf(s); return page_(at(`left:36px;top:26px;font-size:38px;font-weight:700;color:#fff`, `Step ${step} · ${title}`)); };
+/**
+ * The step badge: a compact box in the UPPER RIGHT, below the app's own toolbar.
+ *
+ * It used to be a long strip across the top-left, which is where most boards put their first card and where
+ * a viewer's eye goes first — it covered content and highlights (a reviewer's note). The top-right corner
+ * below the toolbar is the quietest part of the frame. It is also only shown for the opening seconds of a
+ * scene (see build.mjs, BADGE_SECONDS): a label that has done its job should stop covering the demo.
+ */
+const badgeHtml = (s) => {
+  const { step, title } = badgeOf(s);
+  const inner = `<div style="font-size:19px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8fc0ff">Step ${esc(step)}</div>
+    <div style="font-size:30px;font-weight:700;color:#fff;margin-top:8px;max-width:420px">${esc(title)}</div>`;
+  return `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">
+    <div style="position:absolute;right:36px;top:64px;text-align:right">
+      <div style="display:inline-block;background:rgba(0,0,0,.66);padding:14px 20px;border-radius:10px;text-align:right">${inner}</div>
+    </div></body></html>`;
+};
 const noteHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.note));
 const capHtml = (t) =>
   page_(`<div style="position:absolute;left:0;right:0;top:958px;display:flex;justify-content:center">

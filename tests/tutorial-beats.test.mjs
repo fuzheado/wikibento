@@ -34,9 +34,9 @@ test('every scene the recorder knows has words in the script', () => {
 test('beat metadata is read: step, title, starting state, target length', () => {
   const s = byId.get('03-reset');
   assert.equal(s.step, 3);
-  assert.equal(s.title, 'Clear it and start your own');
-  assert.match(s.start, /starter board/);
-  assert.equal(s.targetSeconds, 16);
+  assert.equal(s.title, 'Start a brand new board');
+  assert.match(s.start, /showcase board/);
+  assert.equal(s.targetSeconds, 8);
 });
 
 test('narration is the beats joined, in order', () => {
@@ -93,7 +93,11 @@ test('hear something, see something: every widget scene 1 highlights exists on i
   // the operational start state lives in scenes.json (what the recorder navigates to); the script's
   // "starts from:" line is prose. Assert both, so one cannot quietly drift from the other.
   const planStart = PLAN.scenes.find((x) => x.id === '01-what').start;
-  assert.equal(planStart, 'config:/article-vitals-demo.json', 'scene 1 should demo the Article vitals board');
+  assert.equal(planStart, 'vitals', 'scene 1 should start from the showcase board');
+  // the start-state name is an alias: assert the project maps it to the board the highlights live on
+  const projectActions = readFileSync(join(process.cwd(), 'video/actions.mjs'), 'utf8');
+  assert.match(projectActions, /spec === 'vitals'/, "actions.mjs should define the 'vitals' start state");
+  assert.match(projectActions, /article-vitals-demo\.json/, 'and that state should load the showcase board');
   assert.match(scene.start || '', /article-vitals-demo\.json/, 'the script should name the board it starts from');
   const board = JSON.parse(readFileSync(join(process.cwd(), 'public/article-vitals-demo.json'), 'utf8'));
   const ids = new Set(board.widgets.map((w) => w.id));

@@ -12,7 +12,7 @@
 import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import {
-  settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, at, spread, revealSelector,
+  settle, glide, clickHuman, typeHuman, fxBox, dataUrl, escHtml, at, spread, revealSelector, elapsed,
 } from '../pipeline/primitives.mjs';
 
 /** set by the engine before any scene runs, so this module knows where to write and what to drive */
@@ -126,6 +126,24 @@ async function addArticlePageviews(page, article) {
   await settle(page, 600);
 }
 export async function startState(page, spec) {
+  if (spec === 'vitals') {
+    // the shipped showcase board: one article, six angles — what scene 1 demonstrates
+    await page.goto(`${context.base}/?config=/article-vitals-demo.json`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await settle(page, 14000);
+    return;
+  }
+  if (spec === 'blank') {
+    // a genuinely empty board: the app restores an empty save (see savedBoard.js), so writing one and
+    // reloading is how a scene starts from nothing without clicking through the dialog
+    await page.goto(`${context.base}/`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await settle(page, 7000);
+    await page.evaluate(() => localStorage.setItem('wikibento-layout', JSON.stringify({ widgets: [], layout: [], params: null })));
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await settle(page, 7000);
+    const n = await page.evaluate(() => document.querySelectorAll('.grid-item').length);
+    console.log(`   start state: blank board (${n} widgets)`);
+    return;
+  }
   if (spec.startsWith('config:')) {
     await page.goto(`${context.base}/?config=${encodeURIComponent(spec.slice(7))}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await settle(page, 9000);
@@ -156,10 +174,36 @@ export const steps = {
         await hoverWidget(page, id);
       }
     } },
-    { beat: 4, label: 'the card that sets the subject', run: async (page) => {
+    { beat: 4, label: 'the card that sets the subject — click Marie Curie', run: async (page, b) => {
       await hoverWidget(page, 'pick');
+      // click on the word "Marie" of the four subject buttons, so the change lands on the narration
+      await at(b ? b.start + Math.max(1.2, b.duration - 1.6) : elapsed());
+      const clicked = await page.evaluate(() => {
+        const pick = document.querySelector('[data-widget-id="pick"]');
+        if (!pick) return null;
+        const b = [...pick.querySelectorAll('button')].find((x) => /marie curie/i.test(x.innerText || ''));
+        if (!b) return null;
+        b.click();
+        return b.innerText.trim();
+      });
+      console.log(clicked ? `   subject → "${clicked}"` : '   ⚠ no Marie Curie button in the subject card');
     } },
-    { beat: 5, label: 'pointer away', run: async (page) => { await glide(page, 1500, 950); } },
+    { beat: 5, label: 'WAIT for the change to ripple through', run: async (page) => {
+      // one click sets the parameter; six widgets each refetch. Wait for the board to actually follow —
+      // the narration says it does, so the take has to show it.
+      const shows = async () => page.evaluate(() => {
+        const ids = ['excerpt', 'views', 'quality', 'images'];
+        const seen = ids.map((id) => document.querySelector(`[data-widget-id="${id}"]`)?.innerText || '');
+        return seen.filter((t) => /marie curie/i.test(t)).length;
+      });
+      const t0 = Date.now();
+      let n = await shows();
+      for (let i = 0; i < 30 && n < 3; i += 1) { await settle(page, 500); n = await shows(); }
+      const waited = ((Date.now() - t0) / 1000).toFixed(1);
+      if (n >= 3) console.log(`   the board followed: ${n}/4 widgets now show Marie Curie (after ${waited}s)`);
+      else console.log(`   ⚠ only ${n}/4 widgets switched to Marie Curie after ${waited}s`);
+    } },
+    { beat: 6, label: 'pointer away', run: async (page) => { await glide(page, 1500, 950); } },
   ],
 
   '02-read': [
@@ -183,50 +227,39 @@ export const steps = {
   ],
 
   '03-reset': [
-    { beat: 1, label: 'click Reset — the dialog opens', run: async (page) => {
+    { beat: 1, label: 'click Reset — the dialog asks first', run: async (page) => {
       await clickHuman(page, 'button[title="Reset to defaults"]');
       await settle(page, 600);
       const open = await page.locator('.confirm-panel').count();
       console.log(open ? '   reset dialog is open (Cancel · Blank board · Starter set)'
                        : '   ⚠ no reset dialog — is the deployed app older than 2026-09-11?');
     } },
-    { beat: 2, label: 'hold on the dialog (the warning)', run: async () => {} },
-    { beat: 3, label: 'choose Starter set', run: async (page) => {
+    { beat: 2, label: 'take the blank board', run: async (page, b) => {
+      // let the marker ring the option first: this click dismisses the dialog it is highlighting, so the
+      // ring has to land while the dialog is still up
+      await at(b ? b.start + 0.9 : elapsed());
       const chose = await page.evaluate(() => {
         const btns = Array.from(document.querySelectorAll('.confirm-actions button'));
-        const wanted = btns.find((b) => /starter set/i.test((b.innerText || '').trim()));
+        const wanted = btns.find((b) => /blank board/i.test((b.innerText || '').trim()));
         if (wanted) { wanted.click(); return wanted.innerText.trim(); }
         return null;
       });
-      console.log(chose ? `   reset dialog → "${chose}"` : '   ⚠ no Starter set button');
-      await settle(page, 1200);
-      const c = await cards(page);
-      console.log('   reset → cards:', c.map((x) => x.title).join(' | '));
+      console.log(chose ? `   reset dialog → "${chose}"` : '   ⚠ no Blank board button');
+      await settle(page, 2000);
+      const n = await page.evaluate(() => document.querySelectorAll('.grid-item').length);
+      console.log(`   board after reset: ${n} widgets`);
     } },
   ],
 
   '04-add': [
-    { beat: 1, label: 'remove the first widget with its ✕', run: async (page) => {
-      const before = await cards(page);
-      await removeWidget(page, 0);
-      const after = await cards(page);
-      console.log(`   removed "${before[0]?.title || '?'}" → ${after.length} widget(s) left`);
-    } },
-    { beat: 2, label: 'remove the rest — a clean slate', run: async (page) => {
-      // always index 0: the grid re-flows after each removal, so "the last one" would move
-      let guard = 8;
-      while ((await cards(page)).length && guard--) await removeWidget(page, 0);
-      console.log(`   board cleared → ${(await cards(page)).length} widget(s)`);
-      await settle(page, 500);
-    } },
-    { beat: 3, label: 'click + Add Widget', run: async (page) => { await openPicker(page); } },
-    { beat: 4, label: 'scroll the categories', run: async (page, b) => {
+    { beat: 1, label: 'click + Add Widget', run: async (page) => { await openPicker(page); } },
+    { beat: 2, label: 'scroll the categories', run: async (page, b) => {
       for (const [i, px] of [180, 180, 180].entries()) {
         await at(spread(b, i, 3));
         await page.evaluate((y) => { const p = document.querySelector('.add-widget-panel'); if (p) p.scrollBy({ top: y, behavior: 'smooth' }); }, px);
       }
     } },
-    { beat: 5, label: 'search for pageviews and add Article Pageviews', run: async (page) => {
+    { beat: 3, label: 'search for pageviews and add Article Pageviews', run: async (page) => {
       const typed = await pickerType(page, 'pageviews');
       await settle(page, 900);
       const list = await page.evaluate(() => Array.from(document.querySelectorAll('.add-widget-item'))
@@ -238,11 +271,11 @@ export const steps = {
       });
       await settle(page, 900);
     } },
-    { beat: 6, label: 'the widget appears; close the picker', run: async (page) => {
+    { beat: 4, label: 'the widget appears; close the picker', run: async (page) => {
       await page.keyboard.press('Escape');
       await settle(page, 700);
     } },
-    { beat: 7, label: 'open its gear, set the subject, and apply it', run: async (page, b) => {
+    { beat: 5, label: 'open its gear, set the subject, and apply it', run: async (page, b) => {
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
         const gear = all[all.length - 1].querySelector('button[title="Configure"]');
@@ -302,7 +335,7 @@ export const steps = {
       console.log(`   subject set (${typed ? 'typed' : 'set directly'})`);
       // Apply at the END of the beat, and do not press Enter: the field is in a form, so Enter submits
       // it and the panel closes — which took the project-selector ring's target away mid-beat.
-      await at(Math.max((Date.now() - T0) / 1000 + 1.5, b ? b.end - 0.8 : 0));
+      await at(Math.max(elapsed() + 1.5, b ? b.end - 0.8 : 0));
       const applied = await page.evaluate(() => {
         const btns = [...document.querySelectorAll('.widget-config button, .add-widget-panel button')];
         const b = btns.find((x) => /apply\s*&?\s*reload/i.test(x.innerText || ''));
@@ -311,7 +344,7 @@ export const steps = {
       });
       console.log(applied ? `   clicked "${applied}"` : '   ⚠ no Apply & Reload button found — Enter only');
     } },
-    { beat: 8, label: 'WAIT for the figure to actually change', run: async (page, b) => {
+    { beat: 6, label: 'WAIT for the figure to actually change', run: async (page, b) => {
       const read = async () => {
         const c = await cards(page);
         const last = c[c.length - 1] || {};
@@ -336,7 +369,7 @@ export const steps = {
         console.log(`   ⚠ still "${now.value}" after ${waited}s (was "${before}") — the fetch did not land`);
       }
     } },
-    { beat: 9, label: 'close the panel', run: async (page) => {
+    { beat: 7, label: 'close the panel', run: async (page) => {
       await page.evaluate(() => {
         const all = Array.from(document.querySelectorAll('.grid-item'));
         const gear = all[all.length - 1].querySelector('button[title="Configure"]');

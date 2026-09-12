@@ -179,6 +179,7 @@ const srt = [];
 // highest — five silent seconds was the reviewer's first note on the finished take.
 const TITLE_SCENE = cfg.titleCardScene || '00-title';
 const TITLE_VOICE = join(OUT, 'narration', `${TITLE_SCENE}.ogg`);
+const BADGE_SECONDS = 5.5;   // how long the step label stays on screen
 const TITLE_DUR = existsSync(TITLE_VOICE) ? Math.max(2.5, probe(TITLE_VOICE) + 0.8) : 2.5;
 const END_DUR = 3.0;
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
@@ -285,7 +286,9 @@ for (const scene of scenes) {
     idx += 1;
   };
 
-  overlay(ov(`${scene.id}-badge.png`));                                  // whole scene
+  // The badge carries the label that has to land ("Step 3 · Clear it and start your own") and then gets out
+  // of the way, so it cannot sit on top of a widget or a highlight later in the scene.
+  overlay(ov(`${scene.id}-badge.png`), [0.0, BADGE_SECONDS]);
   // The lower-left note is a static burn-in of the scene's address (or of a one-line process hint —
   // `note` in scenes.json is both). Skip it for a scene that rings `.fx-url-config`, because the
   // recorder drew a live URL pill there: the real href, in-page, with the ?config= part ringable.

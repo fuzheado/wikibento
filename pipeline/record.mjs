@@ -234,7 +234,7 @@ async function runSteps(page, scene) {
   const steps = app.steps[scene.id];
   if (!steps) { console.log(`   (no steps defined for ${scene.id})`); return; }
   const beats = TIMING?.scenes?.[scene.id]?.beats || [];
-  let overruns = 0;
+  let overruns = 0, failures = 0;
   for (const step of steps) {
     const b = beats.find((x) => x.n === step.beat);
     if (b) await at(b.start);
@@ -242,7 +242,10 @@ async function runSteps(page, scene) {
     try {
       await step.run(page, b);
     } catch (e) {
-      console.log(`   ✘ ${step.label}: ${String(e.message).slice(0, 140)}`);
+      // loud, and counted: a step that throws means the take does not show what the script claims, and a
+      // stale identifier in an app module once failed every step of a scene while the log scrolled past
+      failures += 1;
+      console.log(`   ✘ STEP FAILED — ${step.label}: ${String(e.message).slice(0, 140)}`);
       continue;
     }
     if (b) {
@@ -255,6 +258,7 @@ async function runSteps(page, scene) {
     }
   }
   if (overruns) console.log(`   ⚠ ${overruns} action(s) overran their beat`);
+  if (failures) console.log(`   ✘ ${failures} step(s) FAILED in ${scene.id} — this take does not show what the script says`);
 }
 
 
