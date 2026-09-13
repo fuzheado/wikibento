@@ -126,7 +126,18 @@ dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseab
 `docs/ARCHITECTURE.md` (incl. the third-party API-contract watchlist) ·
 `docs/WIDGET-DEVELOPMENT.md` (how to add a type) · `docs/MEDIA-DATAFLOW.md`
 (design direction: should graphics travel the wire?) · `docs/DEMO-IDEAS.md` ·
-`docs/ROADMAP.md` · `docs/ISSUES.md` (canonical tracker).
+`docs/ROADMAP.md` · `docs/ISSUES.md` (canonical tracker). The long lists live in their
+own files now — `docs/WIDGET-CATALOG.md` (every widget, what it shows, its API),
+`docs/VERIFIED-WORKING.md` (the dated smoke-test record) and `docs/BROWSER-TESTING.md`
+(the browser suites + engine-install traps) — so the README stays a front door.
+
+**Doc convention: append-only applies to exactly two files.** `docs/DEPLOYMENTS.md` (the
+deploy log) and `docs/WHY-WIKIBENTO.md` (the measured ledger, where a claim is added with
+its receipt and never quietly revised). Every other document — including the README and
+`docs/TUTORIAL-VIDEO-STATUS.md` — is **edited in place**: cut, merge, rewrite, and delete
+what has stopped being true. A record of what happened may only grow; a description of what
+is must be allowed to shrink, or the README becomes a changelog and stops being a front door
+(which is exactly what happened: it reached 639 lines, ~250 of them an appended test log).
 
 ## Hard-won gotchas (don't rediscover these)
 
