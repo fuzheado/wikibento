@@ -179,6 +179,13 @@ wikibento/
 | Linting | Oxlint (react + oxc plugins) |
 | Charts | Hand-rolled SVG (no chart library used) |
 | QR codes | `qrcode-generator` (client-side, zero-dep; SVG rendered in-app) |
+| Pair-built with | The [Pi coding agent](https://github.com/earendil-works/pi) on **DeepSeek V4** |
+
+A substantial part of this project was written that way: the widget implementations and their batched
+fetchers, the rate-limit-aware HTTP layer, the docs↔code consistency gates (`scripts/docs-facts.mjs`), the
+widget catalog and this documentation set, and the demo-video pipeline. The agent works in a repository under
+review — every change has to pass the test suite and the docs gates, and deploys are made by hand
+([Andrew Lih](docs/AUTHORS.md), `User:Fuzheado`), who directs the work and checks the result in a browser.
 
 ## Status
 
