@@ -3303,3 +3303,33 @@ Wikidata Graph Builder, and WDQS's own Graph view.
 a file link); endpoint drift can silently drop edges; the repo has **13 deps and no graph library**, so
 this is a real dependency decision — hence the option of a deterministic layout with no new dependency
 for v1.
+
+## ISSUE-73 · Article Gallery: lighter default example + first-class image cap (GitHub issue #84) — **open**
+
+**What:** the `gallery` widget ("Article Gallery", `src/widgets/index.js:762`) ships with
+**Albert Einstein** as its placeholder article, and with `maxItems: 0` — *unlimited* — in both its
+defaults and the catalogue example. Requested by Andrew 2026-09-11: pick a lighter example, and make
+the image limit first-class (3 / 5 / 10 / 15 / no limit).
+
+**What is already there:** the cap **exists** as a config field (`Max images (0 = all)`, numeric) and
+is applied at the end of `fetchArticleGallery` (`dataSources.js:1268-1270`). So the ask is a sane
+**default** and **presets**, not a new field. The data path is also cheaper than feared — one
+`REST /page/media-list/<title>` call plus batched `imageinfo` (50 titles/call): **3 requests** for
+Einstein, not one per image.
+
+**Measured (2026-09-11, en.wikipedia):** Einstein uses **59** images (42 pass the widget's
+`minSize: 200`). Metadata is small — `media-list` 36.3 KB — but the thumbnails are not: **1.72 MB at
+320 px**, **3.32 MB at 340 px**, **7.85 MB at 640 px**, median image 134 KB at 800 px. Capped at five:
+**0.18 MB**. So the real cost is **reader bandwidth, not API quota** (three requests, under ~100 KB,
+cached by the relay and refreshed hourly) — the same cost class as `Wikivoyage:Image policy` and the
+same measurement pattern as ISSUE-71 (#80).
+
+**Proposed:** default the example to a measured-light article — recommendation **Gibbes Museum of Art**
+(5 images, ~0.2 MB, and one of the museums in the #82 knowledge-graph example) — plus a recorded rule
+("check the image count before using an article as an example"); a preset select **3 / 5 / 10 / 15 /
+All** defaulting non-zero (recommend 10); a visible weight hint in the ⚙ panel ("10 images ≈ 0.3 MB");
+a warning (not a block) when left on All for an image-heavy article; and an optional consistency pass,
+since Einstein is also the placeholder in five other catalogue entries, in `paramSources.js:335`, and
+in the Ask example prompt. Honest limit recorded in the issue: because the cap slices after the
+metadata fetch, it saves image bytes but not the media-list/imageinfo responses, and `media-list` has
+no limit parameter to push it into.
