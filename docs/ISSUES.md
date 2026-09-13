@@ -3333,3 +3333,40 @@ since Einstein is also the placeholder in five other catalogue entries, in `para
 in the Ask example prompt. Honest limit recorded in the issue: because the cap slices after the
 metadata fetch, it saves image bytes but not the media-list/imageinfo responses, and `media-list` has
 no limit parameter to push it into.
+
+## ISSUE-74 · Drag & drop: edge auto-scroll so a bottom widget can reach the first row (GitHub issue #86) — **open**
+
+**What:** requested by Andrew 2026-09-11 — with a widget at the bottom of a tall board there is no
+practical way to drag it to the top, because dragging to the window edge does not scroll the board.
+Also proposes a non-drag **Move to top / Move to bottom** action, since drag-and-drop is inaccessible
+and is currently the only way to reposition a card.
+
+**Measured on the live site** (2026-09-11, `?config=https://w.wiki/TR9R`, 10 cards, 1920×1080; board
+taller than the viewport, scroll container = the window):
+
+- Holding a drag at the top edge for ≈2.8 s, sampling `window.scrollY` 14 times: **no movement at
+  all** (`[264, 264, …]`); same at the bottom edge (`[0, 0, …]`) — the drag itself is fine
+  (`.react-draggable-dragging` present throughout), only scrolling is missing.
+- The **mouse wheel does scroll mid-drag**, but the dragged card **detaches from the pointer**: after a
+  276 px scroll, the card's viewport top moved 108 → **−168** while its `transform` stayed
+  `translate(966px, 40px)` and the pointer never moved — i.e. the card slides away by exactly the scroll
+  delta and the drop is decided from the pointer, not from what the user sees. This is the pitfall the
+  fix must handle (compensate the dragged element by the scroll delta), and it is why the current wheel
+  workaround is guesswork.
+- Per-card controls today are `About / Configure / Refresh / Remove` — **no move action**, so keyboard
+  and many touch users cannot reposition anything.
+- `react-grid-layout@2.2.4` has **no `autoScroll` option** anywhere in its build output, so this cannot
+  be switched on — it must be implemented (App currently passes no drag handlers at all).
+
+**Proposed:** (A) an `onDrag` handler that scrolls `window` on a rAF loop when the pointer is within
+~80–90 px of the viewport edge, velocity ramping with proximity, clamped to the board's bounds, stopped
+on drag end; (B) compensate the dragged item's offset by the accumulated scroll delta so the card stays
+under the pointer (the measured failure above); (C) the same helper for `onResize`, which has the
+identical problem near the bottom edge; (D) a **Move to top / bottom** action in the card header menu —
+one click, keyboard reachable, works on touch and on very long boards, and it is the only path that
+would work in kiosk/lean modes where dragging is disabled.
+
+**Acceptance:** with 10+ cards, an edge-held drag scrolls until row 1 is reachable with the card under
+the pointer; stops on drop; never overscrolls past the board; regression = mechanise the measurement
+above (assert `scrollY` changes and the card's offset to the pointer stays constant) in the existing
+three-engine smoke matrix; verify by hand on a real iPad and in lean/kiosk modes.
