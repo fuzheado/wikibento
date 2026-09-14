@@ -37,6 +37,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
+| 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | Anne Frank and Martin Luther King Jr. on a shared timeline — both born 1929, one life ending where the other had barely begun |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
 | 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 39 widget types on one board — its article switcher drives five cards |
 
@@ -216,7 +217,9 @@ front door.
   [TAPESTRY-EVALUATION](docs/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md)
 - **Ideas** — [WIDGET-IDEAS](docs/WIDGET-IDEAS.md) · [DEMO-IDEAS](docs/DEMO-IDEAS.md) ·
-  [ROADMAP](docs/ROADMAP.md) · [ISSUES](docs/ISSUES.md)
+  [ROADMAP](docs/ROADMAP.md) · [ISSUES](docs/ISSUES.md) ·
+  [LIFELINE-WIDGET](docs/LIFELINE-WIDGET.md) (timelines of lives, and comparing two of them — measured
+  Wikidata-vs-prose coverage, what shipped, what is next)
 - **Testing & ops** — [BROWSER-TESTING](docs/BROWSER-TESTING.md) (the suites + engine-install traps) ·
   [VERIFIED-WORKING](docs/VERIFIED-WORKING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) and the
   [deploy log](docs/DEPLOYMENTS.md) · [AGENT-MEMO](docs/AGENT-MEMO.md) ·

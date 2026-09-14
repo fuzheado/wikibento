@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "pl-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## Two lives, one axis\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929. The cards below put them on a single time axis, so the overlap is visible rather than asserted — and so is the silence afterwards.\n\nEvery event here is a **structured Wikidata statement**: birth, death, education, posts, awards, residences. There is no date in Wikidata for the diary, the arrest, or the March on Washington — that is what the article prose holds. See `docs/LIFELINE-WIDGET.md`.",
+        "allowExternalImages": false,
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "pl-lives",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "two-lives",
+        "renderer": "timeline",
+        "endpoint": "wdqs",
+        "maxRows": 100,
+        "refreshSeconds": 1800
+      }
+    },
+    {
+      "id": "pl-frank",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "Anne Frank",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "pl-king",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "Martin Luther King Jr.",
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    { "i": "pl-note", "x": 0, "y": 0, "w": 12, "h": 4, "minW": 4, "minH": 2 },
+    { "i": "pl-lives", "x": 0, "y": 4, "w": 12, "h": 8, "minW": 6, "minH": 5 },
+    { "i": "pl-frank", "x": 0, "y": 12, "w": 6, "h": 5, "minW": 3, "minH": 3 },
+    { "i": "pl-king", "x": 6, "y": 12, "w": 6, "h": 5, "minW": 3, "minH": 3 }
+  ]
+}

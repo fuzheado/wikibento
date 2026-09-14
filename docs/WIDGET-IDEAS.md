@@ -110,9 +110,10 @@ SPARQL output → network visualization, not just tables:
   label/legend toggles, and URL state sync — reuse those interaction
   patterns. WikiPix + WikiBento's hand-rolled SVG show the codebase style.
 - **Other SPARQL renderers to consider:** map (SPARQL→GeoJSON, see the
-  `kepler-gl` skill), timeline (time-shaped results — the WDQS UI's built-in
-  views are table/map/timeline/graph, a good feature checklist), and line
-  charts for time-series shaped results.
+  `kepler-gl` skill), ~~timeline (time-shaped results — the WDQS UI's built-in
+  views are table/map/timeline/graph, a good feature checklist)~~ **✅ shipped as
+  the `timeline` renderer (ISSUE-73)**, and line charts for time-series shaped
+  results.
 
 ### PetScan Query
 
@@ -129,6 +130,18 @@ SPARQL output → network visualization, not just tables:
 - **Feasibility:** ⚠️ needs CORS on the target. CORS-enabled Wikimedia endpoints work directly; anything else needs the ROADMAP **CORS proxy** (Toolforge `fetch`-proxy webservice) — this widget is the reason the proxy graduates from "not needed" to required.
 - **Effort:** M (selector UI + metric extraction + proxy wiring)
 - **Notes:** fulfills the original "generic widget" vision; makes WikiBento open-ended.
+
+## Lifeline — timelines of lives on one axis (ISSUE-73)
+
+**Shipped v0 2026-09-12.** Two people, one time axis: a `timeline` renderer on the SPARQL widget plus a
+`two-lives` preset and a demo board (`?config=/parallel-lives-demo.json`). Anne Frank (1929–1945) and
+Martin Luther King Jr. (1929–1968) were both born in 1929; the widget shows the overlap band covering her
+entire documented life while his lane runs on for 23 more years.
+
+The measured finding, and the design for the prose lane / age axis / context bands, are in
+**[LIFELINE-WIDGET.md](LIFELINE-WIDGET.md)** — including that Wikidata dates what is *recordable*
+(awards, posts, residences) while the article prose holds what is *narratable* (the diary, the arrest,
+Selma), and that a life timeline must stop at death or it ends with posthumous honours.
 
 ## Tier 2 — GLAM & Impact (2026-08-12 brainstorm: the "money" widgets)
 

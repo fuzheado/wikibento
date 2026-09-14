@@ -2319,3 +2319,168 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; white-space: nowrap;
 }
 .assembly-toast-close { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; }
+
+/* ── Timeline (SPARQL widget, ISSUE-73) ─────────────────────────────────────────
+   Lanes on one shared axis. Every dot, gridline, band edge and tick is placed by a
+   percentage from the tested layout in src/lib/timeline.js, so the CSS decides how
+   things look, never where they go. --tl-gutter is the single source of truth for the
+   lane-name column width, and it is what keeps the axis furniture and the dots in the
+   same coordinate space (they were separate widths once, and 1968 drew nowhere near the
+   1970 gridline). */
+.tl-card {
+  --tl-gutter: 150px;
+  display: flex;
+  flex-direction: column;
+  /* .widget-body centres its child, so a card that does not claim the full width is sized to its
+     content — which collapsed this one to 206px and squeezed the whole axis into a strip. Every
+     other card states width: 100% for the same reason. */
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 14px 6px;
+  gap: 4px;
+}
+.tl-summary {
+  font-size: 0.72rem;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.tl-plot {
+  flex: 1 1 auto;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+/* sized by the lanes (so the plot centres them in a tall widget) with room below for the year ticks */
+.tl-plot-inner {
+  position: relative;
+  width: 100%;
+  padding-bottom: 22px;
+}
+/* the axis furniture: full width minus the name gutter, exactly like a lane's track */
+.tl-canvas {
+  position: absolute;
+  left: var(--tl-gutter);
+  right: 0;
+  top: 0;
+  bottom: 22px;
+  pointer-events: none;
+}
+.tl-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+/* the window in which every lane is documented — the comparison's payoff */
+.tl-overlap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, #6ea8fe 9%, transparent);
+  border-left: 1px dashed color-mix(in srgb, #6ea8fe 42%, transparent);
+  border-right: 1px dashed color-mix(in srgb, #6ea8fe 42%, transparent);
+}
+.tl-tick {
+  position: absolute;
+  bottom: 2px;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.tl-lanes {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tl-lane {
+  display: grid;
+  grid-template-columns: var(--tl-gutter) 1fr;
+  align-items: center;
+}
+.tl-lane-head {
+  display: flex;
+  flex-direction: column;
+  padding-right: 10px;
+  min-width: 0;
+}
+.tl-lane-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-lane-meta {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+/* the track starts exactly where the canvas starts */
+.tl-track {
+  position: relative;
+  height: 124px;
+}
+.tl-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+.tl-span {
+  position: absolute;
+  top: calc(50% - 3px);
+  height: 6px;
+  min-width: 2px;
+  border-radius: 3px;
+  background: color-mix(in srgb, #6ea8fe 50%, transparent);
+}
+.tl-event {
+  position: absolute;
+  top: 50%;
+}
+.tl-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #dbe7ff;
+  border: 1.5px solid #6ea8fe;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #0b1120 75%, transparent);
+}
+/* Labels move vertically, never sideways. Two things make that work at this density:
+   the labels are SINGLE-LINE (so their height is a known ~14px, and slots can be packed
+   predictably — wrapped 3-line labels overlapped each other no matter how the slots were
+   spaced), and the slots are 20px apart, which is more than a line. Truncation is safe
+   because every dot carries its full text as a tooltip. */
+.tl-label {
+  position: absolute;
+  left: 0;
+  width: 6.5rem;
+  font-size: 0.7rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  opacity: 0.9;
+}
+/* Edge labels hang inward so they cannot leave the plot. */
+.tl-anchor-center { margin-left: -3.25rem; text-align: center; }
+.tl-anchor-start { margin-left: 0; text-align: left; }
+.tl-anchor-end { margin-left: -6.5rem; text-align: right; }
+.tl-band0 { top: -44px; }
+.tl-band1 { top: -24px; }
+.tl-band2 { top: 10px; }
+.tl-band3 { top: 30px; }

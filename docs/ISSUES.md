@@ -3260,6 +3260,37 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
+## ISSUE-73 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
+
+**What:** a `timeline` renderer for the existing `sparql` widget — dated rows as **lanes on one shared
+axis** — plus a `two-lives` preset (Anne Frank × Martin Luther King Jr.) and
+`?config=/parallel-lives-demo.json`. Requested by Andrew 2026-09-12, from an experiment pairing two people
+born in the same year.
+
+**Why it fits:** the widget already runs arbitrary SPARQL and renders stat/bar/line/table; "timeline" was
+already on the renderer wish list in [WIDGET-IDEAS.md](WIDGET-IDEAS.md) (the WDQS UI's own views are
+table/map/timeline/graph). Nothing here needs a backend: one WDQS call returns the whole board.
+
+**Full write-up with the measurements, the design for v1+, and the risks: [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).**
+
+**Measured (2026-09-12):** Wikidata gives **7 usable dated events for Anne Frank and 14 for MLK** (with a
+death filter); the article prose contains **66 and 139 dated sentences** in its life sections (27% / 22%
+of sentences carry a year), ~5–10× more, and it holds the events that make each life narratable — the
+diary, the arrest and the transports for her; the bus boycott, Birmingham, the March on Washington and
+Selma for him. Wikidata dates what is *recordable* (awards, posts, residences); prose holds what is
+*narratable*. Without a death filter the preset also returns posthumous honours (a 1955 prize for Anne,
+2004 for MLK) — a "life" timeline that ends with an award won 36 years after death.
+
+**Shipped:** `src/lib/timeline.js` (layout maths, 19 unit tests — ticks, bounds, percentages, the overlap
+window, label slot packing, edge anchoring, degenerate cases), the `TimelineCard` renderer, auto-detection
+(dated rows with no numeric column), a manual ⚙ override, the verified preset query, and the demo board.
+
+**Next (not built):** the **article-prose lane** via the LiftWing relay with a verbatim-quote gate against
+the cited revision; **age alignment** (align both lanes at birth — the "at 15, she was in hiding; at 15,
+he entered Morehouse" view); a **context band** from the year articles (enwiki "1942" carries 675 dated,
+citable event lines); pinned per-revision artifacts on a wiki; and generalization past people
+(institution vs founder, two delegates, a person vs their era).
+
 ## ISSUE-72 · Wikidata knowledge graph: image nodes, labelled edges (GitHub issue #82) — **open**
 
 **What:** add a **`graph` renderer to the existing `sparql` widget** so a board can show a Wikidata

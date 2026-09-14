@@ -36,6 +36,7 @@ import {
  fetchIaItem,
 } from './dataSources';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
+import { buildTimeline } from '../lib/timeline';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
 import { toLines, countOf } from '../lib/dataflow';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
@@ -1414,7 +1415,7 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'SPARQL Query',
     icon: '🧠',
-    description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, or trend',
+    description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, or a timeline of dated events',
     labelFromConfig: (c) => (getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
     defaults: {
       preset: 'met-collection',
@@ -1442,6 +1443,7 @@ export const WIDGET_TYPES = {
         { value: 'bar', label: 'Bar chart' },
         { value: 'line', label: 'Line chart' },
         { value: 'table', label: 'Table' },
+        { value: 'timeline', label: 'Timeline (dated rows, one lane per group)' },
       ]},
       { key: 'maxRows', label: 'Max rows', type: 'number', placeholder: '100' },
     ],
@@ -1468,8 +1470,12 @@ export const WIDGET_TYPES = {
 
       // Manual override wins; otherwise detect from the result shape.
       let mode = config.renderer || 'auto';
+      const timeline = buildTimeline(rows, vars);
       if (mode === 'auto') {
-        if (!rows.length || !numericVars.length) mode = 'table';
+        if (!rows.length) mode = 'table';
+        // Dated rows with no number to plot are a timeline, not a table. (Anything with a numeric
+        // column keeps its existing path — a date column plus a count is still a trend chart.)
+        else if (!numericVars.length) mode = timeline ? 'timeline' : 'table';
         else if (rows.length === 1) mode = 'stat';
         else if (vars.some(dateish)) mode = 'line';
         else if (numericVars.length === 1) mode = 'bar';
@@ -1500,6 +1506,20 @@ export const WIDGET_TYPES = {
           chartKey: 'value',
           chartLabel: yVar,
         };
+      }
+      if (mode === 'timeline') {
+        // A user can force this renderer onto a result with no usable dates: say so rather than
+        // drawing an empty axis.
+        if (!timeline) {
+          return {
+            mode: 'table',
+            title,
+            subtitle: `${rows.length} rows · no usable date column`,
+            columns: vars,
+            rows: rows.map((r) => vars.map((v) => fmt(r[v]))),
+          };
+        }
+        return { mode, title, subtitle: timeline.summary, timeline };
       }
       if (mode === 'bar') {
         const rows2 = rows

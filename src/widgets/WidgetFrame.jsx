@@ -1979,51 +1979,67 @@ function SparqlCard({ data }) {
   if (data.mode === 'stat') return <StatCard data={data} />;
   if (data.mode === 'line') return <TrendCard data={data} />;
   if (data.mode === 'bar') return <BarCard data={data} />;
+  if (data.mode === 'timeline') return <TimelineCard data={data} />;
   return <TableCard data={data} />;
 }
 
-/** Table — generic columns, scrollable body (the SPARQL fallback). */
-function TableCard({ data }) {
-  const columns = data.columns || [];
-  const rows = data.rows || [];
+/** Timeline — dated rows as lanes on one shared axis (ISSUE-73).
+ *
+ *  Built for comparison: two lives born the same year, two institutions, a person and the event they
+ *  attended. Every lane is a bar from its first to its last documented event, the shaded band is the
+ *  window in which *every* lane is documented, and a dot is one event. Nothing here invents a date —
+ *  gaps are gaps, and the "N–M" caption under each lane says how much is actually known.
+ *
+ *  Layout (ticks, positions, the overlap window, label slots) lives in ../lib/timeline.js so the
+ *  arithmetic is unit-tested; this component only paints it.
+ */
+function TimelineCard({ data }) {
+  const tl = data.timeline;
+  if (!tl?.lanes?.length) return <div className="widget-empty">{data?.error || 'No dated rows'}</div>;
   return (
-    <div className="table-card">
-      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
-      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
-      <div className="table-scroll">
-        <table className="sparql-table">
-          <thead>
-            <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && <tr><td className="widget-empty" colSpan={columns.length || 1}>No rows</td></tr>}
-            {rows.map((r, i) => (
-              <tr key={i}>{r.map((cell, j) => <td key={j} title={String(cell)}>{cell}</td>)}</tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/** Bar — horizontal label→value bars (hand-rolled, zero-chart-library style). */
-function BarCard({ data }) {
-  const rows = data.rows || [];
-  const max = Math.max(...rows.map((r) => r.value || 0), 1);
-  return (
-    <div className="bar-card">
-      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
-      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
-      <div className="bar-rows">
-        {rows.length === 0 && <div className="widget-empty">No rows</div>}
-        {rows.map((r, i) => (
-          <div key={i} className="bar-row" title={`${r.label}: ${r.value?.toLocaleString?.() ?? r.value}`}>
-            <span className="bar-label">{r.label}</span>
-            <span className="bar-track"><span className="bar-fill" style={{ width: `${Math.max((r.value / max) * 100, 1)}%` }} /></span>
-            <span className="bar-value">{typeof r.value === 'number' ? r.value.toLocaleString() : r.value}</span>
-          </div>
-        ))}
+    <div className="tl-card">
+      {/* No card title: the widget frame already prints the preset's name, and the two were the same
+          string (a card title matters when it names the ASSET — "Albert Einstein" — not the type). */}
+      {/* How much is actually known — the number a reader must not have to guess. */}
+      <div className="tl-summary">{tl.summary}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}</div>
+      <div className="tl-plot">
+        {/* The inner box is sized by the lanes, so a tall widget centres them instead of leaving a
+            void — and the axis furniture stays glued to the lanes rather than stretching. */}
+        <div className="tl-plot-inner">
+        {/* One coordinate space for the axis furniture and the events: the canvas starts where the
+            lane tracks start (--tl-gutter), so a dot at 96% and the 1970 gridline agree. */}
+        <div className="tl-canvas" aria-hidden="true">
+          {tl.ticks.map((t) => <div key={t.year} className="tl-gridline" style={{ left: `${t.x}%` }} />)}
+          {tl.overlap && (
+            <div
+              className="tl-overlap"
+              style={{ left: `${tl.overlap.x1}%`, width: `${Math.max(tl.overlap.x2 - tl.overlap.x1, 0)}%` }}
+              title={`Both documented ${tl.overlap.from}${tl.overlap.to !== tl.overlap.from ? `–${tl.overlap.to}` : ''}`}
+            />
+          )}
+          {tl.ticks.map((t) => <span key={t.year} className="tl-tick" style={{ left: `${t.x}%` }}>{t.year}</span>)}
+        </div>
+        <div className="tl-lanes">
+          {tl.lanes.map((lane) => (
+            <div className="tl-lane" key={lane.label}>
+              <div className="tl-lane-head">
+                <span className="tl-lane-name" title={lane.label}>{lane.label}</span>
+                <span className="tl-lane-meta">{lane.span} · {lane.count} event{lane.count === 1 ? '' : 's'}</span>
+              </div>
+              <div className="tl-track">
+                {/* the documented span — its length is the point of the comparison */}
+                <span className="tl-span" style={{ left: `${lane.x1}%`, width: `${Math.max(lane.x2 - lane.x1, 0)}%` }} />
+                {lane.events.map((e, i) => (
+                  <span key={i} className="tl-event" style={{ left: `${e.x}%` }} title={e.text}>
+                    {e.labelVisible && <span className={`tl-label tl-band${e.band} tl-anchor-${e.anchor}`}>{e.short}</span>}
+                    <span className="tl-dot" />
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        </div>
       </div>
     </div>
   );

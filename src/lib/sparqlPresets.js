@@ -51,6 +51,38 @@ GROUP BY ?institution ?institutionLabel
 ORDER BY DESC(?count)`,
   },
   {
+    id: 'two-lives',
+    label: 'Two lives, one axis (Anne Frank × Martin Luther King Jr.)',
+    endpoint: 'wdqs',
+    // Renders with the `timeline` renderer (see src/lib/timeline.js). Both subjects are deceased
+    // people, which is what makes the FILTER below both possible and necessary: Wikidata records
+    // POSTHUMOUS awards (MLK has honours dated 1977, 1978, 1984, 2004), and a life timeline that
+    // does not stop at death ends with prizes won decades after the subject died. Filtering at the
+    // query means the renderer never has to know about it.
+    //
+    // What this query can and cannot reach, measured 2026-09-12: Wikidata dates what is recordable
+    // — birth, death, education, posts, awards, residences (7 events for Anne Frank) — and holds
+    // almost nothing of what makes a life narratable: no entry for the diary, the arrest or the
+    // transports; and for MLK none for the bus boycott, Birmingham, the March on Washington or
+    // Selma. The article prose is where those live (~5–8× more dated material: 66 vs 7 and 139 vs
+    // 14 dated statements). See docs/LIFELINE-WIDGET.md.
+    query: `SELECT ?who ?whoLabel ?date ?kind ?whatLabel WHERE {
+  VALUES ?who { wd:Q4583 wd:Q8027 }
+  ?who wdt:P570 ?died .
+  { ?who wdt:P569 ?date . BIND("born" AS ?kind) } UNION
+  { ?who wdt:P570 ?date . BIND("died" AS ?kind) } UNION
+  { ?who p:P69  ?st . ?st ps:P69  ?what ; pq:P580 ?date . BIND("studied at" AS ?kind) } UNION
+  { ?who p:P108 ?st . ?st ps:P108 ?what ; pq:P580 ?date . BIND("worked at" AS ?kind) } UNION
+  { ?who p:P39  ?st . ?st ps:P39  ?what ; pq:P580 ?date . BIND("held office" AS ?kind) } UNION
+  { ?who p:P166 ?st . ?st ps:P166 ?what ; pq:P585 ?date . BIND("awarded" AS ?kind) } UNION
+  { ?who p:P26  ?st . ?st ps:P26  ?what ; pq:P580 ?date . BIND("married" AS ?kind) } UNION
+  { ?who p:P551 ?st . ?st ps:P551 ?what ; pq:P580 ?date . BIND("lived in" AS ?kind) }
+  FILTER(?date <= ?died)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}
+ORDER BY ?who ?date`,
+  },
+  {
     id: 'women-in-red',
     label: 'Women in Red — % of enwiki biographies that are women',
     endpoint: 'humaniki',
