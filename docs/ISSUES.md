@@ -3370,3 +3370,48 @@ would work in kiosk/lean modes where dragging is disabled.
 the pointer; stops on drop; never overscrolls past the board; regression = mechanise the measurement
 above (assert `scrollY` changes and the card's offset to the pointer stays constant) in the existing
 three-engine smoke matrix; verify by hand on a real iPad and in lean/kiosk modes.
+
+## ISSUE-75 · Project picker: all Wikimedia projects, not three Wikipedias (GitHub issue #88) — **open**
+
+**What:** requested by Andrew 2026-09-11. Almost every widget with a "Project" field offers the same
+three options (English/German/French Wikipedia) and much widget code hardcodes `en.wikipedia`. Needs a
+searchable picker over the real number of wikis — type-in with a dropdown, not a 1,000-row scroll list —
+and Commons support, including a gallery that can load a **Commons page or category** and display all or
+**selected** images.
+
+**Measured current state:** `PROJECT_OPTIONS` is literally three entries (`index.js:52-56`, reused by the
+CIM widgets); 9 widgets expose a project field; `en.wikipedia` appears 16× as a literal in `index.js`; and
+Commons is hardwired separately (23 refs in `index.js`, 17 in `dataSources.js`) rather than being a
+selectable project.
+
+**The real universe:** `action=sitematrix` (Meta) is the canonical list — **41.2 KB, 165 ms, CORS `*`**,
+**1,072 wikis**: 364 Wikipedias, 198 Wiktionaries, 122 Wikibooks, 100 Wikiquotes, 84 Wikisources, 36
+Wikinews, 27 Wikivoyages, 17 Wikiversities, 124 "specials" (Commons, Wikidata, Meta, chapter/ArbCom
+wikis), 26 closed. Each entry carries code, dbname, url, sitename, the language's **autonym** and its
+**English name**, plus a `dir` hint — so one search box can match either name plus code and dbname.
+Only Commons/Wikidata/Meta of the specials are worth offering.
+
+**Feasibility — the finding that matters:** AQS pageviews answers for **every** family, with live
+numbers and CORS `*` (en.wikipedia 202.5M/day, commons.wikimedia 6.5M, en.wiktionary 3.0M,
+www.wikidata 3.0M, en.wikisource 1.7M, en.wikivoyage 1.1M, en.wikibooks 0.7M, en.wikinews 0.06M), and
+per-article pageviews work on en.wikisource/en.wikivoyage. **But the gallery's REST source is
+Wikipedia-shaped**: `page/media-list` returns 200 on en.wikipedia and de.wiktionary, **500 on
+en.wikivoyage**, and does not follow Commons redirects — while the Action API (`prop=images`) works
+everywhere. So a project-aware gallery needs the Action API path, an extra piece of work the issue calls
+out.
+
+**Proposed:** one control with a shortlist above the fold (current three + biggest wikis per family +
+Commons/Wikidata/Meta in a "Special" group), type-ahead matching autonym/English name/code/dbname, and
+direct entry of a project code; a `code → host/dbname/family` resolver; a bundled sitematrix snapshot so
+the picker needs no round trip; per-widget `families: [...]` declarations so the picker only offers what a
+widget supports; closed wikis excluded; configs keep the plain `'en.wikipedia'` string. Size ordering
+needs article counts and per-wiki `siteinfo statistics` is 3.4 KB/~150 ms each — bundle a top-N at build
+time rather than requesting 364 wikis.
+
+**Commons (second half):** measured one-call primitives — `generator=categorymembers` + `imageinfo`
+returns files *and* 400 px thumbnails in one request (8 files, 6.2 KB); `cmtype=subcat` allows drilling
+into subcategories; `prop=images` reads a gallery page (with `redirects=1`, since Commons gallery pages
+are often redirects — `Kyoto` → `京都市`). Selection writes the chosen filenames into the config, and the
+`fileGallery` widget **already accepts a pasted file list**, so the new work is the picker, not the data
+model. Filter to bitmaps with real dimensions (measured: an `.ogg` at 0×0 and an `.svg` came back first)
+and cap the count — a Commons category can hold thousands of files, so #84's byte-budget logic applies.
