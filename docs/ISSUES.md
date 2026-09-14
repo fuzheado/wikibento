@@ -3446,3 +3446,33 @@ are often redirects — `Kyoto` → `京都市`). Selection writes the chosen fi
 `fileGallery` widget **already accepts a pasted file list**, so the new work is the picker, not the data
 model. Filter to bitmaps with real dimensions (measured: an `.ogg` at 0×0 and an `.svg` came back first)
 and cap the count — a Commons category can hold thousands of files, so #84's byte-budget logic applies.
+
+## ISSUE-76 · External Link Count: namespace breakdown (+ two count defects) (GitHub issue #90) — **open**
+
+**What:** requested by Andrew 2026-09-11 for the `linkcount` widget ("External Link Count", `#195`,
+source `exturlusage`): show *where* a domain's links are — main space, talk pages, user pages, project
+pages — instead of one number.
+
+**Finding 1 — the breakdown is free.** `exturlusage` returns the namespace of every hit, so the breakdown
+is a client-side group over results the widget already fetches. Measured for `ocw.mit.edu` on
+en.wikipedia: **1,179 links across 8 namespaces** — main 582 (49%), Talk 223 (19%), User 219 (19%),
+Wikipedia 99 (8%), User talk 45, Wikipedia talk 6, Draft 4, File 1 — in **3 requests / 0.84 s**. Querying
+namespace-by-namespace instead costs **42 requests** for the same answer, so the implementation must
+group, not filter.
+
+**Finding 2 — a live defect: the widget under-reports by 57%.** `countExtUrlUsage` hardcodes
+`euprotocol: 'https'`, so the card shows 502 of the real 1,179 links for this domain (older citations are
+`http://`). Fix the filter or label the card; this exists whether or not the breakdown ships.
+
+**Finding 3 — the number counts links, the label promises pages.** 1,179 rows but **962 distinct pages**
+(one user page carries 36 links). The description says "count pages linking to a domain", so label and
+number disagree by 217; show both or label precisely.
+
+**Negative result recorded:** `insource:` via CirrusSearch is *not* a substitute — it counts mentions in
+wikitext, not external links (File namespace: 1,549 vs 1 real link; total 2,607 vs 1,179).
+
+**Proposed:** one paged run over all namespaces grouping by `ns`; a stacked bar plus namespace/count/share
+list with small namespaces collapsed into "Other"; namespace labels from the wiki's own
+`siteinfo` namespaces (so non-Wikipedia wikis read correctly); keep the existing `namespace` config as a
+*view* filter rather than a query filter; count all protocols by default; show links and pages; and say
+"≥5,000" when the code's documented result cap bites instead of presenting a capped number as a total.
