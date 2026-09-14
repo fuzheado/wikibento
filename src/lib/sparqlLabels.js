@@ -50,13 +50,21 @@ export function chunkIds(ids, size = 50) {
 
 /**
  * wbgetentities URL for one chunk of ids. `languages` requests the user
- * language PLUS en (both are returned — verified live), so a missing
+ * language PLUS en PLUS `mul` (all returned — verified live), so a missing
  * label in the user's language never falls back to a bare QID when an
  * English label exists; `uselang` per the MediaWiki convention.
  * CORS is fine with `origin=*`.
+ *
+ * `mul` is not optional. Wikidata uses it for names that are identical in
+ * every language, and **those items have no `en` label at all**: queried
+ * 2026-09-12, Q7186 (Marie Curie, 247 sitelinks) returns `{mul: "Marie
+ * Curie"}` and nothing under `en`, so asking only for user-language + en
+ * renders her as "Q7186" — in any widget that labels entities. (The WDQS
+ * `wikibase:label` service has the same blind spot: `"en"` gives back the
+ * QID, `"en,mul"` gives the name.)
  */
 export function buildLabelRequestUrl(ids, lang) {
-  const languages = lang === 'en' ? 'en' : `${lang}|en`;
+  const languages = lang === 'en' ? 'en|mul' : `${lang}|en|mul`;
   const params = new URLSearchParams({
     action: 'wbgetentities',
     ids: ids.join('|'),
@@ -70,12 +78,12 @@ export function buildLabelRequestUrl(ids, lang) {
   return `https://www.wikidata.org/w/api.php?${params}`;
 }
 
-/** formatversion=2 wbgetentities envelope → { [id]: label | null } (user language first, en fallback). */
+/** formatversion=2 wbgetentities envelope → { [id]: label | null } (user language, then en, then mul). */
 export function parseLabelResponse(json, lang) {
   const out = {};
   for (const [id, ent] of Object.entries(json?.entities ?? {})) {
     const labels = ent?.labels ?? {};
-    out[id] = labels[lang]?.value || labels.en?.value || null;
+    out[id] = labels[lang]?.value || labels.en?.value || labels.mul?.value || null;
   }
   return out;
 }

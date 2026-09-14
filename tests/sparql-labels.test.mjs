@@ -74,23 +74,25 @@ test('chunkIds: ≤ 50 ids per chunk (wbgetentities cap)', () => {
 
 // ── URL construction ────────────────────────────────────────────────────
 
-test('buildLabelRequestUrl: user language + guaranteed en fallback', () => {
+test('buildLabelRequestUrl: user language + guaranteed en + mul fallback', () => {
   const u = new URL(buildLabelRequestUrl(['Q146', 'Q5'], 'de'));
   assert.equal(u.origin, 'https://www.wikidata.org');
   assert.equal(u.pathname, '/w/api.php');
   assert.equal(u.searchParams.get('action'), 'wbgetentities');
   assert.equal(u.searchParams.get('ids'), 'Q146|Q5');
   assert.equal(u.searchParams.get('props'), 'labels');
-  assert.equal(u.searchParams.get('languages'), 'de|en'); // user lang first, en fallback
+  // user language first, then en, then `mul` — the last one because a language-neutral label is the
+  // only label some items have (Q7186/Marie Curie carries no `en` label at all)
+  assert.equal(u.searchParams.get('languages'), 'de|en|mul');
   assert.equal(u.searchParams.get('uselang'), 'de');
   assert.equal(u.searchParams.get('format'), 'json');
   assert.equal(u.searchParams.get('formatversion'), '2');
   assert.equal(u.searchParams.get('origin'), '*'); // CORS
 });
 
-test('buildLabelRequestUrl: en requests no duplicate language', () => {
+test('buildLabelRequestUrl: en asks for no duplicate language', () => {
   const u = new URL(buildLabelRequestUrl(['Q1'], 'en'));
-  assert.equal(u.searchParams.get('languages'), 'en');
+  assert.equal(u.searchParams.get('languages'), 'en|mul');
   assert.equal(u.searchParams.get('uselang'), 'en');
 });
 
@@ -280,7 +282,7 @@ test('fetchSparql + resolveLabels: user language drives the label request (fr)',
     assert.equal(out.rows[0].depicts, 'Chat (Q146)'); // French label preferred
     assert.equal(out.rows[1].depicts, 'route (Q34442)');
     const u = new URL(stub.labelCalls()[0]);
-    assert.equal(u.searchParams.get('languages'), 'fr|en'); // en kept as fallback
+    assert.equal(u.searchParams.get('languages'), 'fr|en|mul'); // en kept as fallback, mul for neutral names
     assert.equal(u.searchParams.get('uselang'), 'fr');
   } finally {
     delete globalThis.navigator;
@@ -301,6 +303,26 @@ test('fetchSparql + resolveLabels: WDQS results with ?xLabel sibling unchanged',
   assert.equal(out.rows[0].depicts, 'Q146'); // QID retained; ?depictsLabel carries the label
   assert.equal(out.rows[0].depictsLabel, 'Cat');
   assert.equal(stub.labelCalls().length, 0); // no wbgetentities traffic at all
+});
+
+test('labels: a `mul`-only item is named, not shown as a QID', () => {
+  // Q7186 (Marie Curie) has 247 sitelinks and no `en` label — Wikidata keeps language-neutral names
+  // under `mul` and applies the fallback for readers. Verified live 2026-09-12.
+  const url = buildLabelRequestUrl(['Q7186'], 'en');
+  assert.match(decodeURIComponent(url), /languages=en\|mul/, 'the request must ask for mul');
+  const de = buildLabelRequestUrl(['Q7186', 'Q42'], 'de');
+  assert.match(de.replace(/%7C/gi, '|'), /languages=de\|en\|mul/, 'and for other reader languages too');
+  const parsed = parseLabelResponse(
+    { entities: { Q7186: { labels: { mul: { language: 'mul', value: 'Marie Curie' } } } } },
+    'en',
+  );
+  assert.equal(parsed.Q7186, 'Marie Curie', 'a mul label is a label');
+  // the existing precedence is unchanged: reader language, then en, then mul
+  const both = parseLabelResponse(
+    { entities: { Q1: { labels: { en: { value: 'English' }, mul: { value: 'Neutral' } } } } },
+    'en',
+  );
+  assert.equal(both.Q1, 'English');
 });
 
 test('fetchSparql + resolveLabels: label API failure never fails the query', async () => {

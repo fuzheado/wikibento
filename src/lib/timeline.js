@@ -54,6 +54,38 @@ const SERIES_NAME = /^(series|who|person|people|subject|group|lane|item|entity|w
 const LABEL_NAME = /^(event|what|label|title|name|thing)$/i;
 const KIND_NAME = /^(kind|verb|type|action|relation|prop|property|eventtype)$/i;
 
+const QID_RE = /^Q\d+$/;
+
+/**
+ * A column of bare QIDs is a FAILED label lookup, not a set of names — and it happens for famous
+ * items, not just obscure ones: queried 2026-09-12, WDQS's label service returns `Q7186` for Marie
+ * Curie, in isolation, with `wikibase:language "en"`. A timeline whose lane is named "Q7186" is
+ * useless, so such a column is ignored in favour of the entity column, which the app enriches to
+ * "Label (QID)" through the Wikidata Action API (a different service, and a working one).
+ */
+export function looksLikeQidColumn(rows, v) {
+  const values = rows.map((r) => r?.[v]).filter((x) => x != null && x !== '');
+  if (!values.length) return false;
+  return values.filter((x) => QID_RE.test(String(x).trim())).length / values.length >= 0.5;
+}
+
+/** "Marie Curie (Q7186)" → "Marie Curie". Leaves anything that is not an enriched entity alone. */
+export function displayLabel(value) {
+  const s = String(value ?? '').trim();
+  const stripped = s.replace(/\s*\(Q\d+\)\s*$/, '').trim();
+  return stripped || s;
+}
+
+/** A bare QID in a label cell → the enriched entity cell for the same row, if the query has one. */
+export function resolveQidCell(row, qid, vars) {
+  if (!row || !QID_RE.test(String(qid))) return null;
+  for (const v of vars || []) {
+    const cell = row[v];
+    if (typeof cell === 'string' && cell.endsWith(`(${qid})`)) return displayLabel(cell);
+  }
+  return null;
+}
+
 const distinct = (rows, v) => new Set(rows.map((r) => r?.[v]).filter((x) => x != null && x !== '')).size;
 const dateShare = (rows, v) => {
   const vals = rows.map((r) => r?.[v]).filter((x) => x != null && x !== '');
@@ -79,8 +111,12 @@ export function findTimeVar(vars, rows) {
 
 /** Which variable splits the lanes? A name match, else the least-fragmented non-time text column. */
 export function findSeriesVar(vars, rows, timeVar, labelVar) {
-  const pool = vars.filter((v) => v !== timeVar && v !== labelVar && dateShare(rows, v) < 0.8);
-  if (!pool.length) return null;
+  const all = vars.filter((v) => v !== timeVar && v !== labelVar && dateShare(rows, v) < 0.8);
+  if (!all.length) return null;
+  // Prefer columns that actually name things; keep the QID ones only if nothing else exists.
+  const pool = all.filter((v) => !looksLikeQidColumn(rows, v)).length
+    ? all.filter((v) => !looksLikeQidColumn(rows, v))
+    : all;
   // "who" is the better *grouping* key, but "whoLabel" is the better *label* — prefer the labelled
   // twin whenever the query provides one (it is what a reader should see on the axis).
   const labelled = pool.find((v) => /label$/i.test(v) && SERIES_NAME.test(v.replace(/label$/i, '')));
@@ -89,6 +125,10 @@ export function findSeriesVar(vars, rows, timeVar, labelVar) {
   // A lane split wants few distinct values (2–12); a label column wants many. Only adopt an
   // unnamed column as the series if it looks like a grouping and not like free text.
   const grouping = pool
+    // Never let a verb column become the lane split: with the names unavailable (both QIDs), a
+    // 6-value "kind" column looks like a plausible grouping and produces lanes called "born",
+    // "married", "died" — which is worse than no lanes at all.
+    .filter((v) => !KIND_NAME.test(v.replace(/label$/i, '')))
     .map((v) => ({ v, n: distinct(rows, v) }))
     .filter(({ n }) => n >= 2 && n <= 12 && n <= rows.length / 2)
     .sort((a, b) => a.n - b.n);
@@ -97,11 +137,30 @@ export function findSeriesVar(vars, rows, timeVar, labelVar) {
 
 /** Which variable labels an event? Prefer `<series>Label`-style names, then the richest text column. */
 export function findLabelVar(vars, rows, timeVar, seriesVar) {
-  const pool = vars.filter((v) => v !== timeVar && v !== seriesVar && dateShare(rows, v) < 0.8 && !isNumericVar(rows, v));
+  const base = vars.filter((v) => v !== timeVar && v !== seriesVar && dateShare(rows, v) < 0.8 && !isNumericVar(rows, v));
+  // `<series>Label` belongs to the lane name, not to the dots — unless it is all the query offers.
+  const twin = seriesVar ? new RegExp(`^${seriesVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}Label$`, 'i') : null;
+  const withoutTwin = twin ? base.filter((v) => !twin.test(v)) : base;
+  const pool = withoutTwin.length ? withoutTwin : base;
   if (!pool.length) return null;
-  return pool.find((v) => LABEL_NAME.test(v.replace(/label$/i, ''))) ||
-    pool.find((v) => /label$/i.test(v) && distinct(rows, v) > 1) ||
-    pool.sort((a, b) => distinct(rows, b) - distinct(rows, a))[0];
+  // A `*Label` column first: it is the clean name a query author chose to project (the app's own
+  // enrichment turns an entity column into "Name (Q123)", which is heavier). Individual cells that
+  // the label service failed on are repaired per row from the entity column (see resolveQidCell) —
+  // which is why the presets project BOTH ?what and ?whatLabel.
+  // "Has data" is the test, not "has variety": a column with one distinct value is a weak label
+  // column, while a column with NO values is no label column at all — and requiring variety made a
+  // small result fall through to an entity column that was empty on every row.
+  const hasData = (v) => rows.some((r) => r?.[v] != null && r[v] !== '');
+  const byLabelSuffix = pool.find((v) => /label$/i.test(v) && hasData(v));
+  if (byLabelSuffix) return byLabelSuffix;
+  const byName = pool.find((v) => LABEL_NAME.test(v.replace(/label$/i, '')) && hasData(v));
+  if (byName) return byName;
+  // Falling back to "the richest text column" must never steal the series role: a column whose name
+  // looks like a grouping key belongs to findSeriesVar, and a label column is the one with the most
+  // distinct values.
+  const candidates = pool.filter((v) => !SERIES_NAME.test(v));
+  const ranked = (candidates.length ? candidates : pool).sort((a, b) => distinct(rows, b) - distinct(rows, a));
+  return ranked[0] || null;
 }
 
 /** An optional verb column ("studied at", "awarded") that reads well in front of the label. */
@@ -110,15 +169,21 @@ export function findKindVar(vars, rows, timeVar, seriesVar, labelVar) {
     KIND_NAME.test(v.replace(/label$/i, '')) && dateShare(rows, v) < 0.8) || null;
 }
 
-/** Detect the roles a timeline needs. Null when the result is not time-shaped. */
+/**
+ * Detect the roles a timeline needs. Null when the result is not time-shaped.
+ *
+ * Order matters: the **series is decided first**. A query projecting `?who ?whoLabel` has a
+ * `<series>Label` column that is the *lane name*, not an event label — and while both are plausible
+ * "label" columns, only one of them can be the thing a dot is captioned with. Detecting the labels
+ * first made `whoLabel` the event label and cost the timeline its lane names.
+ */
 export function detectTimeline(rows, vars) {
   const timeVar = findTimeVar(vars || [], rows || []);
   if (!timeVar) return null;
-  const labelVar = findLabelVar(vars || [], rows || [], timeVar, null);
-  const seriesVar = findSeriesVar(vars || [], rows || [], timeVar, labelVar);
-  const finalLabel = findLabelVar(vars || [], rows || [], timeVar, seriesVar) || labelVar;
-  const kindVar = findKindVar(vars || [], rows || [], timeVar, seriesVar, finalLabel);
-  return { timeVar, seriesVar, labelVar: finalLabel, kindVar };
+  const seriesVar = findSeriesVar(vars || [], rows || [], timeVar, null);
+  const labelVar = findLabelVar(vars || [], rows || [], timeVar, seriesVar);
+  const kindVar = findKindVar(vars || [], rows || [], timeVar, seriesVar, labelVar);
+  return { timeVar, seriesVar, labelVar, kindVar };
 }
 
 /**
@@ -184,6 +249,17 @@ export function tickStep(span) {
  *
  * `opts.seriesLabel` names the single lane when the result has no series column (a one-lane timeline
  * is a legitimate shape — e.g. one person's life).
+ *
+ * `opts.align` picks the axis:
+ *   - `'calendar'` (default) — the same moment in history. Two lanes born 40 years apart start 40
+ *     years apart, and the question it answers is "what was happening at the same time as what".
+ *   - `'age'` — every lane starts at 0. The question it answers is "at 15, what were they each
+ *     doing" — the one that makes a comparison between two lives land, because it removes the
+ *     accident of different birth years.
+ *
+ * Age here means *years since the lane's first documented event*, which is birth when the query has
+ * a birth (both presets do) and is otherwise the earliest thing the data knows about. The axis label
+ * says so rather than assuming.
  */
 export function buildTimeline(rows, vars, opts = {}) {
   const det = detectTimeline(rows || [], vars || []);
@@ -195,7 +271,8 @@ export function buildTimeline(rows, vars, opts = {}) {
   for (const row of rows || []) {
     const parsed = parseTimelineDate(row?.[timeVar]);
     if (!parsed) { undated += 1; continue; }
-    const series = seriesVar ? String(row?.[seriesVar] ?? '—') : (opts.seriesLabel || 'Timeline');
+    const rawSeries = seriesVar ? row?.[seriesVar] : null;
+    const series = seriesVar ? (displayLabel(rawSeries) || '—') : (opts.seriesLabel || 'Timeline');
     const rawLabel = labelVar ? row?.[labelVar] : null;
     const rawKind = kindVar ? row?.[kindVar] : null;
     events.push({
@@ -206,7 +283,9 @@ export function buildTimeline(rows, vars, opts = {}) {
       precision: parsed.precision,
       at: fractionalYear(parsed),
       kind: rawKind == null || rawKind === '' ? '' : String(rawKind),
-      label: rawLabel == null || rawLabel === '' ? '' : String(rawLabel),
+      // A label cell holding a bare QID means the label service gave up on that row; the enriched
+      // entity cell for the same row still has the name.
+      label: resolveQidCell(row, rawLabel, vars) || (rawLabel == null || rawLabel === '' ? '' : String(rawLabel)),
       text: '',
     });
   }
@@ -242,27 +321,44 @@ export function buildTimeline(rows, vars, opts = {}) {
     lane.span = lane.lastYear === lane.firstYear ? String(lane.firstYear) : `${lane.firstYear}–${lane.lastYear}`;
   }
 
-  const minYear = Math.floor(Math.min(...lanes.map((l) => l.first)));
-  const maxYear = Math.ceil(Math.max(...lanes.map((l) => l.last)));
-  const step = tickStep(Math.max(maxYear - minYear, 1));
-  const from = Math.floor(minYear / step) * step;
+  const align = opts.align === 'age' ? 'age' : 'calendar';
+  // Where each event sits on the axis: a calendar year, or that year minus its lane's start.
+  for (const lane of lanes) {
+    lane.origin = lane.first;
+    lane.years = lane.last - lane.first;
+    for (const e of lane.events) e.offset = align === 'age' ? e.at - lane.origin : e.at;
+  }
+
+  const minOffset = align === 'age' ? 0 : Math.floor(Math.min(...lanes.map((l) => l.first)));
+  const maxOffset = align === 'age'
+    ? Math.ceil(Math.max(...lanes.map((l) => l.years)))
+    : Math.ceil(Math.max(...lanes.map((l) => l.last)));
+  const step = tickStep(Math.max(maxOffset - minOffset, 1));
+  const from = align === 'age' ? 0 : Math.floor(minOffset / step) * step;
   // A life inside a single tick still needs an axis: widen it rather than divide by a zero span.
-  const to = Math.max(Math.ceil(maxYear / step) * step, from + step);
+  const to = Math.max(Math.ceil(maxOffset / step) * step, from + step);
   const span = Math.max(to - from, 1);
   const x = (value) => Math.min(100, Math.max(0, ((value - from) / span) * 100));
 
   const ticks = [];
   for (let y = from; y <= to; y += step) ticks.push({ year: y, x: x(y) });
   for (const lane of lanes) {
-    lane.x1 = x(lane.first);
-    lane.x2 = x(lane.last);
+    lane.x1 = x(align === 'age' ? 0 : lane.first);
+    lane.x2 = x(align === 'age' ? lane.years : lane.last);
     for (const e of lane.events) {
-      e.x = x(e.at);
+      e.x = x(e.offset);
+      // In age mode an event's own age is the most useful thing a tooltip can add.
+      if (align === 'age') e.text = `${e.text} · age ${Math.floor(e.offset)}`;
       // A centred label at either extreme hangs outside the plot (the death dot of a life ending at
       // the edge of the axis). Anchor those to the dot's outer side instead.
       e.anchor = e.x < 6 ? 'start' : e.x > 94 ? 'end' : 'center';
     }
     assignLabelSlots(lane.events);
+    // One line per lane, phrased for the mode: "15 years · 7 events" vs "1929–1945 · 7 events".
+    lane.ageSpan = `${Math.floor(lane.years)} years`;
+    lane.meta = align === 'age'
+      ? `${lane.ageSpan} · ${lane.count} event${lane.count === 1 ? '' : 's'}`
+      : `${lane.span} · ${lane.count} event${lane.count === 1 ? '' : 's'}`;
   }
 
   // The window where every lane is documented — for two lives, the years they were both alive and
@@ -273,11 +369,17 @@ export function buildTimeline(rows, vars, opts = {}) {
   // (a death in February 1945 documents 1945 — rounding its position up would caption the window 1946).
   let overlap = null;
   if (lanes.length >= 2) {
-    const lo = Math.max(...lanes.map((l) => l.first));
-    const hi = Math.min(...lanes.map((l) => l.last));
-    const fromYear = Math.max(...lanes.map((l) => l.firstYear));
-    const toYear = Math.min(...lanes.map((l) => l.lastYear));
-    if (lo <= hi && fromYear <= toYear) overlap = { from: fromYear, to: toYear, x1: x(lo), x2: x(hi) };
+    if (align === 'age') {
+      // Aligned at 0, the shared window is however far the SHORTER life is documented: "both to 15".
+      const shortest = Math.min(...lanes.map((l) => l.years));
+      overlap = { from: 0, to: Math.floor(shortest), x1: x(0), x2: x(shortest) };
+    } else {
+      const lo = Math.max(...lanes.map((l) => l.first));
+      const hi = Math.min(...lanes.map((l) => l.last));
+      const fromYear = Math.max(...lanes.map((l) => l.firstYear));
+      const toYear = Math.min(...lanes.map((l) => l.lastYear));
+      if (lo <= hi && fromYear <= toYear) overlap = { from: fromYear, to: toYear, x1: x(lo), x2: x(hi) };
+    }
   }
 
   return {
@@ -289,7 +391,12 @@ export function buildTimeline(rows, vars, opts = {}) {
     overlap,
     undated,
     total: events.length,
+    align,
+    // In age mode the ticks are years-of-life, not years — say so rather than letting a reader guess.
+    axisLabel: align === 'age' ? 'years since each lane\u2019s first documented event' : null,
     // A caption the renderer can show without inventing words: "2 lives · 21 events · 1920–1970".
-    summary: `${lanes.length} ${lanes.length === 1 ? 'lane' : 'lanes'} · ${events.length} events · ${from}–${to}`,
+    summary: align === 'age'
+      ? `${lanes.length} ${lanes.length === 1 ? 'lane' : 'lanes'} · ${events.length} events · ages ${from}\u2013${to}`
+      : `${lanes.length} ${lanes.length === 1 ? 'lane' : 'lanes'} · ${events.length} events · ${from}\u2013${to}`,
   };
 }

@@ -45,7 +45,7 @@ export const SPARQL_PRESETS = [
     query: `SELECT ?institution ?institutionLabel (COUNT(DISTINCT ?item) AS ?count) WHERE {
   VALUES ?institution { wd:Q160236 wd:Q190804 wd:Q6373 wd:Q131626 }
   ?item wdt:P195 ?institution .
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
 }
 GROUP BY ?institution ?institutionLabel
 ORDER BY DESC(?count)`,
@@ -66,7 +66,7 @@ ORDER BY DESC(?count)`,
     // transports; and for MLK none for the bus boycott, Birmingham, the March on Washington or
     // Selma. The article prose is where those live (~5–8× more dated material: 66 vs 7 and 139 vs
     // 14 dated statements). See docs/LIFELINE-WIDGET.md.
-    query: `SELECT ?who ?whoLabel ?date ?kind ?whatLabel WHERE {
+    query: `SELECT ?who ?whoLabel ?date ?kind ?what ?whatLabel WHERE {
   VALUES ?who { wd:Q4583 wd:Q8027 }
   ?who wdt:P570 ?died .
   { ?who wdt:P569 ?date . BIND("born" AS ?kind) } UNION
@@ -78,7 +78,31 @@ ORDER BY DESC(?count)`,
   { ?who p:P26  ?st . ?st ps:P26  ?what ; pq:P580 ?date . BIND("married" AS ?kind) } UNION
   { ?who p:P551 ?st . ?st ps:P551 ?what ; pq:P580 ?date . BIND("lived in" AS ?kind) }
   FILTER(?date <= ?died)
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+}
+ORDER BY ?who ?date`,
+  },
+  {
+    id: 'curie-pair',
+    label: 'Two lives, one axis (Marie × Pierre Curie)',
+    endpoint: 'wdqs',
+    // Same query shape as `two-lives`, different pair — and the pair that shows why the alignment
+    // toggle exists: on a calendar axis he starts in 1859 and she in 1867 (eight years apart, so his
+    // childhood has no counterpart), while aligned at birth their shared years line up exactly.
+    // Pair it with align: 'age' (see public/parallel-lives-demo.json).
+    query: `SELECT ?who ?whoLabel ?date ?kind ?what ?whatLabel WHERE {
+  VALUES ?who { wd:Q7186 wd:Q37463 }
+  ?who wdt:P570 ?died .
+  { ?who wdt:P569 ?date . BIND("born" AS ?kind) } UNION
+  { ?who wdt:P570 ?date . BIND("died" AS ?kind) } UNION
+  { ?who p:P69  ?st . ?st ps:P69  ?what ; pq:P580 ?date . BIND("studied at" AS ?kind) } UNION
+  { ?who p:P108 ?st . ?st ps:P108 ?what ; pq:P580 ?date . BIND("worked at" AS ?kind) } UNION
+  { ?who p:P39  ?st . ?st ps:P39  ?what ; pq:P580 ?date . BIND("held office" AS ?kind) } UNION
+  { ?who p:P166 ?st . ?st ps:P166 ?what ; pq:P585 ?date . BIND("awarded" AS ?kind) } UNION
+  { ?who p:P26  ?st . ?st ps:P26  ?what ; pq:P580 ?date . BIND("married" AS ?kind) } UNION
+  { ?who p:P551 ?st . ?st ps:P551 ?what ; pq:P580 ?date . BIND("lived in" AS ?kind) }
+  FILTER(?date <= ?died)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
 }
 ORDER BY ?who ?date`,
   },

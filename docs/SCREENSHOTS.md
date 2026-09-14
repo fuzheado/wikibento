@@ -15,7 +15,7 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
 
-The `timeline` renderer on the SPARQL widget, from the `two-lives` preset
+The `timeline` renderer on the SPARQL widget, calendar alignment, from the `two-lives` preset
 (`?config=/parallel-lives-demo.json`). **Anne Frank** (1929–1945) and **Martin Luther King Jr.**
 (1929–1968) on one shared axis: the lane bars start at the same point, hers ends at 16 while his runs
 23 years further, and the shaded band is the window in which *both* are documented — 1929 to 1945,
@@ -23,6 +23,17 @@ which is her entire documented life. Every event is a structured Wikidata statem
 labelled "14 events" against hers at "7" is also a picture of what structured data holds (birth,
 education, awards, residences) and does not hold (the diary, the arrest, Birmingham, Selma). See
 [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).
+
+## `wikibento-2026-09-12-two-lives-age.png` — the same renderer, age-aligned (ISSUE-76)
+
+![Two lives aligned at birth](screenshots/wikibento-2026-09-12-two-lives-age.png)
+
+**Marie** (1867–1934) and **Pierre Curie** (1859–1906) — eight years apart at birth, which is what the
+**age alignment** is for: every lane starts at 0, so their shared years line up (the marriage dot sits at
+the same age on both) and the difference is legible at a glance — his lane ends at **46**, hers runs to
+**67**. The shaded band is the window both are documented, which here is his entire life. The axis caption
+says what it is measuring, because "age" means years since each lane's first documented event rather than
+an assumed birth date.
 
 ---
 

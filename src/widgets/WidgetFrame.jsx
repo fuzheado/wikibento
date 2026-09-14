@@ -2001,7 +2001,9 @@ function TimelineCard({ data }) {
       {/* No card title: the widget frame already prints the preset's name, and the two were the same
           string (a card title matters when it names the ASSET — "Albert Einstein" — not the type). */}
       {/* How much is actually known — the number a reader must not have to guess. */}
-      <div className="tl-summary">{tl.summary}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}</div>
+      <div className="tl-summary">
+        {tl.summary}{tl.axisLabel ? ` · ${tl.axisLabel}` : ''}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}
+      </div>
       <div className="tl-plot">
         {/* The inner box is sized by the lanes, so a tall widget centres them instead of leaving a
             void — and the axis furniture stays glued to the lanes rather than stretching. */}
@@ -2024,7 +2026,8 @@ function TimelineCard({ data }) {
             <div className="tl-lane" key={lane.label}>
               <div className="tl-lane-head">
                 <span className="tl-lane-name" title={lane.label}>{lane.label}</span>
-                <span className="tl-lane-meta">{lane.span} · {lane.count} event{lane.count === 1 ? '' : 's'}</span>
+                {/* the module phrases this per mode: "1929–1945 · 7 events" or "15 years · 7 events" */}
+                <span className="tl-lane-meta">{lane.meta}</span>
               </div>
               <div className="tl-track">
                 {/* the documented span — its length is the point of the comparison */}

@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-14T13:31:12.814Z",
+ "generatedAt": "2026-09-14T14:57:18.327Z",
  "widgetCount": 39,
  "widgets": [
   {
@@ -1569,6 +1569,15 @@
      ]
     },
     {
+     "key": "align",
+     "type": "select",
+     "label": "Timeline alignment",
+     "options": [
+      "calendar",
+      "age"
+     ]
+    },
+    {
      "key": "maxRows",
      "type": "number",
      "label": "Max rows",
@@ -1581,6 +1590,7 @@
     "endpoint",
     "renderer",
     "maxRows",
+    "align",
     "refreshSeconds"
    ]
   },

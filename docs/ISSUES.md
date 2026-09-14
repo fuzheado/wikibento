@@ -3281,15 +3281,29 @@ Selma for him. Wikidata dates what is *recordable* (awards, posts, residences); 
 *narratable*. Without a death filter the preset also returns posthumous honours (a 1955 prize for Anne,
 2004 for MLK) — a "life" timeline that ends with an award won 36 years after death.
 
-**Shipped:** `src/lib/timeline.js` (layout maths, 19 unit tests — ticks, bounds, percentages, the overlap
-window, label slot packing, edge anchoring, degenerate cases), the `TimelineCard` renderer, auto-detection
-(dated rows with no numeric column), a manual ⚙ override, the verified preset query, and the demo board.
+**Shipped:** `src/lib/timeline.js` (layout maths, 22 unit tests — ticks, bounds, percentages, the overlap
+window, label slot packing, edge anchoring, degenerate cases, **both alignment modes**), the `TimelineCard`
+renderer, auto-detection (dated rows with no numeric column), a manual ⚙ override, two verified presets
+(`two-lives`, `curie-pair`) and the demo board.
+
+**Both alignments, as requested (2026-09-12):** a ⚙ toggle offers *calendar years* ("what happened at the
+same time") and *age* ("align every lane at its first event"). Age mode is what makes the second pair work:
+**Marie** (1867–1934) and **Pierre Curie** (1859–1906) were born eight years apart, so on a calendar axis
+his childhood has no counterpart; aligned at birth, their shared years line up and his lane ends at **46**
+while hers runs to **67**. "Age" is defined as years since each lane's first documented event — birth when
+the query has one — and the axis says so rather than assuming.
+
+**A product bug found and fixed on the way:** Marie Curie rendered as `Q7186`, because her Wikidata label
+lives under the language-neutral **`mul`** code (247 sitelinks, English description, no `en` label), and
+both the Action API with `languages=en` and WDQS's `wikibase:label` with `"en"` refuse to name her. That
+blind spot was in `src/lib/sparqlLabels.js`, so **every entity-labelling widget was affected**, not just
+this one: it now requests `<lang>|en|mul` and reads in that order, the presets ask for `"en,mul"`, and the
+request/response matrix is recorded in [DATA-SOURCES.md](DATA-SOURCES.md) with a regression test.
 
 **Next (not built):** the **article-prose lane** via the LiftWing relay with a verbatim-quote gate against
-the cited revision; **age alignment** (align both lanes at birth — the "at 15, she was in hiding; at 15,
-he entered Morehouse" view); a **context band** from the year articles (enwiki "1942" carries 675 dated,
-citable event lines); pinned per-revision artifacts on a wiki; and generalization past people
-(institution vs founder, two delegates, a person vs their era).
+the cited revision; a **context band** from the year articles (enwiki "1942" carries 675 dated, citable
+event lines); pinned per-revision artifacts on a wiki; and generalization past people (institution vs
+founder, two delegates, a person vs their era — Wikidata-only lanes are useful for many such topics).
 
 ## ISSUE-72 · Wikidata knowledge graph: image nodes, labelled edges (GitHub issue #82) — **open**
 

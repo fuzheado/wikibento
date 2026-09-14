@@ -23,7 +23,7 @@ import {
  */
 
 // ── the real preset's result shape (rows copied from a verified live WDQS run) ──────────────────
-const VARS = ['who', 'whoLabel', 'date', 'kind', 'whatLabel'];
+const VARS = ['who', 'whoLabel', 'date', 'kind', 'what', 'whatLabel'];
 const ROW = (whoLabel, date, kind, whatLabel = null) => ({
   who: `${whoLabel} (Q…)`, whoLabel, date, kind, whatLabel,
 });
@@ -157,6 +157,57 @@ test('labels at the extremes anchor inward, so they cannot leave the plot', () =
   // And the boundary case, where an event really is on the axis edge.
   const edge = buildTimeline([ROW('A', '1900-01-01', 'born'), ROW('A', '1999-01-01', 'died')], VARS);
   assert.deepEqual(edge.lanes[0].events.map((e) => e.anchor), ['start', 'end']);
+});
+
+test('align: age mode starts every lane at zero, calendar mode does not', () => {
+  // Marie (1867–1934) and Pierre (1859–1906): eight years apart at birth, 28 years apart at death.
+  const curies = [
+    ROW('Marie Curie', '1867-11-07', 'born'), ROW('Marie Curie', '1934-07-04', 'died'),
+    ROW('Pierre Curie', '1859-05-15', 'born'), ROW('Pierre Curie', '1906-04-19', 'died'),
+  ];
+  const cal = buildTimeline(curies, VARS, { align: 'calendar' });
+  assert.notEqual(cal.lanes[0].x1, cal.lanes[1].x1, 'on a calendar axis the two lives start apart');
+  assert.equal(cal.align, 'calendar');
+  assert.equal(cal.axisLabel, null);
+
+  const age = buildTimeline(curies, VARS, { align: 'age' });
+  assert.equal(age.align, 'age');
+  assert.equal(age.from, 0, 'the age axis starts at birth');
+  assert.deepEqual(age.lanes.map((l) => l.x1), [0, 0], 'every lane is anchored at 0');
+  assert.deepEqual(age.lanes.map((l) => l.meta.split(' · ')[0]), ['66 years', '46 years']);
+  assert.match(age.summary, /ages 0–/);
+  assert.ok(age.axisLabel, 'the axis says what it is measuring');
+  // Aligned at birth, the shared window is how far the SHORTER life is documented.
+  assert.equal(age.overlap.from, 0);
+  assert.equal(age.overlap.to, 46, 'Pierre died at 46 — that is the whole overlap');
+  // Tooltips gain the age, which is the useful number in this mode.
+  const married = buildTimeline([...curies, ROW('Marie Curie', '1895-07-26', 'married', 'Pierre Curie')], VARS, { align: 'age' });
+  assert.ok(married.lanes[0].events.some((e) => /age 27/.test(e.text)), 'age at marriage is in the tooltip');
+});
+
+test('a lane name comes from the entity column when the label service returns a bare QID', () => {
+  // Verified live 2026-09-12: WDQS's label service answers "Q7186" for Marie Curie, in isolation.
+  const rows = [
+    { who: 'Marie Curie (Q7186)', whoLabel: 'Q7186', date: '1867-11-07', kind: 'born', what: null, whatLabel: null },
+    { who: 'Pierre Curie (Q37463)', whoLabel: 'Pierre Curie', date: '1859-05-15', kind: 'born', what: null, whatLabel: null },
+    // the failed label inside a cell — repaired from ?what, which the presets project for this reason
+    { who: 'Marie Curie (Q7186)', whoLabel: 'Q7186', date: '1895-07-26', kind: 'married', what: 'Pierre Curie (Q37463)', whatLabel: 'Q37463' },
+  ];
+  const tl = buildTimeline(rows, VARS);
+  assert.deepEqual(tl.lanes.map((l) => l.label), ['Marie Curie', 'Pierre Curie'], 'not "Q7186"');
+  const married = tl.lanes[0].events.find((e) => e.kind === 'married');
+  assert.equal(married.label, 'Pierre Curie', 'the cell falls back to the enriched entity cell');
+  assert.match(married.text, /married Pierre Curie/);
+});
+
+test('a verb column is never used as the lane split', () => {
+  // If every name column is unusable, grouping by "kind" would produce lanes called born/married/died.
+  const rows = [
+    { who: 'Q1', whoLabel: 'Q1', date: '1929', kind: 'born', whatLabel: 'x' },
+    { who: 'Q2', whoLabel: 'Q2', date: '1968', kind: 'died', whatLabel: 'y' },
+  ];
+  const tl = buildTimeline(rows, ['who', 'whoLabel', 'date', 'kind', 'whatLabel']);
+  assert.equal(tl.lanes.length, 1, 'a single anonymous lane, not one per verb');
 });
 
 test('label slots: crowded events take separate slots, and an unplaceable label is hidden', () => {

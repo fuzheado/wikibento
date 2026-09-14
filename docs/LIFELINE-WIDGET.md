@@ -1,10 +1,11 @@
 # Lifeline — timelines of lives, and comparing two of them (ISSUE-76)
 
-**Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, a `two-lives`
-preset, and `?config=/parallel-lives-demo.json`. Everything below is measured, not assumed. v1+
-(article prose, age alignment, context bands) is designed here but **not built**.
+**Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, **two alignment
+modes**, two presets (`two-lives`, `curie-pair`), and `?config=/parallel-lives-demo.json`. Everything below
+is measured, not assumed. v1+ (article prose, context bands) is designed here but **not built**.
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
+![The same renderer, age-aligned](screenshots/wikibento-2026-09-12-two-lives-age.png)
 
 Try it: [`?config=/parallel-lives-demo.json`](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json)
 (or locally, once built: `npx vite build && npx vite preview` →
@@ -68,7 +69,7 @@ minutiae), but the shape is exactly right for a background band.
 | `timeline` renderer — lanes on one shared axis | `src/lib/timeline.js` (all layout maths, 19 unit tests) + `TimelineCard` in `src/widgets/WidgetFrame.jsx` |
 | auto-detection: dated rows with no numeric column become a timeline | `src/widgets/index.js` (transform) — anything with a numeric column keeps its old path (a date column + a count is still a trend chart) |
 | manual override in ⚙ | renderer list gains "Timeline (dated rows, one lane per group)" |
-| `two-lives` preset (the verified query) | `src/lib/sparqlPresets.js` |
+| two presets, both verified live: `two-lives` (Anne Frank × MLK) and `curie-pair` (Marie × Pierre) | `src/lib/sparqlPresets.js` |
 | demo board | `public/parallel-lives-demo.json`, linked from the hub |
 
 What it draws, all from the tested layout module:
@@ -94,9 +95,13 @@ What it draws, all from the tested layout module:
 
 ## Design decisions deferred to v1+
 
-- **Age alignment.** A second axis mode: align both lanes at birth (`0`) instead of at the calendar.
-  Same data, different story — *"at 15, she was in hiding; at 15, he entered Morehouse College."* An ⚙
-  toggle, exactly like the existing zero-based-Y switch on the trend charts.
+- **Age alignment — SHIPPED.** A second axis mode: every lane starts at `0` instead of at its calendar
+  year. Same data, different story. Chosen because the Marie × Pierre Curie pair needs it: eight years
+  apart at birth, they line up at all only once aligned at 0, and the comparison then lands — **his lane
+  ends at 46, hers runs to 67**, and the shared window is his entire life. The ⚙ toggle offers both, as
+  Andrew asked (an option, not a replacement). Honesty detail: "age" is *years since the lane's first
+  documented event*, which is birth when the query has one, so the axis says exactly that rather than
+  assuming.
 - **Provenance marks.** A Wikidata dot vs a prose dot, so a viewer sees which facts the structured data
   holds and which exist only as text.
 - **The prose lane.** Article prose → events, via the existing LiftWing relay (`/api/ask`, prompts not
@@ -135,7 +140,16 @@ What it draws, all from the tested layout module:
 7. **The completeness illusion.** A timeline reads as authoritative. Event counts, per-lane source
    counts and honest gaps are the mitigation; a lane with four events should look sparse, not curated.
 
-## Traps paid for while building v0 (all three were silent)
+## Traps paid for while building v0 (all of them silent)
+
+**The one that was not a timeline bug at all:** Marie Curie rendered as **`Q7186`**. Two independent
+services refuse to name her — the Wikidata Action API with `languages=en` and WDQS's `wikibase:label` with
+`"en"` — because her label lives under Wikidata's language-neutral **`mul`** code (247 sitelinks, English
+description, no `en` label). Asking for `mul` fixes both (`en|mul` / `"en,mul"`), and since the app's own
+label helper had the same blind spot, **this was a bug in every entity-labelling widget**, not just here:
+fixed in `src/lib/sparqlLabels.js` and covered by a test. Recorded in
+[DATA-SOURCES.md](DATA-SOURCES.md) with the request/response matrix.
+
 
 - **`.widget-body` centres its child.** A card that does not declare `width: 100%` is sized to its
   content — this one collapsed to **206px** and squeezed the entire axis into a strip. Every other card
@@ -143,6 +157,17 @@ What it draws, all from the tested layout module:
 - **Two coordinate spaces look almost right.** The dots lived inside a lane track (74% of the width) while
   the gridlines spanned the full plot, so 1968 drew nowhere near the 1970 line. One shared gutter
   (`--tl-gutter`) for both is the fix; percentages must resolve against one box.
+- **A failed label column can be repaired — if the query projects the entity.** `?whoLabel` and `?whatLabel`
+  come from the WDQS label service, which fails per-item; `?who` and `?what` are entity URIs that the app
+  enriches through the Action API instead. Projecting **both** (`SELECT ?who ?whoLabel … ?what ?whatLabel`)
+  means a cell the label service gave up on can be filled from its entity twin. The presets do this now.
+- **Role detection has an order.** For `?who ?whoLabel`, only one of those columns can be the lane name;
+  detecting labels first made `whoLabel` the event label and cost the timeline its lanes entirely. The
+  series is decided first, and the series' own label twin is then excluded from the label candidates.
+- **"Has data" beats "has variety"** when choosing a label column: requiring more than one distinct value
+  made a small result fall through to an entity column that was empty on every row (`1966 · awarded` with
+  no object). And a verb column must never be adopted as the lane split, or a query with unusable name
+  columns produces lanes called "born", "married", "died".
 - **Wrapped labels defeat slot arithmetic.** Three lines of text are ~40px tall whatever the slot spacing
   says, so labels overlapped *however* the slots were arranged. Single-line labels make the height a known
   constant and the packing predictable — truncation is safe because the tooltip holds the full text.

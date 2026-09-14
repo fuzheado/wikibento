@@ -1423,6 +1423,7 @@ export const WIDGET_TYPES = {
       endpoint: 'wdqs',      // 'wdqs' | 'qlever-commons' | 'humaniki'
       renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table'
       maxRows: 100,
+      align: 'calendar',     // timeline only: 'calendar' (same moment) | 'age' (align at birth)
       refreshSeconds: 1800,
     },
     renderer: 'SparqlCard',
@@ -1444,6 +1445,10 @@ export const WIDGET_TYPES = {
         { value: 'line', label: 'Line chart' },
         { value: 'table', label: 'Table' },
         { value: 'timeline', label: 'Timeline (dated rows, one lane per group)' },
+      ]},
+      { key: 'align', label: 'Timeline alignment', type: 'select', options: [
+        { value: 'calendar', label: 'Calendar years — what happened at the same time' },
+        { value: 'age', label: 'Age — align every lane at its first event' },
       ]},
       { key: 'maxRows', label: 'Max rows', type: 'number', placeholder: '100' },
     ],
@@ -1470,7 +1475,7 @@ export const WIDGET_TYPES = {
 
       // Manual override wins; otherwise detect from the result shape.
       let mode = config.renderer || 'auto';
-      const timeline = buildTimeline(rows, vars);
+      const timeline = buildTimeline(rows, vars, { align: config.align });
       if (mode === 'auto') {
         if (!rows.length) mode = 'table';
         // Dated rows with no number to plot are a timeline, not a table. (Anything with a numeric

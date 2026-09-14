@@ -16,6 +16,25 @@ Base URLs:
 
 ---
 
+### `wbgetentities` / `wikibase:label` — always ask for `mul` (verified 2026-09-12)
+
+Some items have **no `en` label at all**: Wikidata stores language-neutral names under the `mul` code and
+applies the reading fallback. `Q7186` (Marie Curie, 247 sitelinks, English description) returns
+`{mul: "Marie Curie"}` and nothing under `en`, so:
+
+| request | result |
+|---|---|
+| `wbgetentities&props=labels&languages=en` | *(no label)* → the UI shows `Q7186` |
+| `wbgetentities&props=labels&languages=en\|mul` | `Marie Curie` |
+| `wbgetentities&props=labels&languages=en&languagefallback=1` | `Marie Curie` (reported under `en`, sourced `mul`) |
+| WDQS `wikibase:language "en"` | `Q7186` |
+| WDQS `wikibase:language "en,mul"` | `Marie Curie` |
+
+`src/lib/sparqlLabels.js` requests `<lang>|en|mul` and reads in that order, so any widget that labels
+entities gets this right; the SPARQL presets ask the label service for `"en,mul"` for the same reason. A
+bare-QID cell that still slips through is treated as a failed lookup, not a name (see
+[LIFELINE-WIDGET.md](LIFELINE-WIDGET.md)).
+
 ## 1. Article Pageviews — RESTBase
 
 **Widget:** Article Pageviews · **Fetcher:** `fetchPageviews(article, project)`
