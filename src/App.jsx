@@ -10,6 +10,7 @@ import SharePanel from './components/SharePanel';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
+import { printTarget } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
 import { readSavedBoard, savedBoardPayload } from './lib/savedBoard';
@@ -651,6 +652,9 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn" onClick={openShare} title="Share via QR code or link (config embedded in the URL)">
             🔗 Share
           </button>
+<button className="btn" onClick={() => printTarget()} title="Print or save the whole board as PDF (one page per widget)">
+  🖨 Print
+</button>
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">
             ⬇ Export
           </button>

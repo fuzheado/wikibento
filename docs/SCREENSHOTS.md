@@ -24,6 +24,15 @@ labelled "14 events" against hers at "7" is also a picture of what structured da
 education, awards, residences) and does not hold (the diary, the arrest, Birmingham, Selma). See
 [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).
 
+## `wikibento-2026-09-14-print-widget.png` — one widget as a printed page (ISSUE-77)
+
+![The Curie timeline printed](screenshots/wikibento-2026-09-14-print-widget.png)
+
+The 🖨 button under print media: every other card and all editing chrome is gone, the grid's transforms are
+neutralised (printed as-is, the absolutely-positioned cards come out cropped and overlapping), and the
+timeline is laid out as a document. The widget header and the ⏱ freshness footer deliberately survive — a
+printed chart with no "as of" line is a claim without a date. See [EXPORT.md](EXPORT.md).
+
 ## `wikibento-2026-09-12-two-lives-light.png` — the light card theme (ISSUE-76)
 
 ![The light card theme](screenshots/wikibento-2026-09-12-two-lives-light.png)

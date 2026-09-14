@@ -202,7 +202,8 @@ Every document, grouped by what you would want it for. The long-form material li
 front door.
 
 - **Start here** — [GUIDE](docs/GUIDE.md) (the model + cookbook) · [TUTORIAL](docs/TUTORIAL.md) (build a board
-  step by step, then store it on a wiki) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 39, with APIs) ·
+  step by step, then store it on a wiki) · [EXPORT](docs/EXPORT.md) (getting data, a PDF or the whole
+  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 39, with APIs) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
 - **Build & extend** — [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)

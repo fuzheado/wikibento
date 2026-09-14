@@ -2547,3 +2547,65 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .tl-band1 { top: -46px; }
 .tl-band2 { top: 20px; }
 .tl-band3 { top: 52px; }
+
+/* ── Print / save as PDF (ISSUE-77) ─────────────────────────────────────────────
+   Two jobs, both driven by data-print on <body>:
+     data-print="widget"  a single card, filling the page
+     data-print="board"   the whole board as a document, one card per page where it fits
+
+   react-grid-layout positions cards absolutely with transforms, and .grid-item clips its content
+   (overflow: hidden, for the on-screen scroll behaviour). Printed as-is that is a cropped,
+   overlapping mess, so printing neutralises the grid entirely. The chrome goes too: nobody wants a
+   toolbar and a row of ⚙ buttons in their PDF. */
+@media print {
+  @page { size: landscape; margin: 10mm; }
+
+  body { background: #fff !important; }
+  .app, .dashboard-container { height: auto !important; }
+
+  /* editing chrome — .app-header is the real toolbar class; .toolbar was a guess that hid nothing,
+     which is how the toolbar ended up printed at the top of the first PDF-shaped page */
+  .app-header,
+  .toolbar,
+  .react-resizable-handle,
+  .widget-id-chip,
+  .widget-actions,
+  .widget-config,
+  .widget-info,
+  .config-panel,
+  .tl-toolbar,
+  .widget-error,
+  .card-menu,
+  .toast,
+  .boot-error { display: none !important; }
+
+  /* the grid: no transforms, no fixed heights, no clipping */
+  .react-grid-layout { height: auto !important; }
+  .react-grid-item {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 0 6mm !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .grid-item {
+    height: auto !important;
+    overflow: visible !important;
+    border: 1px solid #bbb !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+  .widget-body { overflow: visible !important; padding: 4mm !important; }
+
+  /* a light card is already white — keep its contrast, and force the dark theme to ink on paper */
+  .tl-card { --tl-ink: #111; --tl-head-bg: #fff; color: #111 !important; }
+  .tl-card.tl-light { color: #111 !important; }
+
+  /* one widget, filling the page */
+  body[data-print='widget'] .grid-item:not(.print-target) { display: none !important; }
+  body[data-print='widget'] .react-grid-item.print-target { width: 100% !important; }
+  body[data-print='widget'] .tl-scroll { overflow: visible !important; }
+  body[data-print='widget'] .tl-plot-inner { width: 100% !important; }
+}

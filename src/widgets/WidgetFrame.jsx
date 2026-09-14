@@ -12,6 +12,8 @@ import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
 import { configFieldValue } from '../lib/configFields';
+import { exportRows, toCsv, csvFilename } from '../lib/exportData';
+import { printTarget } from '../lib/print';
 import '../vendor/pannellum.css';
 
 /**
@@ -68,6 +70,28 @@ function ParamPicker({ value, paramSpecs, onChange }) {
     </div>
   );
 }
+/**
+ * Save a widget's data as CSV (ISSUE-77).
+ *
+ * The download itself is the same three lines the QR widget uses for its SVG — a Blob and an <a> —
+ * so the file never touches a server and needs no dependency. What is *worth* testing is the mapping
+ * from payload to rows, which lives in ../lib/exportData.js.
+ */
+function saveCsv(type, data, title) {
+  const table = exportRows(data, { title });
+  if (!table) return false;
+  const blob = new Blob([toCsv(table)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = csvFilename(type, title);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
   // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
   // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
@@ -361,6 +385,16 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             onClick={() => { setShowConfig(!showConfig); setShowInfo(false); }}
             title="Configure"
           >⚙</button>
+          {/* Only offered when the payload actually has rows: a download button that saves nothing
+              is worse than no button. */}
+          {exportRows(state.data, { title: widget.config?.title }) && (
+            <button
+              className="widget-btn"
+              onClick={() => saveCsv(widget.widgetType, state.data, widget.config?.title)}
+              title="Save this widget's data as CSV"
+            >⤓</button>
+          )}
+          <button className="widget-btn" onClick={() => printTarget(widget.id)} title="Print or save this widget as PDF">🖨</button>
           <button className="widget-btn" onClick={() => load(true)} title="Refresh">↻</button>
           <button
             className="widget-btn widget-btn-remove"
