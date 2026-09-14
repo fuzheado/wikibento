@@ -10,6 +10,7 @@ import { qrSvg, qrModuleCount } from '../lib/qr';
 import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
+import { buildTimeline } from '../lib/timeline';
 import '../vendor/pannellum.css';
 
 /**
@@ -1993,55 +1994,125 @@ function SparqlCard({ data }) {
  *  Layout (ticks, positions, the overlap window, label slots) lives in ../lib/timeline.js so the
  *  arithmetic is unit-tested; this component only paints it.
  */
+const TL_ZOOM_LEVELS = [1, 2, 4, 8];
+const TL_GUTTER = 150;     // must match --tl-gutter in App.css (the lane-name column)
+const TL_LABEL_MIN = 110;  // a label's width in px at fit
+const TL_LABEL_MAX = 260;  // …and its ceiling once the axis is stretched enough to afford it
+
+
 function TimelineCard({ data }) {
-  const tl = data.timeline;
+  const scrollRef = useRef(null);
+  const zoomRef = useRef(1);
+  const [zoom, setZoom] = useState(1);
+  const [viewport, setViewport] = useState(0);
+
+  // Measure the visible axis area. Layout is a function of the VIEWPORT, not just the data: the same
+  // events need different label slots in a narrow card than in a wide one.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => setViewport(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Zooming keeps the middle of the view steady instead of jumping back to the start.
+  useEffect(() => {
+    const el = scrollRef.current;
+    const ratio = zoom / zoomRef.current;
+    zoomRef.current = zoom;
+    if (!el || ratio === 1) return;
+    const centre = el.scrollLeft + el.clientWidth / 2;
+    el.scrollLeft = Math.max(0, centre * ratio - el.clientWidth / 2);
+  }, [zoom]);
+
+  const layout = useMemo(() => {
+    // The axis is the content box minus the fixed name gutter; zoom stretches the content only.
+    const axisPx = Math.max(zoom * viewport - TL_GUTTER, 120);
+    const labelPx = Math.min(TL_LABEL_MAX, Math.max(TL_LABEL_MIN, axisPx * 0.09));
+    // The gap that avoids a collision is a PIXEL fact, so it shrinks as a percentage as the axis
+    // grows — which is why zooming in fits more labels rather than the same ones further apart.
+    const minGapPct = Math.min(30, Math.max(1.2, (100 * (labelPx + 8)) / axisPx));
+    const tl = buildTimeline(data?.rows || [], data?.vars || [], { align: data?.align, zoom, minGapPct });
+    return { labelPx, minGapPct, tl };
+  }, [data?.rows, data?.vars, data?.align, viewport, zoom]);
+
+  const tl = layout.tl || data?.timeline;   // before the first measurement, the transform's 1× pass
   if (!tl?.lanes?.length) return <div className="widget-empty">{data?.error || 'No dated rows'}</div>;
+  const step = (dir) => setZoom((z) => {
+    const i = TL_ZOOM_LEVELS.indexOf(z);
+    const j = Math.min(Math.max((i < 0 ? 0 : i) + dir, 0), TL_ZOOM_LEVELS.length - 1);
+    return TL_ZOOM_LEVELS[j];
+  });
+
   return (
-    <div className="tl-card">
-      {/* No card title: the widget frame already prints the preset's name, and the two were the same
-          string (a card title matters when it names the ASSET — "Albert Einstein" — not the type). */}
-      {/* How much is actually known — the number a reader must not have to guess. */}
-      <div className="tl-summary">
-        {tl.summary}{tl.axisLabel ? ` · ${tl.axisLabel}` : ''}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}
+    <div
+      className="tl-card"
+      style={{ '--tl-zoom': zoom, '--tl-label-w': `${Math.round(layout.labelPx)}px` }}
+    >
+      <div className="tl-toolbar">
+        <span className="tl-summary">
+          {tl.summary}{tl.axisLabel ? ` · ${tl.axisLabel}` : ''}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}
+        </span>
+        <span className="tl-zoom">
+          <button
+            className="widget-btn"
+            onClick={() => step(-1)}
+            disabled={zoom <= TL_ZOOM_LEVELS[0]}
+            title="Zoom out — show the whole span"
+          >−</button>
+          <span className="tl-zoom-label" title="Axis stretch">{zoom}×</span>
+          <button
+            className="widget-btn"
+            onClick={() => step(1)}
+            disabled={zoom >= TL_ZOOM_LEVELS[TL_ZOOM_LEVELS.length - 1]}
+            title="Zoom in — stretch the axis so labels have room (scroll right to pan)"
+          >+</button>
+        </span>
       </div>
-      <div className="tl-plot">
-        {/* The inner box is sized by the lanes, so a tall widget centres them instead of leaving a
-            void — and the axis furniture stays glued to the lanes rather than stretching. */}
-        <div className="tl-plot-inner">
-        {/* One coordinate space for the axis furniture and the events: the canvas starts where the
-            lane tracks start (--tl-gutter), so a dot at 96% and the 1970 gridline agree. */}
-        <div className="tl-canvas" aria-hidden="true">
-          {tl.ticks.map((t) => <div key={t.year} className="tl-gridline" style={{ left: `${t.x}%` }} />)}
-          {tl.overlap && (
-            <div
-              className="tl-overlap"
-              style={{ left: `${tl.overlap.x1}%`, width: `${Math.max(tl.overlap.x2 - tl.overlap.x1, 0)}%` }}
-              title={`Both documented ${tl.overlap.from}${tl.overlap.to !== tl.overlap.from ? `–${tl.overlap.to}` : ''}`}
-            />
-          )}
-          {tl.ticks.map((t) => <span key={t.year} className="tl-tick" style={{ left: `${t.x}%` }}>{t.year}</span>)}
-        </div>
-        <div className="tl-lanes">
-          {tl.lanes.map((lane) => (
-            <div className="tl-lane" key={lane.label}>
-              <div className="tl-lane-head">
-                <span className="tl-lane-name" title={lane.label}>{lane.label}</span>
-                {/* the module phrases this per mode: "1929–1945 · 7 events" or "15 years · 7 events" */}
-                <span className="tl-lane-meta">{lane.meta}</span>
-              </div>
-              <div className="tl-track">
-                {/* the documented span — its length is the point of the comparison */}
-                <span className="tl-span" style={{ left: `${lane.x1}%`, width: `${Math.max(lane.x2 - lane.x1, 0)}%` }} />
-                {lane.events.map((e, i) => (
-                  <span key={i} className="tl-event" style={{ left: `${e.x}%` }} title={e.text}>
-                    {e.labelVisible && <span className={`tl-label tl-band${e.band} tl-anchor-${e.anchor}`}>{e.short}</span>}
-                    <span className="tl-dot" />
-                  </span>
-                ))}
-              </div>
+      {/* Scrolls horizontally once the axis is stretched beyond the card. Lane names ride along.
+          Zoom lives in component state, not in the board config: it is a way of looking at the data,
+          not part of it (and a shared board should open at fit). */}
+      <div className="tl-scroll" ref={scrollRef}>
+        <div className="tl-plot">
+          <div className="tl-plot-inner">
+            {/* One coordinate space for the axis furniture and the events: the canvas starts where the
+                lane tracks start (--tl-gutter), so a dot at 96% and the 1970 gridline agree. */}
+            <div className="tl-canvas" aria-hidden="true">
+              {tl.ticks.map((t) => <div key={t.year} className="tl-gridline" style={{ left: `${t.x}%` }} />)}
+              {tl.overlap && (
+                <div
+                  className="tl-overlap"
+                  style={{ left: `${tl.overlap.x1}%`, width: `${Math.max(tl.overlap.x2 - tl.overlap.x1, 0)}%` }}
+                  title={`Both documented ${tl.overlap.from}${tl.overlap.to !== tl.overlap.from ? `–${tl.overlap.to}` : ''}`}
+                />
+              )}
+              {tl.ticks.map((t) => <span key={t.year} className={`tl-tick tl-anchor-${t.anchor}`} style={{ left: `${t.x}%` }}>{t.year}</span>)}
             </div>
-          ))}
-        </div>
+            <div className="tl-lanes">
+              {tl.lanes.map((lane) => (
+                <div className="tl-lane" key={lane.label}>
+                  <div className="tl-lane-head">
+                    <span className="tl-lane-name" title={lane.label}>{lane.label}</span>
+                    {/* the module phrases this per mode: "1929–1945 · 7 events" or "15 years · 7 events" */}
+                    <span className="tl-lane-meta">{lane.meta}</span>
+                  </div>
+                  <div className="tl-track">
+                    {/* the documented span — its length is the point of the comparison */}
+                    <span className="tl-span" style={{ left: `${lane.x1}%`, width: `${Math.max(lane.x2 - lane.x1, 0)}%` }} />
+                    {lane.events.map((e, i) => (
+                      <span key={i} className="tl-event" style={{ left: `${e.x}%` }} title={e.text}>
+                        {e.labelVisible && <span className={`tl-label tl-band${e.band} tl-anchor-${e.anchor}`}>{e.short}</span>}
+                        <span className="tl-dot" />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,11 +1,13 @@
 # Lifeline — timelines of lives, and comparing two of them (ISSUE-76)
 
 **Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, **two alignment
-modes**, two presets (`two-lives`, `curie-pair`), and `?config=/parallel-lives-demo.json`. Everything below
+modes**, **− / + zoom with horizontal panning**, two presets (`two-lives`, `curie-pair`), and
+`?config=/parallel-lives-demo.json`. Everything below
 is measured, not assumed. v1+ (article prose, context bands) is designed here but **not built**.
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
 ![The same renderer, age-aligned](screenshots/wikibento-2026-09-12-two-lives-age.png)
+![Zoomed to 8×](screenshots/wikibento-2026-09-12-two-lives-zoom.png)
 
 Try it: [`?config=/parallel-lives-demo.json`](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json)
 (or locally, once built: `npx vite build && npx vite preview` →
@@ -113,6 +115,10 @@ What it draws, all from the tested layout module:
   `cim-allow-list.json` pattern), review it, store it on a wiki, and let a board load it. Deterministic,
   citable, kiosk-safe, and it never silently drifts when the article changes: *"extracted from revision
   X"*. Live extraction behind a user-initiated button, cached by `revid+model`.
+- **Zoom — SHIPPED.** A `− n× +` control stretches the axis 1× / 2× / 4× / 8×, with native horizontal
+  scrolling past fit and lane names pinned (sticky) so a reader never loses whose lane they are looking at.
+  The point is not magnification, it is **legibility**: at fit, five labels were truncated; at 2× none
+  are, and at 8× all 21 events are labelled.
 - **Context bands.** WWII (1939–45) as a shaded region behind both lanes. Bands read better than lanes
   for overlapping eras.
 - **Generalization.** Nothing in the renderer assumes a person: two institutions, a founder and their
@@ -139,6 +145,24 @@ What it draws, all from the tested layout module:
    carry an attribution line like the rest of the project.
 7. **The completeness illusion.** A timeline reads as authoritative. Event counts, per-lane source
    counts and honest gaps are the mitigation; a lane with four events should look sparse, not curated.
+
+## Why zoom was cheap, and what was not
+
+The layout is **percentages of the content box**, so stretching is not a maths problem at all:
+`width: calc(100% * zoom)` and the browser scrolls. Two things did need real work, and they are the
+reason a naive zoom looks broken:
+
+1. **Tick density.** Stretching the axis without changing the step just spreads decade lines further
+   apart. The step is chosen from the *visible* span (`span / zoom`), so a 50-year axis walks 10 → 5 → 2 →
+   1-year ticks as you zoom — yearly gridlines appear exactly when years become legible.
+2. **Label slots.** This is the subtle one. A label is a **fixed pixel width**, so the *percentage* gap
+   that avoids a collision shrinks as the content box grows: ~9% at fit, ~5.8% at 4×. The card measures
+   its viewport and passes the gap that its measured width actually affords, and the label's own width
+   grows with it (110px → 260px). That is why zooming in **fits more labels** instead of the same ones
+   further apart — and why "the labels are cut off" was a pixel problem hiding in a percentage layout.
+
+Total effort: one session, most of it in the two items above and in taking the layout apart when two
+coordinates disagreed.
 
 ## Traps paid for while building v0 (all of them silent)
 
@@ -168,6 +192,10 @@ fixed in `src/lib/sparqlLabels.js` and covered by a test. Recorded in
   made a small result fall through to an entity column that was empty on every row (`1966 · awarded` with
   no object). And a verb column must never be adopted as the lane split, or a query with unusable name
   columns produces lanes called "born", "married", "died".
+- **A centred label at the axis edge makes the card scroll by 14px.** The final year's tick and the last
+  event's label both extend half their width past the content box, so the card reported scrollable
+  overflow **at fit** — a scrollbar for nothing. Ticks and event labels both anchor inward at the
+  extremes now. (Related: a gridline at 100% needs its half-pixel of margin inside the box.)
 - **Wrapped labels defeat slot arithmetic.** Three lines of text are ~40px tall whatever the slot spacing
   says, so labels overlapped *however* the slots were arranged. Single-line labels make the height a known
   constant and the packing predictable — truncation is safe because the tooltip holds the full text.

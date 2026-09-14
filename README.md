@@ -37,7 +37,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
-| 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways — Anne Frank × Martin Luther King Jr. on calendar years (both born 1929), Marie × Pierre Curie aligned at birth (his lane ends at 46, hers runs to 67) |
+| 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways (calendar years or aligned at birth) and **zoomable 8×** — Anne Frank × Martin Luther King Jr., Marie × Pierre Curie |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
 | 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 39 widget types on one board — its article switcher drives five cards |
 

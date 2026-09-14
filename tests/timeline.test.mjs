@@ -210,6 +210,57 @@ test('a verb column is never used as the lane split', () => {
   assert.equal(tl.lanes.length, 1, 'a single anonymous lane, not one per verb');
 });
 
+test('the axis-end ticks anchor inward, so the card never scrolls by a few pixels', () => {
+  const tl = buildTimeline(LIVES, VARS);
+  assert.equal(tl.ticks[0].anchor, 'start', 'the first year sits at the axis start');
+  assert.equal(tl.ticks.at(-1).anchor, 'end', 'and the last at the end');
+  assert.ok(tl.ticks.slice(1, -1).every((t) => t.anchor === 'center'));
+});
+
+test('zoom: finer gridlines when the axis is stretched', () => {
+  const span = [
+    ROW('A', '1920-01-01', 'born'), ROW('A', '1970-01-01', 'died'),
+  ];
+  const at = (zoom) => buildTimeline(span, VARS, { zoom });
+  // A 50-year axis: decades at fit, then halves, then 2s, then years — each zoom step targets a
+  // readable number of ticks across the VISIBLE window rather than over the whole span.
+  assert.deepEqual([1, 2, 4, 8].map((z) => at(z).step), [10, 5, 2, 1]);
+  // Positions are still percentages of the content box, so the visible slice stays smooth.
+  for (const zoom of [1, 2, 4, 8]) {
+    const tl = at(zoom);
+    assert.equal(tl.zoom, zoom);
+    assert.equal(tl.ticks[0].x, 0, 'the axis still starts at the box edge');
+    assert.equal(tl.ticks.at(-1).x, 100);
+    assert.ok(tl.ticks.every((t) => t.x >= 0 && t.x <= 100));
+    assert.ok(tl.ticks.length <= 60, `zoom ${zoom} keeps the tick count sane (${tl.ticks.length})`);
+  }
+});
+
+test('zoom: a wider box fits more labels, because the gap is in pixels', () => {
+  // Crowding is relative to the AXIS, not to a year: a 200-year span with eight events three years
+  // apart puts them 1.5% apart on the axis, which four 9%-spaced slots cannot all hold.
+  const dense = [
+    ROW('MLK', '1900-01-01', 'born'), ROW('MLK', '2100-01-01', 'died'),
+    ...[2000, 2003, 2006, 2009, 2012, 2015, 2018, 2021].map((y) => ROW('MLK', `${y}-01-01`, 'awarded', `Prize ${y}`)),
+  ];
+  // At fit, a 1300px axis affords ~9% between labels; stretched 4× the same label width is ~2.4% of it.
+  const tight = buildTimeline(dense, VARS, { minGapPct: 9 });
+  const wide = buildTimeline(dense, VARS, { minGapPct: 2.4 });
+  const shown = (tl) => tl.lanes[0].events.filter((e) => e.labelVisible).length;
+  assert.ok(shown(tight) < 10, `at fit some of the cluster is hidden (got ${shown(tight)} of 10)`);
+  assert.ok(shown(tight) >= 4, 'but the slots are all used');
+  assert.equal(shown(wide), 10, 'zoomed in, every label fits — the truncation goes away');
+  assert.ok(shown(wide) > shown(tight), 'which is the point of zooming for labels');
+  // The guarantee still holds at any gap: two labels in one slot are never closer than the gap.
+  for (const tl of [tight, wide]) {
+    const bySlot = {};
+    for (const e of tl.lanes[0].events.filter((x) => x.labelVisible)) (bySlot[e.band] ||= []).push(e.x);
+    for (const xs of Object.values(bySlot)) {
+      for (let i = 1; i < xs.length; i += 1) assert.ok(xs[i] - xs[i - 1] >= (tl === tight ? 9 : 2.4) - 0.001);
+    }
+  }
+});
+
 test('label slots: crowded events take separate slots, and an unplaceable label is hidden', () => {
   const tl = buildTimeline([
     ROW('MLK', '1929-01-15', 'born'),

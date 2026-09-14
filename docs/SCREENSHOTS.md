@@ -24,6 +24,16 @@ labelled "14 events" against hers at "7" is also a picture of what structured da
 education, awards, residences) and does not hold (the diary, the arrest, Birmingham, Selma). See
 [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).
 
+## `wikibento-2026-09-12-two-lives-zoom.png` — zoomed to 8× (ISSUE-76)
+
+![The timeline zoomed to 8×](screenshots/wikibento-2026-09-12-two-lives-zoom.png)
+
+The same Anne Frank × MLK board with the axis stretched 8×, scrolled to the beginning. This is what the
+**− / + zoom** control is for: at fit, five of the eighteen labels were truncated ("1944 · lived in
+Bergen-Belsen concentratio…"); at 2× **none** are, and at 8× every one of the 21 events is labelled and
+legible — the two births now read as five months apart, and the axis has gone from decade ticks to yearly
+ones. Lane names stay pinned while the axis scrolls.
+
 ## `wikibento-2026-09-12-two-lives-age.png` — the same renderer, age-aligned (ISSUE-76)
 
 ![Two lives aligned at birth](screenshots/wikibento-2026-09-12-two-lives-age.png)

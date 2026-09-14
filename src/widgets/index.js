@@ -1524,7 +1524,16 @@ export const WIDGET_TYPES = {
             rows: rows.map((r) => vars.map((v) => fmt(r[v]))),
           };
         }
-        return { mode, title, subtitle: timeline.summary, timeline };
+        // The card re-lays-out on zoom and on resize, so it needs the rows, not just the layout.
+        return {
+          mode,
+          title,
+          subtitle: timeline.summary,
+          timeline,
+          vars,
+          rows,
+          align: config.align === 'age' ? 'age' : 'calendar',
+        };
       }
       if (mode === 'bar') {
         const rows2 = rows

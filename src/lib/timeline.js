@@ -245,6 +245,17 @@ export function tickStep(span) {
 }
 
 /**
+ * Zoom: how many times the axis is stretched wider than its container. Positions are percentages of the
+ * content box, so stretching needs no maths at all — but two things DO depend on it, and both live here
+ * so the renderer stays dumb:
+ *
+ *   - **Tick density.** At 1× a 50-year axis wants decade lines; at 8× the reader is looking at a few
+ *     years and wants years. The step is chosen from the *visible* span (span / zoom), so zooming in
+ *     reveals finer gridlines instead of stretching the same decade labels apart.
+ *   - **Label slots.** A label is a fixed width in pixels, so the percentage gap that avoids a collision
+ *     shrinks as the content box widens: the caller measures the box and passes `minGapPct`. Zooming in
+ *     therefore fits MORE labels, which is what makes the truncation go away.
+ *
  * Build the renderer's model.
  *
  * `opts.seriesLabel` names the single lane when the result has no series column (a one-lane timeline
@@ -263,6 +274,7 @@ export function tickStep(span) {
  */
 export function buildTimeline(rows, vars, opts = {}) {
   const det = detectTimeline(rows || [], vars || []);
+  const zoom = Math.max(1, Number(opts.zoom) || 1);
   if (!det) return null;
   const { timeVar, seriesVar, labelVar, kindVar } = det;
 
@@ -333,7 +345,8 @@ export function buildTimeline(rows, vars, opts = {}) {
   const maxOffset = align === 'age'
     ? Math.ceil(Math.max(...lanes.map((l) => l.years)))
     : Math.ceil(Math.max(...lanes.map((l) => l.last)));
-  const step = tickStep(Math.max(maxOffset - minOffset, 1));
+  // Zoom in → finer ticks: the step targets a readable number of ticks across the VISIBLE window.
+  const step = tickStep(Math.max((maxOffset - minOffset) / zoom, 1));
   const from = align === 'age' ? 0 : Math.floor(minOffset / step) * step;
   // A life inside a single tick still needs an axis: widen it rather than divide by a zero span.
   const to = Math.max(Math.ceil(maxOffset / step) * step, from + step);
@@ -341,7 +354,12 @@ export function buildTimeline(rows, vars, opts = {}) {
   const x = (value) => Math.min(100, Math.max(0, ((value - from) / span) * 100));
 
   const ticks = [];
-  for (let y = from; y <= to; y += step) ticks.push({ year: y, x: x(y) });
+  for (let y = from; y <= to; y += step) {
+    const tx = x(y);
+    // Same reason event labels anchor inward: a tick centred on the axis end hangs half its width
+    // outside the content box, which makes the card permanently scrollable by a few pixels.
+    ticks.push({ year: y, x: tx, anchor: tx < 1 ? 'start' : tx > 99 ? 'end' : 'center' });
+  }
   for (const lane of lanes) {
     lane.x1 = x(align === 'age' ? 0 : lane.first);
     lane.x2 = x(align === 'age' ? lane.years : lane.last);
@@ -353,7 +371,8 @@ export function buildTimeline(rows, vars, opts = {}) {
       // the edge of the axis). Anchor those to the dot's outer side instead.
       e.anchor = e.x < 6 ? 'start' : e.x > 94 ? 'end' : 'center';
     }
-    assignLabelSlots(lane.events);
+    // The caller can pass the gap that its measured width actually affords (see the card).
+    assignLabelSlots(lane.events, Number(opts.minGapPct) > 0 ? Number(opts.minGapPct) : undefined);
     // One line per lane, phrased for the mode: "15 years · 7 events" vs "1929–1945 · 7 events".
     lane.ageSpan = `${Math.floor(lane.years)} years`;
     lane.meta = align === 'age'
@@ -392,6 +411,7 @@ export function buildTimeline(rows, vars, opts = {}) {
     undated,
     total: events.length,
     align,
+    zoom,
     // In age mode the ticks are years-of-life, not years — say so rather than letting a reader guess.
     axisLabel: align === 'age' ? 'years since each lane\u2019s first documented event' : null,
     // A caption the renderer can show without inventing words: "2 lives · 21 events · 1920–1970".

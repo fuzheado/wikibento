@@ -3293,6 +3293,13 @@ his childhood has no counterpart; aligned at birth, their shared years line up a
 while hers runs to **67**. "Age" is defined as years since each lane's first documented event — birth when
 the query has one — and the axis says so rather than assuming.
 
+**Zoomable axis (2026-09-12, asked for after looking at it):** a `− n× +` control stretches the axis
+1×/2×/4×/8× with native horizontal scrolling and pinned lane names. Cheap because the layout is
+percentages of the content box; the real work was **tick density** (the step follows the *visible* span, so
+ticks walk 10 → 5 → 2 → 1 years) and **label slots** (a label is a fixed pixel width, so the collision gap
+in percent shrinks as the box grows — measured, not guessed). Result at fit: 5 of 18 labels truncated; at
+2×: none; at 8×: all 21 events labelled.
+
 **A product bug found and fixed on the way:** Marie Curie rendered as `Q7186`, because her Wikidata label
 lives under the language-neutral **`mul`** code (247 sitelinks, English description, no `en` label), and
 both the Action API with `languages=en` and WDQS's `wikibase:label` with `"en"` refuse to name her. That
