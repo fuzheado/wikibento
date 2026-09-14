@@ -4,7 +4,11 @@
 preset, and `?config=/parallel-lives-demo.json`. Everything below is measured, not assumed. v1+
 (article prose, age alignment, context bands) is designed here but **not built**.
 
+![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
+
 Try it: [`?config=/parallel-lives-demo.json`](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json)
+(or locally, once built: `npx vite build && npx vite preview` →
+<http://localhost:4173/?config=/parallel-lives-demo.json>).
 
 ---
 

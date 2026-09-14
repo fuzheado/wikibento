@@ -6,7 +6,23 @@ numbers drift and widgets change, so treat the figures as "what it looked like t
 and check the live board for today's values. (Two things have changed since these were
 taken, both noted below: the glam demo's collection control and its leaderboard scope.)
 
-All captured **2026-09-10** from a desktop browser at ~3350 px wide.
+All captured from a desktop browser at ~3350 px wide — **2026-09-10** except the timeline below
+(**2026-09-12**, 1500 px wide).
+
+---
+
+## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-73, v0)
+
+![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
+
+The `timeline` renderer on the SPARQL widget, from the `two-lives` preset
+(`?config=/parallel-lives-demo.json`). **Anne Frank** (1929–1945) and **Martin Luther King Jr.**
+(1929–1968) on one shared axis: the lane bars start at the same point, hers ends at 16 while his runs
+23 years further, and the shaded band is the window in which *both* are documented — 1929 to 1945,
+which is her entire documented life. Every event is a structured Wikidata statement, so the lane
+labelled "14 events" against hers at "7" is also a picture of what structured data holds (birth,
+education, awards, residences) and does not hold (the diary, the arrest, Birmingham, Selma). See
+[LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).
 
 ---
 
