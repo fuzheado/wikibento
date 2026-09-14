@@ -5,7 +5,7 @@
       "id": "pl-note",
       "widgetType": "markdown",
       "config": {
-        "text": "## Two lives, one axis\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929, so they are already aligned. The cards below put them on a single time axis, so the overlap is visible rather than asserted — and so is the silence afterwards.\n\n**Marie** (1867–1934) and **Pierre Curie** (1859–1906) were born eight years apart, which is what the second card's **age alignment** is for: aligned at birth, their shared years line up and his lane ends at 46 while hers runs to 66.\n\nEvery event is a **structured Wikidata statement**: birth, death, education, posts, awards, residences. There is no date in Wikidata for the diary, the arrest, or the March on Washington — that is what the article prose holds. See `docs/LIFELINE-WIDGET.md`.",
+        "text": "## Two lives, one axis\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929, so they are already aligned. The cards below put them on a single time axis, so the overlap is visible rather than asserted — and so is the silence afterwards.\n\n**Marie** (1867–1934) and **Pierre Curie** (1859–1906) were born eight years apart, which is what the second card's **age alignment** is for: aligned at birth, their shared years line up and his lane ends at 46 while hers runs to 66.\n\nBoth cards are **zoomable** (the − / + control stretches the axis so the labels get room), the ▭ button toggles the shaded overlap window, and the second card is set to the **light card theme** — so it reads as its own panel against the dark board. Its title is a setting too, which is what you see in presentation/lean mode, where the widget's own title bar is hidden.\n\nEvery event is a **structured Wikidata statement**: birth, death, education, posts, awards, residences. There is no date in Wikidata for the diary, the arrest, or the March on Washington — that is what the article prose holds. See `docs/LIFELINE-WIDGET.md`.",
         "allowExternalImages": false,
         "refreshSeconds": 86400
       }
@@ -19,7 +19,8 @@
         "align": "calendar",
         "endpoint": "wdqs",
         "maxRows": 100,
-        "refreshSeconds": 1800
+        "refreshSeconds": 1800,
+        "title": "Born 1929: Anne Frank and Martin Luther King Jr."
       }
     },
     {
@@ -31,13 +32,39 @@
         "align": "age",
         "endpoint": "wdqs",
         "maxRows": 100,
-        "refreshSeconds": 1800
+        "refreshSeconds": 1800,
+        "title": "Marie & Pierre Curie, aligned at birth",
+        "cardTheme": "light"
       }
     }
   ],
   "layout": [
-    { "i": "pl-note", "x": 0, "y": 0, "w": 12, "h": 5, "minW": 4, "minH": 2 },
-    { "i": "pl-lives", "x": 0, "y": 5, "w": 12, "h": 7, "minW": 6, "minH": 5 },
-    { "i": "pl-curie", "x": 0, "y": 12, "w": 12, "h": 7, "minW": 6, "minH": 5 }
+    {
+      "i": "pl-note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "minW": 4,
+      "minH": 2
+    },
+    {
+      "i": "pl-lives",
+      "x": 0,
+      "y": 5,
+      "w": 12,
+      "h": 7,
+      "minW": 6,
+      "minH": 5
+    },
+    {
+      "i": "pl-curie",
+      "x": 0,
+      "y": 12,
+      "w": 12,
+      "h": 7,
+      "minW": 6,
+      "minH": 5
+    }
   ]
 }

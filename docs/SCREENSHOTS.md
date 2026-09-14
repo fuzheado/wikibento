@@ -24,6 +24,16 @@ labelled "14 events" against hers at "7" is also a picture of what structured da
 education, awards, residences) and does not hold (the diary, the arrest, Birmingham, Selma). See
 [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md).
 
+## `wikibento-2026-09-12-two-lives-light.png` — the light card theme (ISSUE-76)
+
+![The light card theme](screenshots/wikibento-2026-09-12-two-lives-light.png)
+
+The same renderer with **Card background → Light**: an inset white panel that sets the timeline apart from
+the dark board, with the whole palette inverted (ink, axis, spans, dot rings, the overlap band and the
+sticky lane-name column) rather than dark colours left on white. The card also carries its own **title**,
+which is what shows in presentation/lean mode, where the widget's title bar is hidden. The ▭ button beside
+the zoom controls toggles the shaded overlap window.
+
 ## `wikibento-2026-09-12-two-lives-zoom.png` — zoomed to 8× (ISSUE-76)
 
 ![The timeline zoomed to 8×](screenshots/wikibento-2026-09-12-two-lives-zoom.png)

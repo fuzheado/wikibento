@@ -1,13 +1,14 @@
 # Lifeline — timelines of lives, and comparing two of them (ISSUE-76)
 
 **Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, **two alignment
-modes**, **− / + zoom with horizontal panning**, two presets (`two-lives`, `curie-pair`), and
-`?config=/parallel-lives-demo.json`. Everything below
+modes**, **− / + zoom with horizontal panning**, **an overlap-band toggle**, **a light card theme**, **an
+optional card title**, two presets (`two-lives`, `curie-pair`), and `?config=/parallel-lives-demo.json`. Everything below
 is measured, not assumed. v1+ (article prose, context bands) is designed here but **not built**.
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
 ![The same renderer, age-aligned](screenshots/wikibento-2026-09-12-two-lives-age.png)
 ![Zoomed to 8×](screenshots/wikibento-2026-09-12-two-lives-zoom.png)
+![The light card theme](screenshots/wikibento-2026-09-12-two-lives-light.png)
 
 Try it: [`?config=/parallel-lives-demo.json`](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json)
 (or locally, once built: `npx vite build && npx vite preview` →
@@ -119,6 +120,17 @@ What it draws, all from the tested layout module:
   scrolling past fit and lane names pinned (sticky) so a reader never loses whose lane they are looking at.
   The point is not magnification, it is **legibility**: at fit, five labels were truncated; at 2× none
   are, and at 8× all 21 events are labelled.
+- **Display settings — SHIPPED.** Everything below is a ⚙ field and, where it is a way of *looking* at the
+  chart, also a control on the card:
+
+  | setting | where | why |
+  |---|---|---|
+  | Timeline alignment (calendar / age) | ⚙ | changes what the chart *means*, so it is stored in the board |
+  | Zoom 1×–8× | card (beside ±) | a way of looking, not data — a shared board opens at fit |
+  | Overlap band on/off | ⚙ **and** the ▭ button | the reader can drop the shading to see the dots underneath |
+  | Card background (board / light) | ⚙ | a white inset panel that sets the timeline off against a dark board; the whole palette inverts |
+  | Title | ⚙ | a real title for the card — and the only title in **lean/presentation mode**, where the widget's own title bar is hidden |
+
 - **Context bands.** WWII (1939–45) as a shaded region behind both lanes. Bands read better than lanes
   for overlapping eras.
 - **Generalization.** Nothing in the renderer assumes a person: two institutions, a founder and their
@@ -192,6 +204,18 @@ fixed in `src/lib/sparqlLabels.js` and covered by a test. Recorded in
   made a small result fall through to an entity column that was empty on every row (`1966 · awarded` with
   no object). And a verb column must never be adopted as the lane split, or a query with unusable name
   columns produces lanes called "born", "married", "died".
+- **Truncation in the data layer is invisible to a layout check — and unrecoverable.** Labels were clipped
+  to 36 characters in `timeline.js` before the browser saw them, so "October 1944 · lived in Bergen-Belsen
+  concentration camp" kept its ellipsis at *every* zoom level: no amount of stretching could reveal text
+  that no longer existed. Worse, the check written to catch truncation measured **layout overflow** and
+  reported zero, because the shortened string fitted perfectly. The lesson is a rule: **do not truncate in
+  the data layer** — hand the full text to the presentation layer, let CSS wrap and ellipsis it, and keep
+  the untruncated string in the tooltip. (Now: 5 clipped labels at fit, 0 at 2× and beyond, measured
+  against the tooltip text rather than the box.)
+- **A "replace the first occurrence" edit hit the wrong component.** Swapping a hard-coded colour for a
+  themeable variable with a global string replace changed `.speaker-text` instead of `.tl-lane-head`, which
+  showed up as unreadable lane names on a dark block inside the light card — found by looking at the
+  screenshot, not by a test. When a substitution is meant for one rule, assert which rule it landed in.
 - **A centred label at the axis edge makes the card scroll by 14px.** The final year's tick and the last
   event's label both extend half their width past the content box, so the card reported scrollable
   overflow **at fit** — a scrollbar for nothing. Ticks and event labels both anchor inward at the

@@ -1997,7 +1997,7 @@ function SparqlCard({ data }) {
 const TL_ZOOM_LEVELS = [1, 2, 4, 8];
 const TL_GUTTER = 150;     // must match --tl-gutter in App.css (the lane-name column)
 const TL_LABEL_MIN = 110;  // a label's width in px at fit
-const TL_LABEL_MAX = 260;  // …and its ceiling once the axis is stretched enough to afford it
+const TL_LABEL_MAX = 420;  // …and its ceiling once the axis is stretched enough to afford it
 
 
 function TimelineCard({ data }) {
@@ -2005,6 +2005,9 @@ function TimelineCard({ data }) {
   const zoomRef = useRef(1);
   const [zoom, setZoom] = useState(1);
   const [viewport, setViewport] = useState(0);
+  // The gear's setting is the default; the button beside ± is a way to switch it without opening the
+  // panel (the reader's click wins until the widget reloads).
+  const [showOverlap, setShowOverlap] = useState(data?.showOverlap !== false);
 
   // Measure the visible axis area. Layout is a function of the VIEWPORT, not just the data: the same
   // events need different label slots in a narrow card than in a wide one.
@@ -2049,14 +2052,21 @@ function TimelineCard({ data }) {
 
   return (
     <div
-      className="tl-card"
+      className={`tl-card${data.theme === 'light' ? ' tl-light' : ''}`}
       style={{ '--tl-zoom': zoom, '--tl-label-w': `${Math.round(layout.labelPx)}px` }}
     >
+      {data.cardTitle && <div className="tl-title">{data.cardTitle}</div>}
       <div className="tl-toolbar">
         <span className="tl-summary">
           {tl.summary}{tl.axisLabel ? ` · ${tl.axisLabel}` : ''}{tl.undated ? ` · ${tl.undated} row(s) with no date` : ''}
         </span>
         <span className="tl-zoom">
+          <button
+            className={`widget-btn tl-toggle${showOverlap ? ' tl-toggle-on' : ''}`}
+            onClick={() => setShowOverlap((v) => !v)}
+            aria-pressed={showOverlap}
+            title={showOverlap ? 'Hide the overlap window' : 'Shade the window every lane is documented in'}
+          >▭</button>
           <button
             className="widget-btn"
             onClick={() => step(-1)}
@@ -2082,7 +2092,7 @@ function TimelineCard({ data }) {
                 lane tracks start (--tl-gutter), so a dot at 96% and the 1970 gridline agree. */}
             <div className="tl-canvas" aria-hidden="true">
               {tl.ticks.map((t) => <div key={t.year} className="tl-gridline" style={{ left: `${t.x}%` }} />)}
-              {tl.overlap && (
+              {showOverlap && tl.overlap && (
                 <div
                   className="tl-overlap"
                   style={{ left: `${tl.overlap.x1}%`, width: `${Math.max(tl.overlap.x2 - tl.overlap.x1, 0)}%` }}

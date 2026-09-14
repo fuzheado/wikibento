@@ -3300,6 +3300,18 @@ ticks walk 10 → 5 → 2 → 1 years) and **label slots** (a label is a fixed p
 in percent shrinks as the box grows — measured, not guessed). Result at fit: 5 of 18 labels truncated; at
 2×: none; at 8×: all 21 events labelled.
 
+**Display settings (2026-09-12, from a second look):** a ⚙ **title** (also the card's only heading in
+lean/presentation mode, where the widget's own bar is hidden), a **light card theme** that inverts the whole
+palette so the timeline reads as its own panel against a dark board, and an **overlap-band toggle** — both a
+⚙ boolean and a ▭ button beside the ± controls. Alignment stays in the board config (it changes what the
+chart means); zoom is view state only, so a shared board opens at fit.
+
+**And a truncation bug worth remembering:** labels were clipped to 36 characters in the layout module
+*before* rendering, so "October 1944 · lived in Bergen-Belsen concentration camp" kept its ellipsis at every
+zoom level — and the check meant to catch truncation measured layout overflow, reporting zero, because the
+shortened string fitted. The data layer no longer truncates (CSS wraps, the tooltip keeps the full text).
+Measured: 5 clipped labels at fit, 0 at 2× and beyond.
+
 **A product bug found and fixed on the way:** Marie Curie rendered as `Q7186`, because her Wikidata label
 lives under the language-neutral **`mul`** code (247 sitelinks, English description, no `en` label), and
 both the Action API with `languages=en` and WDQS's `wikibase:label` with `"en"` refuse to name her. That

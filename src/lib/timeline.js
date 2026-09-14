@@ -226,11 +226,16 @@ export function assignLabelSlots(events, minGapPct = 9) {
 }
 
 /**
- * The on-canvas label: short enough to fit a slot, with the exact date and full text kept in the
- * tooltip. "1966 — awarded Jawaharlal Nehru Award for International Understanding" is a sentence, not
- * an axis label.
+ * The on-canvas label: the date plus the event, with the exact full text kept in the tooltip.
+ *
+ * This used to clip at 36 characters, which was a mistake worth recording: an ellipsis baked into the
+ * STRING cannot be undone by the browser, so "October 1944 · lived in Bergen-Belsen concentration camp"
+ * stayed truncated at every zoom level — no amount of stretching could reveal it, and a layout-based
+ * check for overflow reported zero truncation because the shortened string fitted perfectly. The width
+ * of a label is a presentation decision (the card sizes it to the space the axis affords and lets CSS
+ * wrap it to two lines); only pathological text needs a cap now.
  */
-export function shortTimelineLabel(ev, max = 36) {
+export function shortTimelineLabel(ev, max = 96) {
   const when = formatTimelineEvent(ev);
   const what = [ev.kind, ev.label].filter(Boolean).join(' ');
   if (!what) return when;

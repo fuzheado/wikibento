@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-14T14:57:18.327Z",
+ "generatedAt": "2026-09-14T16:50:14.692Z",
  "widgetCount": 39,
  "widgets": [
   {
@@ -1578,6 +1578,26 @@
      ]
     },
     {
+     "key": "title",
+     "type": "text",
+     "label": "Title (optional)",
+     "placeholder": "e.g. Two lives, one axis"
+    },
+    {
+     "key": "showOverlap",
+     "type": "boolean",
+     "label": "Shade the overlap window"
+    },
+    {
+     "key": "cardTheme",
+     "type": "select",
+     "label": "Card background",
+     "options": [
+      "dark",
+      "light"
+     ]
+    },
+    {
      "key": "maxRows",
      "type": "number",
      "label": "Max rows",
@@ -1591,6 +1611,9 @@
     "renderer",
     "maxRows",
     "align",
+    "title",
+    "showOverlap",
+    "cardTheme",
     "refreshSeconds"
    ]
   },

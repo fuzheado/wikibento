@@ -309,12 +309,21 @@ test('the anchors of a life are never hidden, even inside a crowded cluster', ()
   assert.ok(middle.every((e) => e.text.length > 10), 'sacrificed labels still have tooltips');
 });
 
-test('shortTimelineLabel: an axis label, not a sentence', () => {
-  const e = buildTimeline([ROW('MLK', '1966-01-01', 'awarded', 'Jawaharlal Nehru Award for International Understanding')], VARS).lanes[0].events[0];
-  assert.ok(e.short.length <= 36 + 6, `short form stays brief: "${e.short}"`);
-  assert.ok(e.short.includes('1966'), 'the year survives');
-  assert.ok(e.short.endsWith('…'), 'and the clipping is visible');
-  assert.ok(e.text.length > e.short.length, 'the full text is what the tooltip shows');
+test('shortTimelineLabel: labels are not clipped in the string (CSS wraps them, zoom widens them)', () => {
+  // Regression: clipping at 36 chars baked an ellipsis into the text, so "October 1944 · lived in
+  // Bergen-Belsen concentration camp" stayed cut off at EVERY zoom level — nothing could reveal it.
+  const long = 'October 1944 · lived in Bergen-Belsen concentration camp';
+  const e = buildTimeline([ROW('Anne Frank', '1944-10-01', 'lived in', 'Bergen-Belsen concentration camp')], VARS).lanes[0].events[0];
+  assert.equal(e.short, long, 'a 55-character event label survives intact');
+  assert.equal(e.text, `${long}`.replace(' · ', ' — '), 'and the tooltip carries the same content');
+  const medal = buildTimeline([ROW('MLK', '1948-01-01', 'studied at', 'Crozer Theological Seminary')], VARS).lanes[0].events[0];
+  assert.equal(medal.short, '1948 · studied at Crozer Theological Seminary');
+  assert.ok(!medal.short.endsWith('…'), 'no ellipsis for a label that fits');
+  // Only pathological text is capped, and then visibly.
+  const monster = buildTimeline([ROW('X', '1966-01-01', 'awarded', 'A'.repeat(200))], VARS).lanes[0].events[0];
+  // The cap applies to the event text; the date prefix is added on top of it.
+  assert.ok(monster.short.length <= 96 + '1966 · '.length + 1, `a 200-character value is still capped (${monster.short.length})`);
+  assert.ok(monster.short.endsWith('…'));
 });
 
 test('assignLabelSlots: fills the first free slot — spreading only when it must', () => {

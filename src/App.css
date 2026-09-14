@@ -2336,6 +2336,20 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   --tl-gutter: 150px;
   --tl-label-w: 110px;
   --tl-zoom: 1;
+  /* The timeline's whole palette, so the light theme re-colours everything (axis, dots, spans,
+     band, labels, the sticky name column) rather than leaving dark-mode colours on white. */
+  --tl-ink: inherit;
+  --tl-ink-dim: color-mix(in srgb, currentColor 60%, transparent);
+  --tl-accent: #6ea8fe;
+  --tl-span: color-mix(in srgb, #6ea8fe 50%, transparent);
+  --tl-band: color-mix(in srgb, #6ea8fe 9%, transparent);
+  --tl-band-edge: color-mix(in srgb, #6ea8fe 42%, transparent);
+  --tl-grid: color-mix(in srgb, currentColor 12%, transparent);
+  --tl-rule: color-mix(in srgb, currentColor 20%, transparent);
+  --tl-dot: #dbe7ff;
+  --tl-dot-ring: #6ea8fe;
+  --tl-dot-halo: color-mix(in srgb, #0b1120 75%, transparent);
+  --tl-head-bg: var(--surface);
   display: flex;
   flex-direction: column;
   /* .widget-body centres its child, so a card that does not claim the full width is sized to its
@@ -2346,6 +2360,31 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   padding: 10px 14px 6px;
   gap: 4px;
 }
+/* A light card: an inset panel that sets the timeline off from the dark board, with the ink,
+   gridlines, spans, band and dots all inverted to match. */
+.tl-card.tl-light {
+  background: #ffffff;
+  color: #1b2130;
+  border-radius: var(--radius);
+  --tl-accent: #2b6cd4;
+  --tl-span: color-mix(in srgb, #2b6cd4 42%, transparent);
+  --tl-band: color-mix(in srgb, #2b6cd4 10%, transparent);
+  --tl-band-edge: color-mix(in srgb, #2b6cd4 45%, transparent);
+  --tl-grid: color-mix(in srgb, #1b2130 10%, transparent);
+  --tl-rule: color-mix(in srgb, #1b2130 22%, transparent);
+  --tl-dot: #ffffff;
+  --tl-dot-ring: #2b6cd4;
+  --tl-dot-halo: rgba(255, 255, 255, 0.95);
+  --tl-head-bg: #ffffff;
+}
+.tl-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+/* the overlap-band toggle, sitting with the zoom controls */
+.tl-toggle { opacity: 0.45; }
+.tl-toggle-on { opacity: 1; color: var(--tl-accent); }
 .tl-toolbar {
   display: flex;
   align-items: baseline;
@@ -2409,16 +2448,16 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   /* half a pixel left so the line AT the axis end sits inside the content box (1px of overflow is
      enough to give the card a scrollbar when nothing is actually cut off) */
   margin-left: -0.5px;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  background: var(--tl-grid);
 }
 /* the window in which every lane is documented — the comparison's payoff */
 .tl-overlap {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, #6ea8fe 9%, transparent);
-  border-left: 1px dashed color-mix(in srgb, #6ea8fe 42%, transparent);
-  border-right: 1px dashed color-mix(in srgb, #6ea8fe 42%, transparent);
+  background: var(--tl-band);
+  border-left: 1px dashed var(--tl-band-edge);
+  border-right: 1px dashed var(--tl-band-edge);
 }
 .tl-tick {
   position: absolute;
@@ -2443,7 +2482,8 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   justify-content: center;
   padding-right: 10px;
   min-width: 0;
-  background: var(--surface);
+  /* opaque so dots scroll UNDER the names, and themed so a light card gets a white column */
+  background: var(--tl-head-bg);
 }
 .tl-lane-name {
   font-size: 0.84rem;
@@ -2462,7 +2502,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   right: 0;
   top: 50%;
   height: 1px;
-  background: color-mix(in srgb, currentColor 20%, transparent);
+  background: var(--tl-rule);
 }
 .tl-span {
   position: absolute;
@@ -2470,7 +2510,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   height: 6px;
   min-width: 2px;
   border-radius: 3px;
-  background: color-mix(in srgb, #6ea8fe 50%, transparent);
+  background: var(--tl-span);
 }
 .tl-event { position: absolute; top: 50%; }
 .tl-dot {
@@ -2481,9 +2521,9 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   height: 9px;
   margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
-  background: #dbe7ff;
-  border: 1.5px solid #6ea8fe;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #0b1120 75%, transparent);
+  background: var(--tl-dot);
+  border: 1.5px solid var(--tl-dot-ring);
+  box-shadow: 0 0 0 2px var(--tl-dot-halo);
 }
 /* Labels move vertically, never sideways — four slots, two lines each. The width follows
    --tl-label-w, which grows with the zoom: that is what turns truncation into readable text. */

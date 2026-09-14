@@ -1416,7 +1416,9 @@ export const WIDGET_TYPES = {
     timeScope: 'point',    name: 'SPARQL Query',
     icon: '🧠',
     description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, or a timeline of dated events',
-    labelFromConfig: (c) => (getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
+    // A custom title wins over the preset's name: it is what the card shows in presentation/lean mode,
+    // where the frame's own title bar is hidden.
+    labelFromConfig: (c) => (c.title || getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
     defaults: {
       preset: 'met-collection',
       query: '',
@@ -1424,6 +1426,9 @@ export const WIDGET_TYPES = {
       renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table'
       maxRows: 100,
       align: 'calendar',     // timeline only: 'calendar' (same moment) | 'age' (align at birth)
+      title: '',             // timeline only: shown in the card (and in lean mode, where the frame is bare)
+      showOverlap: true,     // timeline only: the band where every lane is documented
+      cardTheme: 'dark',     // timeline only: 'dark' inherits the board, 'light' sets the card off
       refreshSeconds: 1800,
     },
     renderer: 'SparqlCard',
@@ -1449,6 +1454,12 @@ export const WIDGET_TYPES = {
       { key: 'align', label: 'Timeline alignment', type: 'select', options: [
         { value: 'calendar', label: 'Calendar years — what happened at the same time' },
         { value: 'age', label: 'Age — align every lane at its first event' },
+      ]},
+      { key: 'title', label: 'Title (optional)', type: 'text', placeholder: 'e.g. Two lives, one axis' },
+      { key: 'showOverlap', label: 'Shade the overlap window', type: 'boolean' },
+      { key: 'cardTheme', label: 'Card background', type: 'select', options: [
+        { value: 'dark', label: 'Board default' },
+        { value: 'light', label: 'Light — set the card off from the board' },
       ]},
       { key: 'maxRows', label: 'Max rows', type: 'number', placeholder: '100' },
     ],
@@ -1533,6 +1544,10 @@ export const WIDGET_TYPES = {
           vars,
           rows,
           align: config.align === 'age' ? 'age' : 'calendar',
+          // Display settings the card also lets the reader toggle on the spot (see TimelineCard).
+          cardTitle: String(config.title || '').trim() || null,
+          showOverlap: config.showOverlap !== false,
+          theme: config.cardTheme === 'light' ? 'light' : 'dark',
         };
       }
       if (mode === 'bar') {
