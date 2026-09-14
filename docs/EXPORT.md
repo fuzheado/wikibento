@@ -1,7 +1,13 @@
 # Getting a board — or one widget — out of WikiBento (ISSUE-77)
 
-**What shipped 2026-09-14:** every widget with rows has a **⤓ Save data (CSV)** button, every widget has a
-**🖨 Print / save as PDF**, and the board toolbar has **🖨 Print / save as PDF** for the whole board.
+**What shipped 2026-09-14:** one **⤓ Export** menu on every widget with four items — **PDF, CSV, PNG,
+SVG** — and **🖨 Print / save as PDF** on the board toolbar for the whole board.
+
+![The export menu](screenshots/wikibento-2026-09-14-export-menu.png)
+
+The menu replaced two buttons (`⤓` and `🖨`) before they became four: the action row is already ⓘ ⚙ ↻ ✕.
+Availability is decided **when the menu opens**, from the live DOM — the only place the answer exists — and
+a disabled item carries the reason in its tooltip rather than failing after the click.
 
 ![One widget printed](screenshots/wikibento-2026-09-14-print-widget.png)
 
@@ -57,7 +63,45 @@ react-grid-layout positions cards **absolutely with transforms** while `.grid-it
 Printed as-is that is a cropped, overlapping mess; the print sheet neutralises the grid completely
 (`position: static`, no transforms, auto height).
 
-## PNG — why it is not here
+## SVG and PNG: what is possible, measured
+
+**Measured 2026-09-14 — and it changes the plan.** The approach was to clone the widget, inline every
+computed style, wrap it in an SVG `<foreignObject>` and rasterise that. The wrapper produces a **valid
+.svg**, but the rasterisation is impossible in Chromium:
+
+| document drawn into a canvas | `toBlob` result |
+|---|---|
+| plain SVG (no `foreignObject`) | ✅ works |
+| `foreignObject` containing *only* `<p>hello</p>` | ❌ `SecurityError: Tainted canvas` |
+| `foreignObject` + a remote `<img>` | ❌ tainted |
+| `foreignObject` + a `data:` URI image | ❌ tainted |
+
+A bare `<p>` taints it: **Chromium refuses to hand back any canvas drawn from an SVG containing a
+`foreignObject`**, so no amount of inlining helps. Hence the honest capability matrix, which the menu
+enforces:
+
+| widget draws itself as… | PDF | CSV | SVG | PNG |
+|---|---|---|---|---|
+| **HTML/CSS** (timeline, tables, ranked lists, galleries — most of the app) | ✅ | rows? | ✅ *file opens in a browser* | ❌ needs a screenshot |
+| **SVG** (CIM trend, file traffic, QR) | ✅ | rows? | ✅ | ✅ rasterised at 2× |
+| **iframe** (wiki page, 360° panorama, video) | ✅ | – | ❌ | ❌ |
+
+Only four widgets on the 40-widget showcase board draw SVG (two CIM charts, the QR, and one iframe) — the
+app's own charts are mostly CSS, which is why this matters more than it sounds.
+
+**So pixel-perfect PNG of an HTML widget is a decision, not a detail.** Two honest routes:
+
+1. **A DOM-to-canvas library** (`html2canvas`, `modern-screenshot`): they draw each element with canvas
+   primitives instead of a `foreignObject`, which is why they avoid the taint — and why they re-implement
+   CSS. It is a new runtime dependency for a project that has six.
+2. **A server-side render** — the Playwright that already records the tutorial videos screenshots the
+   widget element in a real browser, with no CSS-fidelity risk, and can emit a print-quality PDF too. That
+   is a service to run (a browser per request, caching by config hash, rate limiting), which is why it is
+   its own issue rather than a button.
+
+Until then the menu is truthful about it, and print-to-PDF covers most of what a PNG gets wanted for.
+
+## The original PNG reasoning, kept for the record
 
 A picture of a widget is the one export that cannot be done well from inside the page without a
 dependency, and even with one it is the least trustworthy:
@@ -76,6 +120,13 @@ dependency, and even with one it is the least trustworthy:
 So PNG waits. Print-to-PDF already gives most of what people want a PNG for, and it works today.
 
 ## Traps found while building this (each was invisible to the test suite)
+
+- **A region rewrite deleted a component that the registry still named.** `BarCard` was removed when the
+  timeline card was rewritten (commit `e4cdad8`) while `sparql`'s registry entry still pointed at it, so
+  every bar-rendered SPARQL query threw `ReferenceError: BarCard is not defined` for three commits —
+  caught by the widget ErrorBoundary and shown as "💥 Try Again", with a green suite behind it. Nothing
+  had ever compared the registry to the components; `tests/renderer-registry.test.mjs` now does, for both
+  the registry and the dispatcher switch.
 
 - **Inserting a helper above a component's `function` line can steal its `export default`.** The CSV helper
   landed between `export default` and `function WidgetFrame(`, so the module's default export became the

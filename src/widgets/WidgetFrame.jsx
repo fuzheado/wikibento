@@ -12,7 +12,8 @@ import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
 import { configFieldValue } from '../lib/configFields';
-import { exportRows, toCsv, csvFilename } from '../lib/exportData';
+import { exportRows, toCsv, exportFilename } from '../lib/exportData';
+import { nodeToSvg, svgElementToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
 import '../vendor/pannellum.css';
 
@@ -84,12 +85,94 @@ function saveCsv(type, data, title) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = csvFilename(type, title);
+  a.download = exportFilename(type, title, 'csv');
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return true;
+}
+
+/**
+ * The export menu (ISSUE-77).
+ *
+ * Four formats behind one button rather than four buttons in the header: the row is already ⓘ ⚙ ↻ ✕, and
+ * PNG and SVG would have made it seven. Availability is decided on OPEN, from the live DOM, because that
+ * is the only place the answer exists (an embedded iframe cannot be serialised; an image that refuses CORS
+ * cannot be rasterised) — and a disabled item carries the reason in its tooltip instead of failing after
+ * the click.
+ */
+function ExportMenu({ node, type, data, title, widgetId }) {
+  const [open, setOpen] = useState(false);
+  const [caps, setCaps] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    setCaps(imageCapabilities(node));
+    const close = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [open, node]);
+
+  const table = exportRows(data, { title });
+  const run = async (key, fn) => {
+    setBusy(key);
+    try { await fn(); } catch (err) { console.warn('[WikiBento] export failed:', err); }
+    setBusy(null);
+    setOpen(false);
+  };
+  const items = [
+    { key: 'pdf', label: 'PDF', hint: 'Print, or save as PDF — real vector text', ok: true,
+      run: () => printTarget(widgetId) },
+    { key: 'csv', label: 'CSV', hint: table ? `${table.rows.length} rows of data` : 'No table data in this widget', ok: !!table,
+      run: () => saveCsv(type, data, title) },
+    { key: 'png', label: 'PNG', hint: caps?.png.ok ? caps.png.reason : caps?.png.reason, ok: !!caps?.png.ok,
+      run: async () => {
+        // the widget's own SVG, rasterised — a foreignObject wrapper would taint the canvas (see exportImage.js)
+        downloadBlob(await svgElementToPngBlob(node.querySelector('svg')), exportFilename(type, title, 'png'));
+      } },
+    { key: 'svg', label: 'SVG', hint: caps?.svg.ok ? caps.svg.reason : caps?.svg.reason, ok: !!caps?.svg.ok,
+      run: async () => {
+        const { svg } = await nodeToSvg(node);
+        downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), exportFilename(type, title, 'svg'));
+      } },
+  ];
+
+  return (
+    <span className="widget-menu-wrap" ref={wrapRef}>
+      <button
+        className="widget-btn"
+        onClick={() => setOpen((v) => !v)}
+        title="Export this widget — PDF, CSV, PNG or SVG"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >⤓</button>
+      {open && (
+        <div className="widget-menu" role="menu">
+          {items.map((it) => (
+            <button
+              key={it.key}
+              role="menuitem"
+              className="widget-menu-item"
+              disabled={!it.ok || !!busy}
+              title={it.hint || ''}
+              onClick={() => it.ok && !busy && run(it.key, it.run)}
+            >
+              <span className="widget-menu-label">{it.label}</span>
+              <span className="widget-menu-hint">{busy === it.key ? 'working…' : it.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
 }
 
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
@@ -112,6 +195,8 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     () => resolveSourceValue(resolvedConfig, widgetOutputs),
     [resolvedConfig, widgetOutputs],
   );
+  // What the export menu captures: the card itself, chrome and panels excluded by the serialiser.
+  const cardRef = useRef(null);
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -364,7 +449,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   };
 
   return (
-    <div className="widget-frame">
+    <div className="widget-frame" ref={cardRef}>
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
@@ -385,16 +470,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             onClick={() => { setShowConfig(!showConfig); setShowInfo(false); }}
             title="Configure"
           >⚙</button>
-          {/* Only offered when the payload actually has rows: a download button that saves nothing
-              is worse than no button. */}
-          {exportRows(state.data, { title: widget.config?.title }) && (
-            <button
-              className="widget-btn"
-              onClick={() => saveCsv(widget.widgetType, state.data, widget.config?.title)}
-              title="Save this widget's data as CSV"
-            >⤓</button>
-          )}
-          <button className="widget-btn" onClick={() => printTarget(widget.id)} title="Print or save this widget as PDF">🖨</button>
+          {/* One button, four formats — see ExportMenu. The node it captures is the card itself. */}
+          <ExportMenu
+            node={cardRef.current}
+            widgetId={widget.id}
+            type={widget.widgetType}
+            data={state.data}
+            title={widget.config?.title}
+          />
           <button className="widget-btn" onClick={() => load(true)} title="Refresh">↻</button>
           <button
             className="widget-btn widget-btn-remove"
@@ -2160,6 +2243,31 @@ function TimelineCard({ data }) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Bar — horizontal label→value bars (hand-rolled, zero-chart-library style).
+ *  (Deleted by accident in e4cdad8 when the TimelineCard region was rewritten, and restored in
+ *  1fe55ff-era work: the SPARQL widget's bar renderer had been crashing since. The registry→component
+ *  guard in tests/renderer-registry.test.mjs exists so a missing renderer fails the suite, not a page.) */
+function BarCard({ data }) {
+  const rows = data.rows || [];
+  const max = Math.max(...rows.map((r) => r.value || 0), 1);
+  return (
+    <div className="bar-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="bar-rows">
+        {rows.length === 0 && <div className="widget-empty">No rows</div>}
+        {rows.map((r, i) => (
+          <div key={i} className="bar-row" title={`${r.label}: ${r.value?.toLocaleString?.() ?? r.value}`}>
+            <span className="bar-label">{r.label}</span>
+            <span className="bar-track"><span className="bar-fill" style={{ width: `${Math.max((r.value / max) * 100, 1)}%` }} /></span>
+            <span className="bar-value">{typeof r.value === 'number' ? r.value.toLocaleString() : r.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

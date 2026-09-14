@@ -124,8 +124,11 @@ export function toCsv({ columns, rows }) {
   return `${lines.join('\r\n')}\r\n`;
 }
 
-/** `pageview-marie-curie-2026-09-12.csv` — recognisable in a downloads folder. */
-export function csvFilename(widgetType, title, now = new Date()) {
+/**
+ * `wikibento-pageview-marie-curie-2026-09-12.csv` — recognisable in a downloads folder, whatever the
+ * format (the extension is the last argument so one function names every export).
+ */
+export function exportFilename(widgetType, title, ext, now = new Date()) {
   const slug = String(title || '')
     .replace(/\(Q\d+\)/g, '')
     .normalize('NFKD')
@@ -138,5 +141,9 @@ export function csvFilename(widgetType, title, now = new Date()) {
   const stamp = now.toISOString().slice(0, 10);
   // registry ids are camelCase (editHistory) — kebab them so the filename reads like a filename
   const type = String(widgetType || '').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-  return ['wikibento', type, slug, stamp].filter(Boolean).join('-') + '.csv';
+  return ['wikibento', type, slug, stamp].filter(Boolean).join('-') + `.${ext}`;
 }
+
+/** The CSV case, kept as its own name because that is how the callers think about it. */
+export const csvFilename = (widgetType, title, now = new Date()) =>
+  exportFilename(widgetType, title, 'csv', now);

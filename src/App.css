@@ -2609,3 +2609,51 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   body[data-print='widget'] .tl-scroll { overflow: visible !important; }
   body[data-print='widget'] .tl-plot-inner { width: 100% !important; }
 }
+
+/* ── The widget export menu (ISSUE-77) ──────────────────────────────────────────
+   Four formats behind one ⤓ button. The menu is absolutely positioned inside the card and overlays
+   its content: .grid-item clips (overflow: hidden) for the on-screen scroll behaviour, so a menu that
+   opened upward or outside the card would be cut off. */
+.widget-menu-wrap { position: relative; display: inline-flex; }
+.widget-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 15rem;
+  padding: 4px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  display: flex;
+  flex-direction: column;
+}
+.widget-menu-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.widget-menu-item:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.widget-menu-item:disabled { opacity: 0.42; cursor: default; }
+.widget-menu-label {
+  font-weight: 600;
+  font-size: 0.78rem;
+  min-width: 2.4rem;
+  letter-spacing: 0.02em;
+}
+.widget-menu-hint {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
