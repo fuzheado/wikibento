@@ -3504,8 +3504,13 @@ number disagree by 217; show both or label precisely.
 **Negative result recorded:** `insource:` via CirrusSearch is *not* a substitute — it counts mentions in
 wikitext, not external links (File namespace: 1,549 vs 1 real link; total 2,607 vs 1,179).
 
+**Decided (Andrew, 2026-09-14):** headline count = **links**, because that is the honest unit
+returned by `exturlusage`; show distinct pages as secondary context. The full namespace report should be
+a **mode of the existing `linkcount` card**, not a separate widget type, to avoid registry sprawl.
+
 **Proposed:** one paged run over all namespaces grouping by `ns`; a stacked bar plus namespace/count/share
 list with small namespaces collapsed into "Other"; namespace labels from the wiki's own
 `siteinfo` namespaces (so non-Wikipedia wikis read correctly); keep the existing `namespace` config as a
-*view* filter rather than a query filter; count all protocols by default; show links and pages; and say
-"≥5,000" when the code's documented result cap bites instead of presenting a capped number as a total.
+*view* filter rather than a query filter; count all protocols by default; show **links** as the headline
+and distinct pages as a subtitle; and say "≥5,000" when the code's documented result cap bites instead
+of presenting a capped number as a total.
