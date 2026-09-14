@@ -1983,7 +1983,7 @@ function SparqlCard({ data }) {
   return <TableCard data={data} />;
 }
 
-/** Timeline — dated rows as lanes on one shared axis (ISSUE-73).
+/** Timeline — dated rows as lanes on one shared axis (ISSUE-76).
  *
  *  Built for comparison: two lives born the same year, two institutions, a person and the event they
  *  attended. Every lane is a bar from its first to its last documented event, the shaded band is the

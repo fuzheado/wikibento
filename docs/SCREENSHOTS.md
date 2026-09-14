@@ -11,7 +11,7 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
-## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-73, v0)
+## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-76, v0)
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
 

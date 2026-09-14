@@ -1,5 +1,5 @@
 /**
- * Timeline layout — the maths behind the SPARQL widget's `timeline` render mode (ISSUE-73).
+ * Timeline layout — the maths behind the SPARQL widget's `timeline` render mode (ISSUE-76).
  *
  * The mode is for time-shaped results: one row per event, a date column, and (optionally) a column
  * naming whose lane the event belongs to. Two people on one axis is the motivating case — "Anne Frank

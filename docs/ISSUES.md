@@ -3260,7 +3260,7 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
-## ISSUE-73 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
+## ISSUE-76 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
 
 **What:** a `timeline` renderer for the existing `sparql` widget — dated rows as **lanes on one shared
 axis** — plus a `two-lives` preset (Anne Frank × Martin Luther King Jr.) and

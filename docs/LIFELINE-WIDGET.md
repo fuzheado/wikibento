@@ -1,4 +1,4 @@
-# Lifeline — timelines of lives, and comparing two of them (ISSUE-73)
+# Lifeline — timelines of lives, and comparing two of them (ISSUE-76)
 
 **Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, a `two-lives`
 preset, and `?config=/parallel-lives-demo.json`. Everything below is measured, not assumed. v1+

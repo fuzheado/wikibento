@@ -112,7 +112,7 @@ SPARQL output → network visualization, not just tables:
 - **Other SPARQL renderers to consider:** map (SPARQL→GeoJSON, see the
   `kepler-gl` skill), ~~timeline (time-shaped results — the WDQS UI's built-in
   views are table/map/timeline/graph, a good feature checklist)~~ **✅ shipped as
-  the `timeline` renderer (ISSUE-73)**, and line charts for time-series shaped
+  the `timeline` renderer (ISSUE-76)**, and line charts for time-series shaped
   results.
 
 ### PetScan Query
@@ -131,7 +131,7 @@ SPARQL output → network visualization, not just tables:
 - **Effort:** M (selector UI + metric extraction + proxy wiring)
 - **Notes:** fulfills the original "generic widget" vision; makes WikiBento open-ended.
 
-## Lifeline — timelines of lives on one axis (ISSUE-73)
+## Lifeline — timelines of lives on one axis (ISSUE-76)
 
 **Shipped v0 2026-09-12.** Two people, one time axis: a `timeline` renderer on the SPARQL widget plus a
 `two-lives` preset and a demo board (`?config=/parallel-lives-demo.json`). Anne Frank (1929–1945) and
