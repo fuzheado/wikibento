@@ -11,6 +11,7 @@ import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
+import { configFieldValue } from '../lib/configFields';
 import '../vendor/pannellum.css';
 
 /**
@@ -408,9 +409,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
           {(def?.configFields || []).map(field => (
             <div key={field.key} className="config-field">
               <label>{field.label}</label>
+              {(() => null)()}
               {field.type === 'select' || field.type === 'preset' ? (
                 <select
-                  value={widget.config[field.key] || ''}
+                  value={configFieldValue(field, widget.config) || ''}
                   onChange={e => { const v = e.target.value; if (field.type === 'preset') { const p = (field.presets || []).find(x => x.id === v); onUpdateConfig(widget.id, { ...widget.config, [field.key]: v, query: p ? p.query : widget.config.query, endpoint: p ? p.endpoint : widget.config.endpoint }); } else { handleConfigChange(field.key, v); } }}
                 >
                   {field.options.map(o => (
@@ -426,7 +428,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   <input
                     className="config-source-input"
                     list={`source-dl-${widget.id}`}
-                    value={widget.config[field.key] || ''}
+                    value={configFieldValue(field, widget.config) || ''}
                     onChange={(e) => handleConfigChange(field.key, e.target.value)}
                     placeholder="— none — or type an instance id"
                   />
@@ -441,7 +443,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                 </div>
               ) : field.type === 'params' ? (
                 <ParamPicker
-                  value={widget.config[field.key] || ''}
+                  value={configFieldValue(field, widget.config) || ''}
                   paramSpecs={paramSpecs}
                   onChange={(v) => handleConfigChange(field.key, v)}
                 />
@@ -458,7 +460,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                     type="number"
                     min={field.min}
                     max={field.max}
-                    value={widget.config[field.key] || ''}
+                    value={configFieldValue(field, widget.config) || ''}
                     onChange={e => handleConfigChange(field.key, parseInt(e.target.value) || 0)}
                     placeholder={field.placeholder}
                   />
@@ -474,7 +476,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                 <div className="config-input-wrap">
                   <textarea
                     ref={(el) => { fieldRefs.current[field.key] = el; }}
-                    value={widget.config[field.key] || ''}
+                    value={configFieldValue(field, widget.config) || ''}
                     onChange={e => handleConfigChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
                     rows={field.rows || 6}
@@ -486,7 +488,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   <input
                     type="text"
                     ref={(el) => { fieldRefs.current[field.key] = el; }}
-                    value={widget.config[field.key] || ''}
+                    value={configFieldValue(field, widget.config) || ''}
                     onChange={e => handleConfigChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
                   />

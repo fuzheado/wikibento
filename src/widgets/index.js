@@ -1437,7 +1437,11 @@ export const WIDGET_TYPES = {
       { key: 'preset', label: 'Preset (fills the query)', type: 'preset',
         options: SPARQL_PRESETS.map((p) => ({ value: p.id, label: p.label })),
         presets: SPARQL_PRESETS },
-      { key: 'query', label: 'SPARQL query', type: 'textarea', rows: 10, placeholder: 'SELECT ...' },
+      { key: 'query', label: 'SPARQL query', type: 'textarea', rows: 10, placeholder: 'SELECT ...',
+        // Boards store a preset, not its query (so editing a preset upstream still reaches them), which
+        // made this box look empty on every preset-backed widget — while the preset's query was what
+        // actually ran. Show it; a query the user types is stored and always wins.
+        fallbackValue: (c) => getPreset(c.preset)?.query || '' },
       { key: 'endpoint', label: 'Endpoint', type: 'select', options: [
         { value: 'wdqs', label: 'Wikidata (WDQS)' },
         { value: 'qlever-commons', label: 'Commons SDC (QLever)' },

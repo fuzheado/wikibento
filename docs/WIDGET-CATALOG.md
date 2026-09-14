@@ -67,7 +67,7 @@ Back to the [README](../README.md).
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
-| **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); Wikidata entity cells render **"Label (QID)"** (QLever can't run the label SERVICE — labels resolved via `wbgetentities`); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) |
+| **SPARQL Query** | 🧠 | [WDQS](https://query.wikidata.org/sparql) + [QLever](https://qlever.dev/api/wikimedia-commons) + Humaniki | Run any SPARQL (Wikidata or Commons SDC) — big number, bar chart, line, or table (auto-detected from the result shape, with manual override); Wikidata entity cells render **"Label (QID)"** (QLever can't run the label SERVICE — labels resolved via `wbgetentities`); 4 curated presets incl. collection depth and the Women-in-Red % (precomputed via Humaniki) Boards that pick a preset store the preset, not its query (so a preset edited upstream still reaches them) — open the ⚙ panel and the box shows the query actually running, ready to edit. |
 
 ## Dataflow (4) — widget-to-widget connections (ISSUE-52)
 
