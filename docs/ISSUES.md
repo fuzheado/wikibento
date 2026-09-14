@@ -3260,55 +3260,63 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
-## ISSUE-77 · Snapshot service: a server-side browser for PNG of any widget — **open (design + spike)**
+## ISSUE-77 · Snapshot service: a server-side browser for PNG of any widget — **not doing (decided 2026-09-14)**
 
-**What:** get a **PNG of any widget**, including the HTML/CSS ones the client cannot rasterise. The client-side
-half already shipped (ISSUE-77's export menu): SVG for any non-iframe widget, PNG only where a widget draws
-itself as SVG. Everything else needs a browser to paint it somewhere we control.
+**Decision:** **rejected.** PNG of an HTML/CSS widget will not become a server-side feature. Client-side PNG
+stays limited to widgets that draw themselves as SVG, and the export menu says so. Decided by Andrew and the
+agent on 2026-09-14, after the client-side half shipped (see *What shipped instead*).
 
-**Why it cannot be done in the page:** measured 2026-09-14 — Chromium **taints a canvas for any SVG
-containing a `foreignObject`**, including one holding nothing but `<p>hello</p>`, so the DOM→SVG wrapper
-produces a valid .svg but can never yield a .png. No inlining helps. Server-side rasterisers (resvg,
-librsvg) do not support `foreignObject` either, so the shortcut does not exist.
+**Why — the four costs, in the order they matter**
 
-**What it means concretely**
+1. **It re-fetches the whole board for one image.** The board's own recordings measure it: the tutorial
+   pipeline trims **17.7–18.1 s of lead-in** because a board takes that long to load before it can be filmed
+   (`pipeline/build.mjs` trims it per scene). A snapshot endpoint pays that on every request, and the caches
+   that make a human's second visit cheap — the in-page `sparqlCache`, CIM's 1 h TTL, HTTP caching — start
+   cold every time.
+2. **The traffic lands on Wikimedia, from a shared IP.** A 40-widget board is dozens of calls to WDQS, CIM,
+   PetScan, LiftWing and the Action API. WDQS rate-limits, and a Toolforge IP doing that on demand can be
+   throttled for **other tools**. Heavy automated WDQS use by a movement-hosted tool is bad citizenship.
+3. **The browser is a bigger risk than its CPU.** Chromium is 300–500 MB against a **1 Gi pod** (Toolforge
+   default; max 4 Gi), and it is a large attack surface that parses untrusted content. Our boards can embed
+   **arbitrary external pages** (Wiki Page custom URL, panorama, video), so the service would be a
+   Wikimedia-hosted box that fetches and renders URLs on request — an SSRF/proxy surface by construction.
+4. **It is a permanent liability, not a feature.** Chromium CVEs to patch, OOM to watch, a queue to tune,
+   rate limits to defend — forever, for a capability almost nobody asked for.
 
-1. A render endpoint on the tool — `POST /api/snapshot` with `{ config, widgetId, format, width, scale }` in
-   the body (body, not a URL: the server should not fetch arbitrary configs — SSRF plus Toolforge egress).
-2. A **headless browser** loads the app with that config, waits for the widgets to settle, screenshots the
-   element, returns bytes. So **yes, server-side browser**; Playwright specifically is optional (Puppeteer or
-   `chrome-headless-shell` would do) but it is the natural choice: `pipeline/` already drives this app with
-   it, `elementHandle.screenshot()` is one line, and `page.pdf()` gives a print-quality PDF for free.
-3. A readiness signal — a board is done when its async widget fetches have settled. The recording pipeline
-   solves this with explicit per-scene waits; the app should expose something better (`document.body.dataset
-   .ready`, or a settled-event), which also helps the video pipeline.
-4. **Cache by hash** of (config, widgetId, viewport, scale) — a snapshot of a given config is a *frozen*
-   artifact, which is the point: it can carry an "as of" line, like the tutorial videos do.
-5. **Concurrency 1, in a separate component.** Toolforge pods default to **1 CPU / 1 Gi RAM** (max 4 Gi /
-   2 CPU); Chromium is 300–500 MB per instance, so a browser in the static-serving process would risk
-   OOM-killing the site. Queue requests, one browser at a time.
-6. **Abuse surface.** An endpoint that spawns browsers is a DoS vector: rate-limit, cap the queue, and prefer
-   a whitelist of hosted demo configs over arbitrary submissions.
+**And the objection that stands even if compute were free:** a server render is a **re-render, not a
+capture**. It cannot show what the user is looking at — zoom, scroll position, light/dark card theme,
+selected params, kiosk/lean mode — unless the whole view state is serialised and rebuilt, and even then the
+image differs from the screen. The client device has the pixels, the DPR, the intent and no infrastructure.
+Screenshotting is a keystroke; a service is a job.
 
-**The two ways to get a browser into a Toolforge pod** (the actual unknown):
+**What shipped instead** (ISSUE-76 era, `docs/EXPORT.md`): a **⤓ export menu** per widget — **CSV** for the
+data, **PDF** via the browser's print engine (vector, selectable — a better artifact than PNG for reports
+and slides), **SVG** for every non-iframe widget, and **PNG** where the widget already draws SVG (rasterised
+exactly at 2×). Anyone wanting a PNG of an HTML widget can screenshot their own device or convert the SVG
+export locally.
 
-| route | how | risk |
+**Durable finding from the investigation, worth keeping:** Chromium **taints a canvas for any SVG containing
+a `foreignObject`** — measured 2026-09-14 on five documents, including one holding nothing but `<p>hello</p>`
+(`SecurityError: Tainted canvas`), while plain SVG rasterises fine. That is why the DOM→SVG wrapper yields a
+valid **.svg** but can never yield a **.png** in the page, and why server-side rasterisers (resvg, librsvg)
+are no shortcut either: they do not support `foreignObject`. See `src/lib/exportImage.js`, which encodes the
+measured capability matrix.
+
+**If this is ever revisited** — the trigger should be *evidence*: a user describing a workflow where a
+screenshot genuinely does not work (e.g. a bot posting board images to a wiki on a schedule). Weigh in this
+order, lightest first:
+
+| option | weight | notes |
 |---|---|---|
-| **Build Service image** | Cloud Native Buildpacks image with Chromium + its ~90 shared libs installed at build time | needs apt support in the build (unconfirmed) |
-| **Rootless Chromium** | a self-contained build such as `@sparticuz/chromium`, run from a pod/cron with a self-managed runtime (the `wagent` pattern) | version-pinning against the driver |
+| **Client-side DOM→canvas library** (`modern-screenshot`, MIT) | one dependency, ~30–50 KB, no server, no extra API traffic | re-implements CSS (`color-mix()`, container queries, sticky) — plausible-but-wrong files are the risk; still cannot do iframes |
+| **Scheduled snapshots** — a cron job renders a curated board list to static PNG/PDF | browser in a pod, N times a day | predictable, rate-limit-friendly traffic; frozen artifacts that drift from live data (label them "as of"); covers the archival use case, not "any widget on demand" |
+| **Per-request render endpoint** | a service to run and defend | **rejected here** — all four costs above |
 
-**Cheaper variant worth considering first — scheduled snapshots.** Boards are configs, so a **cron job** can
-render a curated list of boards to PNG/PDF and write them as static files that the existing webservice
-serves. No per-request browser, no abuse surface, deterministic and citable. The trade-off is scope: it
-snapshots *the boards we list*, refreshed on a schedule, rather than any widget on demand.
-
-**Spike (½ day, settles it with evidence):** in a Toolforge pod, get *any* headless browser to screenshot one
-URL; measure memory, cold start, render time, and failure modes. Then decide between the endpoint and the
-scheduled-snapshot variant.
-
-**Rejected alternative:** a DOM-to-canvas library (`html2canvas`, `modern-screenshot`) — one new runtime
-dependency for a six-package project, and it re-implements the CSS (`color-mix()`, container queries, sticky)
-that makes the real browser the trustworthy renderer.
+The feasibility unknown recorded at the time, in case it is ever needed: getting a browser *into* a pod is
+the hard part, not driving it — either a **Build Service** image with Chromium and its ~90 shared libraries
+installed at build time (apt support in the build unconfirmed), or a **rootless Chromium** build such as
+`@sparticuz/chromium` run from a pod/cron (version-pinning against the driver). Playwright is optional;
+Puppeteer or `chrome-headless-shell` would do, though `pipeline/` already drives this app with Playwright.
 
 
 ## ISSUE-76 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**

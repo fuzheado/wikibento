@@ -101,17 +101,26 @@ app's own charts are mostly CSS, which is why this matters more than it sounds.
 
 Until then the menu is truthful about it, and print-to-PDF covers most of what a PNG gets wanted for.
 
-**Option 2 in detail — the snapshot service.** A `POST /api/snapshot` on the tool (config in the *body*, so
-the server never fetches an arbitrary URL) launches a headless browser, loads the app, waits for the widgets
-to settle, and returns a PNG — or a PDF via `page.pdf()`. Playwright is the natural driver because `pipeline/`
-already drives this app with it. The constraints are Toolforge's, not the browser's: pods default to
-**1 CPU / 1 Gi**, Chromium wants 300–500 MB, so it is a **separate component with concurrency 1 and a queue**,
-never the static-serving process, with cache-by-config-hash and rate limits because an endpoint that spawns
-browsers is a DoS surface. The unknown to settle first is how a browser gets *into* a pod at all: a Build
-Service image with Chromium installed at build time, or a rootless Chromium build (`@sparticuz/chromium`) run
-from a pod or cron. A cheaper variant gets most of the value: a **cron job that snapshots a curated board list
-to static PNG/PDF**, which needs no per-request browser and produces citable, frozen artifacts. Tracked as
-ISSUE-77 in [ISSUES.md](ISSUES.md).
+**Decided 2026-09-14: this will not be a server-side feature.** The reasoning is recorded in
+[ISSUES.md](ISSUES.md) ISSUE-77 and comes down to four costs — it re-fetches the whole board for one image
+(the pipeline's own recordings show **17.7–18.1 s of lead-in** per board), the traffic lands on Wikimedia
+APIs from a shared Toolforge IP, Chromium is 300–500 MB against a **1 Gi** pod and parses untrusted content
+(our widgets can embed arbitrary external pages), and it is a permanent patching/monitoring liability — plus
+the objection that survives all of those: a server render is a **re-render, not a capture**, so it cannot
+show the user's zoom, scroll, theme or params anyway.
+
+**Getting a PNG anyway, without a service:**
+
+| you want | do this |
+|---|---|
+| a picture of a card, or of the board | screenshot your own device — the browser has the pixels and the right DPR |
+| a **file** of a card | **SVG** from the ⤓ menu, then convert locally (any browser, Figma, Illustrator, `rsvg-convert`) |
+| a file of a card that draws itself as SVG (charts, QR) | **PNG** from the ⤓ menu — rasterised exactly, at 2× |
+| something for a report, a slide or an email | **PDF** from the ⤓ menu — vector and selectable, better than a PNG for all three |
+
+If PNG-of-any-widget is ever genuinely needed, the proportionate next step is a **client-side** DOM→canvas
+library (one dependency, no server), or **scheduled snapshots** of a curated board list for the archival
+case — never a per-request render endpoint.
 
 ## The original PNG reasoning, kept for the record
 
