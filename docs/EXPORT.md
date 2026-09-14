@@ -101,6 +101,18 @@ app's own charts are mostly CSS, which is why this matters more than it sounds.
 
 Until then the menu is truthful about it, and print-to-PDF covers most of what a PNG gets wanted for.
 
+**Option 2 in detail — the snapshot service.** A `POST /api/snapshot` on the tool (config in the *body*, so
+the server never fetches an arbitrary URL) launches a headless browser, loads the app, waits for the widgets
+to settle, and returns a PNG — or a PDF via `page.pdf()`. Playwright is the natural driver because `pipeline/`
+already drives this app with it. The constraints are Toolforge's, not the browser's: pods default to
+**1 CPU / 1 Gi**, Chromium wants 300–500 MB, so it is a **separate component with concurrency 1 and a queue**,
+never the static-serving process, with cache-by-config-hash and rate limits because an endpoint that spawns
+browsers is a DoS surface. The unknown to settle first is how a browser gets *into* a pod at all: a Build
+Service image with Chromium installed at build time, or a rootless Chromium build (`@sparticuz/chromium`) run
+from a pod or cron. A cheaper variant gets most of the value: a **cron job that snapshots a curated board list
+to static PNG/PDF**, which needs no per-request browser and produces citable, frozen artifacts. Tracked as
+ISSUE-77 in [ISSUES.md](ISSUES.md).
+
 ## The original PNG reasoning, kept for the record
 
 A picture of a widget is the one export that cannot be done well from inside the page without a

@@ -3260,6 +3260,57 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
+## ISSUE-77 · Snapshot service: a server-side browser for PNG of any widget — **open (design + spike)**
+
+**What:** get a **PNG of any widget**, including the HTML/CSS ones the client cannot rasterise. The client-side
+half already shipped (ISSUE-77's export menu): SVG for any non-iframe widget, PNG only where a widget draws
+itself as SVG. Everything else needs a browser to paint it somewhere we control.
+
+**Why it cannot be done in the page:** measured 2026-09-14 — Chromium **taints a canvas for any SVG
+containing a `foreignObject`**, including one holding nothing but `<p>hello</p>`, so the DOM→SVG wrapper
+produces a valid .svg but can never yield a .png. No inlining helps. Server-side rasterisers (resvg,
+librsvg) do not support `foreignObject` either, so the shortcut does not exist.
+
+**What it means concretely**
+
+1. A render endpoint on the tool — `POST /api/snapshot` with `{ config, widgetId, format, width, scale }` in
+   the body (body, not a URL: the server should not fetch arbitrary configs — SSRF plus Toolforge egress).
+2. A **headless browser** loads the app with that config, waits for the widgets to settle, screenshots the
+   element, returns bytes. So **yes, server-side browser**; Playwright specifically is optional (Puppeteer or
+   `chrome-headless-shell` would do) but it is the natural choice: `pipeline/` already drives this app with
+   it, `elementHandle.screenshot()` is one line, and `page.pdf()` gives a print-quality PDF for free.
+3. A readiness signal — a board is done when its async widget fetches have settled. The recording pipeline
+   solves this with explicit per-scene waits; the app should expose something better (`document.body.dataset
+   .ready`, or a settled-event), which also helps the video pipeline.
+4. **Cache by hash** of (config, widgetId, viewport, scale) — a snapshot of a given config is a *frozen*
+   artifact, which is the point: it can carry an "as of" line, like the tutorial videos do.
+5. **Concurrency 1, in a separate component.** Toolforge pods default to **1 CPU / 1 Gi RAM** (max 4 Gi /
+   2 CPU); Chromium is 300–500 MB per instance, so a browser in the static-serving process would risk
+   OOM-killing the site. Queue requests, one browser at a time.
+6. **Abuse surface.** An endpoint that spawns browsers is a DoS vector: rate-limit, cap the queue, and prefer
+   a whitelist of hosted demo configs over arbitrary submissions.
+
+**The two ways to get a browser into a Toolforge pod** (the actual unknown):
+
+| route | how | risk |
+|---|---|---|
+| **Build Service image** | Cloud Native Buildpacks image with Chromium + its ~90 shared libs installed at build time | needs apt support in the build (unconfirmed) |
+| **Rootless Chromium** | a self-contained build such as `@sparticuz/chromium`, run from a pod/cron with a self-managed runtime (the `wagent` pattern) | version-pinning against the driver |
+
+**Cheaper variant worth considering first — scheduled snapshots.** Boards are configs, so a **cron job** can
+render a curated list of boards to PNG/PDF and write them as static files that the existing webservice
+serves. No per-request browser, no abuse surface, deterministic and citable. The trade-off is scope: it
+snapshots *the boards we list*, refreshed on a schedule, rather than any widget on demand.
+
+**Spike (½ day, settles it with evidence):** in a Toolforge pod, get *any* headless browser to screenshot one
+URL; measure memory, cold start, render time, and failure modes. Then decide between the endpoint and the
+scheduled-snapshot variant.
+
+**Rejected alternative:** a DOM-to-canvas library (`html2canvas`, `modern-screenshot`) — one new runtime
+dependency for a six-package project, and it re-implements the CSS (`color-mix()`, container queries, sticky)
+that makes the real browser the trustworthy renderer.
+
+
 ## ISSUE-76 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
 
 **What:** a `timeline` renderer for the existing `sparql` widget — dated rows as **lanes on one shared
