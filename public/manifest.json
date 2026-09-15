@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-15T07:50:20.940Z",
+ "generatedAt": "2026-09-15T15:58:02.058Z",
  "widgetCount": 40,
  "widgets": [
   {
@@ -1830,10 +1830,22 @@
      "label": "Identifier",
      "hint": "The last part of an archive.org/details/… URL. Works for scanned texts with page images.",
      "placeholder": "goodytwoshoes00newyiala"
+    },
+    {
+     "key": "spread",
+     "type": "select",
+     "label": "Reading mode",
+     "hint": "A board can open a book in spread mode; the ▭ button on the card still overrides it for the reader (the board sets the default, the reader decides).",
+     "options": [
+      "auto",
+      "on",
+      "off"
+     ]
     }
    ],
    "defaults": [
     "identifier",
+    "spread",
     "refreshSeconds"
    ],
    "outputs": {

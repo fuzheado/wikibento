@@ -143,11 +143,13 @@ them, `339a275`), so this is reversible.
 **IA Book** cards (a 16-page illustrated children's book and a 304-page Dostoevsky, both driven by their
 IIIF manifests) above four **IA Item** cards covering the media types the next cards will play — a
 Prelinger film, a Live Music Archive concert, a LibriVox audiobook and MIT OpenCourseWare. The note card
-says what is built and what is next. Now **nine** cards: two media players stream the real files — the 11-minute Prelinger film and three
-LibriVox chapters as a playlist, both straight from `archive.org/download/` with no API call. Verified by
-rendering it: 9 cards, both books' page images loaded (`page 1 of 16`, `page 1 of 304`), each item card
-showing its own title, **the film playing at `duration 664s` / `currentTime 1.37s` and the audio at
-`507s` / `1.54s`**, and no error boundary — 10 assertions, no console errors beyond the archive's own 400s.
+says what is built and what is next. Now **nine** cards, and the two books are **full width and opening in facing-pages mode** — the board sets
+that (⚙ *Reading mode*), so the spread is visible on load rather than depending on the reader's window size
+or a click. The two media players stream the real files: the 11-minute Prelinger film and three LibriVox
+chapters as a playlist, straight from `archive.org/download/` with no API call. Verified by rendering it:
+9 cards × no error boundary; **both books open in spread mode with the cover alone, then a facing pair
+(`pages 2–3 of 16`, `pages 2–3 of 304`) with both page images loaded**; the film plays at `duration 664s` /
+`currentTime 1.37s` and the audio at `507s` / `1.54s`; 7 spread assertions plus the earlier 10 player ones.
 
 ## `wikibento-2026-09-15-anne-frank-mlk-demo.png` — the "Born in 1929" demo board (2026-09-15)
 

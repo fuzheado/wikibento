@@ -40,7 +40,12 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const [page, setPage] = useState(0);
   const [wIdx, setWIdx] = useState(1);
   const [offset, setOffset] = useState(0);
-  const [userSpread, setUserSpread] = useState(null);   // null = follow the card's width
+  // The board can express a default (⚙ Reading mode): 'on'/'off' pin it, 'auto' follows the card's width.
+  // null means "follow the width". The reader's own toggle still wins until the widget reloads — the board
+  // sets the default, the reader decides.
+  const spreadDefault = (data && data.spread) || 'auto';
+  const asSpreadState = (v) => (v === 'on' ? true : v === 'off' ? false : null);
+  const [userSpread, setUserSpread] = useState(asSpreadState(spreadDefault));
   const [width, setWidth] = useState(0);
   const [q, setQ] = useState('');
   const [hits, setHits] = useState(null);
@@ -50,6 +55,9 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const [text, setText] = useState(null);
   const [textBusy, setTextBusy] = useState(false);
   const stageRef = useRef(null);
+
+  // A config edit changes the default; re-apply it rather than leaving the previous choice in place.
+  useEffect(() => { setUserSpread(asSpreadState(spreadDefault)); }, [spreadDefault]);
 
   // Two pages need room. The threshold is a viewport property, exactly like the timeline's label slots, so
   // it is measured rather than configured — and a reader's own toggle wins until the widget reloads.

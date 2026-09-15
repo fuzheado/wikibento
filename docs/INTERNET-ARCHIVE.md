@@ -44,7 +44,7 @@ strip, no spectrograms. `iaPlaylist` / `iaVideo` / `iaAudio` are still the plan;
 the playback layer is not the risk.
 
 | **Shared with** | the paged viewer is being extracted from `iaBook` so a **Commons PDF/DjVu** reader can reuse it — see [DOCUMENT-VIEWER.md](DOCUMENT-VIEWER.md) (ISSUE-82), which also means facing pages (ISSUE-81) is built once for both |
-| **See it** | [`?config=/internet-archive-demo.json`](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) — the demo board: two books (16 and 304 pages) and four archive items, verified by rendering (12 assertions). Linked from the hub (`demos.json`) and the README |
+| **See it** | [`?config=/internet-archive-demo.json`](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) — the demo board: two books (16 and 304 pages, both opening in **facing-pages mode** — the board sets it, ⚙ Reading mode) and four archive items, verified by rendering (7 assertions on the spread behaviour). Linked from the hub (`demos.json`) and the README |
 
 The whole family is attractive because the API is unusually friendly: **most of it is CORS-enabled
 and needs no key**, the URLs are stable and human-readable, and the media files stream straight into

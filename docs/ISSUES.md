@@ -3434,8 +3434,9 @@ reader gets it for free:
   `viewingDirection: right-to-left`), the LATER leaf renders on the **left** and the counter still reads
   "pages 1–2 of 389".
 - Leaf 0 stands alone (a cover) with a **shift control** to pair it instead, for scans that start on a text
-  page; spreads engage from the card's measured width (`SPREAD_MIN_WIDTH = 820`) and the reader's own toggle
-  wins until reload; each leaf gets half the zoom ladder.
+  page; spreads engage from the card's measured width (`SPREAD_MIN_WIDTH = 820`), and a board can set the
+  **default** (⚙ *Reading mode*: auto / two pages / one page) while the reader's own toggle still wins
+  until reload; each leaf gets half the zoom ladder.
 
 **Verified in a browser** (`npm run smoke:iabook`, now **31 assertions**): a spread shows two loaded pages,
 the counter names it in reading order, the earlier page is on the left in a left-to-right book, the strip

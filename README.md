@@ -40,7 +40,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🌍 [Born in 1929](https://wikibento.toolforge.org/?config=/anne-frank-mlk-demo.json) | one board, one story: two lives on a shared timeline (21 dated events), plus each subject as prose, images and traffic — Anne Frank and Martin Luther King Jr., both born in 1929 |
 | 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways (calendar or aligned at birth), **zoomable 8×**, per-card title and light/dark card theme — Anne Frank × Martin Luther King Jr., Marie × Pierre Curie |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
-| 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages), archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
+| 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 40 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see

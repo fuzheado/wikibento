@@ -5,7 +5,7 @@
       "id": "ia-note",
       "widgetType": "markdown",
       "config": {
-        "text": "## 📖 The Internet Archive, in cards\n\nThe archive is not only the Wayback Machine. **Two cards are built so far, and both are live:**\n\n- **📖 IA Book** — a scanned book, page by page: turn, zoom, **search inside it** (each hit names its page and shows the matched words boxed on the page), read that page's OCR text, open the PDF/EPUB/OCR. Flip between the two books above: a **16-page** illustrated children's book and a **304-page** Dostoevsky — the page count comes from the IIIF manifest, so both just work.\n- **📦 IA Item** — any item by identifier, with its engagement views (all-time / 30-day / 7-day), file count and size, and thumbnail.\n\nThe four cards below are the media types the next three widgets will render — plain IA Item cards today:\n\n- **🎬 a Prelinger film** — 888 MB, and the source of the keyframe filmstrip\n- **🎧 a Live Music Archive concert** — 20 tracks, each with its own spectrogram\n- **🎧 a LibriVox audiobook** — 7 chapters, and it carries its own scanned book\n- **🗂️ MIT OpenCourseWare** — 511 courses of titled, timed, captioned lectures\n\n**And the media plays.** The two player cards at the bottom stream the real files — an 11-minute Prelinger film and three LibriVox chapters as a playlist — straight from `archive.org/download/`. That needed no new widget: the player now accepts a direct media URL and builds the row without any API call. Range requests mean seeking works.\n\nBuild order for the rest of the family: **IA Playlist → IA Video + filmstrip → IA Audio** — see `docs/INTERNET-ARCHIVE.md`."
+        "text": "## 📖 The Internet Archive, in cards\n\nThe archive is not only the Wayback Machine. **Two cards are built so far, and both are live:**\n\n- **📖 IA Book** — a scanned book, page by page: turn, zoom, **search inside it** (each hit names its page and shows the matched words boxed on the page), read that page's OCR text, open the PDF/EPUB/OCR. Both books open in **facing-pages mode**, full width — the board sets that (⚙ Reading mode), and the ▭ button on a card overrides it for you. Leaf 1 alone is the cover, so turn one page to see a spread; **⇥** pairs the cover instead, for scans that start on a text page. Flip between the two books: a **16-page** illustrated children's book and a **304-page** Dostoevsky — the page count comes from the IIIF manifest, so both just work.\n- **📦 IA Item** — any item by identifier, with its engagement views (all-time / 30-day / 7-day), file count and size, and thumbnail.\n\nThe four cards below are the media types the next three widgets will render — plain IA Item cards today:\n\n- **🎬 a Prelinger film** — 888 MB, and the source of the keyframe filmstrip\n- **🎧 a Live Music Archive concert** — 20 tracks, each with its own spectrogram\n- **🎧 a LibriVox audiobook** — 7 chapters, and it carries its own scanned book\n- **🗂️ MIT OpenCourseWare** — 511 courses of titled, timed, captioned lectures\n\n**And the media plays.** The two player cards at the bottom stream the real files — an 11-minute Prelinger film and three LibriVox chapters as a playlist — straight from `archive.org/download/`. That needed no new widget: the player now accepts a direct media URL and builds the row without any API call. Range requests mean seeking works.\n\nBuild order for the rest of the family: **IA Playlist → IA Video + filmstrip → IA Audio** — see `docs/INTERNET-ARCHIVE.md`."
       }
     },
     {
@@ -13,7 +13,8 @@
       "widgetType": "iaBook",
       "config": {
         "identifier": "goodytwoshoes00newyiala",
-        "refreshSeconds": 86400
+        "refreshSeconds": 86400,
+        "spread": "on"
       }
     },
     {
@@ -21,7 +22,8 @@
       "widgetType": "iaBook",
       "config": {
         "identifier": "whitenightsother00dostiala",
-        "refreshSeconds": 86400
+        "refreshSeconds": 86400,
+        "spread": "on"
       }
     },
     {
@@ -99,24 +101,24 @@
       "i": "ia-book-short",
       "x": 0,
       "y": 5,
-      "w": 6,
-      "h": 10,
+      "w": 12,
+      "h": 11,
       "minW": 4,
       "minH": 5
     },
     {
       "i": "ia-book-long",
-      "x": 6,
-      "y": 5,
-      "w": 6,
-      "h": 10,
+      "x": 0,
+      "y": 16,
+      "w": 12,
+      "h": 11,
       "minW": 4,
       "minH": 5
     },
     {
       "i": "ia-film",
       "x": 0,
-      "y": 15,
+      "y": 27,
       "w": 3,
       "h": 5,
       "minW": 3,
@@ -125,7 +127,7 @@
     {
       "i": "ia-concert",
       "x": 3,
-      "y": 15,
+      "y": 27,
       "w": 3,
       "h": 5,
       "minW": 3,
@@ -134,7 +136,7 @@
     {
       "i": "ia-audiobook",
       "x": 6,
-      "y": 15,
+      "y": 27,
       "w": 3,
       "h": 5,
       "minW": 3,
@@ -143,7 +145,7 @@
     {
       "i": "ia-collection",
       "x": 9,
-      "y": 15,
+      "y": 27,
       "w": 3,
       "h": 5,
       "minW": 3,
@@ -152,7 +154,7 @@
     {
       "i": "ia-player-film",
       "x": 0,
-      "y": 20,
+      "y": 32,
       "w": 6,
       "h": 7,
       "minW": 3,
@@ -161,7 +163,7 @@
     {
       "i": "ia-player-audio",
       "x": 6,
-      "y": 20,
+      "y": 32,
       "w": 6,
       "h": 7,
       "minW": 3,

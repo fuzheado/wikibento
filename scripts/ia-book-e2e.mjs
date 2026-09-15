@@ -50,12 +50,14 @@ const cfg = {
     { id: 'iabook-notext', widgetType: 'iaBook', config: { identifier: 'policy_20191010', refreshSeconds: 86400 } },
     { id: 'iabook-bad', widgetType: 'iaBook', config: { identifier: 'wikibento-definitely-not-a-real-item-xyz', refreshSeconds: 86400 } },
     { id: 'iabook-rtl', widgetType: 'iaBook', config: { identifier: 'DarsENizami_DarjaAula_1stYear', refreshSeconds: 86400 } },
+    { id: 'iabook-spread', widgetType: 'iaBook', config: { identifier: 'goodytwoshoes00newyiala', spread: 'on', refreshSeconds: 86400 } },
   ],
   layout: [
     { i: 'iabook-live', x: 0, y: 0, w: 5, h: 9 },
     { i: 'iabook-notext', x: 5, y: 0, w: 4, h: 6 },
     { i: 'iabook-bad', x: 9, y: 0, w: 3, h: 6 },
     { i: 'iabook-rtl', x: 0, y: 9, w: 6, h: 9 },
+    { i: 'iabook-spread', x: 6, y: 9, w: 3, h: 9 },
   ],
 };
 writeFileSync(join(dist, 'iabook-e2e.json'), JSON.stringify(cfg, null, 2));
@@ -153,6 +155,22 @@ async function main() {
   // links out
   const hrefs = await page.locator(`${card} .pv-links a`).evaluateAll((as) => as.map((a) => a.getAttribute('href')));
   check('derivative links point at archive.org/download', hrefs.some((h) => /archive\.org\/download/.test(String(h))), hrefs.join(' '));
+
+  // ── a BOARD can open a book as facing pages (the ⚙ Reading mode default) ─────
+  // This card is deliberately narrow: 'auto' would never spread at this width, so a spread here can only
+  // come from the board's `spread: 'on'`. Leaf 0 stands alone everywhere (it is a cover), so the proof is
+  // the pressed toggle plus the pair that appears on the next step.
+  const narrow = '[data-widget-id="iabook-spread"]';
+  await page.waitForSelector(`${narrow} img.pv-page`, { state: 'attached', timeout: 90000 });
+  await page.waitForFunction(() => !!document.querySelector('[data-widget-id="iabook-spread"] .pv-btn[data-pv="facing"]'), undefined, { timeout: 60000 });
+  const stageW = await page.evaluate(() => document.querySelector('[data-widget-id="iabook-spread"] .pv-stage').clientWidth);
+  const pressed = await page.locator(`${narrow} .pv-btn[data-pv="facing"]`).getAttribute('aria-pressed');
+  check('a narrow card still opens in the board-set spread mode', stageW < 820 && pressed === 'true',
+    `stage ${stageW}px (auto needs 820), aria-pressed=${pressed}`);
+  await page.evaluate(() => document.querySelectorAll('[data-widget-id="iabook-spread"] .pv-toolbar button')[1].click());
+  await page.waitForFunction(() => document.querySelectorAll('[data-widget-id="iabook-spread"] .pv-leaf').length === 2, undefined, { timeout: 40000 });
+  const narrowCount = (await page.locator(`${narrow} .pv-count`).innerText()).replace(/\s+/g, ' ');
+  check('…and it shows a real pair in a card too narrow for auto', /^pages 2\u20133 of 16$/i.test(narrowCount), narrowCount);
 
   // ── PNG export (ISSUE-80): the page image's host sends CORS, so the canvas stays clean ──
   await page.locator(`${card} .widget-menu-wrap button`).first().click();

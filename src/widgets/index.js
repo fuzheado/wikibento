@@ -1752,15 +1752,21 @@ export const WIDGET_TYPES = {
     labelFromConfig: (c) => (c.identifier || '').trim() || null,
     defaults: {
       identifier: 'goodytwoshoes00newyiala',
+      spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
       refreshSeconds: 86400,
     },
     renderer: 'IaBookCard',
     dataSource: 'iiif.archive.org (Presentation v3 manifest + Image API v3 + Content Search)',
     configFields: [
       { key: 'identifier', label: 'Identifier', type: 'text', placeholder: 'goodytwoshoes00newyiala', hint: 'The last part of an archive.org/details/… URL. Works for scanned texts with page images.' },
+      { key: 'spread', label: 'Reading mode', type: 'select', options: [
+        { value: 'auto', label: 'Auto — facing pages when the card is wide enough' },
+        { value: 'on', label: 'Two facing pages' },
+        { value: 'off', label: 'One page at a time' },
+      ], hint: 'A board can open a book in spread mode; the ▭ button on the card still overrides it for the reader (the board sets the default, the reader decides).' },
     ],
     fetch: (config) => fetchIaBook(config.identifier),
-    transform: (data) => data,
+    transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
     // Emits the item URL, the same link the card title opens (Emitter Contract).
     outputs: { kind: 'value' },
     emit: (data) => data.detailsUrl,
