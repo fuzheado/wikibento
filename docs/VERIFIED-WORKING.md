@@ -312,3 +312,10 @@ Back to the [README](../README.md).
   DjVu · 17.6 MB · 1024×730 page"; the links go to the file page and to the original; **PNG export is
   offered** (Wikimedia page renders send CORS); a JPEG is refused politely, with its way out. Demo board:
   4 cards (329 / 96 / 16 pages), two showing facing pairs — **9 assertions**.
+
+- ✅ **2026-09-15 — the Document Reader deploy, verified against production** (14/14, serving
+  `index-YJ87Jsl0.js`): `/document-reader-demo.json` renders 4 cards whose documents report **329 / 96 / 16
+  pages**, and the DjVu reaches **page 96 of 96** in production; the showcase catalog renders **42 cards**
+  (including the new Document Reader) with zero crashes; `/internet-archive-demo.json` still opens its books
+  as facing pages; `/anne-frank-mlk-demo.json` still draws 21 timeline dots; `/api/resolve` and `/api/proxy`
+  both 200; the front door loads a board; **no uncaught JS errors**.

@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-D9YNjKJA.js` (+ `index-DGfyoQMG.css`) |
-| deployed | 2026-09-15 (the Internet Archive pass: `iaBook` with facing pages, the shared page reader, direct-media playback, PNG export for CORS images, two demo boards — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
+| production bundle | `index-YJ87Jsl0.js` (+ `index-index-CIDXj2nC.css`) |
+| deployed | 2026-09-15, twice (the Internet Archive pass, then the 📄 **Document Reader** for Commons PDFs/DjVu — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | **yes** — production (`index-D9YNjKJA.js`, deployed 2026-09-15 16:15) predates the 📄 **Document Reader**: the widget, the two viewer additions (`caps.maxWidth`, `caps.widths`), the page-jump control, `/document-reader-demo.json`, and the count movement to 41 types / 42 catalog widgets. `/document-reader-demo.json` therefore 404s on production until the next deploy |
+| pending deploy | none — production serves this branch's tip (verified live: the document board, the 42-card catalog and both older boards) |
 | newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book — facing pages in both) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
