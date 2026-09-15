@@ -13,7 +13,7 @@ quotas we have to live inside, and the widgets I would build in what order.
 
 | | |
 |---|---|
-| **Shipped** | `waybackGallery` (closest capture per date, replay tiles, CDX fallback through `/api/proxy`) — see [WAYBACK-REPLAY-LATENCY.md](WAYBACK-REPLAY-LATENCY.md); `iaItem` (metadata + engagement views + thumbnail, `docs/DATA-SOURCES.md` §27) |
+| **Shipped** | **`iaBook`** (2026-09-15 — a IIIF page viewer with search-inside, in the showcase catalog) · `waybackGallery` (closest capture per date, replay tiles, CDX fallback through `/api/proxy`) — see [WAYBACK-REPLAY-LATENCY.md](WAYBACK-REPLAY-LATENCY.md); `iaItem` (metadata + engagement views + thumbnail, `docs/DATA-SOURCES.md` §27) |
 | **Planned, not built** | ISSUE-25 items 2–4: item views over time, IA search, IA collection |
 | **The gap** | **media.** Nothing shows a book, an audio track, a film, a keyframe strip, a caption hit |
 | **This page** | the verified API surface, the per-media-type file conventions, the quotas, and a ranked proposal |
@@ -39,7 +39,9 @@ and needs no key**, the URLs are stable and human-readable, and the media files 
 | `archive.org/services/img/{id}` | item thumbnail | ❌ | 302 → 22.6 KB JPEG |
 | `api.gdeltproject.org/api/v2/tv/tv?query&mode&format` | TV caption clips (GDELT, no key) | ✅ `*` | **11.5 s** — too slow to leave uncached |
 | `archive.org/details/tv?q&fq=channel&time&rows&output=json` | TV News Archive caption search | ❌ **and didn't return JSON to a plain client** | proxy-gated |
-| `ia-fts.archive.org` (search-inside / full-text) | OCR full-text hits | — | **host did not resolve from this network** — unverified, must be checked from Toolforge |
+| `iiif.archive.org/iiif/search/{id}/?q=word` | **search inside one book**: hits with page + the matched word's box | ✅ | `q=goody` → **22 hits** |
+| `iiif.archive.org/iiif/3/annotations/{id}/{id}_djvu.xml/{leaf}.json` | one page's OCR text | ✅ | 200 · 1.1 KB |
+| `ia-fts.archive.org` (corpus full-text search) | OCR full-text across the archive | — | **did not resolve from this network** — no longer a blocker for books: the per-book route above works in a browser |
 | `web.archive.org/cdx/search/cdx` · `/web/timemap/link/` | capture index, memento timeline | ❌ | (ISSUE-25: 503-prone; timemap **27 MB** per call) |
 
 **Two different kinds of "no CORS", and the difference matters:**
@@ -69,6 +71,16 @@ broadcast.
 | **texts (plain)** | `_djvu.txt`, `.txt`, `.epub`, `.zip` | Gutenberg-style items have **no pages to show** — no `imagecount`, IIIF 500s. The card must degrade to text/metadata |
 | **audio (music)** | `*.flac` (master), `*.mp3` (VBR), `*_spectrogram.png`, `_esshigh.json.gz` / `_esslow.json.gz` (Essentia feature data) | per-track spectrograms are ready-made visuals; Essentia gives BPM/tuning/peaks if a richer card is ever wanted |
 | **audio (spoken)** | `*.mp3` + `*_64kb.mp3`, `*.ogg`, `*_spectrogram.png`, plus **the scanned book**: `{id}.pdf`, `_djvu.txt`, `_jp2.zip` | audiobooks carry their text — a read-along card is possible |
+![A filmstrip built from a video item's own keyframes](screenshots/wikibento-2026-09-15-ia-filmstrip-mock.png)
+
+*The filmstrip, drawn from real frames: `AboutBan1935` (11:03) ships 23 keyframes, one per 30 seconds
+(`{id}.thumbs/{id}_000030.jpg` is the frame at **30 seconds** — the index is seconds, verified against the
+11:03 runtime). The strip shows every 60 s; the boxed frame is the one under the playhead. A design mock:
+the frames are the archive's, the layout is what `iaVideo` would paint. Density is IA's choice — a
+50-minute course lecture gets only **4** frames per part (140 for 35 lectures), so a lecture strip is a
+chapter strip, not a scrubber. And we cannot make our own: `download/` sends no CORS, so `<video
+crossorigin>` fails and a canvas drawn from it is tainted.*
+
 | **video** | `{id}.mp4` (h.264), `{id}.ogv`, `{id}.mpeg` (MPEG2), `{id}.gif`, `{id}.mp3`, **`{id}.thumbs/{id}_0000NN.jpg`** | the `.thumbs/` series is a **keyframe filmstrip** — ~1 frame per 30 s. That is a timeline of pictures, and it is free. A **course** item is this shape × 35: `ocw-18.01-f07-lecNN_300k.mp4` + `.ogv` + `.srt` + 4 keyframes each, with `length` and `title` on every file |
 | **TV news** | `{id}.mp4`, `{id}.mpg`, 374 × `.thumbs/` keyframes, `.srt` on US network items, `.xml`, `.sqlite` | timestamps + captions make *clippable* cards; international items carry no `.srt` |
 
@@ -135,7 +147,7 @@ Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M �
 
 | # | widget | id | size | what it shows | data flow |
 |---|---|---|---|---|---|
-| 1 | **📖 IA Book** | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`; **CORS ✅ → PNG export works** |
+| 1 | **📖 IA Book** ✅ shipped 2026-09-15 | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`; **CORS ✅ → PNG export works** |
 | 2 | **🎞️ IA Playlist** | `iaPlaylist` | M | a course, concert or audiobook as an ordered list of parts — per-part duration and title, a total runtime, one part playing at a time | one `metadata` call, grouped by stem (rules above) → ordered tracks; `<video>`/`<audio>` streams them. MIT OCW additionally gives **SubRip captions per lecture**, so a transcript per part is nearly free |
 | 3 | **🎬 IA Video** | `iaVideo` | M | `<video>` with poster + duration, and a **keyframe filmstrip** below it | `<video src=…mp4>` (browser-streamed, no CORS) + `{id}.thumbs/` series; `metadata` for `runtime` |
 | 4 | **🎧 IA Audio** | `iaAudio` | M | one recording with inline playback and its spectrogram | `metadata` (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` |
@@ -145,8 +157,12 @@ Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M �
 | 8 | **🖼️ IA Images** | `iaImages` | S | an image-search gallery (posters, plates, photographs) | `advancedsearch` + `services/img`; **no export** (canvas-tainted) |
 | 9 | **📺 IA TV News** | `iaTvNews` | M–L | caption hits with timestamps → clip cards that deep-link into the player | TVNA search is **proxy-gated and non-JSON**, and one broadcast is ~350 MB; **or** GDELT TV (CORS ✅ but 11.5 s). Rank it last, and cache it hard |
 
-**Deferred, with reasons:** full-text search *inside* a book and across the corpus (the FTS host did
-not resolve here — check from Toolforge before designing anything on it); software/emulation
+**Resolved on the way:** search-inside **does** work from a browser — not through the standalone FTS host
+(which never resolved) but through each book's IIIF **Content Search** service, advertised in the manifest,
+which returns the page number *and the bounding box of the matched word*. `iaBook` ships it. Only
+*corpus-wide* full-text search remains unverified.
+
+**Deferred, with reasons:** corpus-wide full-text search; software/emulation
 (emularity in an iframe, a much bigger surface); Scholar/Fatcat (a separate catalogue); uploads and
 the S3 API (credentials).
 
@@ -184,7 +200,10 @@ Worth designing in from the start, because IA splits cleanly:
 
 ## What I would build first
 
-1. **`iaBook`** — the request that started this: books, via IIIF, with real pages and working export.
+1. ~~**`iaBook`**~~ — **shipped 2026-09-15**: IIIF page viewer, page strip, search-inside with the matched
+   word boxed on the page, per-page OCR text, PDF/EPUB/OCR links. **19 browser assertions pass**
+   (`node scripts/ia-book-e2e.mjs`). Three traps became tests: the manifest's page count beats the
+   metadata's (16 vs 20), leaf `$0` is a 500, and an out-of-range leaf answers 200 with a blank image.
 2. **`iaPlaylist`** — MIT OpenCourseWare alone is 511 courses, every lecture titled, timed and
    captioned; a course player is the most *useful* card in the family, and the grouping rules are
    already written down above. It also covers concerts and audiobooks with the same code.

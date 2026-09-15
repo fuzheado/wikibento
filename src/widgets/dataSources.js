@@ -12,6 +12,7 @@ import { createTtlCache } from '../lib/fetchCache';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
+import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits } from '../lib/iaBook';
 import {
   wikidataEntityId,
   labelLanguage,
@@ -2179,4 +2180,100 @@ export function fetchIaItem(identifier) {
     } catch { /* engagement stats are optional — metadata is the payload */ }
     return shapeIaItem(meta, views);
   });
+}
+
+/* ── 28. Internet Archive book — IIIF (ISSUE-25 media family) ────────────────
+ *  Endpoints verified live 2026-09-15, all with CORS (origin echoed):
+ *    iiif.archive.org/iiif/{id}/manifest.json                     200, 1.0 s, 25.7 KB
+ *    iiif.archive.org/image/iiif/3/{path}/full/{w},/0/default.jpg  200, 1.8 s, 57 KB @400
+ *    iiif.archive.org/iiif/search/{id}/?q=word                    200, 22 hits
+ *    iiif.archive.org/iiif/3/annotations/{id}/{id}_djvu.xml/{n}.json 200, per-page OCR
+ *
+ *  The manifest is the authority on pages (the item metadata said 20 for a 16-page book), and each
+ *  canvas carries its own v3 image service, so we never construct `…$N/…` URLs: `$0` is a 500 there
+ *  and an out-of-range `$20` is an HTTP 200 with a BLANK filler image (docs/INTERNET-ARCHIVE.md).
+ *
+ *  The Content Search service is the only search-inside route that works from a browser — the
+ *  standalone FTS host (ia-fts.archive.org) does not resolve — and it also returns the bounding box
+ *  of the matched word, which is what the card shows as evidence next to the page.
+ */
+const iaBookCache = createTtlCache(30 * 60 * 1000);
+
+/** Pure shaper (unit-tested): item metadata + IIIF manifest → the IaBookCard contract. */
+export function shapeIaBook(meta, manifest, identifier) {
+  const m = (meta && meta.metadata) || {};
+  const id = String(m.identifier || identifier || '').trim();
+  const parsed = pagesFromManifest(manifest);
+  const strip = (v) => String(v === undefined || v === null ? '' : v)
+    .replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const year = String(m.year || String(m.date || '').slice(0, 4) || '');
+  const details = `https://archive.org/details/${encodeURIComponent(id)}`;
+  const pages = parsed.pages;
+  return {
+    identifier: id,
+    title: strip(m.title) || parsed.title || id,
+    subtitle: [
+      strip(m.creator), year, strip(m.mediatype),
+      pages.length ? `${pages.length} pages` : '',
+    ].filter(Boolean).join(' · '),
+    description: strip(m.description).slice(0, 300),
+    summary: parsed.summary,
+    href: details,
+    detailsUrl: details,
+    pages,
+    pageCount: pages.length,
+    searchService: parsed.searchService,
+    hasSearch: Boolean(parsed.searchService),
+    thumbnail: id ? `https://archive.org/services/img/${encodeURIComponent(id)}` : '',
+    links: bookLinks(meta, id),
+    // A text-only item (Gutenberg-style) has no leaves at all: the card says so and offers the text
+    // rather than showing an empty viewer.
+    notice: pages.length ? '' : 'This item has no page images — it is text, not a scan. Open the OCR text below, or use the IA Item card.',
+  };
+}
+
+export function fetchIaBook(identifier) {
+  const id = String(identifier || '').trim();
+  if (!id) {
+    return Promise.reject(new Error('Enter an Internet Archive identifier (e.g. goodytwoshoes00newyiala)'));
+  }
+  return iaBookCache.get(`ia-book:${id}`, async () => {
+    const meta = await fetchJSON(`https://archive.org/metadata/${encodeURIComponent(id)}`);
+    if (!meta || !meta.metadata) {
+      throw new Error(`No Internet Archive item "${id}" — the identifier is the last part of an archive.org/details/… URL`);
+    }
+    if (meta.is_dark) {
+      throw new Error(`Item "${id}" is not publicly available (marked dark on the Internet Archive)`);
+    }
+    // A manifest failure is normal for non-scanned items (500), so it must not blank the card.
+    let manifest = null;
+    try {
+      manifest = await fetchJSON(manifestUrl(id));
+    } catch { manifest = null; }
+    const shaped = shapeIaBook(meta, manifest, id);
+    if (manifest && !shaped.pageCount) {
+      shaped.notice = 'This item has a IIIF manifest but no page canvases — it may be restricted or still deriving. Open the details page.';
+    }
+    return shaped;
+  });
+}
+
+const iaBookSearchCache = createTtlCache(10 * 60 * 1000);
+const iaBookTextCache = createTtlCache(60 * 60 * 1000);
+
+/** Search inside one book (IIIF Content Search). Returns the raw payload; the card maps it with
+ *  `searchHits(payload, pages)` so a hit keeps its page index and its word box. */
+export function fetchIaBookSearch(serviceId, query) {
+  const base = String(serviceId || '').trim().replace(/\/+$/, '');
+  const q = String(query || '').trim();
+  if (!q) return Promise.reject(new Error('Enter a word or phrase to find in this book'));
+  if (!base) return Promise.reject(new Error('This item has no search service'));
+  return iaBookSearchCache.get(`ia-book-search:${base}:${q}`, () => fetchJSON(`${base}/?q=${encodeURIComponent(q)}`));
+}
+
+/** The OCR text of one page, from its canvas annotation page. */
+export function fetchIaBookPageText(annotationPage) {
+  const url = String(annotationPage || '').trim();
+  if (!url) return Promise.reject(new Error('This page has no OCR text'));
+  return iaBookTextCache.get(`ia-book-text:${url}`, async () => pageText(await fetchJSON(url)));
 }

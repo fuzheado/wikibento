@@ -29,12 +29,12 @@ Feature-complete for v1 and deployed.
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-CSKC-SIk.js` (+ `index-oh30B1xp.css`) |
 | deployed | 2026-09-14 (Lifeline timeline + export menu + the `mul` label fix — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
-| registry | 39 widget types — 30 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
+| registry | 40 widget types — 31 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 41 widgets covering all 40 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves the bundle built from this branch's tip; everything after it is docs and tests |
-| newest capabilities | 🕰️ Lifeline timelines (two alignments, zoom to 8×, overlap toggle, light card theme, titles) and the ⤓ export menu (PDF · CSV · PNG · SVG) — both live since this deploy |
+| newest capabilities | 📖 **IA Book** (IIIF page viewer with search-inside) · 🕰️ Lifeline timelines · the ⤓ export menu (PDF · CSV · PNG · SVG) |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -221,6 +221,15 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     ellipsis at **every** zoom level — and the check written to catch truncation measured *layout* overflow,
     which reported zero, because the shortened string fitted. Clip in CSS (where zoom can widen it) and keep
     the full string for the tooltip.
+
+17. **For Internet Archive books, the manifest is the truth and the leaf numbering will bite you.** The
+    item metadata disagreed with the manifest (20 vs **16 canvases**) and nothing looked broken;
+    `…/iiif/{id}$0/full/…` is an **HTTP 500** (that route is 1-based while canvas ids are 0-based); an
+    **out-of-range leaf is not an error** — `$20` on a 16-page book returns HTTP 200 with a ~1.4 KB
+    **blank filler image**, so probing for a 404 never fails; and `download/{id}/page/n{N}.jpg` is 0-based
+    and 404s on the last leaf, disagreeing with the IIIF route. Read the manifest, use each canvas's own
+    image-service id, and never build `$N` URLs. (Each book's IIIF **Content Search** is also the only
+    search-inside route a browser can reach — the standalone FTS host does not resolve.)
 
 ## Open issues & known bugs
 

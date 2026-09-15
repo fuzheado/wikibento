@@ -11,6 +11,8 @@ import { createSpeechController } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
+import { serviceImageUrl, searchHits } from '../lib/iaBook';
+import { fetchIaBookSearch, fetchIaBookPageText } from './dataSources';
 import { configFieldValue } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
@@ -758,6 +760,7 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
 
     case 'FileTrafficCard': return <FileTrafficCard data={data} />;
     case 'WaybackGalleryCard': return <WaybackGalleryCard data={data} />;
+    case 'IaBookCard': return <IaBookCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -2244,6 +2247,156 @@ function TimelineCard({ data }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** IA Book — a scanned Internet Archive book, page by page (ISSUE-25 media family).
+ *
+ *  IIIF Presentation v3 for the structure, the Image API v3 for the pixels: the card requests only
+ *  the page on screen (400 px ≈ 57 KB) and can be exported as PNG honestly, because iiif.archive.org
+ *  sends CORS — the page image is not canvas-tainted, which is rare among our image widgets.
+ *
+ *  Three measured traps shape this code (docs/INTERNET-ARCHIVE.md):
+ *   · the page count comes from the manifest's canvases — the item metadata claimed 20 for a
+ *     16-page book, and nothing would have looked broken;
+ *   · image URLs are never built as `…$N/…`: `$0` is a 500 and an out-of-range `$20` answers HTTP
+ *     200 with a BLANK filler image, so each canvas's own service id is used;
+ *   · search-inside is IIIF Content Search, the only OCR route a browser can reach (the standalone
+ *     FTS host does not resolve) — and it returns the bounding box of the matched word, which is
+ *     what the "where" crop below the page shows.
+ */
+const IAB_WIDTHS = [400, 700, 1000, 1400];
+const IAB_STRIP = 15;
+
+function IaBookCard({ data }) {
+  const pages = (data && data.pages) || [];
+  const count = pages.length;
+  const [page, setPage] = useState(0);
+  const [wIdx, setWIdx] = useState(1);
+  const [q, setQ] = useState('');
+  const [hits, setHits] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState('');
+  const [text, setText] = useState(null);
+  const [textBusy, setTextBusy] = useState(false);
+
+  const safe = Math.max(0, Math.min(count - 1, page));
+  const current = pages[safe] || null;
+  const width = IAB_WIDTHS[wIdx];
+
+  const go = (i) => {
+    setSel(null); setText(null);
+    setPage(Math.max(0, Math.min(count - 1, i)));
+  };
+
+  const runSearch = async (e) => {
+    e.preventDefault();
+    if (!data || !data.searchService || !q.trim()) return;
+    setBusy(true); setProblem('');
+    try {
+      setHits(searchHits(await fetchIaBookSearch(data.searchService, q), pages));
+    } catch (err) {
+      setProblem((err && err.message) || 'Search failed');
+      setHits(null);
+    } finally { setBusy(false); }
+  };
+
+  const toggleText = async () => {
+    if (text !== null) { setText(null); return; }
+    if (!current || !current.annotationPage) { setProblem('This page has no OCR text'); return; }
+    setTextBusy(true); setProblem('');
+    try { setText(await fetchIaBookPageText(current.annotationPage)); }
+    catch (err) { setProblem((err && err.message) || 'No text for this page'); }
+    finally { setTextBusy(false); }
+  };
+
+  const links = (data && data.links) || [];
+  const head = (
+    <div className="iab-head">
+      {data && data.href
+        ? <a className="iab-title" href={data.href} target="_blank" rel="noreferrer" title={data.title}>{data.title}</a>
+        : <span className="iab-title">{data && data.title}</span>}
+      {data && data.subtitle && <div className="iab-sub">{data.subtitle}</div>}
+    </div>
+  );
+
+  // Text-only items (Gutenberg-style) have no leaves at all. Say so, and offer the text — an empty
+  // page viewer would look like a bug.
+  if (!count) {
+    return (
+      <div className="iab-card">
+        {head}
+        <div className="widget-empty">{(data && data.notice) || 'No page images for this item'}</div>
+        {!!links.length && (
+          <div className="iab-links">
+            {links.map((l) => <a key={l.label} className="iab-link" href={l.href} target="_blank" rel="noreferrer">{l.label} ↗</a>)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const start = Math.max(0, Math.min(count - IAB_STRIP, safe - Math.floor(IAB_STRIP / 2)));
+  const strip = pages.slice(start, start + IAB_STRIP);
+
+  return (
+    <div className="iab-card">
+      {head}
+      <div className="iab-toolbar">
+        <button className="iab-btn" onClick={() => go(safe - 1)} disabled={safe === 0} title="Previous page">◀</button>
+        <span className="iab-count">page {current.label} of {count}</span>
+        <button className="iab-btn" onClick={() => go(safe + 1)} disabled={safe >= count - 1} title="Next page">▶</button>
+        <span className="iab-zoom">
+          <button className="iab-btn" onClick={() => setWIdx(Math.max(0, wIdx - 1))} disabled={wIdx === 0} title="Smaller">−</button>
+          <span className="iab-w">{width}px</span>
+          <button className="iab-btn" onClick={() => setWIdx(Math.min(IAB_WIDTHS.length - 1, wIdx + 1))} disabled={wIdx === IAB_WIDTHS.length - 1} title="Larger">+</button>
+        </span>
+        <button className="iab-btn" onClick={toggleText} disabled={textBusy} title="Show this page's OCR text">¶</button>
+      </div>
+      {data.hasSearch && (
+        <form className="iab-search" onSubmit={runSearch}>
+          <input className="iab-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="search inside this book…" aria-label="Search inside this book" />
+          <button className="iab-btn" type="submit" disabled={busy}>{busy ? '…' : '🔍'}</button>
+        </form>
+      )}
+      {problem && <div className="iab-problem">{problem}</div>}
+      <div className="iab-stage">
+        <img className="iab-page" src={serviceImageUrl(current.serviceId, width)} alt={`Page ${current.label}`} />
+      </div>
+      {sel && (
+        <div className="iab-hit">
+          <span className="iab-hit-text">“{sel.text}” — page {sel.label}</span>
+          {sel.region && (
+            <img className="iab-hit-crop" src={serviceImageUrl(current.serviceId, 320, sel.region)} alt={`Where “${sel.text}” appears on page ${sel.label}`} />
+          )}
+        </div>
+      )}
+      {hits && (
+        <div className="iab-hits">
+          <div className="iab-hits-head">{hits.length ? `${hits.length} ${hits.length === 1 ? 'hit' : 'hits'}` : 'No hits in this book'}</div>
+          {hits.slice(0, 40).map((h, i) => (
+            <button key={i} className="iab-hit-row" onClick={() => { go(h.pageIndex >= 0 ? h.pageIndex : safe); setSel(h); }}>
+              <span className="iab-hit-page">p. {h.label || '?'}</span>
+              <span className="iab-hit-snip">{h.text}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {text !== null && <div className="iab-text">{text || '(this page has no OCR text)'}</div>}
+      <div className="iab-strip">
+        {strip.map((pg) => (
+          <button key={pg.index} className={`iab-thumb${pg.index === safe ? ' is-current' : ''}`} onClick={() => go(pg.index)} title={`Page ${pg.label}`}>
+            <img src={serviceImageUrl(pg.serviceId, 70)} alt={`Page ${pg.label}`} loading="lazy" />
+          </button>
+        ))}
+      </div>
+      {!!links.length && (
+        <div className="iab-links">
+          {links.map((l) => <a key={l.label} className="iab-link" href={l.href} target="_blank" rel="noreferrer">{l.label} ↗</a>)}
+        </div>
+      )}
     </div>
   );
 }

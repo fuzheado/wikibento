@@ -621,3 +621,24 @@ right paradigm — coding benchmarks are not.
 - **Failure handling:** metadata is the payload — an item that does not exist throws a friendly `No Internet Archive item "…"`, `is_dark` items throw "not publicly available", and a views failure degrades to dashes instead of blanking the card. TTL-cached 10 minutes (`createTtlCache`), which coalesces concurrent widgets asking for the same item.
 - **Not used (verified, and why):** `web.archive.org/cdx/search/cdx` has **no CORS** and returned **503 "Temporarily Offline"** during the 2026-09-10 probe — it stays server-side behind `/api/proxy` (see §21). `web.archive.org/web/timemap/link/…` also has no CORS **and returned a 27 MB body in 15 s** for one request — never call it from a widget.
 - **Deferred:** `services/search/v1/scrape` (its `count` minimum is 100 — request 100 and slice), `advancedsearch.php`, `views/v1/detail/item/{id}/{start}/{end}` (200 but **5.8 s / 48 KB**, and it also carries `counts_geo` + `referers` — a future trend/referrer widget, not a cheap one).
+
+## 28. Internet Archive book — IIIF Presentation v3 + Image API v3 + Content Search (CORS ✓, no key) **Widget:** IA Book · **Fetcher:** `fetchIaBook(identifier)` + `fetchIaBookSearch` / `fetchIaBookPageText`
+
+Verified live 2026-09-15, every endpoint echoing the request `Origin` — so the page image is **not
+canvas-tainted**, which is what lets this widget export a real PNG:
+
+| endpoint | measured | notes |
+|---|---|---|
+| `iiif.archive.org/iiif/{id}/manifest.json` | 200, 1.0 s, 25.7 KB | **authority on the page count.** `goodytwoshoes00newyiala` says `imagecount: 20` in its metadata and has **16** canvases |
+| `iiif.archive.org/image/iiif/3/{path}/full/{w},/0/default.jpg` | 200, 1.8 s, 57 KB @400 | built from each canvas's own service id |
+| `…/{service}/{x},{y},{w},{h}/{w},/0/default.jpg` | 200 | the search hit's region crop |
+| `iiif.archive.org/iiif/search/{id}/?q=word` | 200, **22 hits** for "goody" | IIIF v1 (`resources[]`, `@type: sc:AnnotationList`), each hit carrying `$leaf/canvas#xywh=…` |
+| `iiif.archive.org/iiif/3/annotations/{id}/{id}_djvu.xml/{leaf}.json` | 200, 1.1 KB | one page's OCR text (v3 `items[].body.value`) |
+
+**Traps (each measured, each silent):**
+- `…/iiif/{id}$0/full/…` → **HTTP 500**. That route is 1-based while canvas ids are 0-based.
+- Out-of-range leaves are **not errors**: `$20`/`$21` on a 16-page book return **HTTP 200 with a ~1.4 KB blank filler image**. Never probe for 404 — read the manifest.
+- `archive.org/download/{id}/page/n{N}.jpg` is 0-based, **404s on the last leaf** (n19 of 20), and so disagrees with the IIIF route; it is display-only (no CORS) besides.
+- A manifest that 500s is normal for a page-less text item: the card degrades to a notice rather than an empty viewer.
+
+- **Failure handling:** a missing item throws `No Internet Archive item "…"`, `is_dark` items say so, and the manifest failure is caught separately so a text-only item still renders its metadata and links. Manifests TTL-cached 30 minutes, search 10 minutes, page text 60 minutes.

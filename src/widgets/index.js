@@ -4,6 +4,7 @@
  */
 
 import {
+  fetchIaBook,
   fetchPageviews,
   fetchExternalLinks,
   fetchCategorySize,
@@ -1736,6 +1737,31 @@ export const WIDGET_TYPES = {
     transform: (data) => data,
     // Emits the item's canonical URL — unambiguous, and the same link the card
     // title opens, so the emitted value is visibly labelled (Emitter Contract).
+    outputs: { kind: 'value' },
+    emit: (data) => data.detailsUrl,
+  },
+
+  iaBook: {
+    id: 'iaBook',
+    category: 'Web & History', intensity: 'low',
+    timeScope: 'point',
+    name: 'IA Book',
+    icon: '📖',
+    description: 'A scanned Internet Archive book, page by page — turn, zoom to read, jump to a page, search inside it (with the matched words shown on the page), read the page text, and open the PDF/EPUB/OCR. Served by the archive\'s IIIF image service',
+    defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
+    labelFromConfig: (c) => (c.identifier || '').trim() || null,
+    defaults: {
+      identifier: 'goodytwoshoes00newyiala',
+      refreshSeconds: 86400,
+    },
+    renderer: 'IaBookCard',
+    dataSource: 'iiif.archive.org (Presentation v3 manifest + Image API v3 + Content Search)',
+    configFields: [
+      { key: 'identifier', label: 'Identifier', type: 'text', placeholder: 'goodytwoshoes00newyiala', hint: 'The last part of an archive.org/details/… URL. Works for scanned texts with page images.' },
+    ],
+    fetch: (config) => fetchIaBook(config.identifier),
+    transform: (data) => data,
+    // Emits the item URL, the same link the card title opens (Emitter Contract).
     outputs: { kind: 'value' },
     emit: (data) => data.detailsUrl,
   },

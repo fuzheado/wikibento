@@ -262,3 +262,14 @@ Back to the [README](../README.md).
 - ✅ Text/Markdown card: markdown rendering verified (headings/bold/links/lists/code);
   Wikimedia images render by default, external hosts blocked with an opt-in toggle,
   XSS payloads (`<script>`, `onerror`) inert
+
+- ✅ **2026-09-15 — IA Book** (`node scripts/ia-book-e2e.mjs`, 19/19): the page image **loaded**
+  (`naturalWidth > 0`), not merely referenced; "page 1 of 16" comes from the manifest although the item
+  metadata says `imagecount: 20`; the src is a IIIF image-service URL, never a hand-built `$N`; page
+  turning moves the counter; the 15-thumbnail strip renders and its images load; search-inside ("goody")
+  returns **22 hits**, each naming its page, and clicking one jumps the counter *and* loads the word's
+  region crop; the OCR panel returns **1,849 chars** for that page; PDF/EPUB/OCR/DjVu links point at
+  `archive.org/download`. Negatives: a page-less text item explains itself instead of showing an empty
+  viewer, a bad identifier gives a friendly message, and there are no uncaught JS errors (the only console
+  errors are the two statuses those fixtures exist to produce — 400 for the missing item, 500 for the item
+  whose manifest 500s).

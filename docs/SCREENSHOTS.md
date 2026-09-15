@@ -137,6 +137,23 @@ rankings, article text and history — every number live from a Wikimedia API.
 or photographs. The full-colour originals are still in git history (the commit that added
 them, `339a275`), so this is reversible.
 
+## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card, live (2026-09-15)
+
+The first widget of the Internet Archive media family: a scanned book served page by page from
+`iiif.archive.org`. Shows the page (a 400–1400 px ladder), "page 3 of 16" taken from the **manifest**
+(the item metadata claims 20 — see [INTERNET-ARCHIVE.md](INTERNET-ARCHIVE.md)), the 15-thumbnail page
+strip, a search-inside hit ("GOODY") with the word's own crop boxed beneath the page, the page's OCR text
+panel, and the PDF/EPUB/OCR/DjVu links. Captured by `node scripts/ia-book-e2e.mjs`, which passes 19
+assertions against the live archive; the same run writes `wikibento-2026-09-15-ia-book.png` (the page
+image alone, full resolution).
+
+## `wikibento-2026-09-15-ia-filmstrip-mock.png` — the filmstrip idea (design mock, not an app capture)
+
+Twelve real keyframes of `AboutBan1935` (11:03, Prelinger) laid out as a timeline, with the frame under
+the playhead boxed — the `iaVideo` proposal in [INTERNET-ARCHIVE.md](INTERNET-ARCHIVE.md). The frames are
+the archive's own (`.thumbs/`, one per 30 seconds); the composition is ours. Labelled a mock because
+WikiBento has not painted this card yet.
+
 Use the same command for new shots — `--speed 1` favours quality, and `--quality=70-90`
 means a screenshot that would degrade badly is left alone rather than wrecked — and keep
 the `wikibento-<date>-<subject>.png` naming with a section here.

@@ -28,7 +28,7 @@ Think of it as the assembly manual for WikiBento's Lego set: each widget is a br
 
 ## Table of Contents
 
-1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 39 widgets with full capabilities
+1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 40 widgets with full capabilities
 2. [Part 2 — Communication Patterns](#part-2--communication-patterns) — params, dataflow, source picker, interpolation
 3. [Part 3 — Board Composition Patterns](#part-3--board-composition-patterns) — layout, sizing, responsive, kiosk/lean
 4. [Part 4 — LLM Prompt Guide](#part-4--llm-prompt-guide) — how to use this guide to generate board configs

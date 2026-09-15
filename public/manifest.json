@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-14T16:50:14.692Z",
- "widgetCount": 39,
+ "generatedAt": "2026-09-15T07:09:51.728Z",
+ "widgetCount": 40,
  "widgets": [
   {
    "id": "pageviews",
@@ -1799,6 +1799,36 @@
      "label": "Identifier",
      "hint": "The last part of an archive.org/details/… URL",
      "placeholder": "nasa"
+    }
+   ],
+   "defaults": [
+    "identifier",
+    "refreshSeconds"
+   ],
+   "outputs": {
+    "kind": "value"
+   }
+  },
+  {
+   "id": "iaBook",
+   "name": "IA Book",
+   "icon": "📖",
+   "description": "A scanned Internet Archive book, page by page — turn, zoom to read, jump to a page, search inside it (with the matched words shown on the page), read the page text, and open the PDF/EPUB/OCR. Served by the archive's IIIF image service",
+   "dataSource": "iiif.archive.org (Presentation v3 manifest + Image API v3 + Content Search)",
+   "category": "Web & History",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "identifier",
+     "type": "text",
+     "label": "Identifier",
+     "hint": "The last part of an archive.org/details/… URL. Works for scanned texts with page images.",
+     "placeholder": "goodytwoshoes00newyiala"
     }
    ],
    "defaults": [

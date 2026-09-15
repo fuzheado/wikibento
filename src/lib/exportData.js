@@ -94,6 +94,17 @@ export function exportRows(data, opts = {}) {
   }
 
   // 5. Galleries and media lists: the files, with whatever else the payload carries about them.
+  // A IIIF book's page list (iaBook) — one row per page, with the leaf the API uses.
+  if (Array.isArray(data.pages) && data.pages.length && typeof data.pages[0] === 'object') {
+    const rows = data.pages.map((pg) => ({
+      page: pg.label,
+      leaf: pg.leaf === null || pg.leaf === undefined ? '' : pg.leaf,
+      width: pg.width || '',
+      height: pg.height || '',
+    }));
+    return { columns: ['page', 'leaf', 'width', 'height'], rows };
+  }
+
   if (Array.isArray(data.items) && data.items.length) {
     const columns = columnsOf(data.items);
     if (!columns.length) return null;
