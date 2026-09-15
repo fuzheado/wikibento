@@ -3842,3 +3842,28 @@ list with small namespaces collapsed into "Other"; namespace labels from the wik
 *view* filter rather than a query filter; count all protocols by default; show **links** as the headline
 and distinct pages as a subtitle; and say "≥5,000" when the code's documented result cap bites instead
 of presenting a capped number as a total.
+
+## ISSUE-78 · Single Commons image tile: full-bleed decorative image — **open**
+
+**What:** add a standalone `imageTile` widget that accepts one Commons file and fills its entire widget box
+from edge to edge, making the image a decorative tile rather than a gallery or statistics card.
+
+**Why:** the current catalog has no plain single-image widget. `gallery` is article-based and multi-image;
+`fileGallery` is a list-oriented gallery; `fileUsage` shows an image only alongside usage statistics; and
+`markdown` is not Commons-file-aware. A single-image primitive would support visual boards, presentation
+layouts, GLAM displays, and lean/kiosk mode without forcing authors to use a workaround.
+
+**Proposed:**
+- Registry id `imageTile`; input a single Commons filename such as `File:Example.jpg`.
+- Resolve the file through the Commons API and use a thumbnail sized to the rendered box where practical,
+  with the original file page as the click-through target.
+- Render edge-to-edge with no inner card padding; default `object-fit: 'cover'` so the tile is fully populated,
+  with optional `'contain'` for uncropped display.
+- Add an optional focal position (`center`, `top`, `bottom`, `left`, `right`, or CSS position) for deliberate
+  cropping in portrait/landscape tiles.
+- Preserve attribution and licensing: expose author/license/file identity through the ⓘ panel and an
+  accessible hover/focus treatment, without putting a persistent caption over the decorative image by default.
+- Reuse the existing image-fetch and thumbnail patterns; do not fold this into `gallery` or create a
+  multi-image "photo wall" here. The latter remains a separate `WIDGET-IDEAS.md` concept.
+
+**Status:** open; planning note recorded 2026-09-15 from Andrew's request. No implementation yet.
