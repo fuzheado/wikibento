@@ -282,7 +282,7 @@ Back to the [README](../README.md).
   Chromium says `"probably"` for H.264 mp4 and `""` for Theora ogv, so the mp4 derivative is the one to
   offer first (`docs/INTERNET-ARCHIVE.md`).
 
-- ✅ **2026-09-15 — PNG export of a book page** (ISSUE-80, part of the 21-assertion `smoke:iabook` run):
+- ✅ **2026-09-15 — PNG export of a book page** (ISSUE-80, part of the `smoke:iabook` run):
   the ⤓ menu offers **PNG** for the IA Book card with the reason "this widget's image host sends CORS, so
   the canvas stays clean", and clicking it downloads a real raster — **4,384,386 bytes**, a 2× PNG of the
   page (the previous behaviour was a disabled item and the old "this widget is HTML/CSS" tooltip).
@@ -294,3 +294,11 @@ Back to the [README](../README.md).
   worth the whole run — on the Arabic scan `DarsENizami_DarjaAula_1stYear` (389 canvases,
   `viewingDirection: right-to-left`) the **later page sits on the left** ("Page 2 | Page 1") while the
   counter still reads "pages 1–2 of 389". Leaf 0 stands alone on both books until you advance.
+
+- ✅ **2026-09-15 — the deploy, verified against production** (10/10, at
+  `https://wikibento.toolforge.org/`, serving `index-D9YNjKJA.js`): the showcase catalog renders **41 cards
+  with zero crashes**; `/internet-archive-demo.json` opens **both books in facing-pages mode** (the board
+  sets it) and shows a facing pair with both page images loaded, and its film player reports
+  `duration 664s`; `/anne-frank-mlk-demo.json` draws **21 timeline dots**; the older
+  `/parallel-lives-demo.json` still renders; the front door loads a board; **no uncaught JS errors** on any
+  board. Endpoints: `/api/resolve` 200, `/api/proxy` relaying to top.hatnote.com 200.

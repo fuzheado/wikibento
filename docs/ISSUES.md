@@ -3438,7 +3438,7 @@ reader gets it for free:
   **default** (⚙ *Reading mode*: auto / two pages / one page) while the reader's own toggle still wins
   until reload; each leaf gets half the zoom ladder.
 
-**Verified in a browser** (`npm run smoke:iabook`, now **31 assertions**): a spread shows two loaded pages,
+**Verified in a browser** (`npm run smoke:iabook`, now **33 assertions**): a spread shows two loaded pages,
 the counter names it in reading order, the earlier page is on the left in a left-to-right book, the strip
 highlights both, **▶ advances by a spread (2 → 4)**, the shift control re-pairs the first leaf, and for the
 right-to-left book the later page is on the left while the counter reads in reading order. Screenshot:

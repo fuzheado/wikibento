@@ -23,7 +23,8 @@
     "tutorial:build": "node pipeline/build.mjs --config video/demo.config.mjs",
     "tutorial:review": "node pipeline/review.mjs --config video/demo.config.mjs",
     "update:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs",
-    "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check"
+    "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check",
+    "smoke:iabook": "node scripts/ia-book-e2e.mjs"
   },
   "dependencies": {
     "pannellum": "^2.5.7",

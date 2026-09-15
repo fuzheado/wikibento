@@ -27,14 +27,14 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CSKC-SIk.js` (+ `index-oh30B1xp.css`) |
-| deployed | 2026-09-14 (Lifeline timeline + export menu + the `mul` label fix — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
+| production bundle | `index-D9YNjKJA.js` (+ `index-DGfyoQMG.css`) |
+| deployed | 2026-09-15 (the Internet Archive pass: `iaBook` with facing pages, the shared page reader, direct-media playback, PNG export for CORS images, two demo boards — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
 | registry | 40 widget types — 31 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 41 widgets covering all 40 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | **yes** — production (`index-CSKC-SIk.js`, deployed 2026-09-14) predates the whole IA reading/media pass. Undeployed: 📖 `iaBook` (with **facing pages**), ISSUE-80's PNG export, the player's direct-media-URL support, and **two demo boards** — `/internet-archive-demo.json` and `/anne-frank-mlk-demo.json`. Both README demo rows link to production URLs, so those boards 404 there until the next deploy |
-| newest capabilities | 📖 **IA Book** (IIIF page viewer with search-inside — *not deployed yet*) · 🎬 playing archive.org media by URL · 📖 the IA demo board · 🕰️ Lifeline timelines · the ⤓ export menu |
+| pending deploy | none — production serves this branch's tip (verified live after the deploy) |
+| newest capabilities | 📖 **IA Book** — IIIF pages with facing pages and search-inside · 🎬 archive.org media playing by URL · 📄 a shared page reader (the Commons reader is ISSUE-82) · ⤓ PNG export for CORS-image widgets · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
