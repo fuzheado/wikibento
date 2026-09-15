@@ -149,6 +149,17 @@ rendering it: 9 cards, both books' page images loaded (`page 1 of 16`, `page 1 o
 showing its own title, **the film playing at `duration 664s` / `currentTime 1.37s` and the audio at
 `507s` / `1.54s`**, and no error boundary — 10 assertions, no console errors beyond the archive's own 400s.
 
+## `wikibento-2026-09-15-anne-frank-mlk-demo.png` — the "Born in 1929" demo board (2026-09-15)
+
+`?config=/anne-frank-mlk-demo.json` — eight cards telling one story. The note explains it; **two excerpts**
+(with their portraits) and **two traffic tiles** (Anne Frank at 132,148 views, Martin Luther King Jr. at
+156,745 for the month, each with a daily bar chart) flank a **timeline of both lives on one axis**: 2 lanes,
+**21 dated events**, and the dashed band where the two lives overlap (1934–1945). Two galleries of nine
+captioned images each close the board. Verified by rendering it: 8 cards, no error boundary, 2 lanes,
+21 dots, prose in both excerpts, images loaded in both galleries, real numbers in both traffic tiles —
+15 assertions, no uncaught errors. The board was built in the app and saved, so this screenshot is also the
+evidence that a saved board round-trips: it was exported from the browser, then rendered here unchanged.
+
 ## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card in **facing-pages** mode (2026-09-15)
 
 The spread view (ISSUE-81): the cover and the title page side by side, the counter reading "**pages 1–2 of

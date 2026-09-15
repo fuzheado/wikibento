@@ -57,45 +57,47 @@
       "id": "comparison-note",
       "widgetType": "markdown",
       "config": {
-        "text": "### Born in 1929\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929. Their lives, though vastly different in scope and outcome, both profoundly impacted the world",
+        "text": "### Born in 1929\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929. Their lives, though, ran very differently — hers ended at 15, his at 39.\n\nThe timeline below puts every dated event Wikidata records for both of them on **one axis**, so the shared years line up. The cards around it are the same two subjects as prose, images and traffic — the two halves of a life: what is recorded as data, and what is written and shown.\n\nℹ The timeline's ⚙ has an **align** setting: *calendar years*, or *age* (each life anchored at birth). See [LIFELINE-WIDGET](https://github.com/fuzheado/wikibento/blob/main/docs/LIFELINE-WIDGET.md).",
         "allowExternalImages": false,
         "refreshSeconds": 86400
       }
     },
     {
-      "id": "sparql-1789475453861",
+      "id": "lives-timeline",
       "widgetType": "sparql",
       "config": {
         "preset": "two-lives",
         "query": "SELECT ?who ?whoLabel ?date ?kind ?what ?whatLabel WHERE {\n  VALUES ?who { wd:Q4583 wd:Q8027 }\n  ?who wdt:P570 ?died .\n  { ?who wdt:P569 ?date . BIND(\"born\" AS ?kind) } UNION\n  { ?who wdt:P570 ?date . BIND(\"died\" AS ?kind) } UNION\n  { ?who p:P69  ?st . ?st ps:P69  ?what ; pq:P580 ?date . BIND(\"studied at\" AS ?kind) } UNION\n  { ?who p:P108 ?st . ?st ps:P108 ?what ; pq:P580 ?date . BIND(\"worked at\" AS ?kind) } UNION\n  { ?who p:P39  ?st . ?st ps:P39  ?what ; pq:P580 ?date . BIND(\"held office\" AS ?kind) } UNION\n  { ?who p:P166 ?st . ?st ps:P166 ?what ; pq:P585 ?date . BIND(\"awarded\" AS ?kind) } UNION\n  { ?who p:P26  ?st . ?st ps:P26  ?what ; pq:P580 ?date . BIND(\"married\" AS ?kind) } UNION\n  { ?who p:P551 ?st . ?st ps:P551 ?what ; pq:P580 ?date . BIND(\"lived in\" AS ?kind) }\n  FILTER(?date <= ?died)\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en,mul\". }\n}\nORDER BY ?who ?date",
         "endpoint": "wdqs",
-        "renderer": "auto",
+        "renderer": "timeline",
         "maxRows": 100,
         "align": "calendar",
-        "title": "",
+        "title": "Two lives on one axis",
         "showOverlap": true,
         "cardTheme": "dark",
         "refreshSeconds": 1800
       }
     },
     {
-      "id": "pageviews-1789475678067",
+      "id": "anne-views",
       "widgetType": "pageviews",
       "config": {
         "article": "Anne Frank",
         "project": "en.wikipedia",
         "displayMode": "stat",
-        "refreshSeconds": 3600
+        "refreshSeconds": 3600,
+        "title": "Anne Frank — views"
       }
     },
     {
-      "id": "pageviews-1789475710606",
+      "id": "mlk-views",
       "widgetType": "pageviews",
       "config": {
         "article": "Martin Luther King Jr.",
         "project": "en.wikipedia",
         "displayMode": "stat",
-        "refreshSeconds": 3600
+        "refreshSeconds": 3600,
+        "title": "Martin Luther King Jr. — views"
       }
     }
   ],
@@ -156,7 +158,7 @@
       "static": false
     },
     {
-      "i": "sparql-1789475453861",
+      "i": "lives-timeline",
       "x": 0,
       "y": 6,
       "w": 12,
@@ -167,7 +169,7 @@
       "static": false
     },
     {
-      "i": "pageviews-1789475678067",
+      "i": "anne-views",
       "x": 4,
       "y": 2,
       "w": 2,
@@ -178,7 +180,7 @@
       "static": false
     },
     {
-      "i": "pageviews-1789475710606",
+      "i": "mlk-views",
       "x": 6,
       "y": 2,
       "w": 2,
@@ -188,6 +190,5 @@
       "moved": false,
       "static": false
     }
-  ],
-  "params": null
+  ]
 }

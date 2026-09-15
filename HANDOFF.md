@@ -33,7 +33,7 @@ Feature-complete for v1 and deployed.
 | showcase catalog | `?config=/dashboard.json` — 41 widgets covering all 40 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | **yes** — production (`index-CSKC-SIk.js`, deployed 2026-09-14) predates the IA work. Undeployed: 📖 `iaBook`, the player's direct-media-URL support, the IA demo board, and the docs for ISSUE-80/81. Everything after that is docs and tests |
+| pending deploy | **yes** — production (`index-CSKC-SIk.js`, deployed 2026-09-14) predates the whole IA reading/media pass. Undeployed: 📖 `iaBook` (with **facing pages**), ISSUE-80's PNG export, the player's direct-media-URL support, and **two demo boards** — `/internet-archive-demo.json` and `/anne-frank-mlk-demo.json`. Both README demo rows link to production URLs, so those boards 404 there until the next deploy |
 | newest capabilities | 📖 **IA Book** (IIIF page viewer with search-inside — *not deployed yet*) · 🎬 playing archive.org media by URL · 📖 the IA demo board · 🕰️ Lifeline timelines · the ⤓ export menu |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
