@@ -61,12 +61,12 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 |---|---|
 | **Articles (6)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment · 🖼️ Article Gallery |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (4)** | 🖼️ File Usage Map · 🗂️ Commons File Gallery · 🌐 360° Panorama Viewer · 🎬 Video / Media Player |
+| **Files & Media (5)** | 🖼️ File Usage Map · 🗂️ Commons File Gallery · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (7)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
-| **Web & History (2)** | 📦 Internet Archive Item · 🕰️ Wayback Snapshot Gallery *(alpha)* |
+| **Web & History (3)** | 📦 Internet Archive Item · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
 All 32 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 
@@ -121,6 +121,13 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 
 ### Showing and exporting
 
+- **📖 Reading a book, or a document** — 📖 **IA Book** reads a scanned archive.org book page by page from its
+  IIIF manifest: turn, zoom, a thumbnail strip, **search inside** (each hit names its page and shows the matched
+  words boxed on it), the page's OCR text, and **facing pages** — with **right-to-left** handled for
+  Arabic/Hebrew/Yiddish scans. 📄 **Document Reader** does the same for a **Commons PDF or DjVu**, and where
+  Wikisource has transcribed the file its **transcription shows from the start and follows you as you turn
+  pages**, headed by the proofreading grade (*Validated*, or *Not proofread (uncorrected OCR)* when that is the
+  truth). Both share one viewer — [docs/DOCUMENT-VIEWER.md](docs/DOCUMENT-VIEWER.md).
 - **🕰️ Timelines of lives** — the SPARQL widget's `timeline` renderer puts dated rows on **one shared axis**,
   one lane per group, with a shaded band for the window every lane is documented in. Two alignments
   (*calendar years* — what happened at the same time — or *age*, aligning every lane at its first event),
@@ -130,9 +137,11 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   Try `?config=/parallel-lives-demo.json`.
 - **⤓ Export any widget** — one menu, four formats: **PDF** (the browser's print engine — vector and
   selectable, the best artifact for a report, slide or email), **CSV** (the widget's own data, as rows),
-  **SVG** (any widget that is not an iframe, with images inlined), and **PNG** where the widget draws itself
-  as SVG. PNG of an HTML/CSS widget is deliberately not offered — [docs/EXPORT.md](docs/EXPORT.md) says why,
-  and what to do instead.
+  **SVG** (any widget that is not an iframe, with images inlined), and **PNG** wherever the pixels can reach a
+  canvas cleanly — a widget that draws itself as SVG, **or** one whose images come from a CORS-enabled host
+  (`iiif.archive.org`, `upload.wikimedia.org`, `thumb.wikimedia.org`), which is how a book or document page
+  exports as a real PNG. PNG of an *arbitrary* HTML/CSS card is deliberately not offered —
+  [docs/EXPORT.md](docs/EXPORT.md) says why, and what to do instead.
 - **🖨 Print the whole board** — from the toolbar: one card per page, chrome removed, freshness footers kept.
 
 ### Reliability

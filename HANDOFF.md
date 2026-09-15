@@ -28,7 +28,7 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-BEaAHn9L.js` (+ `index-CI1Ga_V5.css`) |
-| deployed | 2026-09-15, four times (Internet Archive pass, 📄 Document Reader, its Wikisource text layer, then that panel made sticky) |
+| deployed | 2026-09-15, five times — the Internet Archive pass, 📄 Document Reader, its Wikisource text layer, that panel made sticky, and lastly a config-only update of `/document-reader-demo.json` (the JS bundle unchanged) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -50,6 +50,8 @@ Gallery).
 | `npm test` | the whole suite (a bundle per constitution area: scope compliance, freshness, manifest compliance, panel/dataflow/demos/assembly/trend-axis/gallery/config-load…) plus `scripts/docs-facts.mjs` |
 | `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
+| `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
+| `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
@@ -306,8 +308,12 @@ actually broken or unfinished today:
 
 Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
-1. **Deploy the pending catalog/docs change**, then update the two state lines above
-   and append to `docs/DEPLOYMENTS.md`.
+1. **Nothing is pending** — production is level with this branch, and the two state lines above plus
+   `docs-facts --live` are the evidence for it. The real queue, in order: the **reading enhancements** filed as
+   ISSUE-83 (how much room the transcription gets), ISSUE-84 (a copy button, with the proofreading grade
+   travelling with the text), ISSUE-85 (where the text lives), ISSUE-86 (duplicate / copy-paste a widget); then
+   the **Internet Archive media family** — `iaPlaylist` → `iaVideo` + keyframe filmstrip → `iaAudio`, all
+   measured and specced in `docs/INTERNET-ARCHIVE.md`.
 2. **Tier-A wiring view** — a derived, read-only map of who drives whom on a board.
    Fully specced in `docs/MODULARITY-AND-DATAFLOW.md` §Part 6, not started. This is
    the biggest remaining UX gap now that params and dataflow both ship.
