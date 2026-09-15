@@ -29,3 +29,6 @@ dist-ssr
 
 # E2E screenshots are evidence for a run, not repo content
 *-e2e.png
+
+# Local cache of fetched API responses (cache-first fetching: never commit payloads)
+cache/
