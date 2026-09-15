@@ -43,6 +43,7 @@ not from the item — so no automatic multi-track playlists, no per-part titles 
 strip, no spectrograms. `iaPlaylist` / `iaVideo` / `iaAudio` are still the plan; the player simply proves
 the playback layer is not the risk.
 
+| **Shared with** | the paged viewer is being extracted from `iaBook` so a **Commons PDF/DjVu** reader can reuse it — see [DOCUMENT-VIEWER.md](DOCUMENT-VIEWER.md) (ISSUE-82), which also means facing pages (ISSUE-81) is built once for both |
 | **See it** | [`?config=/internet-archive-demo.json`](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) — the demo board: two books (16 and 304 pages) and four archive items, verified by rendering (12 assertions). Linked from the hub (`demos.json`) and the README |
 
 The whole family is attractive because the API is unusually friendly: **most of it is CORS-enabled

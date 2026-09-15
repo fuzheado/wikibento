@@ -159,6 +159,12 @@ endpoints, CORS, measured sizes, quota mechanics — is in
   *collection* is `mediatype: 'collection'` and holds **no children in its own metadata** (enumerate
   with `scrape?q=collection:{id}&total_only=true`). MIT OCW also ships **SubRip captions per lecture**,
   so a transcript per part comes almost free. M.
+- **📄 Document reader** (`documentReader`, ISSUE-82) — read a **Commons PDF or DjVu** in a card, the same
+  way an IA book reads: page images from `iiurlparam=page{N}` (one thumbnail per page — a `pagecount`-sized
+  book from a file anyone can upload), turn/zoom/strip, an "open the original" link, and a Wikisource text
+  panel only where the file has been proofread. Built on a **shared paged viewer** extracted from `iaBook`,
+  so facing pages (ISSUE-81) and the right-to-left case are done once for both. Full research:
+  [DOCUMENT-VIEWER.md](DOCUMENT-VIEWER.md).
 - **📖 IA Book — facing pages** (ISSUE-81) — a two-page spread view, the way the Internet Archive's own
   BookReader reads by default. Responsive (2-up on a wide card, 1-up on a narrow one) with a toggle, a
   shift-by-one control for scans whose leaf 0 is a cover, and **right-to-left support** — measured: Arabic,

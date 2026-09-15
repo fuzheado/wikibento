@@ -3328,6 +3328,57 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-82 · A document reader for Commons PDFs/DjVu (and one page viewer shared with IA books) — **open**
+
+**What:** WikiBento can read an Internet Archive book page by page (📖 `iaBook`). Commons holds scanned
+**PDFs and DjVu** files with the same shape and a simpler API, and today there is no way to read one in the
+app — only to link to it. Add a **📄 Document reader** card, and first **extract the page viewer `iaBook`
+already has** so both readers share it (the full research, the measured numbers and seven traps are in
+[DOCUMENT-VIEWER.md](DOCUMENT-VIEWER.md)).
+
+**Why the extraction comes first:** the viewer needs a page count, a per-page image URL builder, a counter,
+a zoom ladder, a strip, page turn, and hooks for search and page text. `iaBook` has all of it and Commons
+documents fit the same interface, so ISSUE-81 (facing pages, right-to-left) then gets implemented **once**
+and lands in both — and a third source becomes an adapter, not another card.
+
+**Verified basis (2026-09-15):**
+- `imageinfo` gives **`pagecount`** as a first-class field (`mediatype: OFFICE`, `mime: application/pdf`),
+  and its `width`/`height` are the *page* size;
+- **one thumbnail per page**: `iiurlparam=page{N}` (1-indexed) → a `thumburl` on the
+  `pageN-{w}px-{name}.jpg` scheme — verified for pages 1, 94 and 188 of a 188-page report;
+- the original PDF is `application/pdf` with `accept-ranges: bytes` and **`access-control-allow-origin: *`**,
+  so page bytes are safe to draw (and a future PDF.js route is possible);
+- **a text layer exists only where Wikisource proofread the file**: `Page:EB1926 - Supplement Volume 3.pdf/434`
+  returned 10,737 chars with `<pagequality level="1">` and `{{rh}}` templates to strip. Coverage is thin —
+  the report we measured has no transcription at all — so it is a panel that appears when available.
+
+**The tempting route is the fragile one, and it is unverified:** embedding the browser's own PDF viewer in an
+iframe would give zoom, search, print and download for free, but (a) **it could not be verified here** —
+headless Chromium ships no PDF viewer, and both a sandboxed and an unsandboxed frame rendered **blank** for a
+real Commons PDF (the file is fetched, nothing paints); (b) it collides with our own sandbox policy for
+untrusted URLs (ISSUE-62); (c) Wikimedia's CSP already says `frame-ancestors 'none'`, report-only today, so
+the route has a stated expiry; and (d) iOS Safari shows only the first page in a frame. **So: page images in
+the card, plus an "open the original" link** — a real tab gets all of that with none of the four costs.
+
+**Plan:**
+1. Extract `PagedViewer` from `iaBook` behind a page-source interface (`pageCount`, `pageUrl(i, width)`,
+   `direction`, optional `search`, optional `pageText`) and re-point `iaBook` at it — no user-visible change,
+   and the 19 existing assertions must stay green.
+2. Ship **📄 `documentReader`**: identifier → `imageinfo` header (pages, pagesize, file size) → page images
+   with turn/zoom/strip, "open the original", and CSV export of the page list.
+3. Land **ISSUE-81** on the shared viewer (facing pages, right-to-left).
+4. Add the **Wikisource text panel** when the document has a `Page:` transcription, showing the proofreading
+   level — and only then.
+5. **PDF.js** only on evidence, if searching arbitrary (unproofread) PDFs becomes a real requirement.
+
+**Verification:** a `scripts/document-reader-e2e.mjs` in the `smoke:iabook` style — a real Commons PDF
+(page image loaded, counter reads the `pagecount`, the last page renders and one past the end **clamps**,
+the strip loads, "open the original" points at `upload.wikimedia.org`), a DjVu file for the second format,
+and a PDF with no `pagecount` (or an unrenderable page) degrading to a link rather than an empty viewer.
+Unit tests for the page-URL builder and the clamp belong next to `tests/ia-book.test.mjs`.
+
+**Status:** open (filed 2026-09-15).
+
 ## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **open**
 
 **What:** the IA Book card shows one leaf at a time. The Internet Archive's own BookReader defaults to
@@ -3366,6 +3417,10 @@ counter reads "pages N–N+1", that the pair ordering **flips for a `right-to-le
 identifiers above becomes a third book in the fixture), and that a search hit still lands with its crop.
 The existing traps (`tests/ia-book.test.mjs`: manifest page count beats `imagecount`, `$0` → 500, blank
 filler leaves) apply unchanged.
+
+**Note:** this is also what makes a Commons document reader cheap — the paged viewer is being extracted from
+`iaBook` for ISSUE-82, so facing pages (and the right-to-left case) is implemented **once** and applies to
+both sources.
 
 **Status:** open (filed 2026-09-15, from Andrew's note that IA's own reader shows facing pages by default).
 

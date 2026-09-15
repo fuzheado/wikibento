@@ -235,7 +235,9 @@ front door.
   [TAPESTRY-EVALUATION](docs/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·
   [INTERNET-ARCHIVE](docs/INTERNET-ARCHIVE.md) (the IA widget family: verified API surface, per-media
-  file conventions, quotas, ranked proposal)
+  file conventions, quotas, ranked proposal) ·
+  [DOCUMENT-VIEWER](docs/DOCUMENT-VIEWER.md) (Commons PDFs/DjVu: page-thumbnail scheme, why framing a PDF is
+  the fragile route, and the viewer shared with IA books)
 - **Ideas** — [WIDGET-IDEAS](docs/WIDGET-IDEAS.md) · [DEMO-IDEAS](docs/DEMO-IDEAS.md) ·
   [ROADMAP](docs/ROADMAP.md) · [ISSUES](docs/ISSUES.md) ·
   [LIFELINE-WIDGET](docs/LIFELINE-WIDGET.md) (timelines of lives, and comparing two of them — measured
