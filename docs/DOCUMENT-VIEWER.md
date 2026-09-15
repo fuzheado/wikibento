@@ -138,6 +138,79 @@ independent — paged reading versus media playback — and playback risk is alr
 if the media work waits. This path is worth taking first because step 1 halves the cost of everything after
 it, and because facing pages is a gap in a card that has already shipped.
 
+## Step 3 — the build plan (pre-flight measured 2026-09-15)
+
+Steps 0–2 shipped, so this is a **page source**, a **card**, and the guards. The pre-flight results that
+decide the design:
+
+| question | answer (measured) |
+|---|---|
+| does the document thumb host send CORS? | **yes** — `thumb.wikimedia.org` **and** `upload.wikimedia.org` return `access-control-allow-origin: *` for a PDF page render, so **PNG export works here too**, and both hosts are already in `CORS_IMAGE_HOSTS` |
+| is DjVu the same model as PDF? | **yes** — `File:Mozart Sonate (manuscript).djvu`: `pagecount: 96`, `mediatype: OFFICE`, and `iiurlparam` returns a page render exactly as for PDF. One code path, two formats |
+| how many API calls does a 329-page document need? | **one.** `imageinfo` returns `pagecount` and a page-1 `thumburl` that becomes a template once `page1-` and the width are rewritten — no per-page fan-out |
+| **what widths do document renders honour?** | asked 320 → `330px`; 700 → `960px`; 960 → 960; **1200 → 960**; **2000 → 960**. A **960 px ceiling**, and the API's own `thumbwidth` (1200) describes neither the URL nor the delivered file (960×678) |
+| what can we show as credit? | `extmetadata` → `ImageDescription`, `Artist`, `LicenseShortName`, `DateTime` — the same call the media player already makes |
+
+**So one small change is needed in the *shared* viewer:** a source advertises `caps.maxWidth` and the zoom
+ladder stops there. Without it the `+` button lies from 700 px on — it would say 1400 and deliver 960.
+
+### The page source (`documentSource`)
+
+One `imageinfo` call → the shared contract:
+
+```js
+imageinfo(prop=imageinfo&iiprop=url|size|mime|mediatype|pagecount|extmetadata&iiurlwidth=960&iiurlparam=page1)
+  ├─ pagecount 189                      → pages[1..N] with labels "1".."N"  (the API has no page labels)
+  ├─ thumburl   …/page1-960px-Name.pdf.jpg
+  │     → template by rewriting page1- → page{N}- and the width → {w}   (never hand-built: see trap 3)
+  ├─ caps: { region:false, search:false, text:false, facing:true, maxWidth:960 }
+  ├─ subtitle: "189 pages · PDF · 49.9 MB" + page size
+  ├─ links: the file page, the original (`url`) — the honest "open the original"
+  └─ credit: description/artist/license from extmetadata
+```
+
+`caps.region:false` matters: Wikimedia page thumbs have **no region API**, so the viewer must not offer a
+word-box crop — it would request a URL that cannot exist. That is exactly what the capability flags are for.
+
+### Guards (each one is a measured trap, not a precaution)
+
+| trap | behaviour it forces |
+|---|---|
+| an out-of-range page is **clamped** (page189 of 188 returned page 188, byte for byte) | navigation and the strip clamp to `pagecount`; never probe for a 404 |
+| `thumbwidth` lies for documents (1200 claimed, 960 delivered) | lay out from the image's own `naturalWidth`, never from the API's numbers |
+| hand-built thumb URLs **400** for some files (the 50 MB report) | derive the template from the API's URL; if the **first** page fails to load, replace the viewer with the notice + links rather than showing a grid of broken images |
+| `thumburl` carries `?utm_source=…` | strip everything from `?` before deriving the template |
+| a file that is not a document (`mediatype` not OFFICE/TEXT, no `pagecount`) | refuse politely and point at the file page |
+| 960 px ceiling | `caps.maxWidth`, and bucket widths in the ladder |
+
+### Deliverables
+
+1. `src/lib/documentSource.js` — `documentPageSource(imageinfo, title)` (pure: template derivation, page
+   list, caps, notices) + `unit tests` beside `tests/paged-viewer.test.mjs`.
+2. `DocumentReaderCard` in `WidgetFrame.jsx` — a ~20-line wrapper, exactly like `IaBookCard`.
+3. Registry entry: id **`documentReader`**, 📄, `timeScope: 'point'`, defaults
+   `{ file: 'File:The Three Hostages (1924).pdf', project: 'commons.wikimedia', spread: 'auto' }`, emits the
+   file page URL. Config fields: file, project, spread (Reading mode).
+4. `caps.maxWidth` support in `PagedViewer`.
+5. Showcase catalog entry (the gate requires it) → **41 → 42 widgets, 40 → 41 types, 31 → 32 data-driven**;
+   the docs-facts count rules will name every claim to update.
+6. `scripts/document-reader-e2e.mjs` + `npm run smoke:document`, fixtures: the **2-page** `PDF metadata.pdf`
+   (fast), the **329-page** `The Three Hostages (1924).pdf` (the default, and a long document), the
+   **96-page DjVu** (`Mozart Sonate`), a **non-document** (a JPEG → notice), and the **400 case** if it can
+   be included cheaply. Assertions: pagecount from `imageinfo`, page 1 loaded, the last page renders, one
+   past the end **clamps**, the strip loads, "open the original" points at the file, the facing toggle works,
+   **PNG export is offered** (CORS), and a broken page degrades to a link.
+7. `public/document-reader-demo.json` — the 329-page PDF, the Mozart DjVu, and an IA book side by side (the
+   same viewer, two archives), linked from the hub.
+8. Docs: catalog row, `DATA-SOURCES` §29, this file, ISSUE-82, ROADMAP, SCREENSHOTS, VERIFIED-WORKING.
+
+**Effort:** about a day, and it is genuinely bounded now — the viewer, the spread rules, the right-to-left
+case, the traps' shapes and the tests already exist.
+
+**Not in step 3 (deliberately):** the Wikisource text panel, which is v1.1 — coverage is thin (the 188-page
+report we measured has no transcription anywhere) and it is a different data path with its own parsing
+(`<noinclude>`, `{{rh}}`, `<pagequality>`) and its own quality semantics. And PDF.js stays on evidence.
+
 ## What I would build
 
 1. **Extract `PagedViewer` from `iaBook`** and re-point `iaBook` at it — no user-visible change, and it is

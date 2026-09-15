@@ -3377,7 +3377,39 @@ the strip loads, "open the original" points at `upload.wikimedia.org`), a DjVu f
 and a PDF with no `pagecount` (or an unrenderable page) degrading to a link rather than an empty viewer.
 Unit tests for the page-URL builder and the clamp belong next to `tests/ia-book.test.mjs`.
 
-**Status:** open (filed 2026-09-15).
+**Pre-flight 2026-09-15 (steps 0–2 of the reading workstream are done, so this is the last piece):**
+- the document thumb hosts **both send CORS** (`thumb.wikimedia.org` and `upload.wikimedia.org`), so **PNG
+  export works for this reader too** — no new allow-list entry needed;
+- **DjVu is the same model as PDF** (`Mozart Sonate`: 96 pages, `mediatype: OFFICE`, `iiurlparam` works
+  identically) — one code path, two formats;
+- a 329-page document needs **ONE** API call: `pagecount` plus a page-1 `thumburl` that becomes a template
+  once `page1-` and the width are rewritten;
+- **document renders have a 960 px ceiling** — asked 320 → `330px`, 700 → `960px`, 1200 → **960**, 2000 →
+  **960** — so the zoom ladder needs a per-source `caps.maxWidth` in the shared viewer, or the `+` button
+  lies above 700 px and the API's `thumbwidth` describes neither the URL nor the file;
+- `extmetadata` supplies description / artist / license / date, the same call the media player makes.
+
+**The plan (detail in [DOCUMENT-VIEWER.md](DOCUMENT-VIEWER.md)):** `src/lib/documentSource.js` (pure
+source builder + tests) → `DocumentReaderCard` as a ~20-line wrapper like `IaBookCard` → registry entry
+(`documentReader`, 📄, `timeScope: 'point'`, `spread` + `project` + `file`) → `caps.maxWidth` in
+`PagedViewer` → showcase catalog entry (41 → 42 widgets / 40 → 41 types / 31 → 32 data-driven, which the
+docs-facts count rules will name) → `scripts/document-reader-e2e.mjs` (`npm run smoke:document`) with
+fixtures for a 2-page PDF, the 329-page default, a 96-page DjVu, a non-document, and the clamp → a
+`document-reader-demo.json` board (the PDF, the DjVu, and an IA book side by side — one viewer, two
+archives).
+
+**Open decisions for Andrew:**
+1. **v1 scope** — pages + links + facing pages, with the **Wikisource text panel as v1.1** (recommended:
+   coverage is thin — the 188-page report measured has no transcription anywhere — and it is a different
+   data path), or include it now.
+2. **Multi-wiki** — support `project` (any wiki's local PDF/DjVu, default `commons.wikimedia`) or
+   Commons-only for now. Recommended: yes, since it is the same API shape and it is what makes Wikisource
+   documents (where DjVu dominates) readable.
+3. **Default file** — `File:The Three Hostages (1924).pdf` (329 pages, described as "From internet
+   archive", so a nice pairing with the IA board) or the 96-page Mozart DjVu. Recommended: the PDF, with
+   the DjVu in the demo board.
+
+**Status:** open (filed 2026-09-15; steps 0–2 of the shared reading workstream shipped the same day).
 
 ## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **done + verified 2026-09-15**
 
