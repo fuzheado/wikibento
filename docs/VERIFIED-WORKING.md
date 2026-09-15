@@ -342,3 +342,9 @@ Back to the [README](../README.md).
   1,458 characters** under **"EN.WIKISOURCE · VALIDATED"**, linked to Wikisource; the showcase catalog renders
   **42 cards** with zero crashes; the IA and 1929 boards are unchanged; `/api/resolve` and `/api/proxy` both
   200; **no uncaught JS errors**.
+
+- ✅ **2026-09-15 — the sticky transcription panel, verified against production** (8/8, serving
+  `index-BEaAHn9L.js`): the panel is **showing as soon as the card loads** with ¶ already pressed; the
+  untranscribed cards have no panel; **page 19 updates it without a click** (1,458 characters,
+  "EN.WIKISOURCE · VALIDATED"); **page 20 keeps it open with different words** (1,598 characters); ¶ closes it
+  and restores the current page; no uncaught JS errors.

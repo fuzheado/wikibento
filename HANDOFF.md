@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-B8NGcYXL.js` (+ `index-CI1Ga_V5.css`) |
-| deployed | 2026-09-15, three times (the Internet Archive pass, the 📄 Document Reader, then its **Wikisource text layer**) |
+| production bundle | `index-BEaAHn9L.js` (+ `index-CI1Ga_V5.css`) |
+| deployed | 2026-09-15, four times (Internet Archive pass, 📄 Document Reader, its Wikisource text layer, then that panel made sticky) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the text layer, the 42-card catalog and every demo board) |
+| pending deploy | none — production serves this branch's tip (verified live: the sticky transcription panel, the boards, both endpoints) |
 | newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you as you turn pages**) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
