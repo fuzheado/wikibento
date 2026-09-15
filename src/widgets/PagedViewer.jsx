@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   pageImageUrl, canCrop, spreadPairs, spreadOrder, spreadIndexOf, spreadLabel,
-  spreadsFit, leafWidth, stripWindow,
+  spreadsFit, leafWidth, stripWindow, zoomLadder, clampPage,
 } from '../lib/pagedViewer';
 
 /**
@@ -28,8 +28,6 @@ import {
  *     URL is what 400'd for a real PDF;
  *   · a right-to-left book shows the LATER leaf on the left, and the counter still reads "pages 4–5".
  */
-const PV_WIDTHS = [400, 700, 1000, 1400];
-
 export default function PagedViewer({ data, onSearch = null, onPageText = null }) {
   const pages = (data && data.pages) || [];
   const count = pages.length;
@@ -37,8 +35,10 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const caps = (data && data.caps) || {};
   const direction = (data && data.direction) || 'left-to-right';
 
+  const ladder = useMemo(() => zoomLadder(caps.maxWidth), [caps.maxWidth]);
   const [page, setPage] = useState(0);
   const [wIdx, setWIdx] = useState(1);
+  const [jump, setJump] = useState('');
   const [offset, setOffset] = useState(0);
   // The board can express a default (⚙ Reading mode): 'on'/'off' pin it, 'auto' follows the card's width.
   // null means "follow the width". The reader's own toggle still wins until the widget reloads — the board
@@ -78,7 +78,7 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const pair = pairs[spreadIdx] || [];
   const shown = spreadOrder(pair, direction);
   const current = pages[safe] || null;
-  const w = leafWidth(PV_WIDTHS[wIdx], inSpread);
+  const w = leafWidth(ladder[Math.min(wIdx, ladder.length - 1)], inSpread);
 
   const go = (index) => {
     setSel(null); setText(null);
@@ -148,7 +148,7 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
         <span className="pv-zoom">
           <button className="pv-btn" onClick={() => setWIdx(Math.max(0, wIdx - 1))} disabled={wIdx === 0} title="Smaller">−</button>
           <span className="pv-w">{w}px</span>
-          <button className="pv-btn" onClick={() => setWIdx(Math.min(PV_WIDTHS.length - 1, wIdx + 1))} disabled={wIdx === PV_WIDTHS.length - 1} title="Larger">+</button>
+          <button className="pv-btn" onClick={() => setWIdx(Math.min(ladder.length - 1, wIdx + 1))} disabled={wIdx >= ladder.length - 1} title={wIdx >= ladder.length - 1 ? 'Largest step this source serves' : 'Larger'}>+</button>
         </span>
         {caps.facing !== false && (
           <button
@@ -161,6 +161,21 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
         )}
         {inSpread && (
           <button data-pv="shift" className="pv-btn" onClick={() => setOffset(offset === 0 ? 1 : 0)} title={offset === 0 ? 'The first leaf stands alone — click to pair it' : 'The first leaf is paired — click to leave it alone'}>{offset === 0 ? '⇥' : '⇤'}</button>
+        )}
+        {count > 1 && (
+          <form className="pv-jump" onSubmit={(e) => { e.preventDefault(); go(clampPage(jump, count)); setJump(''); }}>
+            <input
+              className="pv-jump-input"
+              type="number"
+              min="1"
+              max={count}
+              value={jump}
+              onChange={(e) => setJump(e.target.value)}
+              placeholder="go to…"
+              aria-label={`Go to a page (1–${count})`}
+              title={`Type a page number (1–${count}) and press Enter`}
+            />
+          </form>
         )}
         {caps.text && (
           <button data-pv="text" className="pv-btn" onClick={toggleText} disabled={textBusy} title="Show this page's text">¶</button>

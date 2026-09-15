@@ -101,6 +101,38 @@ export function spreadsFit(cardWidth) {
   return Number(cardWidth) >= SPREAD_MIN_WIDTH;
 }
 
+/** The base zoom ladder. A source may cap it (see `zoomLadder`). */
+export const PV_LADDER = [400, 700, 1000, 1400];
+
+/**
+ * The ladder for one source: the base steps that fit its ceiling, plus the ceiling itself.
+ *
+ * A Commons document render tops out at **960 px** — measured 2026-09-15: a request for 1200 and one for
+ * 2000 both came back as 960. Without this cap the `+` button would climb to a step the server cannot
+ * serve, and its label would be a lie about the pixels on screen.
+ */
+export function zoomLadder(maxWidth, base = PV_LADDER) {
+  const cap = Number(maxWidth) > 0 ? Math.round(Number(maxWidth)) : Infinity;
+  const kept = base.filter((w) => w <= cap);
+  if (!kept.length) return [Math.min(cap, base[0])];
+  if (Number.isFinite(cap) && !kept.includes(cap)) kept.push(cap);
+  return kept;
+}
+
+/**
+ * A typed page number (1-based, as a reader types it) → a valid 0-based index.
+ * An out-of-range or unparseable entry clamps to the ends rather than throwing or landing nowhere —
+ * the same rule that keeps navigation off the clamp trap (a page past the end is served as the last page,
+ * not as an error).
+ */
+export function clampPage(value, count) {
+  const n = Math.max(0, Number(count) || 0);
+  if (!n) return 0;
+  const v = Math.round(Number(value));
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(n - 1, v - 1));
+}
+
 /** The zoom ladder, per leaf: in a spread each leaf gets about half the card, so the ladder halves too. */
 export function leafWidth(ladderWidth, inSpread) {
   const w = Number(ladderWidth) > 0 ? Number(ladderWidth) : 700;

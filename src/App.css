@@ -2693,6 +2693,12 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 }
 .pv-leaf.is-current { border-color: var(--border); }
 .pv-btn.is-on { border-color: var(--accent); color: var(--accent); }
+.pv-jump { display: inline-flex; }
+.pv-jump-input {
+  width: 84px; background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 2px 6px; font-size: 12px;
+}
+.pv-jump-input:focus { outline: none; border-color: var(--accent); }
 .pv-of { opacity: .65; }
 .pv-page { display: block; max-width: 100%; height: auto; }
 .pv-hit { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); flex: 0 0 auto; }
