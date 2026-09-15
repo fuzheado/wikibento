@@ -240,6 +240,13 @@ wikitext together; `prop=globalusage` says whether a `Page:`/`Index:` usage exis
 (ns 104/106 — being *linked* from a Wikisource article does not count, and neither does a Wikidata item).
 A file with no transcription simply has no ¶ button; the Mozart DjVu is the negative case in the tests.
 
+**The panel is a sticky toggle** (Andrew's follow-up, 2026-09-15): it opens with the card rather than waiting
+for a click, and it **follows the reader** — turning a page reloads the text for the page in view instead of
+clearing it. Those are one feature, not two: a panel that closed on every turn had to be reopened, and a panel
+that stayed open with the previous page's words would be worse than either. `⚙ Transcription` decides whether
+it starts open (the board sets the default; **¶** overrides it), and the IA book keeps its ¶ opt-in — there the
+text is a bonus rather than the point of the card, and the panel costs the page its room.
+
 **Three bugs this found, all in code that had just been written:**
 - the viewer's text guard required `annotationPage` — a **IIIF-specific** field — so every Commons document
   was refused before its own fetcher ran. A guard written against one source's shape silently excluded the

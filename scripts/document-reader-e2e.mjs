@@ -185,27 +185,58 @@ async function main() {
     imgCard.slice(0, 80));
   check('…and it still offers the way out', (await page.locator('[data-widget-id="doc-image"] .pv-links a').count()) >= 1);
 
-  // ── the Wikisource text layer (v1.1): text AND its proofreading grade ─────────
+  // ── the Wikisource text layer: OPEN ON LOAD, and STICKY across page turns ────
   await page.waitForSelector('[data-widget-id="doc-ws"] img.pv-page', { state: 'attached', timeout: 150000 });
   check('a transcribed document reports its own page count', /^page 1 of 38$/.test(await counter('doc-ws')), await counter('doc-ws'));
   const wsText = page.locator('[data-widget-id="doc-ws"] .pv-btn[data-pv="text"]');
   check('a file WITH a transcription offers the ¶ button', (await wsText.count()) === 1);
   check('a file WITHOUT one does not', (await page.locator('[data-widget-id="doc-djvu"] .pv-btn[data-pv="text"]').count()) === 0,
     'the Mozart DjVu is not transcribed anywhere');
-  // jump to a page we know is transcribed and read it
-  await jumpTo('doc-ws', 19);   // a page this work has fully validated
+
+  // 1. it is open from the start, with nobody having clicked anything
+  await page.waitForSelector('[data-widget-id="doc-ws"] .pv-text-body', { timeout: 60000 });
+  check('the transcription is showing from the moment the card loads', true,
+    `¶ aria-pressed=${await wsText.getAttribute('aria-pressed')}`);
+  check('…and the button shows it is on', (await wsText.getAttribute('aria-pressed')) === 'true');
+  check('an untranscribed card has no panel at all',
+    (await page.locator('[data-widget-id="doc-djvu"] .pv-text-body').count()) === 0);
+
+  // 2. turning the page keeps it open AND brings the new page's words
+  const panelNow = () => page.evaluate(() => {
+    const c = document.querySelector('[data-widget-id="doc-ws"]');
+    return { note: c.querySelector('.pv-text-note')?.innerText || '', body: c.querySelector('.pv-text-body')?.innerText || '',
+             href: c.querySelector('.pv-text-note a')?.getAttribute('href') || '' };
+  });
+  await jumpTo('doc-ws', 19);   // without touching ¶
+  await page.waitForFunction(() => {
+    const b = document.querySelector('[data-widget-id="doc-ws"] .pv-text-body');
+    return b && b.innerText.length > 500;
+  }, undefined, { timeout: 60000 });
+  const page19 = await panelNow();
+  check('it reloaded itself for the page we moved to (no second click)', page19.body.length > 500,
+    `${page19.body.length} chars · "${page19.body.slice(0, 52)}…"`);
+  check('…and still says how proofread it is (this work is validated, not OCR)', /Validated/i.test(page19.note), page19.note);
+  check('…and links to the transcription it came from',
+    /^https:\/\/en\.wikisource\.org\/wiki\/Page:%22Homo_Sum%22.*\.djvu\/19$/.test(page19.href), page19.href);
+  check('no raw markup leaked into the text', !/[{}]|noinclude|pagequality/.test(page19.body), page19.body.slice(0, 52));
+
+  await jumpTo('doc-ws', 20);
+  await page.waitForFunction((prev) => {
+    const b = document.querySelector('[data-widget-id="doc-ws"] .pv-text-body');
+    return b && b.innerText.length > 100 && b.innerText !== prev;
+  }, page19.body, { timeout: 60000 }).catch(() => {});
+  const page20 = await panelNow();
+  check('one more turn: still open, and the words changed with the page',
+    page20.body.length > 0 && page20.body !== page19.body, `${page20.body.length} chars, different: ${page20.body !== page19.body}`);
+
+  // 3. and ¶ is a real toggle
+  await wsText.click();
+  check('pressing ¶ closes it', (await page.locator('[data-widget-id="doc-ws"] .pv-text-body').count()) === 0,
+    `aria-pressed=${await wsText.getAttribute('aria-pressed')}`);
   await wsText.click();
   await page.waitForSelector('[data-widget-id="doc-ws"] .pv-text-body', { timeout: 60000 });
-  const panel = await page.evaluate(() => {
-    const card = document.querySelector('[data-widget-id="doc-ws"]');
-    return { note: card.querySelector('.pv-text-note')?.innerText || '', body: card.querySelector('.pv-text-body')?.innerText || '',
-             href: card.querySelector('.pv-text-note a')?.getAttribute('href') || '' };
-  });
-  check('the text panel carries the words from Wikisource', panel.body.length > 500, `${panel.body.length} chars · "${panel.body.slice(0, 60)}…"`);
-  check('…and says how proofread it is (this work is validated, not OCR)', /Validated/i.test(panel.note), panel.note);
-  check('…and links to the transcription it came from',
-    /^https:\/\/en\.wikisource\.org\/wiki\/Page:%22Homo_Sum%22.*\.djvu\/19$/.test(panel.href), panel.href);
-  check('no raw markup leaked into the text', !/[{}]|noinclude|pagequality/.test(panel.body), panel.body.slice(0, 60));
+  check('…and pressing it again brings it back for the current page', true,
+    `${(await panelNow()).body.length} chars`);
 
   await page.screenshot({ path: join(root, 'docs/screenshots/wikibento-2026-09-15-document-reader.png'), fullPage: true });
   check('board screenshot written', true);

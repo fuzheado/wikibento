@@ -324,7 +324,11 @@ Back to the [README](../README.md).
   as facing pages; `/anne-frank-mlk-demo.json` still draws 21 timeline dots; `/api/resolve` and `/api/proxy`
   both 200; the front door loads a board; **no uncaught JS errors**.
 
-- ✅ **2026-09-15 — the Wikisource text layer (v1.1)** (the fixture is deliberately small — a **38-page, 0.89 MB**
+- ✅ **2026-09-15 — the Wikisource text layer (v1.1), made sticky** (`npm run smoke:document`, **37**
+  assertions): the transcription is **showing the moment the card loads**, with ¶ already pressed, and an
+  untranscribed card has no panel at all; moving to page 19 **updates it without a click** (1,458 characters,
+  "EN.WIKISOURCE · VALIDATED"); one more turn keeps it open with **different words** (1,598 characters); ¶
+  closes it and pressing it again restores the current page. The fixture is deliberately small — a **38-page, 0.89 MB**
   DjVu, not the 285 MB reference set the traps were found on): a work with a transcription reports "page 1 of
   38" and grows a **¶ button**; a DjVu with **no** transcription has none; pressing it on page 19 shows
   **1,458 characters** of readable text under **"en.wikisource · Validated"**, linking to

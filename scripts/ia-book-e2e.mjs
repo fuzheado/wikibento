@@ -148,9 +148,14 @@ async function main() {
 
   // page OCR text
   await page.locator(`${card} .pv-toolbar button`).last().click();   // ¶
-  await page.waitForSelector(`${card} .pv-text`, { timeout: 30000 });
-  const text = (await page.locator(`${card} .pv-text`).innerText()).trim();
-  check('the page text panel has OCR text', text.length > 20, `${text.length} chars`);
+  // Wait for the WORDS, not for the container: the panel exists a frame before its text arrives, so
+  // asserting on the element is a race (and on a slow page it reads an empty string).
+  await page.waitForFunction((sel) => {
+    const body = document.querySelector(`${sel} .pv-text-body`);
+    return body && body.innerText.trim().length > 100;
+  }, `[data-widget-id="iabook-live"]`, { timeout: 60000 });
+  const text = (await page.locator(`${card} .pv-text-body`).first().innerText()).trim();
+  check('the page text panel has OCR text', text.length > 100, `${text.length} chars`);
 
   // links out
   const hrefs = await page.locator(`${card} .pv-links a`).evaluateAll((as) => as.map((a) => a.getAttribute('href')));

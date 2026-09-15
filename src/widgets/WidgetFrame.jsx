@@ -2275,6 +2275,9 @@ function IaBookCard({ data }) {
       onSearch={data && data.hasSearch
         ? (query, pages) => fetchIaBookSearch(data.searchService, query).then((raw) => searchHits(raw, pages))
         : null}
+      // Opt-in here, unlike the Commons reader: an IA book's ¶ is a bonus (the page's own OCR), not the
+      // reason to open the card, and the panel costs the page its room.
+      textOpenDefault={false}
       onPageText={(page) => fetchIaBookPageText(page.annotationPage)}
     />
   );
@@ -2294,6 +2297,9 @@ function DocumentReaderCard({ data }) {
   return (
     <PagedViewer
       data={data}
+      // A transcription is the reason this card has a ¶ at all, so the panel is OPEN on load and stays open
+      // as the reader turns pages (the board can turn that off with ⚙ Reading the transcription).
+      textOpenDefault={transcript ? data.textPanel !== 'off' : false}
       // The text layer exists only where Wikisource transcribed the file: one call per page gives the
       // words AND their proofreading grade, and the grade travels with the text because "Not proofread"
       // means uncorrected OCR — the reader has to know that to trust it correctly.

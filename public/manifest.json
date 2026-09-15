@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-15T20:05:10.486Z",
+ "generatedAt": "2026-09-15T20:39:06.353Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -1890,12 +1890,23 @@
       "on",
       "off"
      ]
+    },
+    {
+     "key": "textPanel",
+     "type": "select",
+     "label": "Transcription",
+     "hint": "Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.",
+     "options": [
+      "on",
+      "off"
+     ]
     }
    ],
    "defaults": [
     "file",
     "project",
     "spread",
+    "textPanel",
     "refreshSeconds"
    ],
    "outputs": {

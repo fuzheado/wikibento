@@ -28,7 +28,7 @@ import {
  *     URL is what 400'd for a real PDF;
  *   · a right-to-left book shows the LATER leaf on the left, and the counter still reads "pages 4–5".
  */
-export default function PagedViewer({ data, onSearch = null, onPageText = null }) {
+export default function PagedViewer({ data, onSearch = null, onPageText = null, textOpenDefault = false }) {
   const pages = (data && data.pages) || [];
   const count = pages.length;
   const labels = useMemo(() => pages.map((p, i) => p.label || String(i + 1)), [pages]);
@@ -52,8 +52,14 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const [sel, setSel] = useState(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
+  // The text panel is a TOGGLE, not a one-shot: it opens (by default for a source whose text is the point,
+  // like a Wikisource transcription), stays open while the reader turns pages, and reloads itself for
+  // whichever page is in view. A panel that vanished on every turn made the reader click ¶ again and again,
+  // and a panel that stayed open with the PREVIOUS page's words would be worse than either.
+  const [textOpen, setTextOpen] = useState(Boolean(onPageText && textOpenDefault));
   const [text, setText] = useState(null);
   const [textBusy, setTextBusy] = useState(false);
+  const textSeq = useRef(0);
   const stageRef = useRef(null);
 
   // A config edit changes the default; re-apply it rather than leaving the previous choice in place.
@@ -81,8 +87,10 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const w = leafWidth(ladder[Math.min(wIdx, ladder.length - 1)], inSpread);
 
   const go = (index) => {
-    setSel(null); setText(null);
+    setSel(null);
     setPage(Math.max(0, Math.min(count - 1, index)));
+    // deliberately NOT clearing the text: the panel is sticky, and the effect below refetches for the page
+    // that arrives.
   };
   const step = (delta) => {
     const next = pairs[Math.max(0, Math.min(pairs.length - 1, spreadIdx + delta))] || [];
@@ -101,20 +109,39 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
     } finally { setBusy(false); }
   };
 
-  const toggleText = async () => {
-    if (text !== null) { setText(null); return; }
-    // The guard is "is there a source for this?", not "does this page carry a IIIF annotation page" — that
-    // field belongs to one source's shape, and requiring it silently refused every Commons document.
-    if (!onPageText || !current) { setProblem('No text source for this document'); return; }
-    setTextBusy(true); setProblem('');
-    try {
-      const got = await onPageText(current, pages);
-      // A source may return just words, or words with provenance ({text, note, href}) — where the text came
-      // from and how trustworthy it is. Both render; only the panel's header differs.
-      setText(typeof got === 'string' ? { text: got, note: '', href: '' } : (got || { text: '', note: '', href: '' }));
-    } catch (err) { setProblem((err && err.message) || 'No text for this page'); }
-    finally { setTextBusy(false); }
-  };
+  const toggleText = () => setTextOpen((v) => !v);
+
+  // The callback is read through a ref: the wrappers build it inline, so depending on its identity would
+  // refetch on every render instead of on every page.
+  const onPageTextRef = useRef(onPageText);
+  useEffect(() => { onPageTextRef.current = onPageText; }, [onPageText]);
+
+  // Follow the reader: when the panel is open, load the page in view — and reload it when the page changes.
+  // The sequence guard drops a slow response that arrives after a newer one.
+  useEffect(() => {
+    const fetcher = onPageTextRef.current;
+    if (!textOpen || !fetcher || !pages[safe]) return undefined;
+    const seq = (textSeq.current += 1);
+    let alive = true;
+    setTextBusy(true);
+    setProblem('');
+    fetcher(pages[safe], pages)
+      .then((got) => {
+        // A source may return just words, or words with provenance ({text, note, href}): where the text came
+        // from and how trustworthy it is. Both render; only the panel's header differs.
+        if (alive && seq === textSeq.current) {
+          setText(typeof got === 'string' ? { text: got, note: '', href: '' } : (got || { text: '', note: '', href: '' }));
+        }
+      })
+      .catch((err) => {
+        if (alive && seq === textSeq.current) {
+          setText({ text: '', note: '', href: '' });
+          setProblem((err && err.message) || 'No text for this page');
+        }
+      })
+      .finally(() => { if (alive && seq === textSeq.current) setTextBusy(false); });
+    return () => { alive = false; };
+  }, [textOpen, safe, pages]);
 
   const links = (data && data.links) || [];
   const head = (
@@ -185,7 +212,13 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
           </form>
         )}
         {caps.text && (
-          <button data-pv="text" className="pv-btn" onClick={toggleText} disabled={textBusy} title="Show this page's text">¶</button>
+          <button
+            data-pv="text"
+            className="pv-btn"
+            onClick={toggleText}
+            aria-pressed={textOpen}
+            title={textOpen ? "Hide the transcription, and let the page have the room" : 'Show this page’s transcription'}
+          >¶</button>
         )}
       </div>
       {onSearch && caps.search !== false && (
@@ -234,15 +267,18 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
           ))}
         </div>
       )}
-      {text !== null && (
+      {textOpen && onPageText && (
         <div className="pv-text">
-          {text.note && (
+          {/* Open and empty is not a state to paint: say what is happening instead. (A blank frame is what
+              an assertion catching `innerText` at the wrong moment sees, and it is also what a reader sees.) */}
+          {!text && <div className="pv-text-body">{textBusy ? 'Loading the transcription…' : 'Reading…'}</div>}
+          {text && text.note && (
             <div className="pv-text-note">
               {text.note}
               {text.href && <> · <a href={text.href} target="_blank" rel="noreferrer">open the transcription ↗</a></>}
             </div>
           )}
-          <div className="pv-text-body">{text.text || '(this page has no text)'}</div>
+          {text && <div className="pv-text-body">{text.text || '(this page has no text)'}</div>}
         </div>
       )}
       <div className="pv-strip">

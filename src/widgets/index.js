@@ -1767,7 +1767,7 @@ export const WIDGET_TYPES = {
       ], hint: 'A board can open a book in spread mode; the ▭ button on the card still overrides it for the reader (the board sets the default, the reader decides).' },
     ],
     fetch: (config) => fetchIaBook(config.identifier),
-    transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
+    transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto', textPanel: (config && config.textPanel) || 'on' }),
     // Emits the item URL, the same link the card title opens (Emitter Contract).
     outputs: { kind: 'value' },
     emit: (data) => data.detailsUrl,
@@ -1786,6 +1786,7 @@ export const WIDGET_TYPES = {
       file: 'File:The Three Hostages (1924).pdf',
       project: 'commons.wikimedia',
       spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
+      textPanel: 'on',       // 'on' = show the Wikisource transcription from load; 'off' = only via ¶
       refreshSeconds: 86400,
     },
     renderer: 'DocumentReaderCard',
@@ -1798,6 +1799,10 @@ export const WIDGET_TYPES = {
         { value: 'on', label: 'Two facing pages' },
         { value: 'off', label: 'One page at a time' },
       ], hint: 'A board can open a document in spread mode; the ▭ button on the card still overrides it for the reader.' },
+      { key: 'textPanel', label: 'Transcription', type: 'select', options: [
+        { value: 'on', label: 'Show it from the start (and keep it open as you turn pages)' },
+        { value: 'off', label: 'Hidden until I press ¶' },
+      ], hint: 'Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.' },
     ],
     fetch: (config) => fetchDocumentPages(config.file, config.project),
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),

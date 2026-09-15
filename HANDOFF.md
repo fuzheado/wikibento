@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip (verified live: the text layer, the 42-card catalog and every demo board) |
-| newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book, facing pages both, and a **Wikisource text panel with its proofreading grade** where a transcription exists) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
+| newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you as you turn pages**) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
