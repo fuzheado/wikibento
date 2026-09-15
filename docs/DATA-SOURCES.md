@@ -643,3 +643,23 @@ offers SVG/PDF/CSV because the only PNG path rasterises a widget's own SVG (ISSU
 - A manifest that 500s is normal for a page-less text item: the card degrades to a notice rather than an empty viewer.
 
 - **Failure handling:** a missing item throws `No Internet Archive item "…"`, `is_dark` items say so, and the manifest failure is caught separately so a text-only item still renders its metadata and links. Manifests TTL-cached 30 minutes, search 10 minutes, page text 60 minutes.
+
+## 29. Commons document (PDF / DjVu) — `imageinfo`, one call (CORS ✓, no key) **Widget:** Document Reader · **Fetcher:** `fetchDocumentPages(file, project)`
+
+Verified live 2026-09-15. **One** API call serves a whole document: `prop=imageinfo` returns `pagecount` and a
+page-1 render URL, and that URL is a template once its page token is rewritten.
+
+| what | measured |
+|---|---|
+| `imageinfo` for a scanned book | `pagecount: 329`, `mediatype: OFFICE`, `mime: application/pdf`, and `extmetadata` → description / artist / license |
+| DjVu | identical shape (`pagecount: 96`, `mediatype: OFFICE`, `mime: image/vnd.djvu`) — one code path, two formats |
+| page renders | `…/thumb/{h}/{hh}/{Name}/page{N}-{W}px-{Name}.jpg` — CORS `*` on both `thumb.wikimedia.org` and `upload.wikimedia.org` |
+| **the widths that exist** | **120 · 250 · 330 · 500 · 960 · 1280** are served; **70 · 150 · 200 · 320 · 400 · 640 · 700 · 800 · 1024 · 1200 return a 400 HTML page** — see the trap below |
+
+**Traps:**
+- **A document render is only served at certain widths, and a miss is not a 404.** Asking for 400/640/700/800/1024 returns an **HTML error with HTTP 400**, which Chrome refuses to hand to an `<img>` at all (`net::ERR_BLOCKED_BY_ORB`) — a blank page with no visible reason. So the source advertises `caps.widths` (the served set) and the reader's ladder uses it. `iiurlwidth` is safe because the API **rewrites** the width to a legal one (asked 320 → got 330; asked 700 → 960).
+- `thumbwidth`/`thumbheight` describe neither the URL nor the file (claimed 1200; the URL and the image were 960). Lay out from the image's own dimensions.
+- The API's `thumburl` carries `?utm_source=…`; strip everything from `?`.
+- Hand-built thumb URLs 400 on some files (a 50 MB report refused every constructed URL while the API's own served fine), so the template is derived **from the API's URL**, keeping its host and encoding.
+- An out-of-range page is **clamped** by the server (page 189 of 188 → page 188, byte for byte); typed input clamps the same way.
+- No text layer: `caps.search`/`caps.text` are false unless Wikisource proofread the file (v1.1).

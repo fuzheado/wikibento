@@ -100,9 +100,16 @@ Two sources ship: **IIIF** (archive.org) and **Wikimedia document** (Commons PDF
 1. **An out-of-range page is clamped, not refused.** `iiurlparam=page189` on a 188-page document returned
    page 188 — the same 136,458-byte file, byte for byte. (The Internet Archive's IIIF route does the same
    thing with a blank filler image.) **Never probe for a 404 on either source** — clamp to `pagecount`.
-2. **The delivered image is not the size you asked for.** `iiurlwidth=1024` produced a `thumburl` the API
-   described as 1024 × 1405, and served **960** × 1317 pixels. Wikimedia buckets widths. Lay out from the
-   image's own dimensions, and do not trust `thumbwidth`.
+2. **A document render exists only at certain widths — and a miss is not a 404.** Measured identically on a
+   PDF *and* a DjVu: **120 · 250 · 330 · 500 · 960 · 1280 are served**, while **70 · 150 · 200 · 320 · 400 ·
+   640 · 700 · 800 · 1024 · 1200 return an HTML error page with HTTP 400**, which Chrome then refuses to hand
+   to an `<img>` at all — `net::ERR_BLOCKED_BY_ORB`, a blank page with no visible reason. The served set is
+   *not* MediaWiki's image-thumbnail set (150/200/400/640/800/1024 are standard image widths and all fail
+   for documents). So a document source advertises `caps.widths` — a **list, not a range** — and the reader's
+   ladder is built from it. `iiurlwidth` is the safe route because the API **rewrites** a requested width to a
+   legal one (asked 320 → got 330, asked 700 → 960). This one cost an hour of chasing a "broken image" that
+   was in fact a correct server refusal. Related: the API's `thumbwidth` describes neither the URL nor the
+   file (claimed 1200; URL and image were 960), so layout uses the image's own dimensions.
 3. **Constructed thumb URLs are not equivalent to the API's.** Hand-built `upload.wikimedia.org/…/page1-…jpg`
    URLs 400'd for the 188-page report where the API's own `thumburl` (on `thumb.wikimedia.org`) served it.
    **Take the URL from the API** — this is also what our own skill warns, and the reason is now concrete.
@@ -124,7 +131,7 @@ refactor and a day each for the features, assuming the IA work stays the templat
 | 0 ✅ **done 2026-09-15** | **ISSUE-80** — the CORS-image PNG path | small, already filed, and it makes `iaBook`'s PNG claim true; **the same path serves this reader** (Commons page thumbs are `access-control-allow-origin: *` too), so it is shared infrastructure rather than a detour | the export menu offers PNG for `iaBook`, verified by a real download in `smoke:iabook` |
 | 1 ✅ **done 2026-09-15** | **Extract `PagedViewer`** from `iaBook`, behind a page-source interface (`src/lib/pagedViewer.js` + `src/widgets/PagedViewer.jsx`) | do it *now*, while the card is days old: once facing pages, a text panel and a second source are layered in, the same refactor costs several times as much — and it is the step that makes 2 and 3 small | no visual change; 18 unit tests and **19/19** `smoke:iabook` assertions still pass; the IIIF source module holds the code that used to be in `iaBook.js` |
 | 2 ✅ **done 2026-09-15** | **ISSUE-81 facing pages** on the shared viewer, right-to-left included — and a board can set the default (⚙ *Reading mode*), which is what makes it demonstrable | the user-visible ask, written once for both readers instead of twice | spread mode shows two images, the counter reads "pages N–N+1", the pair order **flips for a `right-to-left` book**, and a printed spread is one page |
-| 3 | **`documentReader`** (📄) — the Commons card — **next** | mostly free after 1 and 2 | `smoke:document-reader`: `pagecount` from `imageinfo`, last page renders, **one past the end clamps**, thumbnails load, "open the original" points at the file, a DjVu works, and a page that will not render **degrades to a link**; plus `?config=/document-reader-demo.json` (a Commons PDF beside an IA book, same viewer) |
+| 3 ✅ **done 2026-09-15** | **`documentReader`** (📄) — the Commons card: 24 browser assertions, a demo board beside an IA book, and the served-width trap found by running it | mostly free after 1 and 2 | `smoke:document-reader`: `pagecount` from `imageinfo`, last page renders, **one past the end clamps**, thumbnails load, "open the original" points at the file, a DjVu works, and a page that will not render **degrades to a link**; plus `?config=/document-reader-demo.json` (a Commons PDF beside an IA book, same viewer) |
 | 4 | **PDF.js** — text layer and search for any PDF | only on evidence, not by default | triggered by a real requirement to search an unproofread PDF's text; until then the Wikisource panel covers the proofread minority |
 
 **Deliberately not on this path:** an in-card framed PDF. The "open the original" link gives the same thing
@@ -148,11 +155,12 @@ decide the design:
 | does the document thumb host send CORS? | **yes** — `thumb.wikimedia.org` **and** `upload.wikimedia.org` return `access-control-allow-origin: *` for a PDF page render, so **PNG export works here too**, and both hosts are already in `CORS_IMAGE_HOSTS` |
 | is DjVu the same model as PDF? | **yes** — `File:Mozart Sonate (manuscript).djvu`: `pagecount: 96`, `mediatype: OFFICE`, and `iiurlparam` returns a page render exactly as for PDF. One code path, two formats |
 | how many API calls does a 329-page document need? | **one.** `imageinfo` returns `pagecount` and a page-1 `thumburl` that becomes a template once `page1-` and the width are rewritten — no per-page fan-out |
-| **what widths do document renders honour?** | asked 320 → `330px`; 700 → `960px`; 960 → 960; **1200 → 960**; **2000 → 960**. A **960 px ceiling**, and the API's own `thumbwidth` (1200) describes neither the URL nor the delivered file (960×678) |
+| **what widths do document renders honour?** | a **fixed list, not a range**: 120 · 250 · 330 · 500 · 960 · 1280 are served; 70/150/200/320/400/640/700/800/1024/1200 return **HTTP 400 + HTML**, which Chrome blocks as **`ERR_BLOCKED_BY_ORB`**. Identical on PDF and DjVu — discovered by shipping it: the first E2E run showed blank images everywhere |
 | what can we show as credit? | `extmetadata` → `ImageDescription`, `Artist`, `LicenseShortName`, `DateTime` — the same call the media player already makes |
 
-**So one small change is needed in the *shared* viewer:** a source advertises `caps.maxWidth` and the zoom
-ladder stops there. Without it the `+` button lies from 700 px on — it would say 1400 and deliver 960.
+**So the shared viewer gained two things:** `caps.maxWidth` (a ceiling, so `+` stops where the server does)
+and `caps.widths` — the list a source actually serves, because for a document a width we invent is not a
+smaller image but a 400 the browser hides. A source with neither behaves exactly as before.
 
 ### The page source (`documentSource`)
 
@@ -192,8 +200,8 @@ word-box crop — it would request a URL that cannot exist. That is exactly what
    `{ file: 'File:The Three Hostages (1924).pdf', project: 'commons.wikimedia', spread: 'auto' }`, emits the
    file page URL. Config fields: file, project, spread (Reading mode).
 4. `caps.maxWidth` support in `PagedViewer`.
-5. Showcase catalog entry (the gate requires it) → **41 → 42 widgets, 40 → 41 types, 31 → 32 data-driven**;
-   the docs-facts count rules will name every claim to update.
+5. ✅ Showcase catalog entry (the gate requires it) → **42 widgets, 41 types, 32 data-driven**; the
+   docs-facts count rules named every claim to update, exactly as intended.
 6. `scripts/document-reader-e2e.mjs` + `npm run smoke:document`, fixtures: the **2-page** `PDF metadata.pdf`
    (fast), the **329-page** `The Three Hostages (1924).pdf` (the default, and a long document), the
    **96-page DjVu** (`Mozart Sonate`), a **non-document** (a JPEG → notice), and the **400 case** if it can

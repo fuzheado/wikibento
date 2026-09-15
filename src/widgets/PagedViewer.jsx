@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   pageImageUrl, canCrop, spreadPairs, spreadOrder, spreadIndexOf, spreadLabel,
-  spreadsFit, leafWidth, stripWindow, zoomLadder, clampPage,
+  spreadsFit, leafWidth, stripWindow, sourceWidths, stripThumbWidth, clampPage,
 } from '../lib/pagedViewer';
 
 /**
@@ -35,7 +35,7 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   const caps = (data && data.caps) || {};
   const direction = (data && data.direction) || 'left-to-right';
 
-  const ladder = useMemo(() => zoomLadder(caps.maxWidth), [caps.maxWidth]);
+  const ladder = useMemo(() => sourceWidths(caps), [caps]);
   const [page, setPage] = useState(0);
   const [wIdx, setWIdx] = useState(1);
   const [jump, setJump] = useState('');
@@ -137,6 +137,7 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
   }
 
   const strip = stripWindow(count, safe, 15);
+  const stripW = stripThumbWidth(caps);
 
   return (
     <div className="pv-card">
@@ -200,6 +201,10 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
               className="pv-page"
               src={pageImageUrl(pages[idx], w, idx === safe && sel && sel.region && canCrop(pages[idx]) ? sel.region : undefined)}
               alt={`Page ${labels[idx]}`}
+              // A page that will not load is worth a sentence, not a blank hole: the likeliest cause for a
+              // Commons document is a width the server refuses (a 400 that Chrome blocks as ORB).
+              onError={() => setProblem(`Page ${labels[idx]} did not load — try a different size, or open the original.`)}
+              onLoad={() => setProblem((p) => (p && /did not load/.test(p) ? '' : p))}
             />
           </button>
         ))}
@@ -232,7 +237,7 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
             onClick={() => go(idx)}
             title={`Page ${labels[idx]}`}
           >
-            <img src={pageImageUrl(pages[idx], 70)} alt={`Page ${labels[idx]}`} loading="lazy" />
+            <img src={pageImageUrl(pages[idx], stripW)} alt={`Page ${labels[idx]}`} loading="lazy" />
           </button>
         ))}
       </div>

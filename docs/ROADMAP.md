@@ -228,8 +228,9 @@ layout + cache reads (~<100 ms perceived).
   **Reading workstream — steps 0-2 DONE 2026-09-15, step 3 next** (see `docs/DOCUMENT-VIEWER.md`):
   ✅ ISSUE-80 (the CORS-image PNG path, which both readers need) → ✅ `PagedViewer` extracted from `iaBook`
   (`src/lib/pagedViewer.js` + `src/widgets/PagedViewer.jsx`; `IaBookCard` is a 19-line wrapper) →
-  ✅ ISSUE-81 facing pages, right-to-left included → **next: `documentReader`** for Commons PDFs/DjVu
-  (ISSUE-82) → PDF.js only on evidence. The media workstream above is independent of it and can be sequenced either side of the
+  ✅ ISSUE-81 facing pages, right-to-left included → ✅ **`documentReader`** for Commons PDFs/DjVu
+  (ISSUE-82, shipped 2026-09-15 with `smoke:document` and a demo board) → **next: v1.1**, the Wikisource text
+  panel for a file that has a transcription → PDF.js only on evidence. The media workstream above is independent of it and can be sequenced either side of the
   refactor.
 
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)

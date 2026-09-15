@@ -40,8 +40,9 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🌍 [Born in 1929](https://wikibento.toolforge.org/?config=/anne-frank-mlk-demo.json) | one board, one story: two lives on a shared timeline (21 dated events), plus each subject as prose, images and traffic — Anne Frank and Martin Luther King Jr., both born in 1929 |
 | 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways (calendar or aligned at birth), **zoomable 8×**, per-card title and light/dark card theme — Anne Frank × Martin Luther King Jr., Marie × Pierre Curie |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
+| 📄 [Read a document](https://wikibento.toolforge.org/?config=/document-reader-demo.json) | a 329-page PDF and a DjVu read page by page — turn, zoom, jump, **facing pages** — beside an Internet Archive book: one reader, two archives |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 40 widget types on one board — its article switcher drives five cards |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 41 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see
 [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
@@ -53,7 +54,7 @@ works the same way.
 
 ## Widgets
 
-**40 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
+**41 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
 what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](docs/WIDGET-CATALOG.md).
 
 | category | widgets |
@@ -67,7 +68,7 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
 | **Web & History (2)** | 📦 Internet Archive Item · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
-All 31 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
+All 32 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 
 ## Features
 
@@ -221,7 +222,7 @@ front door.
 
 - **Start here** — [GUIDE](docs/GUIDE.md) (the model + cookbook) · [TUTORIAL](docs/TUTORIAL.md) (build a board
   step by step, then store it on a wiki) · [EXPORT](docs/EXPORT.md) (getting data, a PDF or the whole
-  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 40, with APIs) ·
+  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 41, with APIs) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
 - **Build & extend** — [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)

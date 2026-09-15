@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-15T15:58:02.058Z",
- "widgetCount": 40,
+ "generatedAt": "2026-09-15T19:21:40.279Z",
+ "widgetCount": 41,
  "widgets": [
   {
    "id": "pageviews",
@@ -1845,6 +1845,56 @@
    ],
    "defaults": [
     "identifier",
+    "spread",
+    "refreshSeconds"
+   ],
+   "outputs": {
+    "kind": "value"
+   }
+  },
+  {
+   "id": "documentReader",
+   "name": "Document Reader",
+   "icon": "📄",
+   "description": "Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Page count and page renders come from the file itself",
+   "dataSource": "Commons API imageinfo — pagecount + a page-N thumbnail template (one call)",
+   "category": "Files & Media",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "source",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "file",
+     "type": "text",
+     "label": "File",
+     "hint": "A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.",
+     "placeholder": "File:The Three Hostages (1924).pdf"
+    },
+    {
+     "key": "project",
+     "type": "text",
+     "label": "Wiki",
+     "hint": "Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.",
+     "placeholder": "commons.wikimedia"
+    },
+    {
+     "key": "spread",
+     "type": "select",
+     "label": "Reading mode",
+     "hint": "A board can open a document in spread mode; the ▭ button on the card still overrides it for the reader.",
+     "options": [
+      "auto",
+      "on",
+      "off"
+     ]
+    }
+   ],
+   "defaults": [
+    "file",
+    "project",
     "spread",
     "refreshSeconds"
    ],

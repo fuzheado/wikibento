@@ -770,6 +770,7 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'FileTrafficCard': return <FileTrafficCard data={data} />;
     case 'WaybackGalleryCard': return <WaybackGalleryCard data={data} />;
     case 'IaBookCard': return <IaBookCard data={data} />;
+    case 'DocumentReaderCard': return <DocumentReaderCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -2277,6 +2278,19 @@ function IaBookCard({ data }) {
       onPageText={(page) => fetchIaBookPageText(page.annotationPage)}
     />
   );
+}
+
+/** Document Reader — a Commons PDF or DjVu in the shared paged viewer (ISSUE-82).
+ *
+ *  The shortest card in the app, and that is the point: everything it needs (turn, zoom, jump, facing
+ *  pages, the strip, the notices) lives in ./PagedViewer.jsx, and the source — page count, page-render
+ *  template, caps, credit, links — is built in ../lib/documentSource.js. There is no archive-specific
+ *  fetching to inject here, so unlike IaBookCard there is not even a fetcher to pass: a Commons document
+ *  has no text layer (caps.text/search are false) and no region API (caps.region is false), and the
+ *  viewer hides what a source cannot do rather than offering a broken control.
+ */
+function DocumentReaderCard({ data }) {
+  return <PagedViewer data={data} />;
 }
 
 /** Bar — horizontal label→value bars (hand-rolled, zero-chart-library style).

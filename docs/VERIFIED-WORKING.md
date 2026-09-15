@@ -302,3 +302,13 @@ Back to the [README](../README.md).
   `duration 664s`; `/anne-frank-mlk-demo.json` draws **21 timeline dots**; the older
   `/parallel-lives-demo.json` still renders; the front door loads a board; **no uncaught JS errors** on any
   board. Endpoints: `/api/resolve` 200, `/api/proxy` relaying to top.hatnote.com 200.
+
+- ✅ **2026-09-15 — the Document Reader** (`npm run smoke:document`, **24 assertions**, real Commons files):
+  a 2-page PDF reports "page 1 of 2" from `imageinfo` and renders a page on the API's host; typing **2** jumps
+  and loads page 2; typing **999** **clamps** to page 2 (the server does the same: page 189 of 188 returns
+  188); a 329-page book reports its count and reaches page 329 by number; the zoom ladder **stops at 960 px**
+  and `+` disables there; a **DjVu** behaves identically *given as a URL*, its last page (96) renders, and it
+  reads as facing pages ("pages 2–3 of 96") with the strip highlighting both; the header reads "96 pages ·
+  DjVu · 17.6 MB · 1024×730 page"; the links go to the file page and to the original; **PNG export is
+  offered** (Wikimedia page renders send CORS); a JPEG is refused politely, with its way out. Demo board:
+  4 cards (329 / 96 / 16 pages), two showing facing pairs — **9 assertions**.

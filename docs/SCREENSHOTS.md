@@ -151,6 +151,23 @@ chapters as a playlist, straight from `archive.org/download/` with no API call. 
 (`pages 2–3 of 16`, `pages 2–3 of 304`) with both page images loaded**; the film plays at `duration 664s` /
 `currentTime 1.37s` and the audio at `507s` / `1.54s`; 7 spread assertions plus the earlier 10 player ones.
 
+## `wikibento-2026-09-15-document-reader-demo.png` — two archives, one reader (2026-09-15)
+
+`?config=/document-reader-demo.json`: a **329-page PDF** on Commons (`The Three Hostages`, 1924, credited
+"From internet archive") and a **96-page DjVu** (`Mozart Sonate`, the format Wikisource prefers) beside an
+**Internet Archive book** — the same widget underneath, all three opening in facing-pages mode and all three
+turnable, zoomable and jumpable. Verified by rendering it: 4 cards reporting their own page counts
+(329 / 96 / 16), the DjVu and the IA book each showing a facing pair after one turn, no error boundary —
+9 assertions.
+
+## `wikibento-2026-09-15-document-reader.png` — the Document Reader, live (2026-09-15)
+
+Four documents on one board, captured by `npm run smoke:document` (**24 assertions**, real Commons files): a
+2-page PDF, the 329-page book, the DjVu (**pasted as a URL**, which the card accepts), and a JPEG refused
+politely with its links intact. This board is also where the width trap surfaced — see [ISSUE-82](ISSUES.md):
+a document render is served only at certain widths, and an invented one is an HTTP 400 that browsers block
+outright, so the zoom ladder offers the widths that exist and stops at 960.
+
 ## `wikibento-2026-09-15-anne-frank-mlk-demo.png` — the "Born in 1929" demo board (2026-09-15)
 
 `?config=/anne-frank-mlk-demo.json` — eight cards telling one story. The note explains it; **two excerpts**

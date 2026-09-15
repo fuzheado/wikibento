@@ -120,6 +120,27 @@ export function zoomLadder(maxWidth, base = PV_LADDER) {
 }
 
 /**
+ * The zoom steps for a source: explicit widths if it declares them, otherwise the base ladder capped by its
+ * ceiling.
+ *
+ * A source declares `caps.widths` when the server only serves certain widths — a Commons document render is
+ * 200 at 330/500/960 and **400** (an HTML error page, which Chrome blocks outright as ORB) at 400/640/700/
+ * 800/1024. Asking a document for a "nice round" 700 therefore shows a blank page with no visible reason,
+ * so the source tells the reader which steps exist instead of the reader guessing.
+ */
+export function sourceWidths(caps) {
+  const explicit = caps && Array.isArray(caps.widths) ? caps.widths.filter((w) => Number(w) > 0) : [];
+  if (explicit.length) return [...new Set(explicit.map(Number))].sort((a, b) => a - b);
+  return zoomLadder(caps && caps.maxWidth);
+}
+
+/** The width for thumbnail strips: a source may need a wider one (120 for Commons documents, 70 for IIIF). */
+export function stripThumbWidth(caps, fallback = 70) {
+  const w = Number(caps && caps.stripWidth);
+  return w > 0 ? Math.round(w) : fallback;
+}
+
+/**
  * A typed page number (1-based, as a reader types it) → a valid 0-based index.
  * An out-of-range or unparseable entry clamps to the ends rather than throwing or landing nowhere —
  * the same rule that keeps navigation off the clamp trap (a page past the end is served as the last page,

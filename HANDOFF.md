@@ -29,12 +29,12 @@ Feature-complete for v1 and deployed.
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-D9YNjKJA.js` (+ `index-DGfyoQMG.css`) |
 | deployed | 2026-09-15 (the Internet Archive pass: `iaBook` with facing pages, the shared page reader, direct-media playback, PNG export for CORS images, two demo boards — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
-| registry | 40 widget types — 31 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 41 widgets covering all 40 types |
+| registry | 41 widget types — 32 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip (verified live after the deploy) |
-| newest capabilities | 📖 **IA Book** — IIIF pages with facing pages and search-inside · 🎬 archive.org media playing by URL · 📄 a shared page reader (the Commons reader is ISSUE-82) · ⤓ PNG export for CORS-image widgets · 🕰️ Lifeline timelines |
+| newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book — facing pages in both) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -238,6 +238,15 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     force: true })` skips the scroll-into-view, so a click on an element **below the fold** dispatches at
     coordinates nothing occupies and does nothing — drive it through the DOM instead
     (`el.click()` inside `page.evaluate`) when the test is about behaviour rather than clickability.
+
+19. **A Commons document page render exists only at certain widths, and an invented one is an HTTP 400 that
+    browsers hide.** Measured identically on a PDF and a DjVu: **120 · 250 · 330 · 500 · 960 · 1280** are
+    served; **70, 150, 200, 320, 400, 640, 700, 800, 1024, 1200 return an HTML error page**, which Chrome
+    then refuses to give to an `<img>` at all — `net::ERR_BLOCKED_BY_ORB`, a blank page with no visible
+    reason. It is not MediaWiki's image-thumb set (150/200/400/640/800/1024 are standard image widths and all
+    fail here). `iiurlwidth` is the safe route because the API **rewrites** to a legal width (320 → 330,
+    700 → 960), which is why the source advertises `caps.widths` and the reader's ladder is built from that
+    list. Related: document renders top out at 960, and a document strip needs 120, not the IA reader's 70.
 
 ## Open issues & known bugs
 

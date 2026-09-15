@@ -13,9 +13,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DOCUMENT_MAX_WIDTH, normalizeCommonsFile, isDocument, derivePageTemplate, documentPageSource,
+  DOCUMENT_MAX_WIDTH, DOCUMENT_WIDTHS, DOCUMENT_STRIP_WIDTH,
+  normalizeCommonsFile, isDocument, isDocumentType, derivePageTemplate, documentPageSource,
 } from '../src/lib/documentSource.js';
-import { zoomLadder, clampPage, PV_LADDER } from '../src/lib/pagedViewer.js';
+import { zoomLadder, clampPage, PV_LADDER, sourceWidths, stripThumbWidth } from '../src/lib/pagedViewer.js';
 
 const THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/The_Three_Hostages_%281924%29.pdf/page1-960px-The_Three_Hostages_%281924%29.pdf.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo';
 const INFO = {
@@ -48,6 +49,12 @@ test('normalizeCommonsFile: bare names, File: names and Commons URLs all land on
   assert.equal(normalizeCommonsFile(''), '');
   assert.equal(normalizeCommonsFile('   '), '');
   assert.equal(normalizeCommonsFile('https://example.org/not/a/wiki/page'), '');
+});
+
+test('isDocumentType vs isDocument: a PDF with no page count is a PDF, not a JPEG', () => {
+  assert.equal(isDocumentType({ mediatype: 'OFFICE', mime: 'application/pdf' }), true);
+  assert.equal(isDocument({ mediatype: 'OFFICE', mime: 'application/pdf' }), false, 'no pages to page through');
+  assert.equal(isDocumentType({ mediatype: 'BITMAP', mime: 'image/jpeg' }), false);
 });
 
 test('isDocument: PDF, DjVu and TIFF are documents; a JPEG is not', () => {
@@ -92,6 +99,32 @@ test('documentPageSource: one call becomes the whole page list, numbered', () =>
   assert.equal(src.notice, '');
 });
 
+test('the served width set is a LIST, not a range — measured on a PDF and a DjVu', () => {
+  // 120/250/330/500/960/1280 are served; 70/150/200/320/400/640/700/800/1024/1200 return a 400 HTML page,
+  // which Chrome blocks as ERR_BLOCKED_BY_ORB — a blank page with no visible reason.
+  assert.deepEqual(DOCUMENT_WIDTHS, [330, 500, 960]);
+  assert.equal(DOCUMENT_STRIP_WIDTH, 120, 'the viewer default of 70 is NOT served for documents');
+  assert.ok(DOCUMENT_WIDTHS.every((w) => w <= DOCUMENT_MAX_WIDTH));
+  for (const bad of [400, 640, 700, 800, 1024]) {
+    assert.ok(!DOCUMENT_WIDTHS.includes(bad), `${bad} is not served for documents and must not be offered`);
+  }
+});
+
+test('sourceWidths: a source that states its widths is believed; one that caps a ladder is capped', () => {
+  assert.deepEqual(sourceWidths({ widths: [960, 330, 500] }), [330, 500, 960], 'sorted, and no duplicates');
+  assert.deepEqual(sourceWidths({ widths: [500, 500, 330] }), [330, 500]);
+  assert.deepEqual(sourceWidths({ maxWidth: 960 }), [400, 700, 960], 'a IIIF source caps the base ladder');
+  assert.deepEqual(sourceWidths({}), PV_LADDER, 'no caps at all → the base ladder');
+  assert.deepEqual(sourceWidths({ widths: [] }), PV_LADDER, 'an empty list is not a statement');
+});
+
+test('stripThumbWidth: 70 by default, 120 where the server needs it', () => {
+  assert.equal(stripThumbWidth({}), 70);
+  assert.equal(stripThumbWidth({ stripWidth: DOCUMENT_STRIP_WIDTH }), 120);
+  assert.equal(stripThumbWidth(null), 70);
+  assert.equal(stripThumbWidth({ stripWidth: 0 }), 70);
+});
+
 test('documentPageSource: caps tell the truth about what this source can do', () => {
   const caps = documentPageSource(INFO, 'File:X.pdf').caps;
   assert.equal(caps.region, false, 'Wikimedia page renders have no region API');
@@ -99,6 +132,8 @@ test('documentPageSource: caps tell the truth about what this source can do', ()
   assert.equal(caps.text, false);
   assert.equal(caps.facing, true);
   assert.equal(caps.maxWidth, DOCUMENT_MAX_WIDTH);
+  assert.deepEqual(caps.widths, DOCUMENT_WIDTHS);
+  assert.equal(caps.stripWidth, DOCUMENT_STRIP_WIDTH);
 });
 
 test('documentPageSource: header facts, credit and the two links out', () => {

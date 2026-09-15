@@ -4,6 +4,7 @@
  */
 
 import {
+  fetchDocumentPages,
   fetchIaBook,
   fetchPageviews,
   fetchExternalLinks,
@@ -1770,6 +1771,39 @@ export const WIDGET_TYPES = {
     // Emits the item URL, the same link the card title opens (Emitter Contract).
     outputs: { kind: 'value' },
     emit: (data) => data.detailsUrl,
+  },
+
+  documentReader: {
+    id: 'documentReader',
+    category: 'Files & Media', intensity: 'low',
+    timeScope: 'point',
+    name: 'Document Reader',
+    icon: '📄',
+    description: 'Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Page count and page renders come from the file itself',
+    defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
+    labelFromConfig: (c) => (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null,
+    defaults: {
+      file: 'File:The Three Hostages (1924).pdf',
+      project: 'commons.wikimedia',
+      spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
+      refreshSeconds: 86400,
+    },
+    renderer: 'DocumentReaderCard',
+    dataSource: 'Commons API imageinfo — pagecount + a page-N thumbnail template (one call)',
+    configFields: [
+      { key: 'file', label: 'File', type: 'text', placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.' },
+      { key: 'project', label: 'Wiki', type: 'text', placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.' },
+      { key: 'spread', label: 'Reading mode', type: 'select', options: [
+        { value: 'auto', label: 'Auto — facing pages when the card is wide enough' },
+        { value: 'on', label: 'Two facing pages' },
+        { value: 'off', label: 'One page at a time' },
+      ], hint: 'A board can open a document in spread mode; the ▭ button on the card still overrides it for the reader.' },
+    ],
+    fetch: (config) => fetchDocumentPages(config.file, config.project),
+    transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
+    // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
+    outputs: { kind: 'value' },
+    emit: (data) => data.pageUrl,
   },
 
   listSource: {

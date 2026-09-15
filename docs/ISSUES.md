@@ -3328,7 +3328,7 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
-## ISSUE-82 · A document reader for Commons PDFs/DjVu (and one page viewer shared with IA books) — **open**
+## ISSUE-82 · A document reader for Commons PDFs/DjVu (and one page viewer shared with IA books) — **done + verified 2026-09-15**
 
 **What:** WikiBento can read an Internet Archive book page by page (📖 `iaBook`). Commons holds scanned
 **PDFs and DjVu** files with the same shape and a simpler API, and today there is no way to read one in the
@@ -3409,7 +3409,26 @@ archives).
    archive", so a nice pairing with the IA board) or the 96-page Mozart DjVu. Recommended: the PDF, with
    the DjVu in the demo board.
 
-**Status:** open (filed 2026-09-15; steps 0–2 of the shared reading workstream shipped the same day).
+**Shipped 2026-09-15:** `src/lib/documentSource.js` (pure — `normalizeCommonsFile`, `derivePageTemplate`,
+`documentPageSource`; 18 unit tests) · `fetchDocumentPages` (**one** `imageinfo` call, 30-minute cache) ·
+`DocumentReaderCard`, five lines, because the work is in the shared viewer · the registry entry
+(`documentReader`, 📄, with `file` + `project` + `spread`, emitting the file page) · two additions to the
+shared viewer (`caps.maxWidth`, and `caps.widths` for a server that serves a fixed set) · a **page-jump**
+control, which a 329-page document needs · a "this page did not load — open the original" sentence instead of
+a blank hole · the showcase catalog entry (42 widgets / 41 types / 32 data-driven — the gate named every
+claim) · `npm run smoke:document` (**24 assertions**, real Commons files) · `public/document-reader-demo.json`
+(329-page PDF + DjVu beside an IA book; 9 assertions).
+
+**The discovery worth more than the feature:** a document page render is served only at **certain widths** —
+120 · 250 · 330 · 500 · 960 · 1280 work, while **70/150/200/320/400/640/700/800/1024/1200 return an HTML
+error with HTTP 400**, which Chrome refuses to give an `<img>` at all (`net::ERR_BLOCKED_BY_ORB`). The
+template had invented 700 for pages and 70 for the strip, so *every* image was blank and nothing said why.
+The API is the safe route because `iiurlwidth` **rewrites** to a legal width (320 → 330, 700 → 960) — which
+is why the source advertises the served list and the reader's ladder comes from it. Also learned: a document
+strip needs 120, not the IA reader's 70.
+
+**Status:** done + verified 2026-09-15. v1.1 (the Wikisource text panel when a file has a transcription) is
+the only piece of this issue left, and it was deliberately deferred.
 
 ## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **done + verified 2026-09-15**
 

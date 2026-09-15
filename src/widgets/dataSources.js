@@ -13,6 +13,7 @@ import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
 import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits, iiifImageTemplate } from '../lib/iaBook';
+import { normalizeCommonsFile, documentPageSource, DOCUMENT_MAX_WIDTH } from '../lib/documentSource';
 import {
   wikidataEntityId,
   labelLanguage,
@@ -2346,4 +2347,50 @@ export function fetchIaBookPageText(annotationPage) {
   const url = String(annotationPage || '').trim();
   if (!url) return Promise.reject(new Error('This page has no OCR text'));
   return iaBookTextCache.get(`ia-book-text:${url}`, async () => pageText(await fetchJSON(url)));
+}
+
+/* ── 29. Commons document (PDF / DjVu) — one imageinfo call (ISSUE-82) ────────
+ *  Verified live 2026-09-15 (ACAO `*`, browser-fetchable):
+ *    commons.wikimedia.org/w/api.php prop=imageinfo&iiurlparam=page1
+ *  One call returns the page COUNT and a page-1 render URL; the rest of the pages are that URL with its
+ *  page token rewritten (see src/lib/documentSource.js — the template is derived from the API's own URL,
+ *  because hand-built thumb URLs 400'd on a 50 MB report while the API's served fine).
+ *
+ *  A page count is a property of the FILE, not of us: 329 pages costs the same one call as 2.
+ */
+const documentCache = createTtlCache(30 * 60 * 1000);
+
+export function fetchDocumentPages(file, project = 'commons.wikimedia') {
+  const title = normalizeCommonsFile(file);
+  if (!title) {
+    return Promise.reject(new Error('Enter a Commons file name or URL, e.g. File:The Three Hostages (1924).pdf'));
+  }
+  const wiki = String(project || 'commons.wikimedia').trim() || 'commons.wikimedia';
+  if (!/^[a-z0-9.-]+$/i.test(wiki)) {
+    return Promise.reject(new Error(`"${wiki}" is not a wiki host (try commons.wikimedia or en.wikisource)`));
+  }
+  return documentCache.get(`doc:${wiki}:${title}`, async () => {
+    const params = new URLSearchParams({
+      action: 'query',
+      titles: title,
+      prop: 'imageinfo',
+      iiprop: 'url|size|mime|mediatype|pagecount|extmetadata',
+      iiextmetadatafilter: 'ImageDescription|Artist|LicenseShortName|DateTime',
+      iiurlwidth: String(DOCUMENT_MAX_WIDTH),   // the ceiling itself, so the derived template is a real URL
+      iiurlparam: 'page1',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const data = await fetchJSON(`https://${wiki}.org/w/api.php?${params}`);
+    const page = (data && data.query && data.query.pages ? data.query.pages : [])[0];
+    if (!page || page.missing) {
+      throw new Error(`No file "${title}" on ${wiki} — check the name, and that it is a PDF or DjVu`);
+    }
+    const info = page.imageinfo && page.imageinfo[0];
+    if (!info) {
+      throw new Error(`${wiki} returned no file information for "${title}"`);
+    }
+    return documentPageSource(info, page.title || title, wiki);
+  });
 }

@@ -437,6 +437,16 @@
         "identifier": "goodytwoshoes00newyiala",
         "refreshSeconds": 86400
       }
+    },
+    {
+      "id": "documentreader",
+      "widgetType": "documentReader",
+      "config": {
+        "file": "File:The Three Hostages (1924).pdf",
+        "project": "commons.wikimedia",
+        "spread": "on",
+        "refreshSeconds": 86400
+      }
     }
   ],
   "layout": [
@@ -808,6 +818,15 @@
       "i": "iabook",
       "x": 0,
       "y": 108,
+      "w": 6,
+      "h": 8,
+      "minW": 4,
+      "minH": 5
+    },
+    {
+      "i": "documentreader",
+      "x": 0,
+      "y": 116,
       "w": 6,
       "h": 8,
       "minW": 4,

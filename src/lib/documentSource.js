@@ -30,6 +30,28 @@
 /** Document page renders top out here (measured: 1200 and 2000 both come back as 960). */
 export const DOCUMENT_MAX_WIDTH = 960;
 
+/**
+ * The widths a document page render is actually SERVED at — and this is not a range.
+ *
+ * Measured 2026-09-15 on `File:PDF metadata.pdf` and `File:Mozart Sonate (manuscript).djvu` (identical
+ * results, so it is a property of document rendering, not of one file):
+ *
+ *   served     120 · 250 · 330 · 500 · 960 · 1280
+ *   **400**     70 · 150 · 200 · 320 · 400 · 640 · 700 · 800 · 1024 · 1200
+ *
+ * A 400 here is not a harmless miss: it is an HTML error page, which Chrome then refuses to hand to an
+ * `<img>` at all (`net::ERR_BLOCKED_BY_ORB`) — so a width we invent shows as a blank page with no visible
+ * reason. That is why the ladder below is a list of widths that exist rather than a maximum, and why
+ * `iiurlwidth` (which rewrites to a legal width) is how the first URL is obtained.
+ *
+ * The set is NOT MediaWiki's image-thumbnail set: 150, 200, 400, 640, 800 and 1024 all fail for documents
+ * even though they are standard image widths.
+ */
+export const DOCUMENT_WIDTHS = [330, 500, 960];
+
+/** Thumbnail-strip width for a document (120 is in the served set; the viewer's 70 is not). */
+export const DOCUMENT_STRIP_WIDTH = 120;
+
 /** `Description`/`Artist` from extmetadata arrive as HTML fragments. */
 function plain(value, limit = 280) {
   const text = String(value === null || value === undefined ? '' : value)
@@ -135,6 +157,8 @@ export function documentPageSource(imageinfo, title, project = 'commons.wikimedi
       text: false,
       facing: true,                // a scanned book's leaves pair up
       maxWidth: DOCUMENT_MAX_WIDTH,
+      widths: DOCUMENT_WIDTHS,     // only widths the server actually serves (see above)
+      stripWidth: DOCUMENT_STRIP_WIDTH,
     },
     spread: 'auto',
   };
