@@ -625,7 +625,8 @@ right paradigm — coding benchmarks are not.
 ## 28. Internet Archive book — IIIF Presentation v3 + Image API v3 + Content Search (CORS ✓, no key) **Widget:** IA Book · **Fetcher:** `fetchIaBook(identifier)` + `fetchIaBookSearch` / `fetchIaBookPageText`
 
 Verified live 2026-09-15, every endpoint echoing the request `Origin` — so the page image is **not
-canvas-tainted**, which is what lets this widget export a real PNG:
+canvas-tainted** — which is what *would* let this widget export a real PNG; today the export menu
+offers SVG/PDF/CSV because the only PNG path rasterises a widget's own SVG (ISSUE-80):
 
 | endpoint | measured | notes |
 |---|---|---|

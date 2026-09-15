@@ -147,7 +147,7 @@ Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M �
 
 | # | widget | id | size | what it shows | data flow |
 |---|---|---|---|---|---|
-| 1 | **📖 IA Book** ✅ shipped 2026-09-15 | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`; **CORS ✅ → PNG export works** |
+| 1 | **📖 IA Book** ✅ shipped 2026-09-15 | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`. **CORS ✅, so the page is not canvas-tainted** — PNG export is possible here and needs a CORS-image path in `src/lib/exportImage.js`, which today offers PNG only for SVG-drawing widgets (ISSUE-80) |
 | 2 | **🎞️ IA Playlist** | `iaPlaylist` | M | a course, concert or audiobook as an ordered list of parts — per-part duration and title, a total runtime, one part playing at a time | one `metadata` call, grouped by stem (rules above) → ordered tracks; `<video>`/`<audio>` streams them. MIT OCW additionally gives **SubRip captions per lecture**, so a transcript per part is nearly free |
 | 3 | **🎬 IA Video** | `iaVideo` | M | `<video>` with poster + duration, and a **keyframe filmstrip** below it | `<video src=…mp4>` (browser-streamed, no CORS) + `{id}.thumbs/` series; `metadata` for `runtime` |
 | 4 | **🎧 IA Audio** | `iaAudio` | M | one recording with inline playback and its spectrogram | `metadata` (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` |
@@ -177,7 +177,7 @@ Worth designing in from the start, because IA splits cleanly:
 
 | IA content | CSV | PDF | SVG | PNG |
 |---|---|---|---|---|
-| `iaBook`, `iaAudio`-with-IIIF, anything IIIF-served | ✅ file list, page/leaf metadata | ✅ | ✅ | ✅ **canvas-safe** (CORS on `iiif.archive.org`) |
+| `iaBook`, `iaAudio`-with-IIIF, anything IIIF-served | ✅ page/leaf list | ✅ | ✅ | ✅ **canvas-safe**, but needs the CORS-image path (ISSUE-80) — today the menu offers SVG/PDF/CSV for it |
 | `services/img` thumbnails, `download/.../page/nN.jpg` | ✅ | ✅ | ✅ | ❌ tainted — same rule as any widget that shows a cross-origin image |
 | media players (`<video>`, `<audio>`) | ✅ track/file list from metadata | ✅ | — | — |
 
@@ -200,6 +200,9 @@ Worth designing in from the start, because IA splits cleanly:
 
 ## What I would build first
 
+0. **Wire the CORS-image PNG path** (ISSUE-80) — `iaBook` is the first widget whose image host sends
+   CORS, so `imageCapabilities` can honestly offer PNG for it; today it offers SVG/PDF/CSV because the
+   only PNG path rasterises a widget's *own* SVG.
 1. ~~**`iaBook`**~~ — **shipped 2026-09-15**: IIIF page viewer, page strip, search-inside with the matched
    word boxed on the page, per-page OCR text, PDF/EPUB/OCR links. **19 browser assertions pass**
    (`node scripts/ia-book-e2e.mjs`). Three traps became tests: the manifest's page count beats the

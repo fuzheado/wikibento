@@ -3328,6 +3328,27 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-80 · PNG export for CORS-image widgets (iaBook first) — **open**
+
+**What:** `imageCapabilities()` (`src/lib/exportImage.js`) offers PNG only when the widget contains an
+`<svg>` — it was written for the four widgets that draw themselves as vector. But the real rule is
+whether the pixels can reach a canvas without tainting it, and a **cross-origin image whose host sends
+CORS is just as safe**. Measured 2026-09-15: `iiif.archive.org` echoes the request `Origin` on both the
+image API and the manifest, so an `iaBook` page image can be drawn to a canvas and exported — the user
+gets a real PNG of a book page, which is exactly the artifact a GLUT/Wikimedia person wants.
+
+**Plan:** a small allow-list of measured CORS hosts (`iiif.archive.org`; `upload.wikimedia.org` sends
+`Access-Control-Allow-Origin: *` and is worth measuring too), a `corsImageToPngBlob(imgEl, scale)` that
+reloads the image with `crossOrigin="anonymous"` and rasterises it at 2×, and one branch in the export
+menu. **Verify in a browser**, not by unit test: extend `scripts/ia-book-e2e.mjs` to open the ⤓ menu,
+assert PNG is enabled, click it and assert the download event fires with a `image/png` file — the
+capability matrix in [EXPORT.md](EXPORT.md) then needs its row updated.
+
+**Until then** the claim is *not* made: `docs/INTERNET-ARCHIVE.md` and `DATA-SOURCES.md` §28 say PNG is
+possible-but-not-wired, so nobody reads a promise the app does not keep.
+
+**Status:** open (filed 2026-09-15 while shipping `iaBook`).
+
 ## ISSUE-79 · Snapshot service: a server-side browser for PNG of any widget — **not doing (decided 2026-09-14)**
 
 **Decision:** **rejected.** PNG of an HTML/CSS widget will not become a server-side feature. Client-side PNG
