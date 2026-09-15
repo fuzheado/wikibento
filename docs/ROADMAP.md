@@ -225,6 +225,13 @@ layout + cache reads (~<100 ms perceived).
   `iaBook`'s **facing-pages spread view** (ISSUE-81, right-to-left aware) is the last reading-mode gap in
   a shipped card.
 
+  **Reading workstream (recommended order — see `docs/DOCUMENT-VIEWER.md`):** ISSUE-80 (the CORS-image PNG
+  path, which both readers need) → extract `PagedViewer` from `iaBook` behind a page-source interface
+  (cheap now, several times dearer once facing pages and a second source exist) → ISSUE-81 facing pages
+  (written once, both readers) → **`documentReader`** for Commons PDFs/DjVu (ISSUE-82) → PDF.js only on
+  evidence. The media workstream above is independent of it and can be sequenced either side of the
+  refactor.
+
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
 
 > The vision: one widget's output feeds another's input — a text box that
