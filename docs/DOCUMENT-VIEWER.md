@@ -114,6 +114,30 @@ Two sources ship: **IIIF** (archive.org) and **Wikimedia document** (Commons PDF
 7. **Framing a document is not like framing a wiki page.** The CSP above is report-only *today*; iOS shows
    only page 1; and headless Chromium cannot render it at all, which is why Tier B is a link first.
 
+## The recommended path
+
+Ordered so that each step is cheap because of the one before it. Effort is roughly a half-day for the
+refactor and a day each for the features, assuming the IA work stays the template.
+
+| # | step | why here | done when |
+|---|---|---|---|
+| 0 | **ISSUE-80** — the CORS-image PNG path | small, already filed, and it makes `iaBook`'s PNG claim true; **the same path serves this reader** (Commons page thumbs are `access-control-allow-origin: *` too), so it is shared infrastructure rather than a detour | the export menu offers PNG for `iaBook`, verified by a real download in `smoke:iabook` |
+| 1 | **Extract `PagedViewer`** from `iaBook`, behind a page-source interface | do it *now*, while the card is days old: once facing pages, a text panel and a second source are layered in, the same refactor costs several times as much — and it is the step that makes 2 and 3 small | no visual change; 18 unit tests and **19/19** `smoke:iabook` assertions still pass; the IIIF source module holds the code that used to be in `iaBook.js` |
+| 2 | **ISSUE-81 facing pages** on the shared viewer, right-to-left included | the user-visible ask, written once for both readers instead of twice | spread mode shows two images, the counter reads "pages N–N+1", the pair order **flips for a `right-to-left` book**, and a printed spread is one page |
+| 3 | **`documentReader`** (📄) — the Commons card | mostly free after 1 and 2 | `smoke:document-reader`: `pagecount` from `imageinfo`, last page renders, **one past the end clamps**, thumbnails load, "open the original" points at the file, a DjVu works, and a page that will not render **degrades to a link**; plus `?config=/document-reader-demo.json` (a Commons PDF beside an IA book, same viewer) |
+| 4 | **PDF.js** — text layer and search for any PDF | only on evidence, not by default | triggered by a real requirement to search an unproofread PDF's text; until then the Wikisource panel covers the proofread minority |
+
+**Deliberately not on this path:** an in-card framed PDF. The "open the original" link gives the same thing
+— the browser's full viewer, in a real tab, with its own zoom, search and print — with none of the four
+costs listed above, and it cannot be broken by a Wikimedia CSP change. If it is ever revisited: an
+allow-list first, a real-browser check of the sandbox question second, and never as the only way to read a
+document.
+
+**Relative to the IA media family** (`iaPlaylist` → `iaVideo` → `iaAudio`): the two workstreams are
+independent — paged reading versus media playback — and playback risk is already retired, so nothing breaks
+if the media work waits. This path is worth taking first because step 1 halves the cost of everything after
+it, and because facing pages is a gap in a card that has already shipped.
+
 ## What I would build
 
 1. **Extract `PagedViewer` from `iaBook`** and re-point `iaBook` at it — no user-visible change, and it is
