@@ -33,7 +33,7 @@ Back to the [README](../README.md).
 | **CIM File Spotlight** | 🔦 | CIM `media-file-metrics-snapshot` + `pageviews-per-media-file-monthly` | One file: wikis/pages using it + monthly view trend |
 | **CIM File Traffic** | 📉 | CIM `pageviews-per-media-file-monthly` | Interactive monthly traffic chart for one file — labeled axes, −/+ zoom (3/6/12/24 months), self-heals CIM's intermittent 500s on specific ranges |
 
-## Files & Media (4)
+## Files & Media (5)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
@@ -41,6 +41,7 @@ Back to the [README](../README.md).
 | **Commons File Gallery** | 🗂️ | Commons API `imageinfo` (batched) | Gallery of any Commons files you list (one per line) — grid or list; order as-listed / random / alphabetical / largest-first; missing files counted |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
 | **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) for `File:` names — or a **direct media URL** (`archive.org/download/…`), which needs no API call | Native HTML5 playback of **Commons files or any direct media URL** (an `archive.org/download/…` file plays with no API call and no key; Range requests make seeking work) — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay; optional **Commons description + artist/license credit** per track and a freeform **Markdown annotation** |
+| **Document Reader** | 📄 | `imageinfo` on any wiki — pagecount + a page-N render template (one call; CORS ✓, no key) | A **PDF or DjVu** read page by page from the wiki that hosts it: turn, zoom (at the widths the server actually serves), jump to a page, **facing pages**, the file's credit, and a link to the original. Refuses a non-document politely. Where **Wikisource** has transcribed the file, the page's text shows **from the start** — with its **proofreading grade** (this is bulk-OCR territory: the grade is the point) and a link to the transcription. The panel **follows you as you turn pages**; **¶** hides it, and ⚙ decides whether it starts open |
 
 ## Rankings & Platforms (4)
 
@@ -78,11 +79,10 @@ Back to the [README](../README.md).
 | **Line Count** | 🔢 | another widget's output (`source`) | Counts the lines/elements of any emitted output — emits the number (chain it into a Value Display) |
 | **Value Display** | 🖨️ | another widget's output (`source`) | Prints whatever a widget outputs — number, lines, or JSON — the debug/pipe endpoint of a chain; passes the value through (`emit`) |
 
-## Web & History (2)
+## Web & History (3)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
 | **IA Item** | 📦 | `archive.org/metadata` + `be-api…/views` (CORS `*`, no key) | An **Internet Archive item** by identifier — title, creator, year, collection, file count and size, plus all-time / 30-day / 7-day **views** (IA engagement, updated daily — *not* Wikimedia pageviews), thumbnail and a link to its details page. Emits the item URL for downstream use (e.g. a **QR Code** card) |
 | **IA Book** | 📖 | `iiif.archive.org` — Presentation v3 manifest, Image API v3, Content Search (CORS ✓, no key) | A **scanned Internet Archive book**: turn, zoom, jump from a thumbnail strip, **search inside it** (each hit names its page and shows the matched words boxed on the page), read that page's OCR text, open the PDF/EPUB/OCR — and read it as **facing pages** — set per board (⚙ *Reading mode*: auto / two pages / one page) or when the card is wide enough, with **right-to-left** handled for Arabic/Hebrew/Yiddish scans. Page count comes from the manifest's canvases, not the item metadata |
-| **Document Reader** | 📄 | `imageinfo` on any wiki — pagecount + a page-N render template (one call; CORS ✓, no key) | A **PDF or DjVu** read page by page from the wiki that hosts it: turn, zoom (at the widths the server actually serves), jump to a page, **facing pages**, the file's credit, and a link to the original. Refuses a non-document politely. Where **Wikisource** has transcribed the file, the page's text shows **from the start** — with its **proofreading grade** (this is bulk-OCR territory: the grade is the point) and a link to the transcription. The panel **follows you as you turn pages**; **¶** hides it, and ⚙ decides whether it starts open |
 | **Wayback Snapshot Gallery** ⚠️alpha | 🕰️ | Wayback availability + CDX/timemap (server batch) | Screenshot tiles of a website at chosen dates — closest capture per date (within tolerance), iframe-embedded; experimental — depends on Wayback backend health, failed lookups retry on refresh |
