@@ -675,7 +675,8 @@ page-1 render URL, and that URL is a template once its page token is rewritten.
 
 **Traps:**
 - **A transcription is not a proofread text.** The 1926 Britannica Supplement's 1,208 pages were bulk-imported
-  by one user and sit at **level 1, "Not proofread"** — uncorrected OCR. The grade therefore travels with the
+  by one user and sit at **level 1, "Not proofread"** (uncorrected OCR), while `"Homo Sum"` — 38 pages,
+  the demo fixture — is fully **level 4, "Validated"**. The panel prints whichever it finds. The grade therefore travels with the
   text into the panel; without it the reader is being invited to quote OCR as if it were the edition.
 - Pages are numbered by **leaf**, 1-based, matching `pagecount` and the `page{N}-` render width — so
   `Page:{File}/434` is the same leaf as our page 434.

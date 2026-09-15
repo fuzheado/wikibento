@@ -303,6 +303,10 @@ Back to the [README](../README.md).
   `/parallel-lives-demo.json` still renders; the front door loads a board; **no uncaught JS errors** on any
   board. Endpoints: `/api/resolve` 200, `/api/proxy` relaying to top.hatnote.com 200.
 
+- 📏 **Measured, not a fixture** (`EB1926 - Supplement Volume 3.pdf`, 1,208 pages, 285 MB, transcribed on
+  en.wikisource): a page render costs ~5 s on first request, and **every** page of the volume sits at quality
+  level 1, "Not proofread" — bulk-imported OCR, never human-checked. That measurement is why the panel prints
+  the grade, and why the demo uses something a hundred times smaller.
 - ✅ **2026-09-15 — the Document Reader** (`npm run smoke:document`, **24 assertions**, real Commons files):
   a 2-page PDF reports "page 1 of 2" from `imageinfo` and renders a page on the API's host; typing **2** jumps
   and loads page 2; typing **999** **clamps** to page 2 (the server does the same: page 189 of 188 returns
@@ -320,10 +324,10 @@ Back to the [README](../README.md).
   as facing pages; `/anne-frank-mlk-demo.json` still draws 21 timeline dots; `/api/resolve` and `/api/proxy`
   both 200; the front door loads a board; **no uncaught JS errors**.
 
-- ✅ **2026-09-15 — the Wikisource text layer (v1.1)** (part of `npm run smoke:document`, now **31**
-  assertions, plus 5 on the demo board): a 1,208-page volume with a transcription reports its page count and
-  grows a **¶ button**; a DjVu with **no** transcription has none; pressing it on page 434 shows **10,252
-  characters** of readable text (starting "by surprise at the bitter resistance of the dour Westphalians"),
-  headlined **"en.wikisource · Not proofread (uncorrected OCR)"**, linking to
-  `https://en.wikisource.org/wiki/Page:EB1926_-_Supplement_Volume_3.pdf/434`; **no raw markup** survives —
-  an assertion that, run against the whole page, caught a wikitable the trimmed unit fixtures had missed.
+- ✅ **2026-09-15 — the Wikisource text layer (v1.1)** (the fixture is deliberately small — a **38-page, 0.89 MB**
+  DjVu, not the 285 MB reference set the traps were found on): a work with a transcription reports "page 1 of
+  38" and grows a **¶ button**; a DjVu with **no** transcription has none; pressing it on page 19 shows
+  **1,458 characters** of readable text under **"en.wikisource · Validated"**, linking to
+  `…/wiki/Page:%22Homo_Sum%22_…_anthropologist.djvu/19`; **no raw markup** survives — an assertion that, run
+  against a full 10 KB page, caught a wikitable that the trimmed unit fixtures had missed, and that
+  templates were being expanded after tables.

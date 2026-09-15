@@ -226,6 +226,9 @@ The deferred piece, done because a real case turned up rather than because it wa
 `docs/ISSUES.md` ISSUE-82 asked for evidence; the evidence is `File:EB1926 - Supplement Volume 3.pdf`
 (1,208 pages, public domain, transcribed on en.wikisource with a `Page:` page for every leaf).
 
+**The demo and the tests use a small work instead** — `"Homo Sum"`, 38 pages and 0.89 MB, fully **Validated**.
+The 1,208-page volume is where the traps were measured, not something to load on every run.
+
 **The find that shapes it:** the whole volume sits at quality level **1 — "Not proofread"**. It was
 bulk-imported as OCR by one user and never human-checked. So the text is genuinely useful (search it, copy
 it) and genuinely not quotable, and **the grade is the feature**: `prop=proofread` returns

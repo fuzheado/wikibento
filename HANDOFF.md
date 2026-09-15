@@ -252,7 +252,9 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     document has a `Page:` transcription, one `prop=proofread|revisions` call returns the text *and* its
     quality (`{"quality": 1, "quality_text": "Not proofread"}`). Measured: the 1926 Britannica Supplement's
     1,208 pages are all **level 1** — bulk-imported OCR, never human-checked. Print the grade above the text
-    (`uncorrected OCR` at level 1) or the panel invites someone to quote OCR as the edition. Also: a
+    (`uncorrected OCR` at level 1) or the panel invites someone to quote OCR as the edition. Two measured
+    cases: a 1,208-page bulk-OCR reference set (level 1) and a 38-page validated pamphlet (level 4) — **use
+    the small one as a fixture** and keep the big one for measurements. Also: a
     transcription is detected by a `Page:`/`Index:` usage on a Wikisource (`globalusage`, ns 104/106) — being
     *linked* from a Wikisource article is not one — and `prop=proofread` on an `Index:` page returns nothing,
     so grades only come per page.
