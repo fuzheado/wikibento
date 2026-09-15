@@ -30,6 +30,22 @@ applies the reading fallback. `Q7186` (Marie Curie, 247 sitelinks, English descr
 | WDQS `wikibase:language "en"` | `Q7186` |
 | WDQS `wikibase:language "en,mul"` | `Marie Curie` |
 
+**Audited 2026-09-14 — every label path in the app, and what each needs:**
+
+| path | call | needs `mul`? | state |
+|---|---|---|---|
+| SPARQL entity cells (`?item` → "Label (QID)") | `wbgetentities&props=labels` via `src/lib/sparqlLabels.js` | **yes** | ✅ requests `<lang>|en|mul`, reads in that order |
+| SPARQL presets that name things (`?whoLabel`, `?depictsLabel`) | WDQS `SERVICE wikibase:label` | **yes** | ✅ all three carry `"en,mul"` |
+| The validated lookup box (`wikidata-item` param source) | `wbsearchentities&language=en` | **no — measured** | ✅ searches across languages and returns the fallback label: `search=Marie Curie&language=en` finds `Q7186` and returns "Marie Curie", even with `strictlanguage=1` |
+| Param validation for a Wikidata item | `wbgetentities&props=info` | no (no labels fetched — existence only) | ✅ |
+| Board configs (`public/*.json`) | — | — | ✅ they name presets instead of inlining queries, so they inherit the fix |
+
+`props: 'labels'` appears **exactly once** in the codebase (the helper above), which is what makes this
+auditable in one grep; `tests/wikidata-labels.test.mjs` now enforces it — every
+`wikibase:language` in `src/` and `public/` must include `mul`, and any new `props: 'labels'` call
+outside the helper fails the suite. The failure mode it prevents is silent and looks like data: a QID is
+a perfectly valid-looking cell, nothing errors, and the widget simply shows "Q7186" instead of a name.
+
 `src/lib/sparqlLabels.js` requests `<lang>|en|mul` and reads in that order, so any widget that labels
 entities gets this right; the SPARQL presets ask the label service for `"en,mul"` for the same reason. A
 bare-QID cell that still slips through is treated as a failed lookup, not a name (see
