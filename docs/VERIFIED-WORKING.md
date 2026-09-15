@@ -331,3 +331,10 @@ Back to the [README](../README.md).
   `…/wiki/Page:%22Homo_Sum%22_…_anthropologist.djvu/19`; **no raw markup** survives — an assertion that, run
   against a full 10 KB page, caught a wikitable that the trimmed unit fixtures had missed, and that
   templates were being expanded after tables.
+
+- ✅ **2026-09-15 — the Wikisource text layer, verified against production** (17/17, serving
+  `index-B8NGcYXL.js`): `/document-reader-demo.json` renders five cards whose documents report **329 / 96 / 38
+  / 16 pages**; the transcribed card grows a **¶ button** and an untranscribed one does not; **page 19 shows
+  1,458 characters** under **"EN.WIKISOURCE · VALIDATED"**, linked to Wikisource; the showcase catalog renders
+  **42 cards** with zero crashes; the IA and 1929 boards are unchanged; `/api/resolve` and `/api/proxy` both
+  200; **no uncaught JS errors**.

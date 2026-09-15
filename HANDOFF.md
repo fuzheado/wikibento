@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-YJ87Jsl0.js` (+ `index-index-CIDXj2nC.css`) |
-| deployed | 2026-09-15, twice (the Internet Archive pass, then the 📄 **Document Reader** for Commons PDFs/DjVu — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
+| production bundle | `index-B8NGcYXL.js` (+ `index-CI1Ga_V5.css`) |
+| deployed | 2026-09-15, three times (the Internet Archive pass, the 📄 Document Reader, then its **Wikisource text layer**) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the document board, the 42-card catalog and both older boards) |
+| pending deploy | none — production serves this branch's tip (verified live: the text layer, the 42-card catalog and every demo board) |
 | newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book, facing pages both, and a **Wikisource text panel with its proofreading grade** where a transcription exists) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
