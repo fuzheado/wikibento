@@ -258,6 +258,21 @@ text is a bonus rather than the point of the card, and the panel costs the page 
 - templates were expanded *after* tables, so `{{rh||A|B}}` — a running head with an empty first argument —
   had its `||` turned into a table separator first and came out as "B". Order matters.
 
+## Enhancements to explore (filed, not built)
+
+Three ideas from Andrew, recorded with their trade-offs in [ISSUES.md](ISSUES.md) rather than left in a chat:
+
+- **ISSUE-83 — who gets the room.** The panel takes a fixed 180 px and the page absorbs the rest, so the split
+  is implicit; a drag handle, size presets, or an ⚙ ratio would make it explicit. Note the card is *already*
+  resizable by its corner, and the house rule applies: the board sets a default, the reader overrides it.
+- **ISSUE-84 — a copy button.** The interesting half is the payload: the **proofreading grade should travel with
+  the text**, or someone pastes uncorrected OCR into a draft with nothing to warn them (gotcha 20, in a
+  clipboard). "Copy the whole work" is a different feature — 1,208 pages is 1,208 calls.
+- **ISSUE-85 — where the text lives.** Side-by-side is the proofreading layout and the one I would try first,
+  with the same viewport-measured fallback as facing pages; tabs hide what you came to compare; and *text laid
+  over the scan* is not available from this source at all, because `Page:` wikitext has paragraphs and section
+  markers, not line boxes.
+
 ## What I would build
 
 1. **Extract `PagedViewer` from `iaBook`** and re-point `iaBook` at it — no user-visible change, and it is

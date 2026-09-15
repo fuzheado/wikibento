@@ -3328,6 +3328,79 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-83 · Document Reader: let the reader decide how much room the transcription gets — **open**
+
+**What:** the transcription panel is a fixed strip under the page (`flex: 0 0 auto`, `max-height: 180px`, its own
+scroll) while the page stage takes what is left (`flex: 1 1 auto`). Andrew wants a **drawer**: more text when he
+is reading it, more page when he is looking at the scan.
+
+**Options, with what each costs:**
+
+| option | how | notes |
+|---|---|---|
+| **drag handle** between page and panel | a thin grip that sets the panel's height | the most direct "drawer"; needs a keyboard-accessible equivalent, and a clamp (the page must keep a usable minimum, the panel must not exceed the card) |
+| **size presets** (Compact · Half · Tall) | a segmented control beside ¶ | simpler, discoverable, testable; less continuous than a drag |
+| **configured ratio** (`textPanelSize: 0.4`) | ⚙ + a default in the board | the board's default, not the reader's choice — belongs *with* the two above, not instead of them |
+
+**Two facts that frame it:** the split is currently **implicit** (the stage absorbs whatever is left), and the
+**card itself is already resizable** by dragging its bottom-right corner — so "give the text more room" has a
+free answer today (`9. The board height is yours to drag`), and what is really missing is the **internal** split.
+
+**The house rules it must respect:** the board sets a default and the reader overrides it (as with `spread` and
+`showOverlap`), and a *reader's* choice is view state, not board config (as with zoom — see
+[LIFELINE-WIDGET.md](LIFELINE-WIDGET.md)). So: a ⚙ default plus a control that wins until reload.
+
+**Verification:** a unit test for the clamp (never below the page's minimum, never beyond the card), and an E2E
+that moves the split and asserts both halves changed size — measured, not eyeballed.
+
+## ISSUE-84 · A copy button for the transcription (and what should be copied) — **open**
+
+**What:** Andrew wants to copy the text without dragging a selection across the panel.
+
+**The design question is not the button, it is the payload.** Three candidates:
+
+1. **the page's text alone** — what a reader expects, and the least surprising;
+2. **the text plus its provenance** — e.g. `"…page text…\n\n— Wikisource, Page:"Homo Sum"…/19 (Validated)"`. **This
+   is the one I would argue for by default:** a snippet pasted into a draft with no grade attached invites
+   citing *"Not proofread (uncorrected OCR)"* as if it were the edition, which is exactly the mistake
+   [HANDOFF gotcha 20](../HANDOFF.md) exists to prevent — in a clipboard this time;
+3. **a ready-made citation** (wikitext or plain) for the source page — a second, smaller action, useful for
+   Wikisource-adjacent work.
+
+**Mechanics:** `navigator.clipboard.writeText` needs a user gesture (the button is one) and a secure context
+(production is HTTPS, and localhost counts) — a `<textarea>` + `execCommand` fallback is probably unnecessary,
+but it is the documented escape hatch. The button should confirm ("Copied") and reset, because a silent copy
+button gets clicked twice.
+
+**And the honest limitation:** *copying a whole work* is not the same feature — 1,208 pages is 1,208 API calls,
+so it needs either a bulk route (WSexport was unreachable from here when measured: `ws-export.wmcloud.org`
+returned 000) or a progress-driven loop with a cap. File it separately if anyone asks for it; do not quietly
+make the button mean "all pages".
+
+**Verification:** a Playwright test that grants clipboard permissions, clicks, and reads the clipboard back —
+asserting the text *and* the provenance line, since the provenance is the point.
+
+## ISSUE-85 · Where should the transcription live? (placement, to explore) — **open**
+
+**What:** today the text is a strip **below** the page. Andrew asked whether other arrangements make sense.
+Options, with the trade-offs as I understand them:
+
+| placement | wins | costs |
+|---|---|---|
+| **below** (today) | trivial; a wide, short card uses the width well | it competes *vertically* with the page — the one resource a portrait scan needs |
+| **side-by-side** (page left, text right) | the natural proofreading layout: the scan and its words visible together, neither stealing the other's axis | each pane gets ~half the width; in a narrow card it must fall back to stacked — the same viewport-measured switch the viewer already uses for facing pages (`spreadsFit`) |
+| **overlay drawer** (slides over the page) | the page keeps its full size; the text is a mode you enter and leave | you cannot compare the two while reading; needs a dismiss affordance |
+| **tabs** (Page · Text) | no room cost at all | you cannot see both, which defeats the reason to have a transcription beside a scan |
+| **text laid over the scan** (positioned annotations) | the honest ideal — the words where they sit on the page | **not possible from this source:** Wikisource `Page:` wikitext carries paragraphs and `<section>` markers, not line boxes. It would need coordinates from somewhere else (IIIF annotations, an ALTO/hOCR layer), so it belongs with a different data source, not this one |
+
+**What I would try first:** side-by-side above a width threshold, stacked below it, with the overlay as a
+second option for tall cards — one layout decision keyed to the measured width, exactly like spread mode. It
+also composes with ISSUE-83: a **split** and a **drawer size** are two expressions of the same idea (who gets
+the space), and they should ship together or not at all.
+
+**Verification:** an E2E that a wide card renders two panes and a narrow one stacks (both with the text in the
+page's reading order), plus one screenshot of each.
+
 ## ISSUE-82 · A document reader for Commons PDFs/DjVu (and one page viewer shared with IA books) — **done + verified 2026-09-15**
 
 **What:** WikiBento can read an Internet Archive book page by page (📖 `iaBook`). Commons holds scanned
