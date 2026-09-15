@@ -149,7 +149,15 @@ rendering it: 9 cards, both books' page images loaded (`page 1 of 16`, `page 1 o
 showing its own title, **the film playing at `duration 664s` / `currentTime 1.37s` and the audio at
 `507s` / `1.54s`**, and no error boundary — 10 assertions, no console errors beyond the archive's own 400s.
 
-## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card, live (2026-09-15)
+## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card in **facing-pages** mode (2026-09-15)
+
+The spread view (ISSUE-81): the cover and the title page side by side, the counter reading "**pages 1–2 of
+16**", the `▭` facing toggle, the `⇥` control that pairs or un-pairs the first leaf, the `¶` page-text
+button, search hits in the panel below, and the thumbnail strip with both leaves of the spread highlighted.
+Captured by `node scripts/ia-book-e2e.mjs` (31 assertions), which also checks the **right-to-left** case on
+a real Arabic scan: there the later leaf sits on the left and the counter still reads in reading order.
+
+## (previous) `wikibento-2026-09-15-ia-book-card.png` — the IA Book card, live (2026-09-15)
 
 The first widget of the Internet Archive media family: a scanned book served page by page from
 `iiif.archive.org`. Shows the page (a 400–1400 px ladder), "page 3 of 16" taken from the **manifest**

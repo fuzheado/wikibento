@@ -42,12 +42,23 @@ export function labelText(label) {
  * `serviceId` may be the bare service (`…/image/iiif/3/<path>`) or a full image URL — either way
  * we keep the part before the first IIIF parameter segment, so callers cannot double-append.
  */
+export function iiifBase(serviceId) {
+  return String(serviceId || '').trim().replace(/\/+$/, '').replace(/\/(full|square|\d+,\d+,\d+,\d+)\/.*$/, '');
+}
+
+/** A page URL at a width (and region, when cropping). */
 export function serviceImageUrl(serviceId, width = 400, region = 'full') {
-  const id = String(serviceId || '').trim().replace(/\/+$/, '');
-  if (!id) return '';
-  const base = id.replace(/\/(full|square|\d+,\d+,\d+,\d+)\/.*$/, '');
+  const base = iiifBase(serviceId);
+  if (!base) return '';
   const w = Number(width) > 0 ? Math.round(Number(width)) : 400;
   return `${base}/${region}/${w},/0/default.jpg`;
+}
+
+/** The same thing as a TEMPLATE the shared viewer can fill in (`{w}`, `{region}`), so a page source never
+ *  has to know what width the reader has room for, and the viewer needs no branch per archive. */
+export function iiifImageTemplate(serviceId) {
+  const base = iiifBase(serviceId);
+  return base ? `${base}/{region}/{w},/0/default.jpg` : '';
 }
 
 /** `#xywh=727,190,335,42` → the region string, or null. */

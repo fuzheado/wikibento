@@ -231,6 +231,14 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     image-service id, and never build `$N` URLs. (Each book's IIIF **Content Search** is also the only
     search-inside route a browser can reach — the standalone FTS host does not resolve.)
 
+18. **Playwright: `waitForFunction(fn, arg, options)`** — the second parameter is the ARGUMENT, so
+    `waitForFunction(fn, { timeout: 90000 })` silently passes an object to your predicate and leaves the
+    default 30 s timeout. Passing `undefined` for the arg (or a long timeout may never apply) costs a
+    confusing "Timeout 30000ms exceeded" on a wait you believe you raised. Same family: `locator.click({
+    force: true })` skips the scroll-into-view, so a click on an element **below the fold** dispatches at
+    coordinates nothing occupies and does nothing — drive it through the DOM instead
+    (`el.click()` inside `page.evaluate`) when the test is about behaviour rather than clickability.
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is

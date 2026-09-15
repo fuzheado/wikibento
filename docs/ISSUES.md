@@ -3379,7 +3379,7 @@ Unit tests for the page-URL builder and the clamp belong next to `tests/ia-book.
 
 **Status:** open (filed 2026-09-15).
 
-## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **open**
+## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **done + verified 2026-09-15**
 
 **What:** the IA Book card shows one leaf at a time. The Internet Archive's own BookReader defaults to
 **two facing pages** on a wide viewport, and a scanned book is usually *meant* to be read that way — a
@@ -3422,7 +3422,28 @@ filler leaves) apply unchanged.
 `iaBook` for ISSUE-82, so facing pages (and the right-to-left case) is implemented **once** and applies to
 both sources.
 
-**Status:** open (filed 2026-09-15, from Andrew's note that IA's own reader shows facing pages by default).
+**Shipped 2026-09-15** — and, as planned, *below* the reader rather than inside it, so a Commons document
+reader gets it for free:
+
+- `src/lib/pagedViewer.js` (pure, 12 unit tests): the page-source contract, `spreadPairs(count, offset)`,
+  `spreadOrder(pair, direction)`, `spreadIndexOf`, `spreadLabel`, `spreadsFit`, `leafWidth`, `stripWindow`.
+  Every leaf appears exactly once at any length and either offset — asserted for 1 to 304 pages.
+- `src/widgets/PagedViewer.jsx`: the shared reader (turn, zoom, strip, counter, search, page text, facing
+  pages). `IaBookCard` is now a 19-line wrapper that supplies the IIIF-specific fetchers.
+- **Right-to-left** honoured: measured on a real Arabic scan (`DarsENizami_DarjaAula_1stYear`, 389 canvases,
+  `viewingDirection: right-to-left`), the LATER leaf renders on the **left** and the counter still reads
+  "pages 1–2 of 389".
+- Leaf 0 stands alone (a cover) with a **shift control** to pair it instead, for scans that start on a text
+  page; spreads engage from the card's measured width (`SPREAD_MIN_WIDTH = 820`) and the reader's own toggle
+  wins until reload; each leaf gets half the zoom ladder.
+
+**Verified in a browser** (`npm run smoke:iabook`, now **31 assertions**): a spread shows two loaded pages,
+the counter names it in reading order, the earlier page is on the left in a left-to-right book, the strip
+highlights both, **▶ advances by a spread (2 → 4)**, the shift control re-pairs the first leaf, and for the
+right-to-left book the later page is on the left while the counter reads in reading order. Screenshot:
+`docs/screenshots/wikibento-2026-09-15-ia-book-card.png`.
+
+**Status:** done + verified 2026-09-15.
 
 ## ISSUE-80 · PNG export for CORS-image widgets (iaBook first) — **done + verified 2026-09-15**
 

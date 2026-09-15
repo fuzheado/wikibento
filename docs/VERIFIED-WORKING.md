@@ -286,3 +286,11 @@ Back to the [README](../README.md).
   the ⤓ menu offers **PNG** for the IA Book card with the reason "this widget's image host sends CORS, so
   the canvas stays clean", and clicking it downloads a real raster — **4,384,386 bytes**, a 2× PNG of the
   page (the previous behaviour was a disabled item and the old "this widget is HTML/CSS" tooltip).
+
+- ✅ **2026-09-15 — facing pages, and right-to-left** (`npm run smoke:iabook`, 31 assertions): a spread
+  renders two loaded page images, the counter reads "**pages 2–3 of 16**" in reading order, the earlier page
+  is on the **left** in a left-to-right book, the strip highlights both leaves, **▶ advances a spread at a
+  time (2 → 4)**, the shift control re-pairs the first leaf ("page 1" → "pages 1–2"), and — the assertion
+  worth the whole run — on the Arabic scan `DarsENizami_DarjaAula_1stYear` (389 canvases,
+  `viewingDirection: right-to-left`) the **later page sits on the left** ("Page 2 | Page 1") while the
+  counter still reads "pages 1–2 of 389". Leaf 0 stands alone on both books until you advance.

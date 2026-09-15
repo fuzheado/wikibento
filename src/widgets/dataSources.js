@@ -12,7 +12,7 @@ import { createTtlCache } from '../lib/fetchCache';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
-import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits } from '../lib/iaBook';
+import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits, iiifImageTemplate } from '../lib/iaBook';
 import {
   wikidataEntityId,
   labelLanguage,
@@ -2269,8 +2269,19 @@ export function shapeIaBook(meta, manifest, identifier) {
   const year = String(m.year || String(m.date || '').slice(0, 4) || '');
   const details = `https://archive.org/details/${encodeURIComponent(id)}`;
   const pages = parsed.pages;
+  const sourced = pages.map((pg) => ({ ...pg, image: iiifImageTemplate(pg.serviceId) }));
   return {
     identifier: id,
+    // The shared viewer's page-source contract (src/lib/pagedViewer.js): templates, a reading direction
+    // and the capabilities this source actually has.
+    pages: sourced,
+    direction: parsed.viewingDirection || 'left-to-right',
+    caps: {
+      region: true,                                                  // IIIF can crop (the word box)
+      search: Boolean(parsed.searchService),                          // IIIF Content Search
+      text: sourced.some((pg) => pg.annotationPage),                  // per-canvas OCR annotations
+      facing: true,                                                   // scanned leaves pair up
+    },
     title: strip(m.title) || parsed.title || id,
     subtitle: [
       strip(m.creator), year, strip(m.mediatype),
@@ -2280,7 +2291,6 @@ export function shapeIaBook(meta, manifest, identifier) {
     summary: parsed.summary,
     href: details,
     detailsUrl: details,
-    pages,
     pageCount: pages.length,
     searchService: parsed.searchService,
     hasSearch: Boolean(parsed.searchService),
