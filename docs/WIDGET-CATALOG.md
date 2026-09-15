@@ -40,7 +40,7 @@ Back to the [README](../README.md).
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Commons File Gallery** | 🗂️ | Commons API `imageinfo` (batched) | Gallery of any Commons files you list (one per line) — grid or list; order as-listed / random / alphabetical / largest-first; missing files counted |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |
-| **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) | Native HTML5 playback of Commons video or audio — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay; optional **Commons description + artist/license credit** per track and a freeform **Markdown annotation** |
+| **Video / Media Player** | 🎬 | Commons API `videoinfo` (batched) for `File:` names — or a **direct media URL** (`archive.org/download/…`), which needs no API call | Native HTML5 playback of **Commons files or any direct media URL** (an `archive.org/download/…` file plays with no API call and no key; Range requests make seeking work) — one file or a jukebox playlist: next/prev, loop, shuffle, quality pick, autoplay; optional **Commons description + artist/license credit** per track and a freeform **Markdown annotation** |
 
 ## Rankings & Platforms (4)
 

@@ -1614,7 +1614,7 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Video / Media Player',
     icon: '🎬',
-    description: 'Play Commons video or audio — one file or a whole playlist (jukebox: next/prev, loop, shuffle)',
+    description: 'Play video or audio — Commons files, or any direct media URL such as an archive.org/download/… file (playlist with next/prev, loop, shuffle)',
     labelFromConfig: (c) => {
       const list = (c.files || '').split('\n').map((s) => s.trim()).filter(Boolean);
       return list.length > 1 ? `${list.length} files` : (list[0] || '').replace(/^File:\s*/i, '');
@@ -1631,10 +1631,10 @@ export const WIDGET_TYPES = {
       refreshSeconds: 3600,
     },
     renderer: 'MediaPlayerCard',
-    dataSource: 'Commons API videoinfo (batched)',
+    dataSource: 'Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call',
     defaultLayout: { w: 4, h: 4, minW: 3, minH: 3 },
     configFields: [
-      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 6, placeholder: 'File:Example.webm\nFile:Spoken article.ogg' },
+      { key: 'files', label: 'Commons files or media URLs (one per line)', type: 'textarea', rows: 6, placeholder: 'File:Example.webm\nFile:Spoken article.ogg\nhttps://archive.org/download/{id}/{file}.mp4', hint: 'Either a Commons <code>File:</code> name or a direct audio/video URL — an archive.org <code>/download/</code> file plays with no API call and no key, and Range requests make seeking work. A direct URL is listed before Commons files when a playlist mixes them.' },
       { key: 'mediaType', label: 'Media type', type: 'select', options: [
         { value: 'auto', label: 'Auto-detect (per file)' },
         { value: 'video', label: 'Video only' },

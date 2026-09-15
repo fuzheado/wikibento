@@ -273,3 +273,11 @@ Back to the [README](../README.md).
   viewer, a bad identifier gives a friendly message, and there are no uncaught JS errors (the only console
   errors are the two statuses those fixtures exist to produce — 400 for the missing item, 500 for the item
   whose manifest 500s).
+
+- ✅ **2026-09-15 — Internet Archive playback in a card** (10/10 assertions, demo board): the 11-minute
+  Prelinger film reached `readyState ≥ 1` with **duration 664 s** and advanced to **1.37 s** on `play()`
+  (`paused: false`), and a three-chapter LibriVox playlist did the same at **507 s / 1.54 s**. Both stream
+  from `archive.org/download/` with no API call — a direct URL is the row — and the archive's Range
+  responses (`206`, `content-range`) are why seeking works. Also confirmed there: the codec trap, that
+  Chromium says `"probably"` for H.264 mp4 and `""` for Theora ogv, so the mp4 derivative is the one to
+  offer first (`docs/INTERNET-ARCHIVE.md`).

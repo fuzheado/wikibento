@@ -143,9 +143,11 @@ them, `339a275`), so this is reversible.
 **IA Book** cards (a 16-page illustrated children's book and a 304-page Dostoevsky, both driven by their
 IIIF manifests) above four **IA Item** cards covering the media types the next cards will play — a
 Prelinger film, a Live Music Archive concert, a LibriVox audiobook and MIT OpenCourseWare. The note card
-says what is built and what is next. Verified by rendering it: 7 cards, both books' page images loaded
-(`page 1 of 16` and `page 1 of 304`), each item card showing its own title, and no error boundary — 12
-assertions, no console errors beyond the archive's own 400s.
+says what is built and what is next. Now **nine** cards: two media players stream the real files — the 11-minute Prelinger film and three
+LibriVox chapters as a playlist, both straight from `archive.org/download/` with no API call. Verified by
+rendering it: 9 cards, both books' page images loaded (`page 1 of 16`, `page 1 of 304`), each item card
+showing its own title, **the film playing at `duration 664s` / `currentTime 1.37s` and the audio at
+`507s` / `1.54s`**, and no error boundary — 10 assertions, no console errors beyond the archive's own 400s.
 
 ## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card, live (2026-09-15)
 

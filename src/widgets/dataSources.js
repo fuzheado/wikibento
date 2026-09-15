@@ -570,13 +570,73 @@ function truncate(s, n) {
   s = String(s || '').trim();
   return s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s;
 }
+
+/** Media kinds and MIME types by extension, for direct media URLs (the player, and the IA family).
+ *
+ *  A `<source type>` lets the browser skip a file it cannot decode instead of discovering that by
+ *  failing — which matters here: measured in Chromium 2026-09-15, archive.org's **mp4 (H.264) plays**
+ *  (`readyState=4`) while its `.ogv` (Theora) reports `canPlayType: ""`. Passing the type through keeps
+ *  that decision to the browser. An unknown extension defaults to `video`, because a `<video>` element
+ *  plays an audio track too, and the reverse is not true. */
+const MEDIA_EXT = {
+  video: { mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/quicktime', ogv: 'video/ogg', webm: 'video/webm',
+           mpg: 'video/mpeg', mpeg: 'video/mpeg', avi: 'video/x-msvideo', mkv: 'video/x-matroska' },
+  audio: { mp3: 'audio/mpeg', ogg: 'audio/ogg', oga: 'audio/ogg', opus: 'audio/ogg', m4a: 'audio/mp4',
+           aac: 'audio/aac', flac: 'audio/flac', wav: 'audio/wav' },
+};
+const MEDIA_KIND = Object.fromEntries(
+  Object.entries(MEDIA_EXT).flatMap(([kind, exts]) => Object.keys(exts).map((e) => [e, kind])),
+);
+
+/** '.mp4' → 'video' | 'audio' (default video). Query strings and fragments are ignored. */
+export function mediaKindFromUrl(url) {
+  const bump = String(url || '').split(/[?#]/)[0].match(/\.([A-Za-z0-9]{1,5})$/);
+  return (bump && MEDIA_KIND[bump[1].toLowerCase()]) || 'video';
+}
+
+/** The MIME type for a media URL, or '' when the extension is unknown. */
+export function mediaMimeFromUrl(url) {
+  const bump = String(url || '').split(/[?#]/)[0].match(/\.([A-Za-z0-9]{1,5})$/);
+  if (!bump) return '';
+  const ext = bump[1].toLowerCase();
+  return MEDIA_EXT.video[ext] || MEDIA_EXT.audio[ext] || '';
+}
+
+/** A direct media URL as a player row. Pure — no fetch at all, which is the point: an archive.org file
+ *  (or any media URL) needs no API call to be playable, and archive.org serves Range requests
+ *  (`206` + `content-range`, measured 2026-09-15), so seeking works. */
+export function directMediaRow(url) {
+  const clean = String(url || '').trim().split('#')[0].split('?')[0];
+  const file = decodeURIComponent(clean.split('/').filter(Boolean).pop() || clean);
+  const title = file.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[_+]/g, ' ').replace(/\s+/g, ' ').trim() || clean;
+  return {
+    title,
+    fileUrl: clean,        // there is no Commons page for a direct URL — the file is the link
+    pageUrl: clean,
+    direct: true,          // the card and subtitle can tell this row never touched a wiki API
+    mediaType: mediaKindFromUrl(clean),
+    derivatives: [{ type: mediaMimeFromUrl(clean), width: 0, height: 0, src: clean }],
+    originalUrl: clean,
+    duration: 0,
+    size: 0,
+    description: '',
+    artist: '',
+    license: '',
+    missing: false,
+  };
+}
 export async function fetchMediaPlaylist(filesText) {
-  const files = (filesText || '').split('\n')
-    .map((s) => s.trim().replace(/^File:\s*/i, ''))
+  const lines = (filesText || '').split('\n').map((s) => s.trim()).filter(Boolean);
+  // Direct URLs (archive.org, or anything else) need no lookup — they become rows as they are, which is
+  // what lets the player stream archive.org media without an API call. Commons `File:` names still go
+  // through batched videoinfo below. Direct rows come first when a playlist mixes the two.
+  const direct = lines.filter((l) => /^https?:\/\//i.test(l));
+  const files = lines.filter((l) => !/^https?:\/\//i.test(l))
+    .map((s) => s.replace(/^File:\s*/i, ''))
     .filter(Boolean)
     .map((s) => `File:${s.replace(/_/g, ' ')}`);
-  if (!files.length) throw new Error('Enter at least one Commons file');
-  const rows = [];
+  if (!files.length && !direct.length) throw new Error('Enter at least one Commons file or media URL');
+  const rows = direct.map(directMediaRow);
   const MAX_ENCODED = 4500;
   let chunk = [];
   let chunkLen = 0;

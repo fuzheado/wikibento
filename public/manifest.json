@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-15T07:09:51.728Z",
+ "generatedAt": "2026-09-15T07:50:20.940Z",
  "widgetCount": 40,
  "widgets": [
   {
@@ -1662,8 +1662,8 @@
    "id": "mediaPlayer",
    "name": "Video / Media Player",
    "icon": "🎬",
-   "description": "Play Commons video or audio — one file or a whole playlist (jukebox: next/prev, loop, shuffle)",
-   "dataSource": "Commons API videoinfo (batched)",
+   "description": "Play video or audio — Commons files, or any direct media URL such as an archive.org/download/… file (playlist with next/prev, loop, shuffle)",
+   "dataSource": "Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call",
    "category": "Files & Media",
    "type": "stat",
    "intensity": "low",
@@ -1675,8 +1675,9 @@
     {
      "key": "files",
      "type": "textarea",
-     "label": "Commons files (one per line)",
-     "placeholder": "File:Example.webm\\nFile:Spoken article.ogg"
+     "label": "Commons files or media URLs (one per line)",
+     "hint": "Either a Commons <code>File:</code> name or a direct audio/video URL — an archive.org <code>/download/</code> file plays with no API call and no key, and Range requests make seeking work. A direct URL is listed before Commons files when a playlist mixes them.",
+     "placeholder": "File:Example.webm\\nFile:Spoken article.ogg\\nhttps://archive.org/download/{id}/{file}.mp4"
     },
     {
      "key": "mediaType",

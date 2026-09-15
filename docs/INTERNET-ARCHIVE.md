@@ -17,6 +17,32 @@ quotas we have to live inside, and the widgets I would build in what order.
 | **Planned, not built** | ISSUE-25 items 2–4: item views over time, IA search, IA collection |
 | **The gap** | **media.** Nothing shows a book, an audio track, a film, a keyframe strip, a caption hit |
 | **This page** | the verified API surface, the per-media-type file conventions, the quotas, and a ranked proposal |
+## Playing the media — measured 2026-09-15
+
+**Yes, and it works today.** The player widget streams video and audio through `<video>`/`<audio>`, and it
+now accepts a **direct media URL** as well as a Commons `File:` name: a URL becomes a playable row with
+**no API call at all**, because the URL *is* the media. Verified in Chromium against the live archive:
+
+| check | result |
+|---|---|
+| `archive.org/download/…/AboutBan1935.mp4` in a card | **played** — `duration 664s`, `currentTime → 1.37s`, `paused: false` |
+| three LibriVox chapters as a playlist | **played** — `duration 507s`, `currentTime → 1.54s`, "3 files" in the card |
+| Range requests | `206` + `content-range: bytes 0-1023/68512128` — so **seeking works** |
+| content types | mp4 → `video/mp4` (ftyp/isom) · ogv → `video/ogg` (OggS) · mp3 → `audio/mpeg` (ID3) · ogg → `application/ogg` |
+
+**The codec caveat, measured rather than assumed:** Chromium 2026-09-15 answers
+`canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') = "probably"` but
+`canPlayType('video/ogg; codecs="theora, vorbis"') = ""` — and an `.ogv` element that loaded (664 s) reported
+`videoWidth 0`, i.e. audio without picture. So **prefer the `.mp4` derivative**, pass the MIME type to
+`<source>` so the browser can skip what it cannot decode, and treat `.ogv` as the fallback for engines
+without proprietary codecs rather than the first choice. Audio is easy: `audio/mpeg`, `audio/ogg` and
+`audio/flac` are all supported.
+
+**What this does *not* give you** (which is what the remaining cards add): the file list comes from **you**,
+not from the item — so no automatic multi-track playlists, no per-part titles and durations, no keyframe
+strip, no spectrograms. `iaPlaylist` / `iaVideo` / `iaAudio` are still the plan; the player simply proves
+the playback layer is not the risk.
+
 | **See it** | [`?config=/internet-archive-demo.json`](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) — the demo board: two books (16 and 304 pages) and four archive items, verified by rendering (12 assertions). Linked from the hub (`demos.json`) and the README |
 
 The whole family is attractive because the API is unusually friendly: **most of it is CORS-enabled
