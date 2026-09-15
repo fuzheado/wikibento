@@ -20,7 +20,7 @@ They have very different costs, and the cheapest ones turned out to be the most 
 | **CSV / JSON data** | low | exact | the numbers behind a card, to reuse in a spreadsheet or a script |
 | **PDF** | low | vector text, selectable | a page to file, print or send — via the browser's own print engine |
 | **SVG** | low *where the widget is already SVG* | perfect | vector for print or a slide; the QR widget has done this since ISSUE-65 |
-| **PNG** | medium–high | pixels | a picture for chat or a slide deck — **not built** (see below) |
+| **PNG** | medium–high | pixels | a picture for chat or a slide deck — for widgets that draw their own SVG, **and** for any widget whose image host sends CORS (ISSUE-80) |
 
 The two shipped formats need **no dependency, no server and no canvas**. That matters here: WikiBento runs
 on six small runtime packages, and a DOM-to-canvas library is a much bigger commitment than it looks
@@ -83,13 +83,20 @@ enforces:
 | widget draws itself as… | PDF | CSV | SVG | PNG |
 |---|---|---|---|---|
 | **HTML/CSS** (timeline, tables, ranked lists, galleries — most of the app) | ✅ | rows? | ✅ *file opens in a browser* | ❌ needs a screenshot |
+| **HTML/CSS with a CORS image** (IA Book's IIIF pages, and anything else on `iiif.archive.org`, `upload.wikimedia.org`, `thumb.wikimedia.org`) | ✅ | rows? | ✅ | ✅ **built 2026-09-15** — the image is reloaded with `crossOrigin` and drawn, so the canvas stays clean and the PNG is real |
+
+*The host list is measured, not guessed (`CORS_IMAGE_HOSTS` in `src/lib/exportImage.js`): each entry was
+verified to send `Access-Control-Allow-Origin`. `archive.org` is deliberately absent — its `/download/` and
+`services/img` send no CORS, so those images stay display-only.*
 | **SVG** (CIM trend, file traffic, QR) | ✅ | rows? | ✅ | ✅ rasterised at 2× |
 | **iframe** (wiki page, 360° panorama, video) | ✅ | – | ❌ | ❌ |
 
 Only four widgets on the 40-widget showcase board draw SVG (two CIM charts, the QR, and one iframe) — the
 app's own charts are mostly CSS, which is why this matters more than it sounds.
 
-**So pixel-perfect PNG of an HTML widget is a decision, not a detail.** Two honest routes:
+**So pixel-perfect PNG of an arbitrary HTML widget is a decision, not a detail** — unless the widget's
+pixels come from an image host that allows CORS, which is the case ISSUE-80 closed. Two honest routes for
+the rest:
 
 1. **A DOM-to-canvas library** (`html2canvas`, `modern-screenshot`): they draw each element with canvas
    primitives instead of a `foreignObject`, which is why they avoid the taint — and why they re-implement
@@ -115,7 +122,7 @@ show the user's zoom, scroll, theme or params anyway.
 |---|---|
 | a picture of a card, or of the board | screenshot your own device — the browser has the pixels and the right DPR |
 | a **file** of a card | **SVG** from the ⤓ menu, then convert locally (any browser, Figma, Illustrator, `rsvg-convert`) |
-| a file of a card that draws itself as SVG (charts, QR) | **PNG** from the ⤓ menu — rasterised exactly, at 2× |
+| a card that draws itself as SVG (charts, QR), or whose image host sends CORS (a book page) | **PNG** from the ⤓ menu — rasterised exactly, at 2× |
 | something for a report, a slide or an email | **PDF** from the ⤓ menu — vector and selectable, better than a PNG for all three |
 
 If PNG-of-any-widget is ever genuinely needed, the proportionate next step is a **client-side** DOM→canvas

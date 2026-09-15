@@ -19,7 +19,7 @@
  */
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, writeFileSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -147,6 +147,25 @@ async function main() {
   // links out
   const hrefs = await page.locator(`${card} .iab-links a`).evaluateAll((as) => as.map((a) => a.getAttribute('href')));
   check('derivative links point at archive.org/download', hrefs.some((h) => /archive\.org\/download/.test(String(h))), hrefs.join(' '));
+
+  // ── PNG export (ISSUE-80): the page image's host sends CORS, so the canvas stays clean ──
+  await page.locator(`${card} .widget-menu-wrap button`).first().click();
+  const pngItem = page.locator(`${card} .widget-menu-item`, { hasText: 'PNG' });
+  await pngItem.waitFor({ timeout: 10000 });
+  const pngDisabled = await pngItem.isDisabled();
+  check('the export menu offers PNG for a IIIF page image', !pngDisabled,
+    await pngItem.getAttribute('title') || '');
+  if (!pngDisabled) {
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 30000 }),
+      pngItem.click(),
+    ]);
+    const name = download.suggestedFilename();
+    const path = await download.path();
+    const bytes = path ? readFileSync(path).length : 0;
+    check('clicking PNG downloads a real raster of the page',
+      /\.png$/i.test(name) && bytes > 5000, `${name}, ${bytes} bytes`);
+  }
 
   await page.locator(`${card} img.iab-page`).first().screenshot({ path: join(root, 'docs/screenshots/wikibento-2026-09-15-ia-book.png') }).catch(() => {});
   await page.locator(card).screenshot({ path: join(root, 'docs/screenshots/wikibento-2026-09-15-ia-book-card.png') }).catch(() => {});

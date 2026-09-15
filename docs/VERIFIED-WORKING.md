@@ -281,3 +281,8 @@ Back to the [README](../README.md).
   responses (`206`, `content-range`) are why seeking works. Also confirmed there: the codec trap, that
   Chromium says `"probably"` for H.264 mp4 and `""` for Theora ogv, so the mp4 derivative is the one to
   offer first (`docs/INTERNET-ARCHIVE.md`).
+
+- ✅ **2026-09-15 — PNG export of a book page** (ISSUE-80, part of the 21-assertion `smoke:iabook` run):
+  the ⤓ menu offers **PNG** for the IA Book card with the reason "this widget's image host sends CORS, so
+  the canvas stays clean", and clicking it downloads a real raster — **4,384,386 bytes**, a 2× PNG of the
+  page (the previous behaviour was a disabled item and the old "this widget is HTML/CSS" tooltip).

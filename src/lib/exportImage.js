@@ -120,6 +120,35 @@ const toDataUrl = (blob) => new Promise((resolve, reject) => {
  * for a 6-package project) or a server-side render (the Playwright that records the tutorial videos).
  * That is a decision to make deliberately, not to smuggle in — see docs/EXPORT.md.
  */
+/**
+ * Image hosts MEASURED to send `Access-Control-Allow-Origin`, so an `<img>` from one of them does not
+ * taint a canvas. Anything not on this list is a guess, and a guess here exports a blank PNG or throws
+ * in the user's face — so the list stays short and each entry was verified:
+ *
+ *   · `iiif.archive.org`     — echoes the request `Origin` (image API + manifest), 2026-09-15
+ *   · `upload.wikimedia.org` — `access-control-allow-origin: *` on the original file, 2026-09-15
+ *   · `thumb.wikimedia.org`  — the document-thumbnail host, same 2026-09-15
+ *
+ * Deliberately absent: `archive.org` (its `/download/` and `services/img` send no CORS, so those images
+ * are display-only) and `web.archive.org` (same).
+ */
+const CORS_IMAGE_HOSTS = ['iiif.archive.org', 'upload.wikimedia.org', 'thumb.wikimedia.org'];
+
+/** The first `<img>` in the widget whose host we have measured to allow CORS — or null. */
+export function corsImageIn(node) {
+  if (!node) return null;
+  for (const img of node.querySelectorAll('img[src]')) {
+    const src = img.currentSrc || img.getAttribute('src') || '';
+    if (!/^https?:/i.test(src)) continue;   // data: and blob: images never taint a canvas
+    try {
+      const host = new URL(src, document.baseURI).hostname.toLowerCase();
+      if (CORS_IMAGE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return img;
+    } catch { /* an unparseable src is not a candidate */ }
+  }
+  const dataUrl = [...node.querySelectorAll('img[src]')].find((i) => /^(data|blob):/i.test(i.getAttribute('src') || ''));
+  return dataUrl || null;
+}
+
 export function imageCapabilities(node) {
   const no = (reason) => ({ png: { ok: false, reason }, svg: { ok: false, reason } });
   if (!node) return no('Nothing to capture');
@@ -127,12 +156,44 @@ export function imageCapabilities(node) {
     return no('This widget embeds another page (an iframe) — nothing can serialise it. Use PDF, which prints the frame’s box.');
   }
   const svg = node.querySelector('svg');
+  const corsImg = corsImageIn(node);
   return {
     svg: { ok: true, reason: 'Vector file (opens in a browser; images inlined)' },
     png: svg
       ? { ok: true, reason: 'Image at 2× — this widget draws itself as SVG' }
-      : { ok: false, reason: 'This widget is HTML/CSS: a PNG needs a browser screenshot (see docs/EXPORT.md). SVG and PDF work.' },
+      : corsImg
+        ? { ok: true, reason: 'Image at 2× — this widget’s image host sends CORS, so the canvas stays clean' }
+        : { ok: false, reason: 'This widget is HTML/CSS with no CORS image: a PNG needs a browser screenshot (see docs/EXPORT.md). SVG and PDF work.' },
   };
+}
+
+/**
+ * Rasterise an `<img>` whose host allows CORS. Reloading with `crossOrigin` is what makes the canvas
+ * clean; without it a cross-origin draw succeeds and `toBlob` throws much later, which reads as a
+ * mystery. Same 2× scale as the SVG path.
+ */
+export async function corsImageToPngBlob(imgEl, scale = 2) {
+  if (!imgEl) throw new Error('No image to rasterise');
+  const src = imgEl.currentSrc || imgEl.src;
+  if (!src) throw new Error('The image has no source');
+  const width = imgEl.naturalWidth || imgEl.clientWidth;
+  const height = imgEl.naturalHeight || imgEl.clientHeight;
+  if (!width || !height) throw new Error('The image has not loaded yet');
+  const loaded = await new Promise((resolve, reject) => {
+    const im = new Image();
+    if (!/^(data|blob):/i.test(src)) im.crossOrigin = 'anonymous';
+    im.decoding = 'sync';
+    im.onload = () => resolve(im);
+    im.onerror = () => reject(new Error('The image would not load with CORS — it cannot be exported as PNG'));
+    im.src = src;
+  });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.getContext('2d').drawImage(loaded, 0, 0, canvas.width, canvas.height);
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas produced no image'))), 'image/png');
+  });
 }
 
 /**

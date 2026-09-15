@@ -3424,7 +3424,7 @@ both sources.
 
 **Status:** open (filed 2026-09-15, from Andrew's note that IA's own reader shows facing pages by default).
 
-## ISSUE-80 · PNG export for CORS-image widgets (iaBook first) — **open**
+## ISSUE-80 · PNG export for CORS-image widgets (iaBook first) — **done + verified 2026-09-15**
 
 **What:** `imageCapabilities()` (`src/lib/exportImage.js`) offers PNG only when the widget contains an
 `<svg>` — it was written for the four widgets that draw themselves as vector. But the real rule is
@@ -3443,7 +3443,18 @@ capability matrix in [EXPORT.md](EXPORT.md) then needs its row updated.
 **Until then** the claim is *not* made: `docs/INTERNET-ARCHIVE.md` and `DATA-SOURCES.md` §28 say PNG is
 possible-but-not-wired, so nobody reads a promise the app does not keep.
 
-**Status:** open (filed 2026-09-15 while shipping `iaBook`).
+**Shipped 2026-09-15:** `CORS_IMAGE_HOSTS` (three hosts, each measured), `corsImageIn(node)` and
+`corsImageToPngBlob(img)` in `src/lib/exportImage.js`; `imageCapabilities()` offers PNG when such an image
+is present, and the export menu picks the SVG path or the image path. The row above about the capability
+matrix in [EXPORT.md](EXPORT.md) is updated. Verified in a browser (`npm run smoke:iabook`, 21 assertions):
+the menu offers PNG for a IIIF page, the reason reads "this widget's image host sends CORS, so the canvas
+stays clean", and clicking it downloads a real **4.4 MB** PNG of the page.
+
+**A bug found while verifying:** `ExportMenu` computed the capabilities in an effect, so every item
+rendered disabled for one frame before the reasons arrived — the E2E saw a disabled PNG and no tooltip.
+Availability is now read in the same tick as the open.
+
+**Status:** done + verified 2026-09-15.
 
 ## ISSUE-79 · Snapshot service: a server-side browser for PNG of any widget — **not doing (decided 2026-09-14)**
 

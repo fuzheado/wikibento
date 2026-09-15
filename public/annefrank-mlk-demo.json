@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "anne-frank-excerpt",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "Anne Frank",
+        "project": "en.wikipedia",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "anne-frank-gallery",
+      "widgetType": "gallery",
+      "config": {
+        "article": "Anne Frank",
+        "project": "en.wikipedia",
+        "displayMode": "grid",
+        "iconSize": "medium",
+        "imageFit": "contain",
+        "minSize": 200,
+        "maxItems": 9,
+        "includeAll": false,
+        "hideDecorative": true,
+        "groupBy": "none",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "mlk-excerpt",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "Martin Luther King Jr.",
+        "project": "en.wikipedia",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "mlk-gallery",
+      "widgetType": "gallery",
+      "config": {
+        "article": "Martin Luther King Jr.",
+        "project": "en.wikipedia",
+        "displayMode": "grid",
+        "iconSize": "medium",
+        "imageFit": "contain",
+        "minSize": 200,
+        "maxItems": 9,
+        "includeAll": false,
+        "hideDecorative": true,
+        "groupBy": "none",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "comparison-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "### Born in 1929\n\n**Anne Frank** (1929–1945) and **Martin Luther King Jr.** (1929–1968) were both born in 1929. Their lives, though vastly different in scope and outcome, both profoundly impacted the world",
+        "allowExternalImages": false,
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "sparql-1789475453861",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "two-lives",
+        "query": "SELECT ?who ?whoLabel ?date ?kind ?what ?whatLabel WHERE {\n  VALUES ?who { wd:Q4583 wd:Q8027 }\n  ?who wdt:P570 ?died .\n  { ?who wdt:P569 ?date . BIND(\"born\" AS ?kind) } UNION\n  { ?who wdt:P570 ?date . BIND(\"died\" AS ?kind) } UNION\n  { ?who p:P69  ?st . ?st ps:P69  ?what ; pq:P580 ?date . BIND(\"studied at\" AS ?kind) } UNION\n  { ?who p:P108 ?st . ?st ps:P108 ?what ; pq:P580 ?date . BIND(\"worked at\" AS ?kind) } UNION\n  { ?who p:P39  ?st . ?st ps:P39  ?what ; pq:P580 ?date . BIND(\"held office\" AS ?kind) } UNION\n  { ?who p:P166 ?st . ?st ps:P166 ?what ; pq:P585 ?date . BIND(\"awarded\" AS ?kind) } UNION\n  { ?who p:P26  ?st . ?st ps:P26  ?what ; pq:P580 ?date . BIND(\"married\" AS ?kind) } UNION\n  { ?who p:P551 ?st . ?st ps:P551 ?what ; pq:P580 ?date . BIND(\"lived in\" AS ?kind) }\n  FILTER(?date <= ?died)\n  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en,mul\". }\n}\nORDER BY ?who ?date",
+        "endpoint": "wdqs",
+        "renderer": "auto",
+        "maxRows": 100,
+        "align": "calendar",
+        "title": "",
+        "showOverlap": true,
+        "cardTheme": "dark",
+        "refreshSeconds": 1800
+      }
+    },
+    {
+      "id": "pageviews-1789475678067",
+      "widgetType": "pageviews",
+      "config": {
+        "article": "Anne Frank",
+        "project": "en.wikipedia",
+        "displayMode": "stat",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "pageviews-1789475710606",
+      "widgetType": "pageviews",
+      "config": {
+        "article": "Martin Luther King Jr.",
+        "project": "en.wikipedia",
+        "displayMode": "stat",
+        "refreshSeconds": 3600
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "anne-frank-excerpt",
+      "x": 0,
+      "y": 2,
+      "w": 4,
+      "h": 4,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "anne-frank-gallery",
+      "x": 0,
+      "y": 12,
+      "w": 6,
+      "h": 10,
+      "minW": 4,
+      "minH": 3,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "mlk-excerpt",
+      "x": 8,
+      "y": 2,
+      "w": 4,
+      "h": 4,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "mlk-gallery",
+      "x": 6,
+      "y": 12,
+      "w": 6,
+      "h": 10,
+      "minW": 4,
+      "minH": 3,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "comparison-note",
+      "x": 0,
+      "y": 0,
+      "w": 9,
+      "h": 2,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "sparql-1789475453861",
+      "x": 0,
+      "y": 6,
+      "w": 12,
+      "h": 6,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "pageviews-1789475678067",
+      "x": 4,
+      "y": 2,
+      "w": 2,
+      "h": 4,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "pageviews-1789475710606",
+      "x": 6,
+      "y": 2,
+      "w": 2,
+      "h": 4,
+      "minW": 2,
+      "minH": 2,
+      "moved": false,
+      "static": false
+    }
+  ],
+  "params": null
+}

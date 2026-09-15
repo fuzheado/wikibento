@@ -15,7 +15,7 @@ import { serviceImageUrl, searchHits } from '../lib/iaBook';
 import { fetchIaBookSearch, fetchIaBookPageText } from './dataSources';
 import { configFieldValue } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
-import { nodeToSvg, svgElementToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
+import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
 import '../vendor/pannellum.css';
 
@@ -137,8 +137,11 @@ function ExportMenu({ node, type, data, title, widgetId }) {
       run: () => saveCsv(type, data, title) },
     { key: 'png', label: 'PNG', hint: caps?.png.ok ? caps.png.reason : caps?.png.reason, ok: !!caps?.png.ok,
       run: async () => {
-        // the widget's own SVG, rasterised — a foreignObject wrapper would taint the canvas (see exportImage.js)
-        downloadBlob(await svgElementToPngBlob(node.querySelector('svg')), exportFilename(type, title, 'png'));
+        // Either the widget's own SVG (a foreignObject wrapper would taint the canvas) or an <img> whose
+        // host sends CORS — both are rasterised directly, so nothing taints (see exportImage.js).
+        const svg = node.querySelector('svg');
+        const blob = svg ? await svgElementToPngBlob(svg) : await corsImageToPngBlob(node.querySelector('img'));
+        downloadBlob(blob, exportFilename(type, title, 'png'));
       } },
     { key: 'svg', label: 'SVG', hint: caps?.svg.ok ? caps.svg.reason : caps?.svg.reason, ok: !!caps?.svg.ok,
       run: async () => {
@@ -151,7 +154,12 @@ function ExportMenu({ node, type, data, title, widgetId }) {
     <span className="widget-menu-wrap" ref={wrapRef}>
       <button
         className="widget-btn"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          // Availability is a property of the live DOM, so read it in the same tick as the open —
+          // computing it in an effect painted every item disabled for one frame first.
+          setCaps(imageCapabilities(node));
+          setOpen((v) => !v);
+        }}
         title="Export this widget — PDF, CSV, PNG or SVG"
         aria-haspopup="menu"
         aria-expanded={open}
