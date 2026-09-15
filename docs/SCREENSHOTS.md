@@ -153,12 +153,14 @@ chapters as a playlist, straight from `archive.org/download/` with no API call. 
 
 ## `wikibento-2026-09-15-wikisource-text-panel.png` — the text layer, with its grade (2026-09-15)
 
-Inside `/document-reader-demo.json`: `EB1926 - Supplement Volume 3.pdf` — the 1926 Encyclopædia Britannica
-Supplement, 1,208 pages, transcribed page by page on **Wikisource** — showing page 389's text (8,954
-characters) under a header that reads **"en.wikisource · Not proofread (uncorrected OCR)"** with a link to the
-transcription. That header is the feature: the volume was bulk-imported as OCR and never human-checked, so the
-words are there to search and copy and *not* to quote blind. A file with no transcription (the Mozart DjVu on
-the same board) has no ¶ button at all.
+Inside `/document-reader-demo.json`: `"Homo Sum"`, a **38-page** DjVu under a megabyte, transcribed page by
+page on **Wikisource** and fully **Validated**. Page 19 is showing its text (1,458 characters) under a header
+that reads **"en.wikisource · Validated"** with a link to the transcription.
+
+The grade is the feature, not decoration: the same panel on a merely scanned volume says **"Not proofread
+(uncorrected OCR)"** — measured on a 1,208-page reference set that had been bulk-imported and never
+human-checked — and a reader has to know which of the two they are quoting. A file with no transcription (the
+Mozart DjVu on the same board) has no ¶ button at all.
 
 ## `wikibento-2026-09-15-document-reader-demo.png` — two archives, one reader (2026-09-15)
 

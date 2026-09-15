@@ -52,7 +52,7 @@ const cfg = {
     { id: 'doc-book', widgetType: 'documentReader', config: { file: 'File:The Three Hostages (1924).pdf', project: 'commons.wikimedia', refreshSeconds: 86400 } },
     { id: 'doc-djvu', widgetType: 'documentReader', config: { file: 'https://commons.wikimedia.org/wiki/File:Mozart_Sonate_(manuscript).djvu', project: 'commons.wikimedia', refreshSeconds: 86400 } },
     { id: 'doc-image', widgetType: 'documentReader', config: { file: 'File:Example.jpg', project: 'commons.wikimedia', refreshSeconds: 86400 } },
-    { id: 'doc-ws', widgetType: 'documentReader', config: { file: 'File:EB1926 - Supplement Volume 3.pdf', project: 'commons.wikimedia', refreshSeconds: 86400 } },
+    { id: 'doc-ws', widgetType: 'documentReader', config: { file: 'File:"Homo Sum" being a letter to an anti-suffragist from an anthropologist.djvu', project: 'commons.wikimedia', refreshSeconds: 86400 } },
   ],
   layout: [
     { i: 'doc-pdf', x: 0, y: 0, w: 6, h: 9 },
@@ -187,13 +187,13 @@ async function main() {
 
   // ── the Wikisource text layer (v1.1): text AND its proofreading grade ─────────
   await page.waitForSelector('[data-widget-id="doc-ws"] img.pv-page', { state: 'attached', timeout: 150000 });
-  check('a transcribed document reports its own page count', /^page 1 of 1208$/.test(await counter('doc-ws')), await counter('doc-ws'));
+  check('a transcribed document reports its own page count', /^page 1 of 38$/.test(await counter('doc-ws')), await counter('doc-ws'));
   const wsText = page.locator('[data-widget-id="doc-ws"] .pv-btn[data-pv="text"]');
   check('a file WITH a transcription offers the ¶ button', (await wsText.count()) === 1);
   check('a file WITHOUT one does not', (await page.locator('[data-widget-id="doc-djvu"] .pv-btn[data-pv="text"]').count()) === 0,
     'the Mozart DjVu is not transcribed anywhere');
   // jump to a page we know is transcribed and read it
-  await jumpTo('doc-ws', 434);
+  await jumpTo('doc-ws', 19);   // a page this work has fully validated
   await wsText.click();
   await page.waitForSelector('[data-widget-id="doc-ws"] .pv-text-body', { timeout: 60000 });
   const panel = await page.evaluate(() => {
@@ -201,11 +201,10 @@ async function main() {
     return { note: card.querySelector('.pv-text-note')?.innerText || '', body: card.querySelector('.pv-text-body')?.innerText || '',
              href: card.querySelector('.pv-text-note a')?.getAttribute('href') || '' };
   });
-  check('the text panel carries the words from Wikisource', panel.body.length > 500 && /Westphalians|Reichsbank/.test(panel.body),
-    `${panel.body.length} chars · "${panel.body.slice(0, 60)}…"`);
-  check('…and says how proofread it is (this volume is uncorrected OCR)', /Not proofread/i.test(panel.note), panel.note);
+  check('the text panel carries the words from Wikisource', panel.body.length > 500, `${panel.body.length} chars · "${panel.body.slice(0, 60)}…"`);
+  check('…and says how proofread it is (this work is validated, not OCR)', /Validated/i.test(panel.note), panel.note);
   check('…and links to the transcription it came from',
-    /^https:\/\/en\.wikisource\.org\/wiki\/Page:EB1926_-_Supplement_Volume_3\.pdf\/434$/.test(panel.href), panel.href);
+    /^https:\/\/en\.wikisource\.org\/wiki\/Page:%22Homo_Sum%22.*\.djvu\/19$/.test(panel.href), panel.href);
   check('no raw markup leaked into the text', !/[{}]|noinclude|pagequality/.test(panel.body), panel.body.slice(0, 60));
 
   await page.screenshot({ path: join(root, 'docs/screenshots/wikibento-2026-09-15-document-reader.png'), fullPage: true });
