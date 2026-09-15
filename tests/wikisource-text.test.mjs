@@ -51,6 +51,18 @@ test('transcriptionWiki: a Page:/Index: usage on a Wikisource means the text exi
   assert.equal(transcriptionWiki([{ ns: 106, wiki: 'en.wikisource.org' }]), 'en.wikisource');
 });
 
+test('transcriptionWiki: the API sends ns as a STRING — and it must still count', () => {
+  // Real response from commons.wikimedia.org for the demo fixture: ns is "104"/"106", not 104/106.
+  // A number-only check looks right and silently returns nothing on every real file.
+  const asSent = [
+    { title: 'Index:"Homo_Sum"_….djvu', wiki: 'en.wikisource.org', ns: '106' },
+    { title: 'Page:"Homo_Sum"_….djvu/1', wiki: 'en.wikisource.org', ns: '104' },
+  ];
+  assert.equal(transcriptionWiki(asSent), 'en.wikisource');
+  assert.equal(transcriptionWiki([{ ns: '104', wiki: 'de.wikisource.org' }]), 'de.wikisource');
+  assert.equal(transcriptionWiki([{ ns: '0', wiki: 'www.wikidata.org' }]), '');
+});
+
 test('transcriptionWiki: being *linked* somewhere is not a transcription', () => {
   // measured: the Mozart DjVu is used on it.wikipedia (ns12/ns6) and has no transcription anywhere
   assert.equal(transcriptionWiki([{ ns: 12, wiki: 'it.wikipedia.org' }, { ns: 6, wiki: 'it.wikipedia.org' }]), '');
