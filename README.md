@@ -116,6 +116,22 @@ All 30 data-driven widget types render live data in the browser; the 9 static on
   friendly notice instead of an un-scannable code
 - **Reset** — ⓘ About explains the tool; Reset returns the starter board or a blank one, in one dialog
 
+### Showing and exporting
+
+- **🕰️ Timelines of lives** — the SPARQL widget's `timeline` renderer puts dated rows on **one shared axis**,
+  one lane per group, with a shaded band for the window every lane is documented in. Two alignments
+  (*calendar years* — what happened at the same time — or *age*, aligning every lane at its first event),
+  **− / + zoom to 8×** with horizontal panning, an overlap toggle, a light card theme, and an optional title
+  (the only title in lean/present mode). Two presets ship: `two-lives` (Anne Frank × Martin Luther King Jr.)
+  and `curie-pair` (Marie × Pierre, where age alignment shows his lane ending at 46 while hers runs to 67).
+  Try `?config=/parallel-lives-demo.json`.
+- **⤓ Export any widget** — one menu, four formats: **PDF** (the browser's print engine — vector and
+  selectable, the best artifact for a report, slide or email), **CSV** (the widget's own data, as rows),
+  **SVG** (any widget that is not an iframe, with images inlined), and **PNG** where the widget draws itself
+  as SVG. PNG of an HTML/CSS widget is deliberately not offered — [docs/EXPORT.md](docs/EXPORT.md) says why,
+  and what to do instead.
+- **🖨 Print the whole board** — from the toolbar: one card per page, chrome removed, freshness footers kept.
+
 ### Reliability
 
 - **Freshness and time scope are visible** — every live widget shows when it last fetched (⏱ "updated

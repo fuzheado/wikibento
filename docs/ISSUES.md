@@ -3260,7 +3260,38 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
-## ISSUE-77 · Snapshot service: a server-side browser for PNG of any widget — **not doing (decided 2026-09-14)**
+## ISSUE-77 · Export: save a widget's data, or a widget/board as a document — **done + DEPLOYED 2026-09-14**
+
+**What:** a **⤓ export menu** on every widget — **PDF, CSV, PNG, SVG** — plus **🖨 Print / save as PDF**
+on the board toolbar. Shipped with the Lifeline deploy (`index-CSKC-SIk.js`).
+
+**The four formats, and what each can honestly do:**
+
+| format | how | coverage |
+|---|---|---|
+| **CSV** | `src/lib/exportData.js` maps each payload shape (tables, object rows, chart series, gallery items, a stat, a timeline) to `{columns, rows}`; RFC 4180 quoting; the button only appears when rows exist | any widget with data |
+| **PDF** | `src/lib/print.js` + the `@media print` sheet: the browser's print engine gives vector, selectable text — the best artifact for a report, slide or email | every widget, and the whole board (one card per page) |
+| **SVG** | `src/lib/exportImage.js`: clone the widget, inline every computed style, wrap in an SVG `foreignObject`. `color-mix()`, custom properties and `position: sticky` all survive because a real CSS engine renders it | any widget that is not an iframe |
+| **PNG** | rasterises the widget's **own** SVG at 2× | only widgets that draw themselves as SVG (CIM trend, file traffic, QR) |
+
+**Why PNG is narrow — measured, not assumed:** Chromium **taints a canvas for any SVG containing a
+`foreignObject`**, including one holding nothing but `<p>hello</p>` (`SecurityError: Tainted canvas`),
+while plain SVG rasterises fine. So an HTML/CSS widget can produce a valid **.svg** but never a **.png**
+in the page, and server-side rasterisers (resvg, librsvg) do not support `foreignObject` either. The menu
+disables PNG for those widgets and says why, rather than failing after the click.
+
+**A server-side render service was considered and rejected** — see [ISSUE-79](ISSUES.md) for the decision
+and the four costs (it re-fetches the whole board per image, from a shared Toolforge IP; a browser in a
+1 Gi pod that parses untrusted content; a permanent patching liability; and a server render is a
+*re-render*, not a capture of the user's view). Practical alternatives are in
+[EXPORT.md](EXPORT.md): screenshot your device, or convert the SVG locally.
+
+**Traps paid for here:** inserting a helper above `function WidgetFrame(` put it between `export default`
+and the component, so the module's default export became the helper and App rendered `saveCsv(props)` —
+a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
+pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
+
+## ISSUE-79 · Snapshot service: a server-side browser for PNG of any widget — **not doing (decided 2026-09-14)**
 
 **Decision:** **rejected.** PNG of an HTML/CSS widget will not become a server-side feature. Client-side PNG
 stays limited to widgets that draw themselves as SVG, and the export menu says so. Decided by Andrew and the
@@ -3289,7 +3320,7 @@ selected params, kiosk/lean mode — unless the whole view state is serialised a
 image differs from the screen. The client device has the pixels, the DPR, the intent and no infrastructure.
 Screenshotting is a keystroke; a service is a job.
 
-**What shipped instead** (ISSUE-76 era, `docs/EXPORT.md`): a **⤓ export menu** per widget — **CSV** for the
+**What shipped instead** (ISSUE-78 era, `docs/EXPORT.md`): a **⤓ export menu** per widget — **CSV** for the
 data, **PDF** via the browser's print engine (vector, selectable — a better artifact than PNG for reports
 and slides), **SVG** for every non-iframe widget, and **PNG** where the widget already draws SVG (rasterised
 exactly at 2×). Anyone wanting a PNG of an HTML widget can screenshot their own device or convert the SVG
@@ -3319,7 +3350,7 @@ installed at build time (apt support in the build unconfirmed), or a **rootless 
 Puppeteer or `chrome-headless-shell` would do, though `pipeline/` already drives this app with Playwright.
 
 
-## ISSUE-76 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
+## ISSUE-78 · Lifeline: a timeline of a life, and two lives on one axis — **v0 shipped**
 
 **What:** a `timeline` renderer for the existing `sparql` widget — dated rows as **lanes on one shared
 axis** — plus a `two-lives` preset (Anne Frank × Martin Luther King Jr.) and

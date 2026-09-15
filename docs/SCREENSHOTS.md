@@ -11,7 +11,7 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
-## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-76, v0)
+## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-78, v0)
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
 
@@ -33,7 +33,7 @@ neutralised (printed as-is, the absolutely-positioned cards come out cropped and
 timeline is laid out as a document. The widget header and the ⏱ freshness footer deliberately survive — a
 printed chart with no "as of" line is a claim without a date. See [EXPORT.md](EXPORT.md).
 
-## `wikibento-2026-09-12-two-lives-light.png` — the light card theme (ISSUE-76)
+## `wikibento-2026-09-12-two-lives-light.png` — the light card theme (ISSUE-78)
 
 ![The light card theme](screenshots/wikibento-2026-09-12-two-lives-light.png)
 
@@ -43,7 +43,7 @@ sticky lane-name column) rather than dark colours left on white. The card also c
 which is what shows in presentation/lean mode, where the widget's title bar is hidden. The ▭ button beside
 the zoom controls toggles the shaded overlap window.
 
-## `wikibento-2026-09-12-two-lives-zoom.png` — zoomed to 8× (ISSUE-76)
+## `wikibento-2026-09-12-two-lives-zoom.png` — zoomed to 8× (ISSUE-78)
 
 ![The timeline zoomed to 8×](screenshots/wikibento-2026-09-12-two-lives-zoom.png)
 
@@ -53,7 +53,7 @@ Bergen-Belsen concentratio…"); at 2× **none** are, and at 8× every one of th
 legible — the two births now read as five months apart, and the axis has gone from decade ticks to yearly
 ones. Lane names stay pinned while the axis scrolls.
 
-## `wikibento-2026-09-12-two-lives-age.png` — the same renderer, age-aligned (ISSUE-76)
+## `wikibento-2026-09-12-two-lives-age.png` — the same renderer, age-aligned (ISSUE-78)
 
 ![Two lives aligned at birth](screenshots/wikibento-2026-09-12-two-lives-age.png)
 

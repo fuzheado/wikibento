@@ -102,7 +102,7 @@ app's own charts are mostly CSS, which is why this matters more than it sounds.
 Until then the menu is truthful about it, and print-to-PDF covers most of what a PNG gets wanted for.
 
 **Decided 2026-09-14: this will not be a server-side feature.** The reasoning is recorded in
-[ISSUES.md](ISSUES.md) ISSUE-77 and comes down to four costs — it re-fetches the whole board for one image
+[ISSUES.md](ISSUES.md) ISSUE-79 and comes down to four costs — it re-fetches the whole board for one image
 (the pipeline's own recordings show **17.7–18.1 s of lead-in** per board), the traffic lands on Wikimedia
 APIs from a shared Toolforge IP, Chromium is 300–500 MB against a **1 Gi** pod and parses untrusted content
 (our widgets can embed arbitrary external pages), and it is a permanent patching/monitoring liability — plus

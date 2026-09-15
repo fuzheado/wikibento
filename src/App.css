@@ -2320,7 +2320,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 }
 .assembly-toast-close { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; }
 
-/* ── Timeline (SPARQL widget, ISSUE-76) ─────────────────────────────────────────
+/* ── Timeline (SPARQL widget, ISSUE-78) ─────────────────────────────────────────
    Lanes on one shared axis. Every dot, gridline, band edge and tick is placed by a
    percentage from the tested layout in src/lib/timeline.js, so the CSS decides how
    things look, never where they go.

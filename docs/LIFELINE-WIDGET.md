@@ -1,4 +1,4 @@
-# Lifeline — timelines of lives, and comparing two of them (ISSUE-76)
+# Lifeline — timelines of lives, and comparing two of them (ISSUE-78)
 
 **Status:** **v0 shipped** 2026-09-12 — a `timeline` renderer on the SPARQL widget, **two alignment
 modes**, **− / + zoom with horizontal panning**, **an overlap-band toggle**, **a light card theme**, **an

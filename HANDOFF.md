@@ -33,7 +33,8 @@ Feature-complete for v1 and deployed.
 | showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — this branch's tip is live; only docs changed after it (PR [#58](https://github.com/fuzheado/wikibento/pull/58) is open, so `main` is one merge behind production) |
+| pending deploy | none — production serves the bundle built from this branch's tip; everything after it is docs and tests |
+| newest capabilities | 🕰️ Lifeline timelines (two alignments, zoom to 8×, overlap toggle, light card theme, titles) and the ⤓ export menu (PDF · CSV · PNG · SVG) — both live since this deploy |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -128,8 +129,10 @@ dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseab
 (design direction: should graphics travel the wire?) · `docs/DEMO-IDEAS.md` ·
 `docs/ROADMAP.md` · `docs/ISSUES.md` (canonical tracker). The long lists live in their
 own files now — `docs/WIDGET-CATALOG.md` (every widget, what it shows, its API),
-`docs/VERIFIED-WORKING.md` (the dated smoke-test record) and `docs/BROWSER-TESTING.md`
-(the browser suites + engine-install traps) — so the README stays a front door.
+`docs/VERIFIED-WORKING.md` (the dated smoke-test record), `docs/BROWSER-TESTING.md`
+(the browser suites + engine-install traps), `docs/EXPORT.md` (the export formats, and why PNG of an HTML
+widget is not a server feature) and `docs/LIFELINE-WIDGET.md` (the timeline renderer, with the measured
+Wikidata-vs-prose coverage) — so the README stays a front door.
 
 **Doc convention: append-only applies to exactly two files.** `docs/DEPLOYMENTS.md` (the
 deploy log) and `docs/WHY-WIKIBENTO.md` (the measured ledger, where a claim is added with
@@ -199,6 +202,26 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     not the underscore form (the Article List enrichment returned empty
     thumbs/extracts until this was fixed).
 
+14. **Wikidata labels need `mul`, or Marie Curie renders as `Q7186`.** Names that are identical in every
+    language live under Wikidata's language-neutral **`mul`** code, and those items have **no `en` label at
+    all** (Q7186: 247 sitelinks, an English *description*, nothing under `en`). So
+    `wbgetentities&props=labels&languages=en` *and* WDQS's `wikibase:label` with `"en"` both hand back the
+    bare QID — silently, because a QID is a perfectly valid-looking cell. Request `<lang>|en|mul` (Action
+    API) and `"en,mul"` (label service) and read `mul` last. `wbsearchentities` is exempt: it matches across
+    languages (verified with `strictlanguage=1`). This was live in *every* entity-labelling widget until
+    2026-09-14; `tests/wikidata-labels.test.mjs` now fails the build if a label lookup forgets.
+15. **Rewriting a region of a file can silently delete a component.** A region rewrite of `WidgetFrame.jsx`
+    took `BarCard` out while the SPARQL registry still pointed at it, so every bar-rendered query threw
+    `ReferenceError` — swallowed by the widget error boundary as "Try Again", green test suite, three commits
+    on `main` (never production, which predated the commit). `tests/renderer-registry.test.mjs` now asserts
+    that every renderer named in the registry — and every card the dispatcher switches on — exists. Lesson:
+    after replacing a block of a source file, grep for what *was* inside it.
+16. **Never truncate text in the data layer.** Timeline labels were clipped to 36 characters in the layout
+    module *before* rendering, so "October 1944 · lived in Bergen-Belsen concentration camp" kept its
+    ellipsis at **every** zoom level — and the check written to catch truncation measured *layout* overflow,
+    which reported zero, because the shortened string fitted. Clip in CSS (where zoom can widen it) and keep
+    the full string for the tooltip.
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -222,6 +245,14 @@ actually broken or unfinished today:
   Before comparing an artifact to a rebuild, pin the commit
   (`git log --oneline <deployed-commit>..origin/main` shows what is merged but not
   live) — the worked numbers live in `docs/DEPLOYMENTS.md`.
+- **PNG of an arbitrary widget is a decision, not an oversight.** Client-side PNG works only where a widget
+  draws itself as SVG: Chromium taints a canvas for any SVG containing a `foreignObject` (measured — even
+  one holding just `<p>hello</p>`), so an HTML/CSS card can produce a valid .svg but never a .png in the
+  page. A server-side render service was considered and **rejected** on 2026-09-14 (four costs: re-fetching
+  the whole board per image from a shared Toolforge IP, a browser in a 1 Gi pod parsing untrusted content, a
+  permanent patching liability, and it would be a *re-render* rather than a capture of the user's view). The
+  reasoning, the alternatives and the trigger for revisiting are in [docs/ISSUES.md](docs/ISSUES.md)
+  ISSUE-79 and [docs/EXPORT.md](docs/EXPORT.md).
 - **AddWidgetPanel** has no Escape-to-close and no focus trap (SharePanel has
   Escape-to-close).
 - **Wikistats CSV parser is naive** (no quoted-field handling) — fetching is cached
