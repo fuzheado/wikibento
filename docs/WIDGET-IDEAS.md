@@ -159,6 +159,11 @@ endpoints, CORS, measured sizes, quota mechanics — is in
   *collection* is `mediatype: 'collection'` and holds **no children in its own metadata** (enumerate
   with `scrape?q=collection:{id}&total_only=true`). MIT OCW also ships **SubRip captions per lecture**,
   so a transcript per part comes almost free. M.
+- **📖 IA Book — facing pages** (ISSUE-81) — a two-page spread view, the way the Internet Archive's own
+  BookReader reads by default. Responsive (2-up on a wide card, 1-up on a narrow one) with a toggle, a
+  shift-by-one control for scans whose leaf 0 is a cover, and **right-to-left support** — measured: Arabic,
+  Hebrew and Yiddish scans carry `viewingDirection: "right-to-left"`, and language is not a proxy for it.
+  A spread also becomes one printed page in PDF export.
 - **🎬 IA Video** (`iaVideo`) — plays the item's `.mp4` (poster from `__ia_thumb.jpg`, duration from
   `runtime`) and, below it, a **keyframe filmstrip** built from the ready-made `{id}.thumbs/` series
   (≈1 frame per 30 s) — a timeline of pictures, and the natural sibling of Lifeline. M.

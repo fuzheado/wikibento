@@ -220,7 +220,10 @@ layout + cache reads (~<100 ms perceived).
   under ISSUE-25). Build order: `iaBook` (IIIF, exports PNG) → `iaPlaylist` (a course/concert/
   audiobook as ordered parts — MIT OpenCourseWare is 511 courses of titled, timed, captioned lectures)
   → `iaVideo` + keyframe filmstrip → `iaAudio`, then the already-planned `iaSearch` / `iaCollection` /
-  `iaViews`, with `iaTvNews` last (proxy-gated, 11.5 s uncached).
+  `iaViews`, with `iaTvNews` last (proxy-gated, 11.5 s uncached). Playback is already proven inside a
+  card — a direct media URL needs no API call, and it plays (664 s film, 507 s audiobook, verified) — and
+  `iaBook`'s **facing-pages spread view** (ISSUE-81, right-to-left aware) is the last reading-mode gap in
+  a shipped card.
 
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
 

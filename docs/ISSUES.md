@@ -3328,6 +3328,47 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **open**
+
+**What:** the IA Book card shows one leaf at a time. The Internet Archive's own BookReader defaults to
+**two facing pages** on a wide viewport, and a scanned book is usually *meant* to be read that way — a
+spread is one printed page in the original. Add a spread mode: a toggle, responsive by default.
+
+**Measured 2026-09-15** — the three findings that shape the work:
+
+| what | finding |
+|---|---|
+| spreads are meaningful | every scanned item's manifest carries `behavior: ["paged"]` |
+| **reading direction is real, and must be honoured** | `viewingDirection: "right-to-left"` on Arabic/Hebrew/Yiddish scans — `DarsENizami_DarjaAula_1stYear` (389 canvases), `2_20200322_20200322_1243` (470), `nybc207487` (502). **Both directions appear inside the same `language:ara` / `language:heb` / `language:yid` searches**, so language is not a proxy — read the field |
+| chapters cannot align the spreads | **`structures: []`** on a 304-page book, and on every item sampled: IA publishes no chapter ranges, so the pairing is positional only (do not design on structures) |
+
+**Plan:**
+
+1. **Pairing.** Leaf 0 alone (a cover or a title page), then (1,2), (3,4)… plus a **shift-by-one toggle**,
+   because whether leaf 0 is a cover or a text page is a property of the scan, not of the API. Verify the
+   default phase against IA's own BookReader for `goodytwoshoes00newyiala` before settling it.
+2. **Right-to-left.** When `viewingDirection === 'right-to-left'`, the later leaf renders on the **left**.
+   The counter reads the same ("pages 4–5"); the pictures swap. Shipping this wrong is invisible to an
+   English reader and obvious to everyone else — it is the main correctness risk here.
+3. **Two IIIF requests per view**, each sized to half the card's width. The 400/700/1000/1400 ladder is
+   *per leaf*, so a 6-column card at the top of the ladder would ask for 2 × 1400 px; cap or halve the
+   ladder in spread mode rather than silently doubling the bytes.
+4. **Responsive, like IA itself:** 2-up above a width threshold, 1-up below it (a `ResizeObserver` — the
+   TimelineCard precedent), with the manual toggle winning until reload. View state, not board config —
+   the same rule as zoom (see [LIFELINE-WIDGET.md](LIFELINE-WIDGET.md)).
+5. **Do not disturb 1-up.** It is verified (19 assertions, `npm run smoke:iabook`); spread mode is additive.
+6. **Connected surfaces:** the page strip highlights the pair (or shows spreads); a search hit jumps to the
+   spread containing its page and keeps the word crop; and **PDF export of a spread is one printed page**,
+   which is the natural win for the print path.
+
+**Verification:** extend `scripts/ia-book-e2e.mjs` — in spread mode assert two page images load, that the
+counter reads "pages N–N+1", that the pair ordering **flips for a `right-to-left` item** (one of the
+identifiers above becomes a third book in the fixture), and that a search hit still lands with its crop.
+The existing traps (`tests/ia-book.test.mjs`: manifest page count beats `imagecount`, `$0` → 500, blank
+filler leaves) apply unchanged.
+
+**Status:** open (filed 2026-09-15, from Andrew's note that IA's own reader shows facing pages by default).
+
 ## ISSUE-80 · PNG export for CORS-image widgets (iaBook first) — **open**
 
 **What:** `imageCapabilities()` (`src/lib/exportImage.js`) offers PNG only when the widget contains an
