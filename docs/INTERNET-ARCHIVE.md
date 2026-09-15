@@ -69,11 +69,46 @@ broadcast.
 | **texts (plain)** | `_djvu.txt`, `.txt`, `.epub`, `.zip` | Gutenberg-style items have **no pages to show** — no `imagecount`, IIIF 500s. The card must degrade to text/metadata |
 | **audio (music)** | `*.flac` (master), `*.mp3` (VBR), `*_spectrogram.png`, `_esshigh.json.gz` / `_esslow.json.gz` (Essentia feature data) | per-track spectrograms are ready-made visuals; Essentia gives BPM/tuning/peaks if a richer card is ever wanted |
 | **audio (spoken)** | `*.mp3` + `*_64kb.mp3`, `*.ogg`, `*_spectrogram.png`, plus **the scanned book**: `{id}.pdf`, `_djvu.txt`, `_jp2.zip` | audiobooks carry their text — a read-along card is possible |
-| **video** | `{id}.mp4` (h.264), `{id}.ogv`, `{id}.mpeg` (MPEG2), `{id}.gif`, `{id}.mp3`, **`{id}.thumbs/{id}_0000NN.jpg`** | the `.thumbs/` series is a **keyframe filmstrip** — ~1 frame per 30 s. That is a timeline of pictures, and it is free |
+| **video** | `{id}.mp4` (h.264), `{id}.ogv`, `{id}.mpeg` (MPEG2), `{id}.gif`, `{id}.mp3`, **`{id}.thumbs/{id}_0000NN.jpg`** | the `.thumbs/` series is a **keyframe filmstrip** — ~1 frame per 30 s. That is a timeline of pictures, and it is free. A **course** item is this shape × 35: `ocw-18.01-f07-lecNN_300k.mp4` + `.ogv` + `.srt` + 4 keyframes each, with `length` and `title` on every file |
 | **TV news** | `{id}.mp4`, `{id}.mpg`, 374 × `.thumbs/` keyframes, `.srt` on US network items, `.xml`, `.sqlite` | timestamps + captions make *clippable* cards; international items carry no `.srt` |
 
 **Item sizes are large and must never be fetched into memory:** 888 MB (Prelinger film), 867 MB
 (concert), 346 MB + 517 MB (one TV broadcast), 95 MB (a 20-page scan). Media stays a URL.
+
+## Collection, item, or playlist? One call settles it
+
+**The URL tells you nothing.** `archive.org/details/mit_ocw` (a collection holding **511** courses) and
+`archive.org/details/MIT18.01JF07` (one course: **35 lectures**) look identical in a link. One
+`metadata/{id}` call answers both questions, because the difference is a field, not a naming scheme:
+
+| shape | the marker | measured example |
+|---|---|---|
+| **collection** — a bucket of items | `metadata.mediatype === 'collection'`; its own `files[]` are only Metadata / JPEG Thumb / Item Image / torrent, and `item_size` ≈ 0.1 MB | `mit_ocw`: 11 files, 0.1 MB, **511 children** |
+| **item, one asset** — a film, a scan, a recording | a media `mediatype` (texts / audio / movies / image / …) whose playable files **collapse to one part** once derivative suffixes are stripped | `AboutBan1935`: the film in avi + mp4 + ogv + mpeg + its mp3 strip = **one** part (plus a one-file `_edit` variant) |
+| **item, a playlist** — a course, a concert, an audiobook | same mediatypes, but the media files group into **2+ ordered parts, each with its own `length`** (and usually a `title`) | `MIT18.01JF07`: **35** lectures × (mp4 + ogv), all 70 files titled and timed · a Live Music Archive show: **20** tracks · LibriVox: **7** chapters |
+
+Four rules fall out of that, all measured:
+
+- **A collection's own metadata lists no children.** `mit_ocw`'s record is 4.7 KB of description and
+  thumbnails; to enumerate its courses you must ask the search API —
+  `services/search/v1/scrape?q=collection:mit_ocw&total_only=true` → `{"total": 511}` in **34 bytes**,
+  then cursor paging for the actual list. This is the one distinction that breaks the naive design
+  ("read the collection's metadata" returns nothing but a blurb).
+- **Collections nest, and an item names its parents.** `MIT18.01JF07`'s `collection` field is
+  `["mit_ocw", "culturalandacademicfilms"]`, and `mit_ocw` itself lives in `culturalandacademicfilms`
+  and `movies`. Children are never named by the parent — the relation points upward only.
+- **Derivative suffixes fool naive grouping.** One film ships as `X.mp4` + `X.ogv` + `X_512kb.mp4` +
+  `X.mpeg` + `X.mp3`. Strip `_512kb | _300k | _64kb | _vbr | _spectrogram | __ia_thumb` (and drop
+  `_spectrogram.png`, `.srt`, `.gif`, `.thumbs/`) *before* grouping, or a single Prelinger film reads
+  as a playlist. My first heuristic did exactly that — it called `AboutBan1935` a 2-part playlist
+  because of `AboutBan1935_edit`.
+- **`length` and `title` per file are what make a playlist card good** — present on all 70 MIT files
+  and all 20 concert tracks, absent on a single asset's container variants. Where they are missing,
+  fall back to the filename stem and natural-sort it (`lec01 … lec35`, `01-Intro … 20-…`).
+
+**Playlists are not a different object type.** There is no playlist entity in the IA API — a playlist
+is an item whose `files[]` happen to be a series. So `iaPlaylist` (below) is a *renderer* over the
+same metadata call `iaItem` already makes; the only new work is grouping, ordering and the player.
 
 ## Limits and quotas
 
@@ -101,13 +136,14 @@ Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M �
 | # | widget | id | size | what it shows | data flow |
 |---|---|---|---|---|---|
 | 1 | **📖 IA Book** | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`; **CORS ✅ → PNG export works** |
-| 2 | **🎬 IA Video** | `iaVideo` | M | `<video>` with poster + duration, and a **keyframe filmstrip** below it | `<video src=…mp4>` (browser-streamed, no CORS) + `{id}.thumbs/` series; `metadata` for `runtime` |
-| 3 | **🎧 IA Audio** | `iaAudio` | M | a track list / playlist with inline playback and per-track spectrograms | `metadata` for the file list (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` thumbnails |
-| 4 | **🗂️ IA Collection** | `iaCollection` | M | a collection's holdings: mediatype breakdown, top items, newest items | `metadata/{collection}` + 4 × `scrape` with `total_only=true` (one per mediatype — cheap counts, no deep paging) + one `advancedsearch` for top items |
-| 5 | **🔍 IA Search** | `iaSearch` | S–M | free-text search across the archive, with thumbnail, year, mediatype and download count | `advancedsearch` (≤10,000 reachable) + `services/img` thumbnails (display-only) |
-| 6 | **📈 IA Item Views** | `iaViews` | S | an item's engagement over time (already item 2 of ISSUE-25) | `be-api…/views/v1/detail/item/{id}/{start}/{end}` — **5.8 s / 48 KB: cache hard, refresh rarely** |
-| 7 | **🖼️ IA Images** | `iaImages` | S | an image-search gallery (posters, plates, photographs) | `advancedsearch` + `services/img`; **no export** (canvas-tainted) |
-| 8 | **📺 IA TV News** | `iaTvNews` | M–L | caption hits with timestamps → clip cards that deep-link into the player | TVNA search is **proxy-gated and non-JSON**, and one broadcast is ~350 MB; **or** GDELT TV (CORS ✅ but 11.5 s). Rank it last, and cache it hard |
+| 2 | **🎞️ IA Playlist** | `iaPlaylist` | M | a course, concert or audiobook as an ordered list of parts — per-part duration and title, a total runtime, one part playing at a time | one `metadata` call, grouped by stem (rules above) → ordered tracks; `<video>`/`<audio>` streams them. MIT OCW additionally gives **SubRip captions per lecture**, so a transcript per part is nearly free |
+| 3 | **🎬 IA Video** | `iaVideo` | M | `<video>` with poster + duration, and a **keyframe filmstrip** below it | `<video src=…mp4>` (browser-streamed, no CORS) + `{id}.thumbs/` series; `metadata` for `runtime` |
+| 4 | **🎧 IA Audio** | `iaAudio` | M | one recording with inline playback and its spectrogram | `metadata` (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` |
+| 5 | **🗂️ IA Collection** | `iaCollection` | M | a collection's holdings: child count, mediatype breakdown, top items | 1 × `scrape …&total_only=true` for the count (34 bytes) + per-mediatype counts + one `advancedsearch` for top items; **the collection's own metadata has no children** |
+| 6 | **🔍 IA Search** | `iaSearch` | S–M | free-text search across the archive, with thumbnail, year, mediatype and download count | `advancedsearch` (≤10,000 reachable) + `services/img` thumbnails (display-only) |
+| 7 | **📈 IA Item Views** | `iaViews` | S | an item's engagement over time (already item 2 of ISSUE-25) | `be-api…/views/v1/detail/item/{id}/{start}/{end}` — **5.8 s / 48 KB: cache hard, refresh rarely** |
+| 8 | **🖼️ IA Images** | `iaImages` | S | an image-search gallery (posters, plates, photographs) | `advancedsearch` + `services/img`; **no export** (canvas-tainted) |
+| 9 | **📺 IA TV News** | `iaTvNews` | M–L | caption hits with timestamps → clip cards that deep-link into the player | TVNA search is **proxy-gated and non-JSON**, and one broadcast is ~350 MB; **or** GDELT TV (CORS ✅ but 11.5 s). Rank it last, and cache it hard |
 
 **Deferred, with reasons:** full-text search *inside* a book and across the corpus (the FTS host did
 not resolve here — check from Toolforge before designing anything on it); software/emulation
@@ -149,11 +185,14 @@ Worth designing in from the start, because IA splits cleanly:
 ## What I would build first
 
 1. **`iaBook`** — the request that started this: books, via IIIF, with real pages and working export.
-2. **`iaVideo` + keyframe filmstrip** — the most visually surprising card in the family, and the
-   filmstrip is a natural sibling of the Lifeline timeline.
-3. **`iaAudio`** — a playlist with spectrograms; the Live Music Archive and LibriVox make good demos.
+2. **`iaPlaylist`** — MIT OpenCourseWare alone is 511 courses, every lecture titled, timed and
+   captioned; a course player is the most *useful* card in the family, and the grouping rules are
+   already written down above. It also covers concerts and audiobooks with the same code.
+3. **`iaVideo` + keyframe filmstrip** — the most visually surprising card, and the filmstrip is a
+   natural sibling of the Lifeline timeline.
+4. **`iaAudio`** — one recording with its spectrogram; the Live Music Archive is the demo.
 
-Then the two already-planned search/collection cards, then TV news last.
+Then the already-planned search/collection/views cards, then TV news last.
 
 **Not decided here:** whether these belong on one board as a "archive bento" preset (an
 `?config=/internet-archive-demo.json` hub, like `parallel-lives-demo.json`) — that is the natural

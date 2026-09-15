@@ -964,6 +964,17 @@ quotas, and a ranked proposal for the media widgets this issue did not cover —
 `iaVideo` (+ a keyframe filmstrip from `{id}.thumbs/`), `iaAudio` (playlist + spectrograms),
 `iaImages`, and `iaTvNews` last.
 
+New distinction measured (and it is the one that breaks naive designs): **a collection, an item and a
+playlist are all one `metadata/{id}` call apart, and the URL tells you nothing.**
+`metadata.mediatype === 'collection'` is the collection marker (`mit_ocw` — 11 files, 0.1 MB, **511
+children**), and **a collection's own metadata lists no children**: enumerate with
+`scrape?q=collection:mit_ocw&total_only=true` → `{"total": 511}` in 34 bytes, then cursor paging. A
+**playlist is not a type at all** — it is an item whose `files[]` group into 2+ ordered parts carrying
+`length` and `title` (`MIT18.01JF07`: 35 lectures × mp4+ogv, all 70 files titled and timed, 11.6 GB),
+so `iaPlaylist` is a *renderer* over the same call `iaItem` already makes. Strip derivative suffixes
+(`_512kb`, `_300k`, `_64kb`, `_vbr`, `_spectrogram`) before grouping or a single Prelinger film reads
+as a playlist — verified the hard way.
+
 New limits measured (and two mechanics worth knowing):
 - **Advanced Search deep paging ends at the 10,000th result**; `page=10001` fails with
   `[DEEP_PAGING] Requested results would exceed the deep paging limit` **inside an HTTP 200 body** —

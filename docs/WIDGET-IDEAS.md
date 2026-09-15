@@ -152,6 +152,13 @@ endpoints, CORS, measured sizes, quota mechanics — is in
 - **📖 IA Book** (`iaBook`) — a scanned book page by page (turn, zoom, jump, "page 7 of 20"), with
   PDF/EPUB/OCR links out. IIIF `manifest.json` for structure, `…${leaf}/full/{w},/0/default.jpg` for
   pixels; **CORS ✅, canvas-safe → one of the few widgets that can export PNG**. M.
+- **🎞️ IA Playlist** (`iaPlaylist`) — a course, concert or audiobook as an **ordered list of parts**:
+  per-part duration and title, total runtime, one part playing at a time. Not a new object type — a
+  *playlist* is an item whose `files[]` group into 2+ parts (`MIT18.01JF07` = 35 lectures × mp4+ogv,
+  every file titled and timed; a Live Music Archive show = 20 tracks; LibriVox = 7 chapters), while a
+  *collection* is `mediatype: 'collection'` and holds **no children in its own metadata** (enumerate
+  with `scrape?q=collection:{id}&total_only=true`). MIT OCW also ships **SubRip captions per lecture**,
+  so a transcript per part comes almost free. M.
 - **🎬 IA Video** (`iaVideo`) — plays the item's `.mp4` (poster from `__ia_thumb.jpg`, duration from
   `runtime`) and, below it, a **keyframe filmstrip** built from the ready-made `{id}.thumbs/` series
   (≈1 frame per 30 s) — a timeline of pictures, and the natural sibling of Lifeline. M.
