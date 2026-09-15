@@ -3328,6 +3328,74 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-86 · Duplicate a widget — and copy/paste one between boards — **open**
+
+**What:** Andrew's request: *"sometimes you've made a widget and you want to make another one based on one that
+exists already … once you're in the zone and creating a lot of content, there should be this desire to do
+another excerpt from an article, let's do another graph, another chart."* So: **⧉ duplicate** in place, and
+ideally **copy → paste** into another board or tab.
+
+**What exists today (read out of the code):**
+
+| mechanism | detail |
+|---|---|
+| adding one widget | `AddWidgetPanel`: `id = \`${def.id}-${Date.now()}\``, layout `{x: 0, y: Infinity, …registry defaultLayout}` — the `y: Infinity` is what lets react-grid-layout drop it into the next free row, so placement is already solved |
+| whole-board paste | ⬆ ImportPanel + ⬇ Export, gated by `validateDashboard` (which already rejects **duplicate widget ids** and duplicate layout entries) |
+| **assemblies** | `handleAddAssembly`: applies a multi-widget spec with an **`idMap`** (spec id → new id) and a **`paramMap`** (spec param → board param), validates the *resulting* board, and offers an **undo toast** |
+| widget-level copy/duplicate | **none** — the card toolbar is ⓘ ⚙ ⤓ ↻ ✕ |
+| keys | only `Escape` (present mode / panels) — ⌘C/⌘V are unclaimed |
+| tabs | **no `storage` listener**, so two tabs on one board are last-write-wins |
+
+**→ So the cheapest correct implementation reuses the assembly path, it does not write a new one.** A duplicate
+is a one-widget spec run through `handleAddAssembly`: id remap, param remap, validation and undo already exist.
+
+**Four questions, and what I would do:**
+
+1. **Same-board duplicate first** — a **⧉** button in the toolbar. It covers the "another excerpt" case, needs
+   no clipboard, and is safe because **`{{widget:id}}` and `source` references stay valid**: the original still
+   exists. Take the layout from the source card's *current* cell, clamped by the registry's `minW/minH/maxW/
+   maxH`, so the copy looks like what you were looking at rather than the registry default.
+2. **Then clipboard copy/paste.** Payload: **one self-contained widget object** (`{id, widgetType, config}`) —
+   the same shape as a `dashboard.json` entry. Write with `navigator.clipboard.writeText`. For reading, prefer
+   a **UI box** (the ImportPanel precedent) over `navigator.clipboard.readText()`: the async clipboard needs a
+   permission and a gesture and is uneven across browsers, and a paste box also covers *"paste a widget someone
+   sent me"*.
+3. **Cross-tab: yes — the transport is free, the references are the work.** The clipboard is shared, so pasting
+   into another tab works. Two caveats: (a) a widget from *another* board can carry a `{{widget:id}}`/`source`
+   reference that board does not have, or a `{{param}}` that is not declared — the app already has the words
+   for this (`findUnresolvedRefs` / `describeUnresolvedRefs`), so the paste should **say so and offer to bring
+   the referenced widget along** (the `idMap` is exactly the mechanism) rather than quietly producing a broken
+   card; (b) **no cross-tab sync** — two tabs of the same board are last-write-wins on `localStorage`, so a
+   paste in tab B can be erased by tab A's next write. Pre-existing, but it is the reason same-tab duplicate is
+   the safe default.
+4. **Keyboard last.** ⌘D/⌘C/⌘V only if the ⧉ button proves insufficient: the handler **must ignore events
+   while focus is in an `<input>`/`<textarea>`** (the board is full of config fields and the Import box, and
+   typing "c" in a SPARQL query must not copy a card), and ⌘C with a text selection inside a card should copy
+   the *text*, not the widget.
+
+**Traps:**
+
+- **`Date.now()` ids collide within the same millisecond** — a latent bug that a duplicate button makes easy to
+  hit (double-click). Fix while here: a counter or a random suffix. `validateDashboard` catches it, but only
+  afterwards.
+- The registry's `minW/minH/maxW/maxH` must travel with the copy (the 360° viewer needs a minimum size).
+- Auto-height cards (`lastAutoH`) re-measure on mount — do not pin a duplicated gallery to a stale height.
+- Everything *except the id* should be copied, including the config's title/annotation: that is the whole point
+  of duplicating.
+- A pasted payload needs the same error/warning treatment a pasted board gets, and "duplicate id" is already
+  one of the errors it must not newly introduce.
+
+**Verification:** pure tests for `duplicateWidget(widget, freshId)` (fresh id, deep-copied config, same type)
+and `parseWidgetPayload(text)` (accepts a lone widget or a one-widget board, rejects junk, reports which);
+then an E2E — duplicate gives one more card with a different id and an identical config, the copy renders its
+own data, and a widget carrying `{{widget:id}}` still resolves. Then a paste into a *different* board: the
+dangling-reference message with an offer to bring the source along.
+
+**Effort:** duplicate ≈ an afternoon (a button plus wiring into `handleAddAssembly`), clipboard copy/paste ≈ a
+day (payload, paste UI, validation, the reference offer), keyboard shortcuts last.
+
+**Status:** open (filed 2026-09-15).
+
 ## ISSUE-83 · Document Reader: let the reader decide how much room the transcription gets — **open**
 
 **What:** the transcription panel is a fixed strip under the page (`flex: 0 0 auto`, `max-height: 180px`, its own
