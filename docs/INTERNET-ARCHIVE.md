@@ -17,6 +17,7 @@ quotas we have to live inside, and the widgets I would build in what order.
 | **Planned, not built** | ISSUE-25 items 2–4: item views over time, IA search, IA collection |
 | **The gap** | **media.** Nothing shows a book, an audio track, a film, a keyframe strip, a caption hit |
 | **This page** | the verified API surface, the per-media-type file conventions, the quotas, and a ranked proposal |
+| **See it** | [`?config=/internet-archive-demo.json`](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) — the demo board: two books (16 and 304 pages) and four archive items, verified by rendering (12 assertions). Linked from the hub (`demos.json`) and the README |
 
 The whole family is attractive because the API is unusually friendly: **most of it is CORS-enabled
 and needs no key**, the URLs are stable and human-readable, and the media files stream straight into
@@ -216,6 +217,6 @@ Worth designing in from the start, because IA splits cleanly:
 
 Then the already-planned search/collection/views cards, then TV news last.
 
-**Not decided here:** whether these belong on one board as a "archive bento" preset (an
-`?config=/internet-archive-demo.json` hub, like `parallel-lives-demo.json`) — that is the natural
-follow-up once the first three exist.
+**Decided:** they belong on one board — `?config=/internet-archive-demo.json` exists as of 2026-09-15,
+with both built cards on it and one IA Item card per media type that the next three will render (a film,
+a concert, an audiobook, a course collection). It grows a card per widget rather than changing shape.

@@ -137,6 +137,16 @@ rankings, article text and history — every number live from a Wikimedia API.
 or photographs. The full-colour originals are still in git history (the commit that added
 them, `339a275`), so this is reversible.
 
+## `wikibento-2026-09-15-internet-archive-demo.png` — the Internet Archive demo board (2026-09-15)
+
+`?config=/internet-archive-demo.json` — every Internet Archive widget this app has, on one board: two
+**IA Book** cards (a 16-page illustrated children's book and a 304-page Dostoevsky, both driven by their
+IIIF manifests) above four **IA Item** cards covering the media types the next cards will play — a
+Prelinger film, a Live Music Archive concert, a LibriVox audiobook and MIT OpenCourseWare. The note card
+says what is built and what is next. Verified by rendering it: 7 cards, both books' page images loaded
+(`page 1 of 16` and `page 1 of 304`), each item card showing its own title, and no error boundary — 12
+assertions, no console errors beyond the archive's own 400s.
+
 ## `wikibento-2026-09-15-ia-book-card.png` — the IA Book card, live (2026-09-15)
 
 The first widget of the Internet Archive media family: a scanned book served page by page from

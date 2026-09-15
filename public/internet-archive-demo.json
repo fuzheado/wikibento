@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "ia-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## 📖 The Internet Archive, in cards\n\nThe archive is not only the Wayback Machine. **Two cards are built so far, and both are live:**\n\n- **📖 IA Book** — a scanned book, page by page: turn, zoom, **search inside it** (each hit names its page and shows the matched words boxed on the page), read that page's OCR text, open the PDF/EPUB/OCR. Flip between the two books above: a **16-page** illustrated children's book and a **304-page** Dostoevsky — the page count comes from the IIIF manifest, so both just work.\n- **📦 IA Item** — any item by identifier, with its engagement views (all-time / 30-day / 7-day), file count and size, and thumbnail.\n\nThe four cards below are the media types the next three widgets will render — plain IA Item cards today:\n\n- **🎬 a Prelinger film** — 888 MB, and the source of the keyframe filmstrip\n- **🎧 a Live Music Archive concert** — 20 tracks, each with its own spectrogram\n- **🎧 a LibriVox audiobook** — 7 chapters, and it carries its own scanned book\n- **🗂️ MIT OpenCourseWare** — 511 courses of titled, timed, captioned lectures\n\nBuild order for the rest of the family: **IA Playlist → IA Video + filmstrip → IA Audio** — see `docs/INTERNET-ARCHIVE.md`."
+      }
+    },
+    {
+      "id": "ia-book-short",
+      "widgetType": "iaBook",
+      "config": {
+        "identifier": "goodytwoshoes00newyiala",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ia-book-long",
+      "widgetType": "iaBook",
+      "config": {
+        "identifier": "whitenightsother00dostiala",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ia-film",
+      "widgetType": "iaItem",
+      "config": {
+        "identifier": "AboutBan1935",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ia-concert",
+      "widgetType": "iaItem",
+      "config": {
+        "identifier": "OtherBrothersFox4.8",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ia-audiobook",
+      "widgetType": "iaItem",
+      "config": {
+        "identifier": "art_of_war_librivox",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "ia-collection",
+      "widgetType": "iaItem",
+      "config": {
+        "identifier": "mit_ocw",
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "ia-note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "minW": 4,
+      "minH": 2
+    },
+    {
+      "i": "ia-book-short",
+      "x": 0,
+      "y": 5,
+      "w": 6,
+      "h": 10,
+      "minW": 4,
+      "minH": 5
+    },
+    {
+      "i": "ia-book-long",
+      "x": 6,
+      "y": 5,
+      "w": 6,
+      "h": 10,
+      "minW": 4,
+      "minH": 5
+    },
+    {
+      "i": "ia-film",
+      "x": 0,
+      "y": 15,
+      "w": 3,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "ia-concert",
+      "x": 3,
+      "y": 15,
+      "w": 3,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "ia-audiobook",
+      "x": 6,
+      "y": 15,
+      "w": 3,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "ia-collection",
+      "x": 9,
+      "y": 15,
+      "w": 3,
+      "h": 5,
+      "minW": 3,
+      "minH": 3
+    }
+  ]
+}
