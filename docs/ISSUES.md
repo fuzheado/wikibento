@@ -955,8 +955,34 @@ APIs (auth); Scholar/Fatcat (separate catalog).
   `timemap/link` returns **27 MB** per call.
 - Remaining: items 2 (views over time), 3 (IA search), 4 (IA collection).
 
-**Status:** open (item 1 done 2026-09-10). Source: IA API research 2026-08-14,
-re-verified 2026-09-10.
+**Progress (2026-09-15) — the media expansion researched, and a home for it:**
+[**docs/INTERNET-ARCHIVE.md**](INTERNET-ARCHIVE.md) is now the family's page: the verified API
+surface (endpoint / CORS / measured latency & size), the **derivative-file conventions per media
+type** (which files a scan, a concert, an audiobook, a film and a TV broadcast actually carry), the
+quotas, and a ranked proposal for the media widgets this issue did not cover —
+`iaBook` (IIIF page viewer; **CORS ✅ and canvas-safe, so PNG export works**),
+`iaVideo` (+ a keyframe filmstrip from `{id}.thumbs/`), `iaAudio` (playlist + spectrograms),
+`iaImages`, and `iaTvNews` last.
+
+New limits measured (and two mechanics worth knowing):
+- **Advanced Search deep paging ends at the 10,000th result**; `page=10001` fails with
+  `[DEEP_PAGING] Requested results would exceed the deep paging limit` **inside an HTTP 200 body** —
+  a widget checking only `res.ok` will parse that error as data.
+- **`scrape` `size` is 100–10,000, server-enforced**: `size=99` → `count '99' is too small (min
+  count=100)`; `size=20000` → `max count=10000`. `total_only=true` returns 37 bytes — the cheap way
+  to count a collection.
+- IIIF now speaks **v3** (`manifest.json` 25.7 KB, 1.0 s, CORS ✅; `…{id}${leaf}/full/400,/0/default.jpg`
+  57 KB in 1.8 s) and the official docs carry **no numeric rate limit** (the retired labs service said
+  2,000/hour unauthenticated — treat that as the planning budget).
+- `services/img` and `download/…/page/n{N}.jpg` have **no CORS**: fine as `<img>`, useless as data and
+  canvas-tainting, so those widgets cannot offer PNG/SVG export.
+- **`ia-fts.archive.org` did not resolve from a dev machine** — search-inside needs verification from
+  Toolforge before anything is designed on it; TVNA caption search is **proxy-gated and returned
+  non-JSON** to a plain client, so `iaTvNews` ranks last (GDELT TV is CORS-✅ but 11.5 s).
+- Item sizes are hundreds of MB (346 MB for one TV `.mp4`) — media stays a URL, and is never proxied.
+
+**Status:** open (item 1 done 2026-09-10; media family researched 2026-09-15). Source: IA API
+research 2026-08-14, re-verified 2026-09-10, extended 2026-09-15.
 
 ## ISSUE-26 · Hashtag Stats widget — edit-a-thon / campaign tracking — **open**
 

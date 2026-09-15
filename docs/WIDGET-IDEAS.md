@@ -143,6 +143,29 @@ The measured finding, and the design for the prose lane / age axis / context ban
 (awards, posts, residences) while the article prose holds what is *narratable* (the diary, the arrest,
 Selma), and that a life timeline must stop at death or it ends with posthumous honours.
 
+## Internet Archive media family (ISSUE-25, researched 2026-09-15)
+
+The Wayback card covers *web snapshots*; these cover everything else IA holds. Full evidence —
+endpoints, CORS, measured sizes, quota mechanics — is in
+[**INTERNET-ARCHIVE.md**](INTERNET-ARCHIVE.md).
+
+- **📖 IA Book** (`iaBook`) — a scanned book page by page (turn, zoom, jump, "page 7 of 20"), with
+  PDF/EPUB/OCR links out. IIIF `manifest.json` for structure, `…${leaf}/full/{w},/0/default.jpg` for
+  pixels; **CORS ✅, canvas-safe → one of the few widgets that can export PNG**. M.
+- **🎬 IA Video** (`iaVideo`) — plays the item's `.mp4` (poster from `__ia_thumb.jpg`, duration from
+  `runtime`) and, below it, a **keyframe filmstrip** built from the ready-made `{id}.thumbs/` series
+  (≈1 frame per 30 s) — a timeline of pictures, and the natural sibling of Lifeline. M.
+- **🎧 IA Audio** (`iaAudio`) — track list / playlist with inline playback and the per-track
+  `_spectrogram.png` as its visual. Live Music Archive (flac + mp3) and LibriVox (mp3/ogg **plus the
+  scanned book**) are the two demo shapes. M.
+- **🖼️ IA Images** (`iaImages`) — image search as a gallery; thumbnails via `services/img`
+  (display-only: no export). S.
+- **📺 IA TV News** (`iaTvNews`) — caption hits with timestamps → clip cards. Ranked last: the search
+  is proxy-gated and slow, and GDELT (CORS) takes 11.5 s per uncached call. M–L.
+
+Sizes stay URLs: one TV broadcast is 346 MB, a Prelinger film 888 MB. Nothing media-shaped is ever
+fetched into memory or proxied through Toolforge.
+
 ## Tier 2 — GLAM & Impact (2026-08-12 brainstorm: the "money" widgets)
 
 > The clearest path to adoption and funding — institutions with budgets and reporting needs. ✅ Already shipped: GLAM Category Usage (GLAMorgan-style), File Usage Map, Commons Impact Metrics via GLAM widget.

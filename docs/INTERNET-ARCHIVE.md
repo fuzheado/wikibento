@@ -1,0 +1,160 @@
+# Internet Archive — the widget family: what exists, what the API gives, what it costs
+
+*Researched 2026-09-15 by probing the live APIs and reading the official pages. Every number in
+the tables below was measured on that date unless the row says otherwise; the four probes are
+reproducible with `curl` and a descriptive User-Agent.*
+
+Today WikiBento reaches the Internet Archive for exactly one thing — **web snapshots**
+(`waybackGallery`) — plus one item-level card (`iaItem`). This page is the plan for the rest of it:
+**texts, audio, video, images, TV news**, the derivative files each of those actually ships, the
+quotas we have to live inside, and the widgets I would build in what order.
+
+## Where this stands
+
+| | |
+|---|---|
+| **Shipped** | `waybackGallery` (closest capture per date, replay tiles, CDX fallback through `/api/proxy`) — see [WAYBACK-REPLAY-LATENCY.md](WAYBACK-REPLAY-LATENCY.md); `iaItem` (metadata + engagement views + thumbnail, `docs/DATA-SOURCES.md` §27) |
+| **Planned, not built** | ISSUE-25 items 2–4: item views over time, IA search, IA collection |
+| **The gap** | **media.** Nothing shows a book, an audio track, a film, a keyframe strip, a caption hit |
+| **This page** | the verified API surface, the per-media-type file conventions, the quotas, and a ranked proposal |
+
+The whole family is attractive because the API is unusually friendly: **most of it is CORS-enabled
+and needs no key**, the URLs are stable and human-readable, and the media files stream straight into
+`<video>`/`<audio>`/`<img>` without any of it passing through our servers.
+
+## The API surface — verified 2026-09-15
+
+| endpoint | gives | CORS | measured |
+|---|---|---|---|
+| `archive.org/metadata/{id}` | full item metadata + every file, with sizes | ✅ `*` | 0.34–1.80 s · 2.2–50 KB (an 87-file concert: 30 KB) |
+| `archive.org/metadata/{id}/files?start&count` | paged file list | ✅ | (ISSUE-25) |
+| `archive.org/advancedsearch.php?q&fl[]&rows&page&sort&output=json` | metadata search | ✅ `*` | 0.34–1.94 s · `rows=10000` → 392 KB |
+| `archive.org/services/search/v1/scrape?q&fields&size&cursor&total_only` | cursor paging, deep results, cheap counts | ✅ `*` | `total_only=true` → **37 bytes** |
+| `be-api.us.archive.org/views/v1/short/{id}` | engagement (all-time / 30 d / 7 d) | ✅ | (ISSUE-25) · detail series: **5.8 s / 48 KB** |
+| `iiif.archive.org/iiif/{id}/manifest.json` | IIIF **v3** manifest: canvases, labels, annotation lists | ✅ (origin echoed) | 1.0 s · 25.7 KB |
+| `iiif.archive.org/iiif/{id}${leaf}/full/{w},/0/default.jpg` | **any page of any book**, any size/crop/rotation | ✅ | 1.8 s · 57 KB at `w=400` |
+| `archive.org/download/{id}/page/n{N}.jpg` (+ `_w800`) | a leaf as one JPEG | ❌ none | 2.7 s · 864 KB full, 319 KB at `_w800` |
+| `archive.org/download/{id}/{file}` | the actual media + derivatives (ranged requests) | ❌ (not needed — see below) | — |
+| `archive.org/download/{id}/{id}_djvu.txt` | OCR text for a scanned item | ✅ `*` | 302 → file |
+| `archive.org/services/img/{id}` | item thumbnail | ❌ | 302 → 22.6 KB JPEG |
+| `api.gdeltproject.org/api/v2/tv/tv?query&mode&format` | TV caption clips (GDELT, no key) | ✅ `*` | **11.5 s** — too slow to leave uncached |
+| `archive.org/details/tv?q&fq=channel&time&rows&output=json` | TV News Archive caption search | ❌ **and didn't return JSON to a plain client** | proxy-gated |
+| `ia-fts.archive.org` (search-inside / full-text) | OCR full-text hits | — | **host did not resolve from this network** — unverified, must be checked from Toolforge |
+| `web.archive.org/cdx/search/cdx` · `/web/timemap/link/` | capture index, memento timeline | ❌ | (ISSUE-25: 503-prone; timemap **27 MB** per call) |
+
+**Two different kinds of "no CORS", and the difference matters:**
+
+1. **Display-only** (`services/img`, `download/.../page/n{N}.jpg`): fine as `<img src=…>`, but
+   **not** readable as data — no `fetch()`, and drawing one on a canvas **taints it**. So those
+   widgets can be screenshotted by the user but cannot offer PNG/SVG export.
+2. **Media** (`download/{id}/*.mp4|mp3|ogg|flac`): CORS is irrelevant — `<video>` and `<audio>`
+   load these directly, with range requests and the browser's own streaming, and nothing transits
+   our origin. This is the single most important design fact in this document: **the media widgets
+   are cheap**, because the bytes never touch us.
+
+**IIIF is the unlock for books** — and, per IA's own documentation, "nearly all image, text, audio
+and video items" have a IIIF URI, not just scans. Because the IIIF image endpoint sends CORS, page
+images are also **canvas-safe**, which makes a book viewer one of the few widgets in WikiBento that
+can honestly offer **PNG export** (see [EXPORT.md](EXPORT.md) for why that is otherwise rare).
+
+## What each media type actually contains
+
+Read off real items: `goodytwoshoes00newyiala` (scan, 20 leaves), `art_of_war_librivox` (audiobook),
+`OtherBrothersFox4.8` (Live Music Archive concert), `AboutBan1935` (Prelinger film), a `tvarchive`
+broadcast.
+
+| type | the files that matter | notes for a widget |
+|---|---|---|
+| **texts (scan)** | `_jp2.zip`, `_djvu.xml`, `_djvu.txt`, `{id}.pdf`, `{id}_bw.pdf`, `.epub`, `chOCR`, `_scandata.xml`, `imagecount` | `imagecount` is the page count — a viewer needs no manifest fetch to know it. OCR text is a **0.02 MB** fetch: excerpts are nearly free |
+| **texts (plain)** | `_djvu.txt`, `.txt`, `.epub`, `.zip` | Gutenberg-style items have **no pages to show** — no `imagecount`, IIIF 500s. The card must degrade to text/metadata |
+| **audio (music)** | `*.flac` (master), `*.mp3` (VBR), `*_spectrogram.png`, `_esshigh.json.gz` / `_esslow.json.gz` (Essentia feature data) | per-track spectrograms are ready-made visuals; Essentia gives BPM/tuning/peaks if a richer card is ever wanted |
+| **audio (spoken)** | `*.mp3` + `*_64kb.mp3`, `*.ogg`, `*_spectrogram.png`, plus **the scanned book**: `{id}.pdf`, `_djvu.txt`, `_jp2.zip` | audiobooks carry their text — a read-along card is possible |
+| **video** | `{id}.mp4` (h.264), `{id}.ogv`, `{id}.mpeg` (MPEG2), `{id}.gif`, `{id}.mp3`, **`{id}.thumbs/{id}_0000NN.jpg`** | the `.thumbs/` series is a **keyframe filmstrip** — ~1 frame per 30 s. That is a timeline of pictures, and it is free |
+| **TV news** | `{id}.mp4`, `{id}.mpg`, 374 × `.thumbs/` keyframes, `.srt` on US network items, `.xml`, `.sqlite` | timestamps + captions make *clippable* cards; international items carry no `.srt` |
+
+**Item sizes are large and must never be fetched into memory:** 888 MB (Prelinger film), 867 MB
+(concert), 346 MB + 517 MB (one TV broadcast), 95 MB (a 20-page scan). Media stays a URL.
+
+## Limits and quotas
+
+| limit | number | source | how we comply |
+|---|---|---|---|
+| **Advanced Search deep paging** | the **10,000th** result is the last one reachable; beyond that an error | official: *"We limit the number of sorted paged results returnable to 10,000"*; verified: `rows=1&page=10000` → 200, `page=10001` → error | never page deep; use `scrape` for more |
+| **Scrape `size`** | **min 100, max 10,000** (server-enforced) | verified: `size=99` → `400 count '99' is too small (min count=100)`; `size=20000` → `400 … max count=10000` | use `total_only=true` for counts (37 bytes), and one 10,000-item call instead of ten small ones |
+| **IIIF** | the retired labs service documented *"unauthenticated requests will be limited to 2,000 per hour"*; the **current** official documentation states **no numeric limit** | iiif.archivelab.org/iiif/documentation (labs, historical) — the official iiif.archive.org page has no rate-limit section | treat 2,000/hour as the planning budget, cache page images by URL, and watch response headers for the real limit |
+| **Everything else** | no published number; **no rate-limit headers observed** in a 6-request burst (all 200, ~0.45 s) | measurement | the general etiquette below is the whole policy |
+| **Bots / automated access** | descriptive **User-Agent with tool name, version, and model for AI agents**; delays for bulk operations; **honour 429 + `Retry-After`**; limit concurrency (*"Limit to 4 concurrent downloads with 1 second delay"*); cache responses; prefer bulk endpoints; exponential backoff | archive.org/developers/bots.html | `$WIKIMEDIA_USER_AGENT`; the app's 4-concurrent HTTP layer with `Retry-After` as a global cool-down; a shared TTL cache per endpoint; research scripts paced ≥1 s |
+| **Bandwidth** | not a quota, an etiquette: we are a guest | — | **never proxy media** through Toolforge; hand URLs to `<video>`/`<audio>`/`<img>` and link the IA details page as the canonical copy |
+
+**Two traps in the quota mechanics:**
+
+- **Deep paging fails with HTTP 200 and an error body**: `[DEEP_PAGING] Requested results would
+  exceed the deep paging limit`. A widget that only checks `res.ok` will parse an error as data. Any
+  IA search widget must check for the `error` key before reading `response.docs`.
+- **The scrape minimum is a 400, not a clamp.** `size=99` is rejected outright — a "give me 20
+  results" call is invalid; ask for 100 and slice client-side.
+
+## Proposed widgets
+
+Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M ≈ a day, L ≈ a week.
+
+| # | widget | id | size | what it shows | data flow |
+|---|---|---|---|---|---|
+| 1 | **📖 IA Book** | `iaBook` | M | a scanned book, page by page: turn, zoom, jump, with page N of `imagecount` and links out to PDF/EPUB/OCR | `metadata` (page count, derivative links) + IIIF `…${leaf}/full/{w},/0/default.jpg`; **CORS ✅ → PNG export works** |
+| 2 | **🎬 IA Video** | `iaVideo` | M | `<video>` with poster + duration, and a **keyframe filmstrip** below it | `<video src=…mp4>` (browser-streamed, no CORS) + `{id}.thumbs/` series; `metadata` for `runtime` |
+| 3 | **🎧 IA Audio** | `iaAudio` | M | a track list / playlist with inline playback and per-track spectrograms | `metadata` for the file list (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` thumbnails |
+| 4 | **🗂️ IA Collection** | `iaCollection` | M | a collection's holdings: mediatype breakdown, top items, newest items | `metadata/{collection}` + 4 × `scrape` with `total_only=true` (one per mediatype — cheap counts, no deep paging) + one `advancedsearch` for top items |
+| 5 | **🔍 IA Search** | `iaSearch` | S–M | free-text search across the archive, with thumbnail, year, mediatype and download count | `advancedsearch` (≤10,000 reachable) + `services/img` thumbnails (display-only) |
+| 6 | **📈 IA Item Views** | `iaViews` | S | an item's engagement over time (already item 2 of ISSUE-25) | `be-api…/views/v1/detail/item/{id}/{start}/{end}` — **5.8 s / 48 KB: cache hard, refresh rarely** |
+| 7 | **🖼️ IA Images** | `iaImages` | S | an image-search gallery (posters, plates, photographs) | `advancedsearch` + `services/img`; **no export** (canvas-tainted) |
+| 8 | **📺 IA TV News** | `iaTvNews` | M–L | caption hits with timestamps → clip cards that deep-link into the player | TVNA search is **proxy-gated and non-JSON**, and one broadcast is ~350 MB; **or** GDELT TV (CORS ✅ but 11.5 s). Rank it last, and cache it hard |
+
+**Deferred, with reasons:** full-text search *inside* a book and across the corpus (the FTS host did
+not resolve here — check from Toolforge before designing anything on it); software/emulation
+(emularity in an iframe, a much bigger surface); Scholar/Fatcat (a separate catalogue); uploads and
+the S3 API (credentials).
+
+**The first three are the answer to "the full range of IA content":** a book, a film and a record —
+and they are one pattern (metadata for the manifest of files, then let the browser stream or the
+IIIF server render). They also give the board its first genuinely *visual* IA content: a page, a
+keyframe strip, a spectrogram.
+
+## Export implications
+
+Worth designing in from the start, because IA splits cleanly:
+
+| IA content | CSV | PDF | SVG | PNG |
+|---|---|---|---|---|
+| `iaBook`, `iaAudio`-with-IIIF, anything IIIF-served | ✅ file list, page/leaf metadata | ✅ | ✅ | ✅ **canvas-safe** (CORS on `iiif.archive.org`) |
+| `services/img` thumbnails, `download/.../page/nN.jpg` | ✅ | ✅ | ✅ | ❌ tainted — same rule as any widget that shows a cross-origin image |
+| media players (`<video>`, `<audio>`) | ✅ track/file list from metadata | ✅ | — | — |
+
+## Traps
+
+1. **HTTP 200 with an error body** (deep paging). Check `error` before `response.docs`.
+2. **`size=99` is a 400, not a clamp.** The scrape API's floor is 100.
+3. **`services/img` and `download/page/nN.jpg` are display-only.** They work as `<img>` and nowhere
+   else — no `fetch`, no canvas, no export.
+4. **A "book" is not always a scan.** Gutenberg-style items have text but no leaves; IIIF 500s and
+   `imagecount` is absent. Detect before rendering a page-turner.
+5. **Item sizes are hundreds of MB.** One TV `.mp4` is 346 MB. Never `fetch()` media; never proxy it.
+6. **`iiif.archive.org/iiif/{id}/info.json` is not the reliable entry point** — it redirected to
+   `/image/iiif/2/None/info.json` and 500'd/501'd on some items, while `manifest.json` (v3) and the
+   `…${leaf}/full/…` image route worked first time. Use the manifest for structure, the image route
+   for pixels.
+7. **The old IIIF host is gone but its documentation lingers.** `iiif.archivelab.org` is the labs
+   service; the production one is `iiif.archive.org` (official since Sept 2023) and speaks **v3**
+   (`items`, language-mapped labels like `{'none': [...]}`), not v2 `sequences`.
+
+## What I would build first
+
+1. **`iaBook`** — the request that started this: books, via IIIF, with real pages and working export.
+2. **`iaVideo` + keyframe filmstrip** — the most visually surprising card in the family, and the
+   filmstrip is a natural sibling of the Lifeline timeline.
+3. **`iaAudio`** — a playlist with spectrograms; the Live Music Archive and LibriVox make good demos.
+
+Then the two already-planned search/collection cards, then TV news last.
+
+**Not decided here:** whether these belong on one board as a "archive bento" preset (an
+`?config=/internet-archive-demo.json` hub, like `parallel-lives-demo.json`) — that is the natural
+follow-up once the first three exist.

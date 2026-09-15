@@ -232,7 +232,9 @@ front door.
   · [PLUGIN-TRUST](docs/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/TOOL-LANDSCAPE.md) and its
   [synthesis](docs/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/TOOLFLOW-ANALYSIS.md) ·
   [TAPESTRY-EVALUATION](docs/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
-  [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md)
+  [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·
+  [INTERNET-ARCHIVE](docs/INTERNET-ARCHIVE.md) (the IA widget family: verified API surface, per-media
+  file conventions, quotas, ranked proposal)
 - **Ideas** — [WIDGET-IDEAS](docs/WIDGET-IDEAS.md) · [DEMO-IDEAS](docs/DEMO-IDEAS.md) ·
   [ROADMAP](docs/ROADMAP.md) · [ISSUES](docs/ISSUES.md) ·
   [LIFELINE-WIDGET](docs/LIFELINE-WIDGET.md) (timelines of lives, and comparing two of them — measured

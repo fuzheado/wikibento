@@ -215,6 +215,12 @@ layout + cache reads (~<100 ms perceived).
   family 7); the current rule for widget authors is the *Emitter Contract* in
   `docs/WIDGET-DEVELOPMENT.md`.
 
+- **Internet Archive media family** — the Wayback card is the only IA surface today; the family's
+  plan, verified API surface and quotas are in `docs/INTERNET-ARCHIVE.md` (researched 2026-09-15,
+  under ISSUE-25). Build order: `iaBook` (IIIF, exports PNG) → `iaVideo` + keyframe filmstrip →
+  `iaAudio`, then the already-planned `iaSearch` / `iaCollection` / `iaViews`, with `iaTvNews` last
+  (proxy-gated, 11.5 s uncached).
+
 ### Interactivity & Widget Wiring — DAG/cascade model (2026-08-13 direction, long-term)
 
 > The vision: one widget's output feeds another's input — a text box that
