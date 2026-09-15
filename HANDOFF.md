@@ -27,9 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-C8b1z4iU.js` (+ `index-C_UZQDRp.css`) |
-| deployed | 2026-09-12 (the `data-widget-id` deploy — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
-| production is behind main | yes — everything from the Lifeline timeline onward is committed but **not** deployed; ask before deploying |
+| production bundle | `index-CSKC-SIk.js` (+ `index-oh30B1xp.css`) |
+| deployed | 2026-09-14 (Lifeline timeline + export menu + the `mul` label fix — see [docs/DEPLOYMENTS.md](docs/DEPLOYMENTS.md)) |
 | registry | 39 widget types — 30 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 39 widgets covering all 38 types |
 | front door for demos | `?config=/demos.json` (the hub) |
