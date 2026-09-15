@@ -132,7 +132,8 @@ refactor and a day each for the features, assuming the IA work stays the templat
 | 1 ✅ **done 2026-09-15** | **Extract `PagedViewer`** from `iaBook`, behind a page-source interface (`src/lib/pagedViewer.js` + `src/widgets/PagedViewer.jsx`) | do it *now*, while the card is days old: once facing pages, a text panel and a second source are layered in, the same refactor costs several times as much — and it is the step that makes 2 and 3 small | no visual change; 18 unit tests and **19/19** `smoke:iabook` assertions still pass; the IIIF source module holds the code that used to be in `iaBook.js` |
 | 2 ✅ **done 2026-09-15** | **ISSUE-81 facing pages** on the shared viewer, right-to-left included — and a board can set the default (⚙ *Reading mode*), which is what makes it demonstrable | the user-visible ask, written once for both readers instead of twice | spread mode shows two images, the counter reads "pages N–N+1", the pair order **flips for a `right-to-left` book**, and a printed spread is one page |
 | 3 ✅ **done 2026-09-15** | **`documentReader`** (📄) — the Commons card: 24 browser assertions, a demo board beside an IA book, and the served-width trap found by running it | mostly free after 1 and 2 | `smoke:document-reader`: `pagecount` from `imageinfo`, last page renders, **one past the end clamps**, thumbnails load, "open the original" points at the file, a DjVu works, and a page that will not render **degrades to a link**; plus `?config=/document-reader-demo.json` (a Commons PDF beside an IA book, same viewer) |
-| 4 | **PDF.js** — text layer and search for any PDF | only on evidence, not by default | triggered by a real requirement to search an unproofread PDF's text; until then the Wikisource panel covers the proofread minority |
+| 4 ✅ **done 2026-09-15 (v1.1)** | **The Wikisource text layer** — each page's text *and its proofreading grade* | found a real case, so it shipped: `EB1926 - Supplement Volume 3.pdf`, 1,208 pages transcribed on en.wikisource |
+| 5 | **PDF.js** — text layer and search for any PDF | only on evidence | the Wikisource panel covers the transcribed minority; this would cover the rest at the cost of a dependency |
 
 **Deliberately not on this path:** an in-card framed PDF. The "open the original" link gives the same thing
 — the browser's full viewer, in a real tab, with its own zoom, search and print — with none of the four
@@ -218,6 +219,34 @@ case, the traps' shapes and the tests already exist.
 **Not in step 3 (deliberately):** the Wikisource text panel, which is v1.1 — coverage is thin (the 188-page
 report we measured has no transcription anywhere) and it is a different data path with its own parsing
 (`<noinclude>`, `{{rh}}`, `<pagequality>`) and its own quality semantics. And PDF.js stays on evidence.
+
+### v1.1 — the Wikisource text layer (shipped 2026-09-15)
+
+The deferred piece, done because a real case turned up rather than because it was next on a list.
+`docs/ISSUES.md` ISSUE-82 asked for evidence; the evidence is `File:EB1926 - Supplement Volume 3.pdf`
+(1,208 pages, public domain, transcribed on en.wikisource with a `Page:` page for every leaf).
+
+**The find that shapes it:** the whole volume sits at quality level **1 — "Not proofread"**. It was
+bulk-imported as OCR by one user and never human-checked. So the text is genuinely useful (search it, copy
+it) and genuinely not quotable, and **the grade is the feature**: `prop=proofread` returns
+`quality_text` canonically, the panel prints it above the words, and it says "uncorrected OCR" when the
+level is 1. A text panel that hid that would be worse than no panel.
+
+**One call per page, one detection call per document.** `prop=proofread|revisions` gives the grade *and* the
+wikitext together; `prop=globalusage` says whether a `Page:`/`Index:` usage exists on a Wikisource at all
+(ns 104/106 — being *linked* from a Wikisource article does not count, and neither does a Wikidata item).
+A file with no transcription simply has no ¶ button; the Mozart DjVu is the negative case in the tests.
+
+**Three bugs this found, all in code that had just been written:**
+- the viewer's text guard required `annotationPage` — a **IIIF-specific** field — so every Commons document
+  was refused before its own fetcher ran. A guard written against one source's shape silently excluded the
+  other;
+- the stripper leaked a **wikitable** (`{| … |}`) into the panel. The unit tests used the first 520
+  characters of a real page and passed, because the table was further down; only the E2E's "no raw markup"
+  assertion — run against all 10 KB — caught it. The lesson is the same one as always: a fixture trimmed for
+  readability is not the page;
+- templates were expanded *after* tables, so `{{rh||A|B}}` — a running head with an empty first argument —
+  had its `||` turned into a table separator first and came out as "B". Order matters.
 
 ## What I would build
 

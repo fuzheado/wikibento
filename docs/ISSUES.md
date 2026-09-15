@@ -3427,8 +3427,19 @@ The API is the safe route because `iiurlwidth` **rewrites** to a legal width (32
 is why the source advertises the served list and the reader's ladder comes from it. Also learned: a document
 strip needs 120, not the IA reader's 70.
 
-**Status:** done + verified 2026-09-15. v1.1 (the Wikisource text panel when a file has a transcription) is
-the only piece of this issue left, and it was deliberately deferred.
+**v1.1 shipped the same day — the Wikisource text layer** (the piece this issue deferred pending evidence).
+The evidence: `File:EB1926 - Supplement Volume 3.pdf` (1,208 pages, public domain) is transcribed on
+en.wikisource, a `Page:` page per leaf. One `globalusage` call detects a transcription (ns 104/106 on a
+Wikisource — a cross-wiki *link* is not one), and **one** `prop=proofread|revisions` call per page returns
+the text *and* the proofreading grade. That grade is the feature: the whole volume is level **1, "Not
+proofread"** — bulk OCR, never human-checked — so the panel prints "en.wikisource · Not proofread
+(uncorrected OCR)" above the words and links to the transcription itself. `src/lib/wikisourceText.js` (17
+tests) strips an edition's markup; the E2E's "no raw markup" assertion, run against the full 10 KB page,
+caught a **wikitable** leaking that the trimmed unit fixture had missed, and a template/table ordering bug
+turned `{{rh||A|B}}` into "B". Also fixed: the viewer's text guard required a IIIF-only field, so every
+Commons document was refused before its own fetcher ran.
+
+**Status:** done + verified 2026-09-15 (`npm run smoke:document`, 31 assertions; the demo board adds 5 more).
 
 ## ISSUE-81 · IA Book: facing pages (a two-page spread view) — **done + verified 2026-09-15**
 

@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-15T19:21:40.279Z",
+ "generatedAt": "2026-09-15T20:05:10.486Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -1856,7 +1856,7 @@
    "id": "documentReader",
    "name": "Document Reader",
    "icon": "📄",
-   "description": "Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Page count and page renders come from the file itself",
+   "description": "Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page's text and says how proofread it is",
    "dataSource": "Commons API imageinfo — pagecount + a page-N thumbnail template (one call)",
    "category": "Files & Media",
    "type": "stat",

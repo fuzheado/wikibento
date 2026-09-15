@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip (verified live: the document board, the 42-card catalog and both older boards) |
-| newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book — facing pages in both) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
+| newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book, facing pages both, and a **Wikisource text panel with its proofreading grade** where a transcription exists) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -247,6 +247,15 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     fail here). `iiurlwidth` is the safe route because the API **rewrites** to a legal width (320 → 330,
     700 → 960), which is why the source advertises `caps.widths` and the reader's ladder is built from that
     list. Related: document renders top out at 960, and a document strip needs 120, not the IA reader's 70.
+
+20. **A Wikisource transcription is not a proofread text — carry the grade with the words.** When a Commons
+    document has a `Page:` transcription, one `prop=proofread|revisions` call returns the text *and* its
+    quality (`{"quality": 1, "quality_text": "Not proofread"}`). Measured: the 1926 Britannica Supplement's
+    1,208 pages are all **level 1** — bulk-imported OCR, never human-checked. Print the grade above the text
+    (`uncorrected OCR` at level 1) or the panel invites someone to quote OCR as the edition. Also: a
+    transcription is detected by a `Page:`/`Index:` usage on a Wikisource (`globalusage`, ns 104/106) — being
+    *linked* from a Wikisource article is not one — and `prop=proofread` on an `Index:` page returns nothing,
+    so grades only come per page.
 
 ## Open issues & known bugs
 

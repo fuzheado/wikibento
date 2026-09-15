@@ -5,7 +5,7 @@
       "id": "dr-note",
       "widgetType": "markdown",
       "config": {
-        "text": "## 📄 Reading a document from Commons\n\n**Two archives, one reader.** The card on the left is a **329-page PDF** on Wikimedia Commons (`The Three Hostages`, 1924, credited \"From internet archive\"); the one beside it is a **DjVu** — the format Wikisource prefers — and on the right an **Internet Archive book**. All three are the same widget underneath: turn, zoom, jump to a page, and **facing pages**.\n\n**Commons documents bring their own rules**, all measured:\n\n- the page count and the page renders come from **one API call** (`imageinfo`); a 329-page book costs the same as a 2-page one;\n- page renders are only served at certain **widths** — 120, 250, 330, 500, 960, 1280 work, and asking for a \"round\" 400/640/700/800/1024 returns an error page that browsers refuse to show at all. The zoom ladder therefore offers the widths that exist, and stops at 960;\n- **no text layer** unless Wikisource has proofread the file, so there is no search box here — that is a Commons fact, not a bug (the Internet Archive's books do have search-inside, via IIIF);\n- **PNG export works**, because Wikimedia's page renders send CORS.\n\nThe grey **Open the original** link under each card hands the file to your browser's own PDF viewer, which is where you want to be for printing or selecting text."
+        "text": "## 📄 Reading a document from Commons\n\n**Two archives, one reader.** The card on the left is a **329-page PDF** on Wikimedia Commons (`The Three Hostages`, 1924, credited \"From internet archive\"); the one beside it is a **DjVu** — the format Wikisource prefers — and on the right an **Internet Archive book**. All three are the same widget underneath: turn, zoom, jump to a page, and **facing pages**.\n\n**Commons documents bring their own rules**, all measured:\n\n- the page count and the page renders come from **one API call** (`imageinfo`); a 329-page book costs the same as a 2-page one;\n- page renders are only served at certain **widths** — 120, 250, 330, 500, 960, 1280 work, and asking for a \"round\" 400/640/700/800/1024 returns an error page that browsers refuse to show at all. The zoom ladder therefore offers the widths that exist, and stops at 960;\n- **no text layer** unless Wikisource has proofread the file, so there is no search box here — that is a Commons fact, not a bug (the Internet Archive's books do have search-inside, via IIIF);\n- **PNG export works**, because Wikimedia's page renders send CORS.\n\n### …and where a Wikisource volunteer transcribed it\n\n`EB1926 - Supplement Volume 3.pdf` (1,208 pages, public domain) has a **Wikisource transcription**, so its card grows a **¶ button**: press it and the page's text appears, with the proofreading grade attached — *\"en.wikisource · Not proofread (uncorrected OCR)\"* — and a link to the transcription itself. The grade is the point: this volume was bulk-imported as raw OCR and never human-checked, so the text is there to search and copy, **not** to quote blind. A file with no transcription (the Mozart DjVu above) simply has no ¶ button.\n\nThe grey **Open the original** link under each card hands the file to your browser's own PDF viewer, which is where you want to be for printing or selecting text."
       }
     },
     {
@@ -33,6 +33,16 @@
       "widgetType": "iaBook",
       "config": {
         "identifier": "goodytwoshoes00newyiala",
+        "spread": "on",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "dr-ws",
+      "widgetType": "documentReader",
+      "config": {
+        "file": "File:EB1926 - Supplement Volume 3.pdf",
+        "project": "commons.wikimedia",
         "spread": "on",
         "refreshSeconds": 86400
       }
@@ -71,6 +81,15 @@
       "x": 6,
       "y": 19,
       "w": 6,
+      "h": 10,
+      "minW": 4,
+      "minH": 5
+    },
+    {
+      "i": "dr-ws",
+      "x": 0,
+      "y": 29,
+      "w": 12,
       "h": 10,
       "minW": 4,
       "minH": 5

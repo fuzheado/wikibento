@@ -2714,10 +2714,16 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .pv-hit-page { flex: 0 0 auto; color: var(--accent); }
 .pv-hit-snip { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pv-text {
-  flex: 0 0 auto; max-height: 140px; overflow: auto; white-space: pre-wrap; font-size: 11px;
+  flex: 0 0 auto; max-height: 180px; overflow: auto; font-size: 11px;
   color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 6px 8px;
 }
+.pv-text-note {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary);
+  border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 5px;
+}
+.pv-text-note a { color: var(--accent); text-decoration: none; }
+.pv-text-body { white-space: pre-wrap; }
 .pv-strip { display: flex; gap: 4px; overflow-x: auto; flex: 0 0 auto; }
 .pv-thumb { padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; cursor: pointer; line-height: 0; }
 .pv-thumb img { height: 54px; width: auto; display: block; }

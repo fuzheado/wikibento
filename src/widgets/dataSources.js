@@ -14,6 +14,7 @@ import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
 import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits, iiifImageTemplate } from '../lib/iaBook';
 import { normalizeCommonsFile, documentPageSource, DOCUMENT_MAX_WIDTH } from '../lib/documentSource';
+import { transcriptionWiki, pageTitleFor, pageTextBox } from '../lib/wikisourceText';
 import {
   wikidataEntityId,
   labelLanguage,
@@ -2359,6 +2360,8 @@ export function fetchIaBookPageText(annotationPage) {
  *  A page count is a property of the FILE, not of us: 329 pages costs the same one call as 2.
  */
 const documentCache = createTtlCache(30 * 60 * 1000);
+// Proofread text changes slowly (a volunteer correcting a page), so a long TTL is right.
+const wikisourceTextCache = createTtlCache(24 * 60 * 60 * 1000);
 
 export function fetchDocumentPages(file, project = 'commons.wikimedia') {
   const title = normalizeCommonsFile(file);
@@ -2391,6 +2394,55 @@ export function fetchDocumentPages(file, project = 'commons.wikimedia') {
     if (!info) {
       throw new Error(`${wiki} returned no file information for "${title}"`);
     }
-    return documentPageSource(info, page.title || title, wiki);
+    const source = documentPageSource(info, page.title || title, wiki);
+
+    // ── the text layer (v1.1) ──────────────────────────────────────────────────
+    // A Commons document has no text of its own. The only text that exists is a Wikisource transcription,
+    // in the Page: namespace — and ONE per-page call returns both the text and its proofreading grade, so
+    // the panel can say how trustworthy the words are. Detection is one globalusage call, and it is
+    // non-fatal: no transcription simply means no text panel.
+    let transcript = '';
+    if (/\.wikisource\.org$/i.test(wiki)) {
+      transcript = wiki;                       // a file hosted on Wikisource: no cross-wiki lookup needed
+    } else {
+      try {
+        const gu = await fetchJSON(`https://${wiki}.org/w/api.php?${new URLSearchParams({
+          action: 'query', titles: title, prop: 'globalusage', gulimit: '50',
+          guprop: 'namespace|url', format: 'json', formatversion: '2', origin: '*',
+        })}`);
+        const guPage = (gu && gu.query && gu.query.pages ? gu.query.pages : [])[0] || {};
+        transcript = transcriptionWiki(guPage.globalusage, '');
+      } catch { transcript = ''; }
+    }
+    return {
+      ...source,
+      transcription: transcript ? { wiki: transcript, index: `Index:${title.replace(/^File:\s*/i, '')}` } : null,
+      caps: { ...source.caps, text: Boolean(transcript) },
+    };
+  });
+}
+
+/** One transcribed page: its text, its proofreading grade, and a link to the transcription itself. */
+export function fetchWikisourcePageText(file, pageNumber, wiki = 'en.wikisource') {
+  const base = String(wiki || 'en.wikisource').replace(/\.org$/, '');
+  const title = pageTitleFor(file, pageNumber);
+  if (!title) return Promise.reject(new Error('No page to look up'));
+  return wikisourceTextCache.get(`ws:${base}:${title}`, async () => {
+    const params = new URLSearchParams({
+      action: 'query',
+      titles: title,
+      prop: 'proofread|revisions',      // ONE call for the grade AND the words
+      rvprop: 'content',
+      rvslots: 'main',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const data = await fetchJSON(`https://${base}.org/w/api.php?${params}`);
+    const page = (data && data.query && data.query.pages ? data.query.pages : [])[0] || {};
+    if (page.missing) {
+      return { ...pageTextBox(null, file, pageNumber, base), text: '', label: 'No transcription for this page' };
+    }
+    return pageTextBox(page, file, pageNumber, base);
   });
 }

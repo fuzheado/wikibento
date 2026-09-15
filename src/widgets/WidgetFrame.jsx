@@ -12,7 +12,7 @@ import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
 import { serviceImageUrl, searchHits } from '../lib/iaBook';
-import { fetchIaBookSearch, fetchIaBookPageText } from './dataSources';
+import { fetchIaBookSearch, fetchIaBookPageText, fetchWikisourcePageText } from './dataSources';
 import PagedViewer from './PagedViewer';
 import { configFieldValue } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
@@ -2290,7 +2290,26 @@ function IaBookCard({ data }) {
  *  viewer hides what a source cannot do rather than offering a broken control.
  */
 function DocumentReaderCard({ data }) {
-  return <PagedViewer data={data} />;
+  const transcript = data && data.transcription;
+  return (
+    <PagedViewer
+      data={data}
+      // The text layer exists only where Wikisource transcribed the file: one call per page gives the
+      // words AND their proofreading grade, and the grade travels with the text because "Not proofread"
+      // means uncorrected OCR — the reader has to know that to trust it correctly.
+      onPageText={transcript
+        ? async (page) => {
+          const box = await fetchWikisourcePageText(data.file, page.index + 1, transcript.wiki);
+          const wikiName = transcript.wiki.replace(/\.org$/, '');
+          return {
+            text: box.text,
+            note: `${wikiName} · ${box.label}${box.quality === 1 ? ' (uncorrected OCR)' : ''}`,
+            href: box.url,
+          };
+        }
+        : null}
+    />
+  );
 }
 
 /** Bar — horizontal label→value bars (hand-rolled, zero-chart-library style).

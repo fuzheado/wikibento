@@ -143,6 +143,9 @@ export function documentPageSource(imageinfo, title, project = 'commons.wikimedi
   ].filter((l) => l.href);
 
   const base = {
+    // The canonical `File:` title (needed to address a Wikisource `Page:` — see wikisourceText.js) and the
+    // display title (no namespace, no extension) are two different things.
+    file,
     title: file.replace(/^File:\s*/i, '').replace(/\.[A-Za-z0-9]+$/, '').replace(/_/g, ' '),
     href: String(info.descriptionurl || ''),
     pageUrl: String(info.descriptionurl || ''),

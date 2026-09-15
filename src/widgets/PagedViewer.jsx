@@ -103,10 +103,16 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
 
   const toggleText = async () => {
     if (text !== null) { setText(null); return; }
-    if (!onPageText || !current || !current.annotationPage) { setProblem('This page has no text'); return; }
+    // The guard is "is there a source for this?", not "does this page carry a IIIF annotation page" — that
+    // field belongs to one source's shape, and requiring it silently refused every Commons document.
+    if (!onPageText || !current) { setProblem('No text source for this document'); return; }
     setTextBusy(true); setProblem('');
-    try { setText(await onPageText(current, pages)); }
-    catch (err) { setProblem((err && err.message) || 'No text for this page'); }
+    try {
+      const got = await onPageText(current, pages);
+      // A source may return just words, or words with provenance ({text, note, href}) — where the text came
+      // from and how trustworthy it is. Both render; only the panel's header differs.
+      setText(typeof got === 'string' ? { text: got, note: '', href: '' } : (got || { text: '', note: '', href: '' }));
+    } catch (err) { setProblem((err && err.message) || 'No text for this page'); }
     finally { setTextBusy(false); }
   };
 
@@ -228,7 +234,17 @@ export default function PagedViewer({ data, onSearch = null, onPageText = null }
           ))}
         </div>
       )}
-      {text !== null && <div className="pv-text">{text || '(this page has no text)'}</div>}
+      {text !== null && (
+        <div className="pv-text">
+          {text.note && (
+            <div className="pv-text-note">
+              {text.note}
+              {text.href && <> · <a href={text.href} target="_blank" rel="noreferrer">open the transcription ↗</a></>}
+            </div>
+          )}
+          <div className="pv-text-body">{text.text || '(this page has no text)'}</div>
+        </div>
+      )}
       <div className="pv-strip">
         {strip.indices.map((idx) => (
           <button

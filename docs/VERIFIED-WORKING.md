@@ -319,3 +319,11 @@ Back to the [README](../README.md).
   (including the new Document Reader) with zero crashes; `/internet-archive-demo.json` still opens its books
   as facing pages; `/anne-frank-mlk-demo.json` still draws 21 timeline dots; `/api/resolve` and `/api/proxy`
   both 200; the front door loads a board; **no uncaught JS errors**.
+
+- ✅ **2026-09-15 — the Wikisource text layer (v1.1)** (part of `npm run smoke:document`, now **31**
+  assertions, plus 5 on the demo board): a 1,208-page volume with a transcription reports its page count and
+  grows a **¶ button**; a DjVu with **no** transcription has none; pressing it on page 434 shows **10,252
+  characters** of readable text (starting "by surprise at the bitter resistance of the dour Westphalians"),
+  headlined **"en.wikisource · Not proofread (uncorrected OCR)"**, linking to
+  `https://en.wikisource.org/wiki/Page:EB1926_-_Supplement_Volume_3.pdf/434`; **no raw markup** survives —
+  an assertion that, run against the whole page, caught a wikitable the trimmed unit fixtures had missed.

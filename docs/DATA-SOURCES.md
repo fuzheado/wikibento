@@ -662,4 +662,24 @@ page-1 render URL, and that URL is a template once its page token is rewritten.
 - The API's `thumburl` carries `?utm_source=…`; strip everything from `?`.
 - Hand-built thumb URLs 400 on some files (a 50 MB report refused every constructed URL while the API's own served fine), so the template is derived **from the API's URL**, keeping its host and encoding.
 - An out-of-range page is **clamped** by the server (page 189 of 188 → page 188, byte for byte); typed input clamps the same way.
-- No text layer: `caps.search`/`caps.text` are false unless Wikisource proofread the file (v1.1).
+- No text layer of its own: a PDF's bytes carry no extractable text and Commons does not index document text.
+  The only text that exists is a **Wikisource transcription** — see the next section.
+
+### The Wikisource text layer (v1.1)
+
+| step | call | measured 2026-09-15 |
+|---|---|---|
+| does a transcription exist? | `prop=globalusage&guprop=namespace` on the file's wiki | a usage in **ns 104 (`Page:`)** or **ns 106 (`Index:`)** on a `*.wikisource.org` wiki — `File:EB1926 - Supplement Volume 3.pdf` has 20 such usages; the Mozart DjVu has none (only it.wikipedia, ns6/ns12) |
+| one page's text **and grade** | `prop=proofread\|revisions&rvprop=content&rvslots=main`, `titles=Page:{File}/{n}` | **one** call returns `{quality: 1, quality_text: "Not proofread"}` *and* 10,737 chars of wikitext |
+| the `Index:` page | `prop=revisions` on `Index:{File}` | carries `Progress: C`, `Transclusion: no` and a `<pagelist>` — **but `prop=proofread` on an Index returns nothing**, so per-page is the only route to the grades |
+
+**Traps:**
+- **A transcription is not a proofread text.** The 1926 Britannica Supplement's 1,208 pages were bulk-imported
+  by one user and sit at **level 1, "Not proofread"** — uncorrected OCR. The grade therefore travels with the
+  text into the panel; without it the reader is being invited to quote OCR as if it were the edition.
+- Pages are numbered by **leaf**, 1-based, matching `pagecount` and the `page{N}-` render width — so
+  `Page:{File}/434` is the same leaf as our page 434.
+- The wikitext is an edition's markup, and stripping it is an approximation: `<noinclude>` (headers),
+  `{{rh}}` running heads, `<section>` markers, **wikitables** (`{| … |}`), template stacks, links and
+  footnotes. See `src/lib/wikisourceText.js` and its 17 tests.
+- `/wiki/Page:X.pdf/434` must keep its `:` and `/` (`encodeURI`, not `encodeURIComponent`).

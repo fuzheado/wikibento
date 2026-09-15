@@ -139,6 +139,7 @@ test('documentPageSource: caps tell the truth about what this source can do', ()
 test('documentPageSource: header facts, credit and the two links out', () => {
   const src = documentPageSource(INFO, 'File:The Three Hostages (1924).pdf');
   assert.equal(src.title, 'The Three Hostages (1924)');
+  assert.equal(src.file, 'File:The Three Hostages (1924).pdf', 'the canonical title, for a Wikisource Page: title');
   assert.equal(src.subtitle, '329 pages · PDF · 34.2 MB · 1275×1950 page');
   assert.equal(src.description, 'From internet archive');
   assert.equal(src.credits, 'John Buchan · Public domain');

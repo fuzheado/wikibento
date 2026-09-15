@@ -1779,7 +1779,7 @@ export const WIDGET_TYPES = {
     timeScope: 'point',
     name: 'Document Reader',
     icon: '📄',
-    description: 'Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Page count and page renders come from the file itself',
+    description: 'Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page\'s text and says how proofread it is',
     defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
     labelFromConfig: (c) => (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null,
     defaults: {
