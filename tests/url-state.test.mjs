@@ -22,10 +22,44 @@ const file = (p) => readFileSync(join(process.cwd(), p), 'utf8');
 
 // ── the contract as data ──────────────────────────────────────────────────────────────────────────
 
-test('every param the app reads is in the contract — no orphan reads', () => {
-  const contractParams = new Set(URL_STATE_CONTRACT.map((c) => c.param).filter(Boolean));
-  for (const p of READ_PARAMS) assert.ok(contractParams.has(p), `${p} is read but not in the contract`);
-  // and the reader is built from the contract, not from a second list
+test('the reader and the contract agree on which params exist', () => {
+  // Two guards, and it is worth being precise about which does what, because the first version of this test
+  // looked like coverage and could not fail: it compared READ_PARAMS with URL_STATE_CONTRACT, and READ_PARAMS
+  // is *derived* from the contract.
+  //
+  //   · the guard against a SECOND param reader is the C5 source scan below (any `window.location.search`
+  //     outside urlState.js fails), which is why that one is the load-bearing test;
+  //   · this test covers the reader/contract agreement and any read of the PAGE URL that names a param.
+  //
+  // The distinction matters in practice: src/lib/share.js reads `searchParams.get('title')` — from a *remote*
+  // wiki page's URL it is converting, not from the app's own query string. Page-url reads are what count.
+  const theReader = join(process.cwd(), 'src', 'lib', 'urlState.js');
+  const contractKeys = new Set(URL_STATE_CONTRACT.map((c) => c.key));
+  const offenders = [];
+
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) { walk(p); continue; }
+      if (!/\.(js|jsx)$/.test(name) || p === theReader) continue;
+      const code = readFileSync(p, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      for (const line of code.split('\n')) {
+        if (!/(window|document)\.location|location\.(search|hash|href)/.test(line)) continue;
+        for (const m of line.matchAll(/searchParams\.(?:get|has|getAll)\(\s*['"]([^'"]+)['"]/g)) {
+          if (!contractKeys.has(m[1])) offenders.push(`${p}: reads ?${m[1]}= from the page URL`);
+        }
+      }
+    }
+  };
+  walk(join(process.cwd(), 'src'));
+  assert.deepEqual(offenders, [], `param reads not in the contract:\n  ${offenders.join('\n  ')}`);
+
+  // the reader returns exactly the contract's keys — no more, no fewer
+  assert.deepEqual(
+    Object.keys(parseUrlState('?config=/a.json&kiosk=1', '#/d/x')).sort(),
+    [...contractKeys].sort(),
+  );
   const src = file('src/lib/urlState.js');
   assert.match(src, /export const READ_PARAMS = URL_STATE_CONTRACT/);
 });
@@ -202,8 +236,10 @@ test('C1: Reset drops the claim — the reported bug', () => {
 
 test('C1: SharePanel builds its link from the board, not from the address bar', () => {
   const sp = file('src/components/SharePanel.jsx');
-  assert.ok(/claimIsFresh\(claim, boardFingerprint\(widgets, layout, params\)\)/.test(sp),
+  assert.ok(/claimIsFresh\(claim, boardFingerprint\(widgets, layout, params/.test(sp),
     'the QR must check the claim before reusing the ?config= URL');
+  assert.ok(/includeLayout: false/.test(sp),
+    'and it must use the same content-only rule as App, or the two disagree about "fresh"');
   assert.match(sp, /presentModeUrl\(claimFresh \? currentUrl : hashShareUrl, mode\)/);
   assert.ok(!/URLSearchParams\(window\.location\.search\)/.test(sp),
     'reading the query string in SharePanel was the bug');

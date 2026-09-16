@@ -150,7 +150,8 @@ freely; just don't duplicate a value that several widgets must agree on.
 
 ## 6. Sharing & persistence
 
-- Layout and config persist in your browser; **↺ Reset** restores the starter board.
+- Layout and config persist in your browser; **↺ Reset** restores the starter board — and clears the URL
+  params that pointed at the board you had, so a refresh can't bring the discarded one back ([URL-STATE](URL-STATE.md)).
 - **⬇ Export / ⬆ Import** round-trip the board as JSON.
 - **🔗 Share** gives a QR code + link. `?config=<url>` loads a hosted config
   (any CORS-enabled URL, an on-wiki page, or a `w.wiki/…` short link);

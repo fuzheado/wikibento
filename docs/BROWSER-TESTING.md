@@ -7,6 +7,9 @@ the devDependency pins and no global tool has to be installed.
 npm run test:browsers     # cross-engine matrix: the dashboard in Chromium + Firefox + WebKit
 npm run smoke             # grid geometry + the panel-reachability constitution
 npm run smoke:panels      # panel reachability only: every ⚙/ⓘ action reachable at w3 h3, 3 widths
+- **`npm run smoke:url`** — the URL keeps telling the truth (ISSUE-87): a `?config=` claim is dropped when the
+  board diverges, Share embeds the board on screen, present params stay reversible, and a quiet load is not
+  treated as an edit. Also runs against a deploy: `AUDIT_BASE=https://wikibento.toolforge.org npm run smoke:url`.
 npm run smoke:qr          # QR widget end-to-end (scan payload, quiet zone, param follow)
 npm run smoke:share       # share panel + lean/kiosk modes
 npm run smoke:wayback     # Wayback gallery states (loading / absent capture / error)

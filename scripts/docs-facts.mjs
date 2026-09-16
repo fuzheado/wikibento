@@ -94,7 +94,11 @@ const CATALOG_EXCLUSIONS = {
 
 /** docs/*.md not linked from the README — each needs a reason. */
 const INTERNAL_DOCS = {
-  // (empty: every doc is part of the public documentation index)
+  // Written for a Pi *session*, not for a reader of the tool: it is a work directive for the WDQS
+  // visualization spike (ISSUE-72), landed by a parallel agent session on 2026-09-16. Classified rather
+  // than published — link it from the README instead if it is ever meant to be user-facing.
+  'PI-DIRECTIVE-WDQS-VISUALIZATION-SPIKE.md':
+    'a Pi work directive for the WDQS visualization spike, not user-facing documentation',
 };
 
 const DOCS = ['README.md', 'HANDOFF.md'];

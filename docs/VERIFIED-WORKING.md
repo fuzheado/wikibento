@@ -26,7 +26,11 @@ Back to the [README](../README.md).
   react-grid-layout's mount-time layout normalization would otherwise drop the demo URL on arrival.
 - ✅ **Present mode stays opt-in and reversible:** `?lean=1` lands in present mode, Exit strips the param,
   and entering present mode from a plain URL invents no param (the *shared* link carries the mode).
-- Evidence: `npm run smoke:url` — 12 checks, 9 actions traced, 0 invariants broken; plus
+- ✅ **Three classes of edit traced, not one:** removing a widget, changing a board parameter, and dragging a
+  card each drop the claim; a board whose authored layout has gaps (params-demo) *keeps* its claim on load,
+  because mount-time auto-placement is the app's doing and not the user's.
+- Evidence: `npm run smoke:url` — 11 actions traced, 0 invariants broken (and runnable against a deploy);
+  plus
   `tests/url-state.test.mjs` (19 tests) including a source scan that fails if anything outside
   `src/lib/urlState.js` writes history or interprets `location.search`. Contract and inventory:
   [URL-STATE.md](URL-STATE.md).

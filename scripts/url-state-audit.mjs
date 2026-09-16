@@ -133,6 +133,37 @@ try {
   rows.push(['Share an untouched board', shortLink.replace(BASE, '').slice(0, 46), `${shortLink.length} chars`]);
   check('C1b: an untouched board may share its short ?config= URL', shortLink.includes('config='), shortLink.slice(0, 80));
 
+  // ── 3b. the same rule through a different handler: a board PARAM ─────────────────────────────────
+  // The claim-drop is one mechanism (a fingerprint effect), so one trace per *class* of edit is the right
+  // amount of evidence — removing a widget proves the widget path, and this proves the params path.
+  await page.keyboard.press('Escape');
+  await page.goto(`${BASE}/?config=/params-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.board-param-btn', { timeout: 30000 });
+  await sleep(1500);
+  check('C1: an untouched parameterised board keeps its claim', urlOf(page).includes('config='), urlOf(page));
+  await page.locator('.board-param-btn').nth(1).click();
+  await sleep(900);
+  rows.push(['change a board parameter', urlOf(page), 'claim dropped']);
+  check('C1: changing a board param drops the claim too', !urlOf(page).includes('config='), urlOf(page));
+
+  // ── 3c. and the third class: a real drag (a mount-time auto-placement is NOT an edit; a gesture is) ──
+  await page.goto(`${BASE}/?config=/params-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(1800);
+  check('C1: a board whose layout had gaps keeps its claim on load (placement is not an edit)',
+    urlOf(page).includes('config='), urlOf(page));
+  const card = page.locator('[data-widget-id]').first();
+  const handle = card.locator('.widget-header').first();
+  const box = await handle.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 40, box.y + 60, { steps: 8 });
+  await page.mouse.up();
+  await sleep(900);
+  rows.push(['drag a card', urlOf(page), 'claim dropped by the gesture']);
+  check('C1: a drag drops the claim', !urlOf(page).includes('config='), urlOf(page));
+  await page.keyboard.press('Escape');
+
   // ── 4. present mode (C2) ─────────────────────────────────────────────────────────────────────────
   await page.keyboard.press('Escape');
   await page.goto(`${BASE}/?lean=1`, { waitUntil: 'domcontentloaded' });

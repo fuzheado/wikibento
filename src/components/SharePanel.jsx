@@ -42,7 +42,9 @@ export default function SharePanel({ widgets, layout, params = null, claim = nul
   // a different board than the one being pointed at. Compare fingerprints instead of trusting the URL.
   const currentUrl = window.location.href;
   const claimFresh = useMemo(
-    () => claimIsFresh(claim, boardFingerprint(widgets, layout, params)),
+    // content-only, matching App: a rearranged board is still the board the claim names (a real drag
+    // drops the claim in App's gesture handler, so it arrives here already stale).
+    () => claimIsFresh(claim, boardFingerprint(widgets, layout, params, { includeLayout: false })),
     [claim, widgets, layout, params],
   );
 

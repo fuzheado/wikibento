@@ -56,10 +56,12 @@ the decision written down — including the "no" decisions, which is the point o
 | ✕ Remove | `handleRemoveWidget` | −widget | **claim dropped** | same |
 | ⚙ Configure | `handleUpdateConfig` | widget config | **claim dropped** | same |
 | ✎ Rename id | `handleRenameWidget` | ids + refs | **claim dropped** | same |
-| drag / resize | `handleLayoutChange` | layout | **claim dropped** | same — a reload restores the dragged layout, so the file's URL is no longer true |
+| drag / resize | `onDragStart` / `onResizeStart` | layout | **claim dropped, by the gesture** | a reload restores the dragged arrangement, so the file's URL is no longer true. Bound to the gesture *start* — see the trap below |
 | board parameter | `handleSetParam` | params block | **claim dropped** | same, and the params block is part of the board |
 | ⧉ Duplicate / ⌘C⌘V | *not built* | +widget | **claim dropped** | ISSUE-86 — goes through the same path by construction |
 | ⤓ Export / 🖨 Print | `handleExport`, `printTarget` | nothing | **no** | reads the board; changes nothing |
+| follow a demo link ([hub](?config=/demos.json), About panel) | a plain `<a href="?config=…">` (markdown) | whole board | **push — by the browser** | the one place a push is correct: a link to another document is a real navigation, so Back genuinely returns to the hub. C6 forbids *the app* inventing history around a state change — not a link being a link |
+| 🧩 Undo (the assembly toast) | `handleAddAssembly` | −widget(s) | **the claim is not restored** | undo puts the board back, but the URL stays claimless. That is still honest — the URL is allowed to claim nothing; re-claiming would write a URL the user never actually visited |
 | ⬆ Share | `openShare` | nothing | **yes, by embedding** | the one action that deliberately *writes* the board into a URL — as `#/d/<payload>`, and only from the board on screen (C1) |
 
 ### B. Presentation — carried, opt-in, reversible (C2)
@@ -83,6 +85,8 @@ the decision written down — including the "no" decisions, which is the point o
 | Sort column, filter text, gallery index, selection | component state | not in the URL |
 | Scroll position, focused card | component state | not in the URL |
 | Copy feedback ("Copied!") | transient | never |
+| 🔊 Speaker play/stop (text-to-speech) | component state | not in the URL — playback, not the board |
+| 🔌 Diagnostics network self-test | component state | never — a dialog, and the results are momentary |
 
 ### D. Transient UI — never (C4)
 
@@ -102,9 +106,20 @@ Three layers, because prose cannot fail:
    the same serialisation localStorage holds — and a walk of `src/` that fails if anything outside
    `urlState.js` writes history or interprets `location.search`/`.hash`.
 3. **A live audit** — `npm run smoke:url` (`scripts/url-state-audit.mjs`) drives the real app in Chromium and
-   prints the table below, failing on any invariant break. It also guards the subtle one: **a quiet load must
-   not count as an edit** (react-grid-layout may normalize the layout on mount, which would drop the claim on
-   arrival and make the demo URL evaporate before anyone touched it).
+   prints the table below, failing on any invariant break. It traces one edit per **class** (a widget removed,
+   a board parameter changed, a card dragged) rather than all fourteen board actions, because the claim-drop
+   is one mechanism and one fingerprint.
+
+   It also guards two traps that only appear when you drive the app:
+
+   - **A quiet load must not count as an edit.** react-grid-layout fills in a config whose layout has gaps, so
+     "the layout changed" is true on arrival for such boards. Arrangement is therefore *not* part of the claim
+     fingerprint at all, and a real drag drops the claim from the gesture handler instead.
+   - **A gesture "stop" is not the signal; a "start" is.** The first version bound the drop to
+     `onDragStop`/`onResizeStop`, and react-grid-layout **2.2 fires a stop handler once while placing the board
+     on mount** — so every demo's claim died the moment it loaded, including boards with a complete authored
+     layout. `onDragStart`/`onResizeStart` cannot fire without a pointer, and the audit's "a board whose layout
+     had gaps keeps its claim on load" check is what caught it.
 
 ```
   action                            address bar                                note
@@ -114,10 +129,22 @@ Three layers, because prose cannot fail:
   remove a widget                   /                                          5 → 4 cards
   Share after editing               /#/d/eyJ2ZXJzaW9uIjoxLCJ3aWRnZXRz…         1462 chars
   Share an untouched board          /?config=%2Fdocument-reader-demo.json      58 chars
+  change a board parameter          /                                          claim dropped
+  drag a card                       /                                          claim dropped by the gesture
   load ?lean=1                      /?lean=1                                   present mode
   Exit present mode                 /                                          param stripped
   enter Present from a plain URL    /                                          no param invented
 ```
+
+A self-review of this work (prompted by "are you confident this is satisfied?") closed four gaps. Three were
+documentation and test hygiene: the inventory had missed **link
+navigation** (the demos hub is markdown with plain `<a href>` links, so clicking a demo is a genuine browser
+navigation — the one place a push is right), the 🔊 speaker and 🔌 diagnostics rows, and the fact that **undo
+does not re-claim**. The corrected claim is about the tests: the first "no orphan reads" check compared
+`READ_PARAMS` with the contract it is *derived* from and therefore could never fail. The load-bearing guard
+against a second param reader is the C5 source scan; what the replaced test covers is reader/contract
+agreement and page-URL param reads (whose rule has to ignore `share.js` reading `?title=` from a *remote* wiki
+URL it is converting).
 
 The audit earned its keep immediately: it caught a real crash in the Share panel (`claimIsFresh is not
 defined` — an import that silently did not land), which no unit test would have seen because the module

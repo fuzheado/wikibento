@@ -151,14 +151,14 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const r = validateDashboard(text);
           if (!r.valid) throw new Error(r.errors[0]);
           apply(r.widgets, r.layout, JSON.parse(text).params);
-          setUrlClaim({ kind: 'config', value: configUrl, fingerprint: boardFingerprint(r.widgets, r.layout, JSON.parse(text).params) });
+          setUrlClaim({ kind: 'config', value: configUrl, fingerprint: boardFingerprint(r.widgets, r.layout, JSON.parse(text).params, { includeLayout: false }) });
           loadedFromUrl = true;
         } else if (hashPayload) {
           const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
           apply(r.widgets, r.layout, json.params);
-          setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: boardFingerprint(r.widgets, r.layout, json.params) });
+          setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false }) });
           loadedFromUrl = true;
         }
       } catch (e) {
@@ -171,6 +171,16 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     return () => { cancelled = true; };
   }, []);
 
+  // A card the user actually moved: `?config=/demos.json` no longer describes the screen, so the claim goes.
+  // Bound to drag/resize *start* rather than stop, deliberately: react-grid-layout 2.2 fires a stop handler
+  // once while it places the board on mount (a config with layout gaps gets filled in), which dropped every
+  // demo's claim the moment it loaded. A start can only follow a real pointer gesture.
+  const dropClaimOnGesture = useCallback(() => {
+    if (!urlClaim) return;
+    setUrlClaim(null);
+    dropBoardClaimOnScreen();
+  }, [urlClaim]);
+
   // C1 (ISSUE-87): the URL's board claim lives only as long as the board still matches it. Every edit —
   // a widget added or removed, a config or param changed, a card dragged — makes `?config=/demos.json` a
   // false statement about what is on screen, so the claim goes. A replaceState, so it costs no history
@@ -180,7 +190,11 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // so "the URL matches the board" and "the board is what comes back" cannot disagree.
   useEffect(() => {
     if (!initialized || !urlClaim) return;
-    if (claimIsFresh(urlClaim, boardFingerprint(widgets, layout, paramBlock))) return;
+    // (the flag starts false on a fresh boot: nothing has been dragged)
+    // Arrangement is deliberately NOT part of the claim. A config whose layout has gaps gets filled in by
+    // react-grid-layout when it places the board, and that mount-time placement is the app's doing, not the
+    // user's — it must not drop the claim. A real drag or resize drops it explicitly, in the gesture handler.
+    if (claimIsFresh(urlClaim, boardFingerprint(widgets, layout, paramBlock, { includeLayout: false }))) return;
     setUrlClaim(null);
     dropBoardClaimOnScreen();
   }, [initialized, urlClaim, widgets, layout, paramBlock]);
@@ -463,7 +477,7 @@ const handleAutoHeight = useCallback((id, px) => {
     // shared link) resurrected the board the user had just discarded.
     dropBoardClaimOnScreen();
     setUrlClaim(null);
-    setParamBlock(null);
+        setParamBlock(null);
     setParamSpecs({});
     setParamValues({});
     setWidgets(nextWidgets);
@@ -719,6 +733,8 @@ const handleAutoHeight = useCallback((id, px) => {
  width={gridWidth}
  gridConfig={{ cols: 12, rowHeight: 80, margin: (kiosk || lean) ? [4, 4] : [12, 12], containerPadding: [0, 0] }}
  onLayoutChange={handleLayoutChange}
+ onDragStart={dropClaimOnGesture}
+ onResizeStart={dropClaimOnGesture}
  dragConfig={{ handle: '.widget-header', cancel: '.no-drag' }}
  compactType="vertical"
  isDraggable={!(kiosk || lean)}
