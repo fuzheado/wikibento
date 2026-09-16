@@ -27,7 +27,7 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CQrYr5Qg.js` (+ `index-DzQ0mJgS.css`) |
+| production bundle | `index-CQrYr5Qg.js` (+ `index-BWgKdWiq.css`) |
 | deployed | 2026-09-16 — **Wikipedia boxes** (ISSUE-90, the In the news box and four more Main Page boxes, rendered with the wiki's own styles), then **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
