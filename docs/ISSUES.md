@@ -3328,6 +3328,76 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-89 · Sharing a big board to a phone — the QR failure has better answers than "trim your board" — **open**
+
+**What:** when the board's self-contained link exceeds `QR_MAX_CHARS` (1,500), SharePanel says:
+
+> ⚠ Link too long for a QR code (4,012 chars). Trim the dashboard to fewer/smaller widgets, or load a hosted
+> `?config=` URL and share that instead.
+
+Both suggestions push work onto the user — trim the board you built, or go host a JSON file yourself. Andrew
+asked the right question: what *other* ways are there to get a board onto a phone?
+
+**Why it fails at all.** The link IS the payload: `#/d/<base64url(JSON)>`. Measured against the 15 boards in
+`public/` (which `qr.js` already handles well *within* its limit — `fitEcLevel` walks the EC ladder H→Q→M→L,
+and the 1,500 cap is a deliberate refusal because "an unscannable QR is worse than no QR"):
+
+| board | JSON | gzip | **gzip+base64url** | base64url today | fits a QR today | would fit (gzip, EC L = 2,953 B) |
+|---|---|---|---|---|---|---|
+| `dashboard.json` (42 widgets) | 11,384 | 2,738 | 3,651 | 15,179 | ✗ | ✗ (still over) |
+| `internet-archive-demo.json` | 4,645 | 1,701 | 2,268 | 6,194 | ✗ | ✓ |
+| `document-reader-demo.json` | 3,863 | 1,638 | 2,184 | 5,151 | ✗ | ✓ |
+| `glam-demo.json` | 3,013 | 912 | 1,216 | 4,018 | ✗ | ✓ |
+| `article-vitals-demo.json` | 2,202 | 701 | 935 | 2,936 | ✗ | ✓ |
+| …15 boards | | | | | **1 of 15** | **13 of 15** |
+
+So the payload is compressible by ~3–4× and **that alone moves this from "almost never works" to "usually
+works"** — the board is the same, only its encoding changes.
+
+**Options, ranked by what they fix per unit of effort:**
+
+1. **Compress the embed** — add a `#/z/<base64url(gzip(JSON))>` payload beside `#/d/<base64url(JSON)>`. Measured
+   **13 of 15** boards fit a QR afterwards, and every share link gets shorter for email, slides, chat and the
+   clipboard too. `DecompressionStream` is present in **Chromium, Firefox and WebKit** (verified in all three
+   engines on this machine, gzip round-trip included), so the only fallback needed is a friendly message for a
+   pre-2023 browser — and `#/d/` stays readable, so old links keep working. **No server, no policy, ~half a
+   day** (encode on share, decode at boot, tests, EC/`QR_DENSE_CHARS` review).
+2. **Publish a board → short link** — `POST /api/boards` stores it content-addressed, `GET /b/<id>` serves the
+   JSON with CORS, and Share hands you `?config=https://wikibento.toolforge.org/b/9f3k2` — a ~60-character URL.
+   That is the *only* option that covers everything: `dashboard.json` compresses to 3,651 bytes and the widget
+   manifest to 11.5 KB, so neither can ever fit a QR. It also makes the QR a crisp few-module code that a phone
+   scans instantly, plus a link you can read out loud. Costs: storage, retention, and a policy decision —
+   **publishing makes a board publicly fetchable at an unlisted URL**, and a config can name a wiki page
+   someone considers private. Recommended shape: an explicit **Publish** action, random unlisted ids, a TTL.
+   The Toolforge server already has the `/api/*` route pattern (`deploy/server.js`), so it is 1–2 days
+   including the policy. *(A third-party paste host could stand in for the storage, but CORS, permanence and
+   abuse are outside our control — worth a look before building our own.)*
+3. **Zero-code paths that work today, and belong in that message** — the failure text should offer the
+   transfers that have no length limit at all:
+   * **Export → AirDrop the `dashboard.json` to the phone → ⬆ Import** (file transfer, so 4,012 chars is not a
+     concept);
+   * **copy the link and paste it on the phone** (Universal Clipboard, or send it to yourself in
+     Signal/WhatsApp/Telegram/Mail) — long text pastes fine even when nothing auto-links it.
+4. **Web Share API** (`navigator.share`) — one tap opens the OS share sheet (AirDrop, Messages, Mail, or any
+   app on mobile). Feature-detected; present in Safari/Chrome on macOS. Most useful *after* 1 or 2, because
+   some share targets truncate very long URLs.
+5. **Animated / chunked QR** (the BC-UR / `txqr` family) — a real technique, used by crypto wallets: the
+   payload is split across many QR frames and read as video. It needs a *receiver* that speaks the protocol, so
+   for a web-app target we would have to build the receiving side (camera UI + reassembly). Recommend against:
+   option 2 is better on both effort and UX.
+6. **Raise the cap / force a lower EC level** — mostly already implemented (`fitEcLevel` degrades H→Q→M→L
+   automatically). Byte mode tops out at 2,953 bytes (EC L) and a version-40 code is 177×177 modules, so the
+   1,500 cap is a reliability choice, not a spec limit. Raising it *without* compressing turns a clear refusal
+   into a dense code that may or may not scan — the worst outcome — so it should follow 1, never replace it.
+
+**Recommendation:** do **1** and **3** together (self-contained, no policy, ~a day: better links everywhere plus
+an honest message), then decide on **2** — it is the only thing that covers every board, and it needs a
+decision about boards being publicly fetchable that is Andrew's to make.
+
+**Verify:** a pure test for the `#/z/` round-trip (encode → decode → same board), the `#/d/` form still loading,
+a documented fallback message when `DecompressionStream` is absent, and an audit check that a 4,000-char board
+renders a QR after compression while the pre-compression link would not.
+
 ## ISSUE-88 · A shared link must not overwrite the visitor's board — **done + verified 2026-09-16**
 
 **What:** opening someone's `?config=` / `#/d/…` link **persists it over the visitor's own saved board**.
