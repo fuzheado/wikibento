@@ -11,6 +11,28 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Wikipedia boxes, rendered faithfully (ISSUE-90, 2026-09-16)
+
+- ✅ **The In the news box renders as the box**, not as a list of links: bullets with bolded article titles, the
+  floated picture with its caption, the inline "Ongoing: … / Recent deaths: …" footers, and "More current events ·
+  Nominate an article" — driven through the widget in a browser and *looked at* (the screenshot is
+  [docs/screenshots/wikibento-2026-09-16-front-page-boxes.png](screenshots/wikibento-2026-09-16-front-page-boxes.png)).
+- ✅ **Four more boxes, same mechanism:** Today's featured article (portrait + caption + "Recently featured"),
+  Did you know (image + "… that …" items), the selected anniversaries page, and the real Picture of the day.
+  Measured per card: 600–1,149 chars of text, 7–16 list items, one image each, 13–19 scoped CSS rules from the
+  wiki, **0 relative URLs left**, no notices.
+- ✅ **The two boxes that need a date do not break:** `POTD/{date}` and
+  `Wikipedia:Selected anniversaries/{monthname} {day}` are self-updating (the widget expands the tokens), because the
+  wrappers `{{Picture of the day}}` / `{{On this day}}` only render in the Main Page context and otherwise return a
+  maintenance notice — which the card detects and explains rather than showing a bare yellow box.
+- ✅ **Untrusted input, twice sanitised:** MediaWiki's own parser, then an allowlist here (tags, attributes,
+  `href`/`src` schemes) plus a CSS rule filter that keeps only `.mw-parser-output`-scoped selectors. Measured on the
+  real response: no scripts, no `on*` handlers, and the styles stay inside the card.
+- ✅ **It is a source, not a dead end:** the box emits one line per item (`outputs: { kind: 'lines' }`), so Filter
+  Lines / Line Count / Speaker can consume "In the news" like any other list.
+- Evidence: `npm test` (516) incl. `tests/wiki-box.test.mjs` (25), which runs the whole path over the **real cached
+  API response** when the measurement cache is present.
+
 ## A big board now fits in a QR code (ISSUE-89, 2026-09-16)
 
 - ✅ **The reported failure is gone.** `glam-demo.json`'s self-contained link was 4,012 characters and the panel

@@ -9,6 +9,10 @@ const WIKISTATS_API = 'https://wikistats.wmcloud.org/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
+import {
+  boxApiUrl, parseBoxResponse, splitBoxHtml, prepareBoxHtml, filterScopedCss, boxWikiBase,
+  boxPageUrl, safeCssForStyleTag, boxLooksLikeNotice, expandBoxTokens,
+} from '../lib/wikiBox.js';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
@@ -2302,6 +2306,49 @@ export function shapeIaBook(meta, manifest, identifier) {
     // rather than showing an empty viewer.
     notice: pages.length ? '' : 'This item has no page images — it is text, not a scan. Open the OCR text below, or use the IA Item card.',
   };
+}
+
+/**
+ * A Wikipedia box — a transcluded template rendered faithfully (ISSUE-90).
+ *
+ * One call does everything: `action=parse&text={{In the news}}` returns the box's HTML **with its TemplateStyles
+ * already inline** (measured: 2 style blocks, 2.5 KB for ITN), so there is no second request, no stylesheet to
+ * lose, and no stylesheet to guess at. Parsing a *transclusion* rather than the template page is what keeps the
+ * documentation box and the categories out of the result.
+ *
+ * The response is cached for ten minutes: the Main Page boxes are edited a few times a day, and a stale "In the
+ * news" is a worse artefact than a slightly slower fetch.
+ */
+const wikiBoxCache = createTtlCache(10 * 60 * 1000);
+
+export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', date } = {}) {
+  // `{date}`-style tokens are expanded before the name becomes a transclusion, so a dated box (POTD, the
+  // selected anniversaries page) stays current without anyone editing the board — see expandBoxTokens.
+  const name = expandBoxTokens(String(box || '').trim(), date ? new Date(date) : new Date()).trim();
+  if (!name) return Promise.reject(new Error('Name a template to render, e.g. "In the news"'));
+  return wikiBoxCache.get(`wiki-box:${project}:${name}`, async () => {
+    let html;
+    try {
+      const json = await fetchJSON(boxApiUrl({ project, box: name }));
+      html = parseBoxResponse(json);
+    } catch (e) {
+      // The API's own wording ("There is no template with this name") is more useful than ours, so it is kept;
+      // only the transport case gets a message of our own.
+      throw new Error(e && e.message ? e.message : `Could not render ${name} from ${project}`);
+    }
+    const { styles, body } = splitBoxHtml(html);
+    return {
+      project,
+      box: name,
+      html: prepareBoxHtml(body, { wikiBase: boxWikiBase({ project }) }),
+      css: safeCssForStyleTag(filterScopedCss(styles.join('\n'))),
+      link: boxPageUrl({ project, box: name }),
+      looks: styles.length > 0,
+      // A wrapper template that was called outside its own context returns a notice; the card says so rather
+      // than leaving a yellow box unexplained.
+      notice: boxLooksLikeNotice(body),
+    };
+  });
 }
 
 export function fetchIaBook(identifier) {

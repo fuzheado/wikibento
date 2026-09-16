@@ -218,3 +218,14 @@ WikiBento has not painted this card yet.
 Use the same command for new shots — `--speed 1` favours quality, and `--quality=70-90`
 means a screenshot that would degrade badly is left alone rather than wrecked — and keep
 the `wikibento-<date>-<subject>.png` naming with a section here.
+
+
+### 2026-09-16 — the front page as boxes (ISSUE-90)
+
+![The five Main Page boxes rendered as widgets](screenshots/wikibento-2026-09-16-front-page-boxes.png)
+
+📰 **Wikipedia boxes.** Five Wikipedia templates rendered with the wiki's own markup *and* its own TemplateStyles:
+**In the news** (the request), **Today's featured article**, **Did you know**, the day's **selected anniversaries**,
+and the real **Picture of the day**. Nothing about the boxes' layout is re-implemented here — which is the point:
+when an editor changes the box, these cards change with it. Two of them are dated (`POTD/{date}`,
+`…/Selected anniversaries/{monthname} {day}`), so they stay current without anyone editing a board.

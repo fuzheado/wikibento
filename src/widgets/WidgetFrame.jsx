@@ -771,6 +771,8 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'WaybackGalleryCard': return <WaybackGalleryCard data={data} />;
     case 'IaBookCard': return <IaBookCard data={data} />;
     case 'DocumentReaderCard': return <DocumentReaderCard data={data} />;
+
+    case 'WikiBoxCard': return <WikiBoxCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -2268,6 +2270,42 @@ function TimelineCard({ data }) {
  *  IIIF Content Search and the per-page OCR text fetchers. Adding the Commons document reader then means
  *  writing another card like this one, not another viewer.
  */
+/**
+ * A Wikipedia box — rendered from the wiki's own HTML and its own TemplateStyles (ISSUE-90).
+ *
+ * Three decisions worth knowing when reading this:
+ *
+ *  · the markup is **MediaWiki's**, not ours: the point is a faithful render of a box whose author maintains it
+ *    on the wiki, so re-implementing its layout here would guarantee it drifts. What we add is the container,
+ *    the credit, and the safety (see src/lib/wikiBox.js);
+ *  · the styles are injected **inside the card**, and they are all scoped to `.mw-parser-output`, so they style
+ *    this box and cannot reach the rest of the app. The container class is what makes that true — dropping it
+ *    would un-scope every rule the wiki sent;
+ *  · the box is sized by its content (no fixed height, no scrollbar), which is the reason this is rendered in
+ *    the document rather than in a sandboxed frame: a widget that scrolls or clips is not a widget.
+ */
+function WikiBoxCard({ data }) {
+  const html = (data && data.html) || '';
+  const css = (data && data.css) || '';
+  if (!html) return <div className="wikibox-empty">That box is empty right now.</div>;
+  return (
+    <div className="wikibox">
+      {css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null}
+      {/* eslint-disable-next-line react/no-danger -- MediaWiki-sanitised, then allowlisted by src/lib/wikiBox.js */}
+      <div className="mw-parser-output wikibox-body" dangerouslySetInnerHTML={{ __html: html }} />
+      {data.notice ? (
+        <div className="wikibox-note" title="Some Main Page wrappers only render their box in the Main Page context, and return a notice anywhere else.">
+          ⓘ the template returned a notice, not its box — some boxes need a dated subpage (⚙)
+        </div>
+      ) : data.looks === false ? (
+        <div className="wikibox-note" title="The template rendered without any TemplateStyles — it may rely on site-wide styles we do not load.">
+          ⓘ rendered without the template&rsquo;s own stylesheet
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function IaBookCard({ data }) {
   return (
     <PagedViewer

@@ -3328,6 +3328,39 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-90 · Render a Wikipedia template faithfully — the In the news box — **done + verified 2026-09-16**
+
+**Ask:** "Can you make a widget for a specific template or box to render correctly, like the In the news box on
+the Main Page?"
+
+**Answer, measured first:** it is a *general* mechanism, not an ITN special case, because one API call returns
+everything a faithful render needs — `action=parse&text={{In the news}}&prop=text` gives the box's HTML **with its
+TemplateStyles already inline** (2 blocks, 2.5 KB for ITN). Parsing a *transclusion* rather than the template page
+is what keeps the documentation box and the categories out of the result.
+
+**Shipped:** a 📰 **Wikipedia Box** widget (`wikiBox`) that renders any template with the wiki's own markup and
+styles, five cards of it in `public/front-page-demo.json` (linked from the hub and the README), and a
+`sanitize + rewrite + scope` pipeline in `src/lib/wikiBox.js` (25 tests, incl. one over the real API response).
+The box also **emits** one line per item, so it can drive a dataflow board.
+
+**What made "render correctly" the hard part** — three traps, all in DATA-SOURCES §30 and HANDOFF gotchas 24–25:
+
+  1. wrapper templates (`{{Picture of the day}}`, `{{On this day}}`) only render on the Main Page and otherwise
+     return a maintenance notice — the dated subpages (`POTD/{date}`, `…/Selected anniversaries/{monthname} {day}`)
+     return the real boxes;
+  2. `{{CURRENTYEAR}}` magic words work on the wiki but collide with board params here, hence the widget's own
+     `{date}`-style tokens;
+  3. the API returns relative and protocol-relative URLs, which left alone would send readers to wikibento rather
+     than Wikipedia.
+
+**Also fixed on the way:** the sanitiser was re-emitting closing tags as opening ones (`</p>` → `<p>`), which
+doubled every element while the text still read correctly — caught by asserting an idempotent round-trip on a small
+markup fixture, and visible in the real data as an item count of 30 instead of 15. And the card had to fight the
+app's own `.widget-body` centring, which floated the box in the middle of a tall card.
+
+**Not built:** parameterised boxes beyond the token set (e.g. passing a count to a template) — the `box` field
+already accepts a full invocation, so that is a documentation question until someone needs it.
+
 ## ISSUE-89 · Sharing a big board to a phone — the QR failure has better answers than "trim your board" — **done + verified 2026-09-16**
 
 **What:** when the board's self-contained link exceeds `QR_MAX_CHARS` (1,500), SharePanel says:

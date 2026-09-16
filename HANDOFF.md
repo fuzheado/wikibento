@@ -27,14 +27,14 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-DuKM6csr.js` (+ `index-CI1Ga_V5.css`) |
-| deployed | 2026-09-16 — **compressed share links** (ISSUE-89, so a big board fits a QR) then **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times: the Internet Archive pass → 📄 Document Reader → its Wikisource text layer → sticky panel → config-only board update → the URL stops lying (ISSUE-87) |
-| registry | 41 widget types — 32 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
+| production bundle | `index-CQrYr5Qg.js` (+ `index-DzQ0mJgS.css`) |
+| deployed | 2026-09-16 — **Wikipedia boxes** (ISSUE-90, the In the news box and four more Main Page boxes, rendered with the wiki's own styles), then **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
+| registry | 42 widget types — 33 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified: `AUDIT_BASE=https://wikibento.toolforge.org npm run smoke:url` → 18 actions, 0 invariants broken) |
-| newest capabilities | 👀 **Borrowed boards** — opening someone's link shows their board without touching yours, with a notice offering [Save this as mine] / [Back to my board] and a day-long recovery for the board an adoption displaces (ISSUE-88) · 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you page by page**, headed by its proofreading grade) · 📖 **IA Book** (search inside a scan, hits boxed on the page) · 🎬 **Media player** (a direct URL plays; `.ogv` does not) · ⤓ **PNG export** where the images come from a CORS-enabled host |
+| pending deploy | none — production serves this branch's tip (verified: the demo board renders all five boxes live, 0 relative URLs, nothing clipped) |
+| newest capabilities | 📰 **Wikipedia boxes** — any template rendered with the wiki's own markup *and* styles: In the news, Did you know, Today's featured article, plus dated ones via `POTD/{date}` and the selected-anniversaries page (ISSUE-90) · 👀 **Borrowed boards** — opening someone's link shows their board without touching yours, with a notice offering [Save this as mine] / [Back to my board] and a day-long recovery for the board an adoption displaces (ISSUE-88) · 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you page by page**, headed by its proofreading grade) · 📖 **IA Book** (search inside a scan, hits boxed on the page) · 🎬 **Media player** (a direct URL plays; `.ogv` does not) · ⤓ **PNG export** where the images come from a CORS-enabled host |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -294,6 +294,24 @@ read first, write and close concurrently, await both:
 Two habits from the hunt, both worth keeping: when a promise never settles, **probe each step** (an array on
 `globalThis` beats console logging here, because a rejected effect promise is swallowed by its own `.catch`);
 and a stream pipeline that works in Node is not evidence about a browser.
+
+24. **A template's *wrapper* and its *content* are different pages, and only one of them renders off the Main
+    Page.** Measured: `{{Picture of the day}}` and `{{On this day}}` return an `imbox`/`tmbox` maintenance notice
+    ("This image was selected as picture of the day…") when parsed anywhere else — while the dated subpages
+    `{{POTD/2026-09-16}}` and `{{Wikipedia:Selected anniversaries/September 16}}` return the real boxes. Related,
+    and the reason to reach for `action=parse&text=` rather than `page=`: parsing a *transclusion* skips
+    `<noinclude>`, so a template's documentation box and categories stay out of the result. Both were found by
+    driving the widget and *looking* at the card — the HTML was valid and the notice was invisible to every unit
+    test. Generalisation: when a wiki page renders "something", check whether it renders the same thing in your
+    context.
+
+25. **`{{CURRENTYEAR}}` works on the wiki and breaks a board.** MediaWiki magic words do expand inside a parsed
+    transclusion (verified), which is exactly what a self-updating dated box needs — but in a Wikibento *board*
+    `{{name}}` already means a param reference, so a config containing them fails the demos constitution (measured:
+    "every {{widget:id}} and {{param}} resolves inside the board"). The widget therefore expands its own
+    single-brace tokens — `{date}`, `{monthname}`, `{day}`, `{month}`, `{year}` — so `POTD/{date}` is both
+    self-updating and board-legal. Lexical collisions between a host platform's syntax and ours are worth checking
+    before building on the host's version.
 
 ## Open issues & known bugs
 

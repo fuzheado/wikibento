@@ -52,7 +52,7 @@ Back to the [README](../README.md).
 | **Top 10 Wikipedias** | 🏆 | [Wikistats (s23) CSV API](https://wikistats.wmcloud.org/) | Ranking table of largest Wikipedias by article count |
 | **Top Wikipedia Articles** | 🔥 | [top.hatnote.com](https://top.hatnote.com) (via same-origin proxy) + [WMF pageviews top](https://wikimedia.org/api/rest_v1/) fallback + MediaWiki `pageimages|extracts` enrichment | Most-visited articles for any of 28 Wikipedia languages — latest day or any date, top-N (all/10/arbitrary), default noise filter (.xxx, XXX (beer)…), optional **expanded view** with thumbnail + intro per row |
 
-## Content & Embeds (7)
+## Content & Embeds (8)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
@@ -63,6 +63,7 @@ Back to the [README](../README.md).
 | **Translator (MinT)** | 🌐 | [MinT translate API](https://translate.wmcloud.org) (Wikimedia, CORS ✓) | Machine-translates its text (typed or a `{{param}}`) into another language — 200+ languages, open NMT models; shows source + translation + serving model |
 | **Article List** | 📋 | MediaWiki API `pageimages\|extracts` (batched, optional) | Clickable list of pasted article titles — optional thumbnails + intros |
 | **Wiki Page** | 📄 | (static — iframe to the wiki) | Embed any MediaWiki page — desktop or **mobile view (`?useformat=mobile`)**; links browse inside the widget; optional section anchor — or set a **Custom URL** to embed any http(s) page (e.g. an [Objectium](https://objectium.toolforge.org) 3D model, sandboxed) |
+| **Wikipedia Box** | 📰 | Action API `action=parse` of the *transclusion* — HTML **and** its TemplateStyles in one CORS call | Any Wikipedia template, rendered with the wiki's own markup and styles: the Main Page boxes (In the news, Did you know, Today's featured article) plus dated ones (`POTD/{date}`, `Wikipedia:Selected anniversaries/{monthname} {day}`). The wiki's CSS is already scoped to `.mw-parser-output` and is enforced to stay that way; markup is allowlisted and URLs rewritten. Emits one line per item. |
 
 ## Queries & Power (1)
 

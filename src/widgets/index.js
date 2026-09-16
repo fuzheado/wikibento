@@ -6,6 +6,7 @@
 import {
   fetchDocumentPages,
   fetchIaBook,
+  fetchWikiBox,
   fetchPageviews,
   fetchExternalLinks,
   fetchCategorySize,
@@ -37,6 +38,7 @@ import {
  fetchWaybackGallery,
  fetchIaItem,
 } from './dataSources';
+import { boxLines } from '../lib/wikiBox';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { buildTimeline } from '../lib/timeline';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
@@ -1314,6 +1316,39 @@ export const WIDGET_TYPES = {
       speakOnChange: config.speakOnChange === true,
     }),
   },
+  wikiBox: {
+    id: 'wikiBox',
+    nodeKind: 'display',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'Wikipedia Box',
+    icon: '📰',
+    description: 'Render a Wikipedia template faithfully — the Main Page boxes (In the news, Did you know, On this day, Today’s featured article, Picture of the day) or any other template',
+    labelFromConfig: (c) => (c.box || '').trim() || 'Wikipedia box',
+    defaults: {
+      box: 'In the news',
+      project: 'en.wikipedia',
+      refreshSeconds: 600,
+    },
+    renderer: 'WikiBoxCard',
+    fetch: (config) => fetchWikiBox({ project: config.project, box: config.box }),
+    // The fetcher already returns exactly what the card renders (html + its own scoped css + the credit link),
+    // so the transform is the identity — the same convention as the other cards that shape in the fetcher.
+    transform: (data) => data,
+    dataSource: 'Action API parse of the transclusion (HTML + TemplateStyles in one call, CORS ✓)',
+    // The box's items as lines: a box stops being a dead end and can feed Filter Lines / Line Count / Speaker.
+    emit: (data) => boxLines(data && data.html),
+    outputs: { kind: 'lines' },   // emitted: one line per item in the box
+    configFields: [
+      { key: 'box', label: 'Template', type: 'text', placeholder: 'In the news',
+        hint: 'In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}' },
+      { key: 'project', label: 'Wiki', type: 'text', placeholder: 'en.wikipedia', hint: 'A project name (en.wikipedia) or a full host' },
+      { key: 'date', label: 'Date (blank = today)', type: 'text', placeholder: 'today',
+        hint: 'For dated boxes. The name may use {date} {year} {month} {monthname} {day} — e.g. POTD/{date}, or Wikipedia:Selected anniversaries/{monthname} {day}' },
+    ],
+    defaultLayout: { w: 4, h: 9, minW: 3, minH: 5 },
+  },
+
   wikiPage: {
     id: 'wikiPage',
     nodeKind: 'display',

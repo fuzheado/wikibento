@@ -2753,3 +2753,21 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .pv-links { display: flex; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
 .pv-link { font-size: 11px; color: var(--accent); text-decoration: none; }
 .pv-link:hover { text-decoration: underline; }
+
+/* Wikipedia box (ISSUE-90). The box brings its own TemplateStyles, all scoped to .mw-parser-output, so this
+   block deliberately does NOT try to restyle the box itself — it supplies the base that the wiki's *skin*
+   normally provides (list rhythm, thumbnail frames, caption type) and adapts links to our theme. The wiki's
+   own rules are injected inside the card and therefore win wherever they exist. */
+.wikibox { font-size: 12.5px; line-height: 1.55; width: 100%; align-self: flex-start; }
+.wikibox-body > :first-child { margin-top: 0; }
+.wikibox-body > :last-child { margin-bottom: 0; }
+.wikibox-body ul, .wikibox-body ol { margin: 0.35em 0 0.35em 1.4em; padding: 0; }
+.wikibox-body li { margin-bottom: 0.4em; }
+.wikibox-body img { max-width: 100%; height: auto; }
+.wikibox-body .thumbinner, .wikibox-body figure { border: 1px solid var(--border); border-radius: 4px; padding: 3px; background: rgba(255, 255, 255, 0.04); }
+.wikibox-body .thumbcaption, .wikibox-body figcaption { font-size: 11px; color: var(--muted); padding: 2px 3px 0; }
+.wikibox-body a { color: var(--accent); text-decoration: none; }
+.wikibox-body a:hover { text-decoration: underline; }
+.wikibox-body sup { font-size: 0.75em; }
+.wikibox-note { margin-top: 6px; font-size: 11px; color: var(--muted); }
+.wikibox-empty { padding: 14px; color: var(--muted); font-size: 12.5px; }

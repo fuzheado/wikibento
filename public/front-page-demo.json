@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "fp-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## 📰 The Wikipedia front page, as boxes\n\n**Five boxes, five templates, one widget.** Each card renders a *transclusion* of a Main Page template using Wikipedia's own HTML and its own TemplateStyles — no re-implementation, so a box keeps looking right as editors change it.\n\nPick any template in ⚙ — try `In the news` on `de.wikipedia`, or a project box like `Wikipedia:Community portal`. Two of the Main Page's wrappers (`Picture of the day`, `On this day`) only render on the Main Page, so those cards point at their **dated subpages** with magic words like CURRENTYEAR/CURRENTMONTH — they update themselves.\n\n*Content is CC BY-SA; each card links to the template it came from.*"
+      }
+    },
+    {
+      "id": "fp-itn",
+      "widgetType": "wikiBox",
+      "config": {
+        "box": "In the news",
+        "refreshSeconds": 600
+      }
+    },
+    {
+      "id": "fp-tfa",
+      "widgetType": "wikiBox",
+      "config": {
+        "box": "Today's featured article",
+        "refreshSeconds": 600
+      }
+    },
+    {
+      "id": "fp-dyk",
+      "widgetType": "wikiBox",
+      "config": {
+        "box": "Did you know",
+        "refreshSeconds": 600
+      }
+    },
+    {
+      "id": "fp-otd",
+      "widgetType": "wikiBox",
+      "config": {
+        "box": "Wikipedia:Selected anniversaries/{monthname} {day}",
+        "refreshSeconds": 600
+      }
+    },
+    {
+      "id": "fp-potd",
+      "widgetType": "wikiBox",
+      "config": {
+        "box": "POTD/{date}",
+        "refreshSeconds": 600
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "fp-note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "fp-itn",
+      "x": 0,
+      "y": 5,
+      "w": 6,
+      "h": 6,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "fp-tfa",
+      "x": 6,
+      "y": 5,
+      "w": 6,
+      "h": 7,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "fp-dyk",
+      "x": 0,
+      "y": 12,
+      "w": 6,
+      "h": 8,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "fp-otd",
+      "x": 6,
+      "y": 12,
+      "w": 6,
+      "h": 7,
+      "moved": false,
+      "static": false
+    },
+    {
+      "i": "fp-potd",
+      "x": 0,
+      "y": 19,
+      "w": 12,
+      "h": 8,
+      "moved": false,
+      "static": false
+    }
+  ],
+  "params": null
+}

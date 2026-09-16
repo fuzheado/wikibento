@@ -684,3 +684,50 @@ page-1 render URL, and that URL is a template once its page token is rewritten.
   `{{rh}}` running heads, `<section>` markers, **wikitables** (`{| … |}`), template stacks, links and
   footnotes. See `src/lib/wikisourceText.js` and its 17 tests.
 - `/wiki/Page:X.pdf/434` must keep its `:` and `/` (`encodeURI`, not `encodeURIComponent`).
+
+## 30. Wikipedia boxes — rendering a template faithfully (ISSUE-90)
+
+**One call, everything a faithful render needs.**
+
+```
+GET https://en.wikipedia.org/w/api.php?action=parse&text={{In the news}}&prop=text&formatversion=2&origin=*&format=json
+```
+
+| measured 2026-09-16 | In the news | Did you know | Today's featured article | POTD/{date} |
+|---|---|---|---|---|
+| HTML | 7,719 B | 7,312 B | 8,092 B | 4,074 B |
+| inline `<style>` blocks | 2 (2.5 KB) | 1 | 1 | 1 |
+| visible text | 3,039 chars | 3,381 | 3,514 | 807 |
+| `<script>` / `on*` handlers | none | none | none | none |
+
+**Parse a transclusion, not the template page.** `text={{In the news}}` skips `<noinclude>` — which is where the
+documentation box and the categories live — so the result is *the box*, not the template's page. Parsing the page
+itself (`page=Template:In_the_news`) shows the doc box instead.
+
+**The styles travel with the markup.** TemplateStyles come back **inline** as `<style data-mw-deduplicate=…>`
+blocks, so there is no second request. They are already scoped to `.mw-parser-output` (TemplateStyles enforces
+that), which is why the widget can render in the document — auto-height, printable, selectable — instead of in a
+framed box: the CSS cannot reach the app.
+
+**Three traps, each measured:**
+
+1. **Wrapper templates only render in their own context.** `{{Picture of the day}}` and `{{On this day}}` return an
+   `imbox`/`tmbox` *notice* ("This image was selected as picture of the day…") when parsed off the Main Page. The
+   **dated subpages** return the real boxes: `{{POTD/2026-09-16}}`, `{{Wikipedia:Selected anniversaries/September 16}}`.
+   The widget detects the notice (`boxLooksLikeNotice`) and says so rather than leaving a yellow box unexplained.
+2. **`{{CURRENTYEAR}}`-style magic words do work** inside the transclusion — verified: `{{POTD/{{CURRENTYEAR}}-{{CURRENTMONTH}}-{{CURRENTDAY2}}}}`
+   renders the current Picture of the day. But in a *board* `{{…}}` already means a param reference, and the demos
+   constitution flags it. So the widget expands its own single-brace tokens instead: `{date}` → `2026-09-16`,
+   `{monthname}` → `September`, `{day}`, `{month}`, `{year}` — `POTD/{date}` is self-updating and board-legal.
+3. **URLs come back relative and protocol-relative.** `href="/wiki/File:X.jpg"`, `src="//thumb.wikimedia.org/…"`,
+   and `srcset` lists. Left alone they resolve against *our* origin, so a click would land on wikibento. The widget
+   rewrites them (and the sanitiser refuses anything not absolute http(s) or a fragment, so a missed rewrite drops
+   the link rather than misdirecting it).
+4. **The wikitext value is untrusted input** even though the output is MediaWiki-sanitised. Measured: the parse
+   result contains no scripts and no handlers — and the widget still allowlists tags/attributes, drops
+   `style=`/`on*`, refuses `javascript:`/`data:`, and keeps only CSS rules whose selectors start with
+   `.mw-parser-output`. Two promises, not one: the wiki's about its output, ours about what we inject.
+
+**Caching:** 10 minutes. The Main Page boxes change a few times a day; a stale headline is worse than a refetch.
+The card's footer shows the fetch time like every other widget, and each card links back to its template (CC BY-SA).
+
