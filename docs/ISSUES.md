@@ -3349,9 +3349,51 @@ answer for *loading* turned out to be "it adopts it, permanently").
 2. **Always adopt, but keep the previous board** under a second key with a "restore my board" affordance.
 3. **Adopt only when the visitor has nothing saved** — cheapest, but silently ignores the case that matters.
 
+**Warnings, notices and reversibility — decided 2026-09-16 (do not re-litigate while building).**
+
+Andrew asked whether a warning popup should tell the user what is about to happen. Answer: **inform, yes; pop
+up, no** — and the codebase already carries the rule that decides this. It has two idioms:
+
+* a **`ConfirmDialog`** for ↺ Reset ("clears the current board … cannot be undone") and for Rename (which
+  repoints every `{{widget:id}}` reference). Both are *deliberate, in-app, irreversible* acts: the user pressed
+  a button whose permanence is obvious;
+* an **`assembly-toast` with Undo** for the Ask/assembly path — an *incidental* change that is cheap to reverse.
+
+Loading a link someone sent is **incidental** (you clicked a link, often just to see what it is) and it can be
+**made reversible**. That puts it in the undo/preview idiom, and a modal is the wrong shape for four concrete
+reasons:
+
+1. **It would fire where there is nothing to lose** — a first-time visitor, or anyone browsing the hub with an
+   empty board. A warning that appears when nothing is at risk is how the warning that *matters* gets clicked
+   through.
+2. **The demos hub is ~13 links.** A confirm per click makes sampling the demos — the front door — hostile.
+3. **A warning is a substitute for reversibility, and a worse one.** It arrives before you know whether you
+   want the board, it can be dismissed reflexively, and it cannot help the person who clicked three days ago.
+   Information must not be the load-bearing part of the safety.
+4. **A modal on navigation** steals focus at exactly the moment a browser would normally just follow a link.
+
+So, in the order of what actually protects the visitor:
+
+1. **The non-destructive default (option 1) is the protection.** Nothing is overwritten until the visitor
+   edits, so there is nothing to warn about.
+2. **A slim, named notice while the board is borrowed** (never a modal): *"Viewing a shared board — Document
+   Reader demo. Your own board is saved and untouched."* with **[Save this as mine]** and **[Back to my
+   board]** (which drops the URL claim and restores). Shown only when *both* hold — a URL board is loaded
+   **and** a different board is saved — so it never appears for a first-time visitor and never repeats once the
+   choice is made. Reuse the existing banner/toast slot rather than inventing a component.
+3. **Expect an implicit adoption to be one-deep recoverable.** The visitor edits the borrowed board, and that
+   *is* the adoption — so keep the board it displaced under a second key. That is what makes **[Back to my
+   board]** work even *after* someone has started editing, which a banner alone cannot cover.
+4. **A confirm is earned in exactly one case:** the explicit **[Save this as mine]** would discard *unsaved*
+   edits made on top of the borrowed board. Then a `ConfirmDialog` is right — and it must **name the two
+   boards** ("Replace *My board* (4 widgets) with *Document Reader demo* (5 widgets)?"), because "are you
+   sure?" tells the user nothing they can act on.
+
 **Verification:** load `?config=…` in a browser with a saved board, assert `localStorage` is unchanged after
-load (and that the board on screen is the URL's); then make an edit and assert it is adopted. Extend
-`scripts/url-state-audit.mjs` rather than writing a new script — it already drives this exact path.
+load (and that the board on screen is the URL's); then make an edit and assert it is adopted; assert the
+borrowed notice appears **only** in the borrowed state (not on a first visit, not after adoption), and that
+**[Back to my board]** restores the displaced board after an edit. Extend `scripts/url-state-audit.mjs` rather
+than writing a new script — it already drives this exact path.
 
 **Effort:** half a day. `readSavedBoard`/`savedBoardPayload` already model "what a reload restores", so the
 question is only *when* to write it.
