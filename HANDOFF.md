@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-BEaAHn9L.js` (+ `index-CI1Ga_V5.css`) |
-| deployed | 2026-09-15, five times — the Internet Archive pass, 📄 Document Reader, its Wikisource text layer, that panel made sticky, and lastly a config-only update of `/document-reader-demo.json` (the JS bundle unchanged) |
+| production bundle | `index-CXkEamrO.js` (+ `index-CI1Ga_V5.css`) |
+| deployed | 2026-09-15, six times — the Internet Archive pass, 📄 Document Reader, its Wikisource text layer, that panel made sticky, a config-only board update, then **the URL stops lying** (ISSUE-87: Reset drops its claim, every edit drops it, Share embeds the board on screen) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the sticky transcription panel, the boards, both endpoints) |
+| pending deploy | none — production serves this branch's tip (verified live: `smoke:url` against https://wikibento.toolforge.org, 12/12) |
 | newest capabilities | 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you as you turn pages**) · 🎬 archive.org media by URL · ⤓ PNG export for CORS images · 🕰️ Lifeline timelines |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
