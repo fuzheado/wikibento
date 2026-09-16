@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { buildShareLink, presentModeUrl } from '../lib/share';
+import { claimIsFresh, boardFingerprint } from '../lib/urlState';
 import { qrSvg } from '../lib/qr';
 import { CONFIG_VERSION } from '../lib/dashboardConfig';
 
@@ -20,7 +21,7 @@ const QR_MAX_CHARS = 1500;
  *   2. The self-contained #/d/<base64> share link, when short enough
  *   3. No QR — friendly notice — when the embedded config is too long
  */
-export default function SharePanel({ widgets, layout, params = null, lean = false, onClose }) {
+export default function SharePanel({ widgets, layout, params = null, claim = null, lean = false, onClose }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState(lean ? 'lean' : 'full');
 
@@ -34,16 +35,22 @@ export default function SharePanel({ widgets, layout, params = null, lean = fals
   );
   const hashShareUrl = useMemo(() => buildShareLink(shareJson), [shareJson]);
 
-  // A URL loaded with ?config= already re-opens this exact dashboard and is
-  // dramatically shorter than the hash form — prefer it for the QR.
+  // A URL loaded with ?config= re-opens that file's dashboard and is dramatically shorter than the hash
+  // form — so prefer it, but ONLY while the board on screen still equals what that file contains. The
+  // address bar is a claim, not evidence: load a demo, change a param or add a widget, and it went on
+  // saying `?config=/demos.json` while the board became something else — so the QR handed the recipient
+  // a different board than the one being pointed at. Compare fingerprints instead of trusting the URL.
   const currentUrl = window.location.href;
-  const hasConfigParam = new URLSearchParams(window.location.search).has('config');
+  const claimFresh = useMemo(
+    () => claimIsFresh(claim, boardFingerprint(widgets, layout, params)),
+    [claim, widgets, layout, params],
+  );
 
   // The QR is an encoding of the copyable link — always the same artifact, so
   // what you scan is exactly what you can paste.
   const linkText = useMemo(
-    () => presentModeUrl(hasConfigParam ? currentUrl : hashShareUrl, mode),
-    [hasConfigParam, currentUrl, hashShareUrl, mode],
+    () => presentModeUrl(claimFresh ? currentUrl : hashShareUrl, mode),
+    [claimFresh, currentUrl, hashShareUrl, mode],
   );
 
   const qrText = linkText.length <= QR_MAX_CHARS ? linkText : null;
@@ -131,8 +138,8 @@ export default function SharePanel({ widgets, layout, params = null, lean = fals
           </button>
         </div>
         <div className="import-hint">
-          {hasConfigParam
-            ? 'QR encodes the current URL — anyone who scans opens this exact dashboard'
+          {claimFresh
+            ? 'QR encodes this URL — anyone who scans it opens exactly this dashboard'
             : 'Self-contained link — the full config is embedded in the URL'}
         </div>
       </div>

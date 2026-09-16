@@ -13,6 +13,7 @@ import { WIDGET_TYPES } from './widgets';
 import { printTarget } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
+import { applyUrl, boardFingerprint, claimIsFresh, dropBoardClaimOnScreen, parseUrlState, setParams } from './lib/urlState.js';
 import { readSavedBoard, savedBoardPayload } from './lib/savedBoard';
 import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
@@ -64,6 +65,9 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // Reset is destructive and now offers a choice of fresh start (blank board or
   // the starter set), so it opens a dialog instead of acting on the click.
   const [showResetDialog, setShowResetDialog] = useState(false);
+  // The board the URL claimed at boot (C1). SharePanel compares the live board against it, so a link we
+  // hand someone always describes the board on screen rather than a stale `?config=` (ISSUE-87).
+  const [urlClaim, setUrlClaim] = useState(null);
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset) — also by board-param changes (ISSUE-50)
@@ -118,9 +122,9 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     // Kiosk boot: a ?kiosk=1 link stays kiosk across refreshes because the
     // param stays in the URL. Deliberately NOT persisted to localStorage —
     // a user who tries kiosk once must not silently land back in it.
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('kiosk') === '1') setKiosk(true);
-    else if (params.get('lean') === '1') setLean(true); // ?lean=1 — chrome-free, no fullscreen
+    const urlState = parseUrlState(window.location.search, window.location.hash);
+    if (urlState.kiosk) setKiosk(true);
+    else if (urlState.lean) setLean(true); // ?lean=1 — chrome-free, no fullscreen
     const apply = (widgets, layout, paramsBlock) => {
       const { specs, values } = parseParams(paramsBlock);
       setParamBlock(paramsBlock || null);
@@ -147,12 +151,14 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const r = validateDashboard(text);
           if (!r.valid) throw new Error(r.errors[0]);
           apply(r.widgets, r.layout, JSON.parse(text).params);
+          setUrlClaim({ kind: 'config', value: configUrl, fingerprint: boardFingerprint(r.widgets, r.layout, JSON.parse(text).params) });
           loadedFromUrl = true;
         } else if (hashPayload) {
           const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
           apply(r.widgets, r.layout, json.params);
+          setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: boardFingerprint(r.widgets, r.layout, json.params) });
           loadedFromUrl = true;
         }
       } catch (e) {
@@ -164,6 +170,20 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     boot();
     return () => { cancelled = true; };
   }, []);
+
+  // C1 (ISSUE-87): the URL's board claim lives only as long as the board still matches it. Every edit —
+  // a widget added or removed, a config or param changed, a card dragged — makes `?config=/demos.json` a
+  // false statement about what is on screen, so the claim goes. A replaceState, so it costs no history
+  // entry; and Share can then embed the board the user actually has rather than the file's.
+  //
+  // The comparison is the same serialisation localStorage holds, which is also what a reload restores —
+  // so "the URL matches the board" and "the board is what comes back" cannot disagree.
+  useEffect(() => {
+    if (!initialized || !urlClaim) return;
+    if (claimIsFresh(urlClaim, boardFingerprint(widgets, layout, paramBlock))) return;
+    setUrlClaim(null);
+    dropBoardClaimOnScreen();
+  }, [initialized, urlClaim, widgets, layout, paramBlock]);
 
   // Present-mode enter/exit (kiosk + lean, ISSUE-18). Fullscreen is attempted
   // only on the kiosk click path (browser requires a user gesture; the
@@ -187,12 +207,9 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     // Strip ?kiosk=1 / ?lean=1 so a refresh after Exit lands in normal mode
     // (ISSUE-18 checklist). Escape keeps the param — a present link stays a
-    // present link unless the presenter deliberately leaves.
-    const url = new URL(window.location.href);
-    const had = url.searchParams.has('kiosk') || url.searchParams.has('lean');
-    url.searchParams.delete('kiosk');
-    url.searchParams.delete('lean');
-    if (had) window.history.replaceState(null, '', url.toString());
+    // present link unless the presenter deliberately leaves. The write goes through
+    // urlState (C5), the app's one address-bar writer, and is a replaceState (C6).
+    applyUrl(setParams(window.location.href, { kiosk: null, lean: null }));
   }, []);
 
   // Escape exits present mode (kiosk or lean, only while one is active).
@@ -441,6 +458,11 @@ const handleAutoHeight = useCallback((id, px) => {
     const nextWidgets = blank ? [] : DEFAULT_WIDGETS;
     const nextLayout = blank ? [] : DEFAULT_LAYOUT;
     localStorage.removeItem(STORAGE_KEY);
+    // C1: the board is about to stop being whatever the URL claims, so the claim goes with it. Without
+    // this the address bar kept `?config=/demos.json` over a blank board, and the next reload (or a
+    // shared link) resurrected the board the user had just discarded.
+    dropBoardClaimOnScreen();
+    setUrlClaim(null);
     setParamBlock(null);
     setParamSpecs({});
     setParamValues({});
@@ -454,6 +476,10 @@ const handleAutoHeight = useCallback((id, px) => {
 
   /** Replace the whole dashboard (example load / successful import). */
   const applyDashboard = useCallback((dashboard) => {
+    // A wholesale board replacement (✨ Example, ⬆ Import, and ISSUE-86's paste) means the URL's claim
+    // is no longer what is on screen (C1).
+    dropBoardClaimOnScreen();
+    setUrlClaim(null);
     const { specs, values } = parseParams(dashboard.params);
     setParamBlock(dashboard.params || null);
     setParamSpecs(specs);
@@ -735,6 +761,7 @@ const handleAutoHeight = useCallback((id, px) => {
           widgets={widgets}
           layout={layout}
           params={paramBlock}
+          claim={urlClaim}
           lean={lean}
           onClose={() => setShowShare(false)}
         />

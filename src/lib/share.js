@@ -19,6 +19,8 @@ const WIKI_HOST_RE = /(wikipedia|wikimedia|wiktionary|wikisource|wikiquote|wikib
 const WWIKI_BARE_RE = /^w\.wiki\//i;
 
 /** UTF-8-safe base64url (no + / or padding — URL-safe). */
+import { parseUrlState } from './urlState.js';
+
 export function encodeDashboardHash(json) {
   const b64 = btoa(unescape(encodeURIComponent(json)));
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -64,14 +66,13 @@ export function presentModeUrl(url, mode) {
 
 /** Pull a ?config= URL (decoded) from the current query string, if any. */
 export function readConfigParam() {
-  const v = new URLSearchParams(window.location.search).get('config');
-  return v && v.trim() ? v.trim() : null;
+  // Reading the address bar is urlState's job (C5) — this is the boot-facing alias.
+  return parseUrlState(window.location.search, window.location.hash).config || null;
 }
 
 /** Pull a #/d/<base64url> payload from the current hash, if any. */
 export function readHashConfig() {
-  const m = window.location.hash.match(/^#\/d\/([A-Za-z0-9_-]+)$/);
-  return m ? m[1] : null;
+  return parseUrlState(window.location.search, window.location.hash).embed;
 }
 
 /**

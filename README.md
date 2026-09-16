@@ -249,6 +249,8 @@ front door.
   file conventions, quotas, ranked proposal) ·
   [DOCUMENT-VIEWER](docs/DOCUMENT-VIEWER.md) (Commons PDFs/DjVu: page-thumbnail scheme, why framing a PDF is
   the fragile route, and the viewer shared with IA books)
+- **Behaviour** — [URL-STATE](docs/URL-STATE.md) (what the address bar may claim, decided action by
+  action, and the audit that enforces it: `npm run smoke:url`)
 - **Ideas** — [WIDGET-IDEAS](docs/WIDGET-IDEAS.md) · [DEMO-IDEAS](docs/DEMO-IDEAS.md) ·
   [ROADMAP](docs/ROADMAP.md) · [ISSUES](docs/ISSUES.md) ·
   [LIFELINE-WIDGET](docs/LIFELINE-WIDGET.md) (timelines of lives, and comparing two of them — measured

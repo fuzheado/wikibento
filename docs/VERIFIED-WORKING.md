@@ -11,6 +11,26 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## The URL as a claim about the board (ISSUE-87, 2026-09-15)
+
+- ✅ **↺ Reset no longer leaves the old directive behind.** Andrew reported that Reset blanked the board but
+  the address bar kept `?config=/demos.json`, so a reload (or a pasted link) brought the discarded board
+  back. Reset now drops the claim — and so does **every** board edit, because the same lie can be told by
+  any of them. Verified in Chromium against a local build: `?config=/document-reader-demo.json` → ↺ Blank →
+  `/` with 0 cards, **and still 0 cards after a reload** (the reported symptom, end to end).
+- ✅ **Share hands over the board on screen, not the URL in the bar.** The second instance of the same bug:
+  SharePanel preferred the `?config=` URL whenever present, so *load a demo → change something → Share* gave
+  the recipient the file's board. Measured: an untouched board shares its short 58-char `?config=` link; after
+  removing one widget the link becomes a 1,462-char `#/d/…` embed of the current board.
+- ✅ **A quiet load is not an edit.** The claim survives a load with no interaction — guarding the trap that
+  react-grid-layout's mount-time layout normalization would otherwise drop the demo URL on arrival.
+- ✅ **Present mode stays opt-in and reversible:** `?lean=1` lands in present mode, Exit strips the param,
+  and entering present mode from a plain URL invents no param (the *shared* link carries the mode).
+- Evidence: `npm run smoke:url` — 12 checks, 9 actions traced, 0 invariants broken; plus
+  `tests/url-state.test.mjs` (19 tests) including a source scan that fails if anything outside
+  `src/lib/urlState.js` writes history or interprets `location.search`. Contract and inventory:
+  [URL-STATE.md](URL-STATE.md).
+
 ## Trend chart Y-axis + scale toggle (ISSUE-64, 2026-09-10 — GitHub #42)
 
 - ✅ **TrendCard Y-axis ticks + gridlines:** Article Pageviews (trend mode) and

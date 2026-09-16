@@ -3328,6 +3328,72 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-88 · A shared link must not overwrite the visitor's board — **open**
+
+**What:** opening someone's `?config=` / `#/d/…` link **persists it over the visitor's own saved board**.
+Boot ends with `apply(...)`, and `apply` writes `localStorage`, so a demo or a colleague's board silently
+replaces whatever the visitor had been working on. Nothing on screen says so; the loss shows up on the next
+visit without the param.
+
+**Why it matters:** the entry board is described as "your board", and one click on a link destroys it. This
+is the same class as ISSUE-87 — the app treating a URL as state to adopt rather than as a document to show —
+but it costs data rather than correctness, which makes it worse.
+
+**Found:** while building the ISSUE-87 audit (the inventory asked "does this action affect the URL?" and the
+answer for *loading* turned out to be "it adopts it, permanently").
+
+**Decided behaviour (pick one and write it down):**
+1. **Preview, then adopt on first edit** — a URL-loaded board is held as "borrowed"; the visitor's saved
+   board stays untouched until they change something. Recommended: matches the mental model of clicking a
+   link, and the change is visible (the address bar claim already drops on that first edit, ISSUE-87).
+2. **Always adopt, but keep the previous board** under a second key with a "restore my board" affordance.
+3. **Adopt only when the visitor has nothing saved** — cheapest, but silently ignores the case that matters.
+
+**Verification:** load `?config=…` in a browser with a saved board, assert `localStorage` is unchanged after
+load (and that the board on screen is the URL's); then make an edit and assert it is adopted. Extend
+`scripts/url-state-audit.mjs` rather than writing a new script — it already drives this exact path.
+
+**Effort:** half a day. `readSavedBoard`/`savedBoardPayload` already model "what a reload restores", so the
+question is only *when* to write it.
+
+## ISSUE-87 · The URL as a claim about the board (audit + contract) — **done + verified 2026-09-15**
+
+**What:** ↺ Reset blanked the board but left `?config=/demos.json` in the address bar, so a reload or a
+shared link resurrected the board the user had just discarded. Andrew asked the right general question —
+"recommend a plan to audit every point where clicking something may or may not want to affect the URL" —
+because the reset button was only the visible symptom.
+
+**Why:** the app has exactly one URL writer (`history.replaceState`, stripping `?kiosk=1`/`?lean=1` on Exit)
+and reads the URL once at boot. Everything else the user does lives in React state + `localStorage`, so the
+address bar was a **claim nothing kept honest** — and it is the artifact people copy, bookmark and e-mail.
+
+**The second instance found while auditing:** SharePanel preferred the `?config=` URL whenever one was
+present ("dramatically shorter than the hash form"), so loading a demo, editing it and hitting Share handed
+the recipient the *file's* board rather than the one on screen. Same lie, opposite direction, and this one
+reached a second person.
+
+**Shipped (2026-09-15):**
+- `src/lib/urlState.js` — the contract as data (`URL_STATE_CONTRACT`, `NEVER_IN_URL`), `parseUrlState`,
+  `boardClaim`, `boardFingerprint` (built on `savedBoardPayload`, so "does the URL match the board?" and
+  "what would a reload restore?" cannot disagree), `claimIsFresh`, `stripBoardClaim`, `setParams`, and
+  `applyUrl` — the single writer.
+- Reset and wholesale replacement drop the claim; **every** board edit drops it too (an effect on the
+  fingerprint), so the URL never describes a board that is no longer there.
+- Share builds its link from the board: `#/d/<payload>` once the claim is stale, the short `?config=` URL
+  only while it is still true; the QR hint follows the same decision.
+- `docs/URL-STATE.md` — the six rules, the **complete action-by-action inventory** (including the decided
+  *no* cases: zoom, page number, panels, sort, toasts), the design questions, and the measurement plan.
+- `tests/url-state.test.mjs` (19 tests, one of which walks `src/` and fails if a second URL writer appears)
+  and `npm run smoke:url` (`scripts/url-state-audit.mjs`), which drives the real app and prints the traced
+  table. It caught a real crash during development (`claimIsFresh is not defined` — an import that silently
+  did not land) that no unit test would have seen.
+
+**Open questions moved out, not forgotten:** deep-linking a document page (`?page=19`) is a *reference*, not
+a view preference, and is worth doing in the share path when someone asks to cite one; Back-button undo is
+refused on purpose (C6) while the app is not URL-driven; ISSUE-88 is the data-loss sibling.
+
+**Verification:** `npm run smoke:url` — 12 checks, 9 actions traced, 0 invariants broken.
+
 ## ISSUE-86 · Duplicate a widget — and copy/paste one between boards — **open**
 
 **What:** Andrew's request: *"sometimes you've made a widget and you want to make another one based on one that

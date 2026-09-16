@@ -53,6 +53,7 @@ Gallery).
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
 | `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
+| `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
@@ -266,11 +267,12 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
 actually broken or unfinished today:
 
-- **Reset doesn't stick on a URL-loaded board.** ↺ Reset clears `localStorage` and
-  restores the defaults, but a page loaded via `?config=…` / `#/d/<base64>` /
-  a w.wiki share link re-applies the URL config on refresh (URL > localStorage >
-  defaults). Fix: `handleReset` should also blank the URL params
-  (`history.replaceState` to the bare path).
+- ~~**Reset doesn't stick on a URL-loaded board.**~~ **Fixed 2026-09-15** — and it was the visible
+  half of a bigger problem: the URL was a claim nothing kept honest. Reset now drops the claim, an edit
+  drops it too, and Share builds its link from the board instead of from the address bar. The contract,
+  the full action-by-action inventory and the audit live in `docs/URL-STATE.md`; `npm run smoke:url`
+  fails if any of it regresses. The secondary finding — a shared link silently overwrites the visitor's
+  own saved board — is ISSUE-88.
 - **`public/dashboard.json`'s authored layout overlaps itself.** `fileusage`
   (x9 y14 w3 h5 → occupies through row 18) and `topwikis` (x9 y18 w4 h4) collide;
   react-grid-layout pushes items apart so the *rendered* board is fine, but the
