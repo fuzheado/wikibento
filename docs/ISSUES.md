@@ -3328,7 +3328,7 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
-## ISSUE-88 · A shared link must not overwrite the visitor's board — **open**
+## ISSUE-88 · A shared link must not overwrite the visitor's board — **done + verified 2026-09-16**
 
 **What:** opening someone's `?config=` / `#/d/…` link **persists it over the visitor's own saved board**.
 Boot ends with `apply(...)`, and `apply` writes `localStorage`, so a demo or a colleague's board silently
@@ -3395,8 +3395,34 @@ borrowed notice appears **only** in the borrowed state (not on a first visit, no
 **[Back to my board]** restores the displaced board after an edit. Extend `scripts/url-state-audit.mjs` rather
 than writing a new script — it already drives this exact path.
 
-**Effort:** half a day. `readSavedBoard`/`savedBoardPayload` already model "what a reload restores", so the
-question is only *when* to write it.
+**Shipped 2026-09-16** — option 1 plus the notice, in three steps:
+
+1. **Borrowed semantics.** `apply(..., { persist: false })` for a URL board; the visitor's own board is read
+   *unconditionally at boot* (a ref cannot survive the navigation, and on a URL load `loadSaved()` never runs —
+   the first attempt's bug was adopting with nothing "displaced" because the board it should have protected had
+   never been read); the first edit adopts, because `persist()` is both the single write path and the single
+   adoption point; the displaced board goes to `wikibento-previous-board` for a day. `borrowed` is mirrored in
+   a ref set *synchronously* with the state — an effect update lags a render, and a mount-time write slipped
+   through that gap. react-grid-layout's mount-time placement no longer persists (the same trap ISSUE-87 hit on
+   the claim path), so only a real gesture writes.
+2. **The notice** (`src/components/BoardNotice.jsx`): *"👀 Viewing a shared board — GLAM. Your own board is
+   saved and untouched — edit anything to make this copy yours."* with [Save this as mine] and
+   [Back to my board]. Shown only when `noticeState` finds something at stake, so a first-time visitor sees
+   nothing at all.
+3. **Recovery** — after an adoption the bar becomes *"💾 Your previous board is saved — recoverable for
+   today."* with [Restore my board] (and a ✕ that drops the recovery, as its tooltip says).
+
+**Correction to the section above:** the one case that was going to earn a `ConfirmDialog` — "[Save this as
+mine] would discard unsaved edits on top of the borrowed board" — **dissolved once the default became
+non-destructive**. Editing *is* adopting, so there is no in-between state holding unsaved work, and the
+displaced board is recoverable, so nothing in this flow is irreversible. A confirm is for acts that cannot be
+taken back; there are none left here, and no dialog was built. If a future change makes an adoption
+irreversible, that case comes back and the dialog with it.
+
+**Verified:** `npm run smoke:url` traces 17 actions with 0 invariants broken, six of them ISSUE-88's own —
+no notice for a first-time visitor; a link leaves the saved board untouched; the saved board is still there on
+the next plain visit; [Back to my board] restores it and clears the claim; the first edit adopts *and* stashes
+the displaced board *and* switches the notice to recovery; [Restore my board] puts it back.
 
 ## ISSUE-87 · The URL as a claim about the board (audit + contract) — **done + verified 2026-09-15**
 

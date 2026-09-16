@@ -157,10 +157,11 @@ imported fine and only the click path failed.
    The distinction that makes it defensible: it is a *reference to a thing in the source*, not a view
    preference. Recommendation: yes, but only in the **share/embed** path first (as `?page=` alongside
    `#/d/…`), and only for one page number, not the whole reader state. Do it when someone asks to cite.
-2. **A shared link must not overwrite the visitor's board.** Boot persists whatever it loads, so opening
-   someone's `?config=` link silently replaces the visitor's own saved board in localStorage. Preview-then-adopt
-   (persist only on the first edit, or keep the visitor's board under a separate key) is the honest behaviour,
-   and it is a product decision rather than a URL one — ISSUE-88.
+2. ~~**A shared link must not overwrite the visitor's board.**~~ **Done 2026-09-16 (ISSUE-88).** A URL board is
+   now *borrowed*: shown, never written, until the visitor edits — and the displaced board is recoverable for a
+   day. One signal does both jobs: the same content-fingerprint divergence that drops the URL's claim is the
+   moment the board is adopted, so there are never two notions of "the board changed". The notice that offers
+   [Save this as mine] / [Back to my board] appears only when something is actually at stake.
 3. **Back-button undo.** Today Back does not undo board edits (C6 keeps it that way on purpose). Worth
    revisiting only if we adopt URL-driven rendering; the toast is the current undo affordance.
 

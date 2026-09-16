@@ -182,6 +182,101 @@ try {
   await sleep(700);
   rows.push(['enter Present from a plain URL', urlOf(page), 'no param invented']);
   check('C2: entering present mode does not invent a URL param', !/kiosk=|lean=/.test(urlOf(page)), urlOf(page));
+
+  // ── 5. ISSUE-88: a shared link borrows a board; it does not adopt one ─────────────────────────────
+  // The bug this guards, reproduced before it was fixed: seed the visitor's board, click a link, visit the
+  // plain URL — and the demo followed them home. Now the visitor's board must survive all of it, until they
+  // edit, and even then it must be recoverable.
+  const STORE = 'wikibento-layout';
+  const STASH_KEY = 'wikibento-previous-board';
+  const savedIds = () => page.evaluate((k) => {
+    const raw = localStorage.getItem(k);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const payload = parsed.payload || parsed;
+    return (payload.widgets || []).map((w) => w.id).join(',') || '(empty board)';
+  }, STORE);
+  const stashIds = () => page.evaluate((k) => {
+    const raw = localStorage.getItem(k);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed.payload.widgets || []).map((w) => w.id).join(',') || '(empty board)';
+  }, STASH_KEY);
+  const noticeKind = () => page.evaluate(() => {
+    const el = document.querySelector('[data-notice]');
+    return el ? el.getAttribute('data-notice') : null;
+  });
+  const MINE = {
+    version: 1,
+    widgets: [{ id: 'MY-BOARD', widgetType: 'pageviews', config: {} }],
+    layout: [{ i: 'MY-BOARD', x: 0, y: 0, w: 3, h: 4 }],
+    params: null,
+  };
+
+  // a first-time visitor has nothing at stake, so must see nothing at all
+  await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate((k) => { localStorage.clear(); localStorage.removeItem(k); }, STASH_KEY);
+  await page.goto(`${BASE}/?config=/glam-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(2500);
+  rows.push(['first visit, shared link', urlOf(page), 'no notice']);
+  check('ISSUE-88: a first-time visitor sees no notice', (await noticeKind()) === null,
+    'nothing saved is not a board to lose');
+
+  // a visitor WITH a board: the link must not touch it
+  await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate((a) => { localStorage.setItem(a.k, JSON.stringify(a.b)); localStorage.removeItem(a.s); },
+    { k: STORE, b: MINE, s: STASH_KEY });
+  await page.goto(`${BASE}/?config=/glam-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(2500);
+  rows.push(['visitor opens a shared link', urlOf(page), `notice: ${await noticeKind()}`]);
+  check("ISSUE-88: opening a link leaves the saved board untouched", (await savedIds()) === "MY-BOARD",
+    `saved: ${await savedIds()}`);
+  check('ISSUE-88: the borrowed notice is shown, and names the board',
+    (await noticeKind()) === 'borrowed' && /GLAM/.test(await page.locator('[data-notice]').innerText()),
+    (await page.locator('[data-notice]').innerText()).replace(/\s+/g, ' ').slice(0, 70));
+
+  await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
+  await sleep(2200);
+  rows.push(['next visit, plain URL', urlOf(page), 'own board again']);
+  check('ISSUE-88: the saved board is still there on the next visit',
+    (await savedIds()) === 'MY-BOARD' && (await cards(page)) === 1, `saved: ${await savedIds()}`);
+
+  // [Back to my board]
+  await page.goto(`${BASE}/?config=/glam-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(2200);
+  await page.click('button:has-text("Back to my board")');
+  await sleep(2200);
+  rows.push(['[Back to my board]', urlOf(page), 'claim dropped, own board back']);
+  check('ISSUE-88: Back to my board restores the saved board and clears the claim',
+    urlOf(page) === '/' && (await page.locator('[data-widget-id]').first().getAttribute('data-widget-id')) === 'MY-BOARD'
+      && (await noticeKind()) === null,
+    `url ${urlOf(page)}, first card ${await page.locator('[data-widget-id]').first().getAttribute('data-widget-id')}`);
+
+  // editing the borrowed board adopts it — and keeps the displaced board recoverable
+  await page.goto(`${BASE}/?config=/glam-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(2200);
+  const borrowedCount = await cards(page);
+  await page.locator('[data-widget-id] .widget-btn-remove').first().click();
+  await sleep(2000);
+  rows.push(['edit the borrowed board', urlOf(page), `adopted, ${await noticeKind()}`]);
+  check('ISSUE-88: the first edit adopts the borrowed board',
+    (await cards(page)) === borrowedCount - 1 && (await savedIds()) !== 'MY-BOARD',
+    `saved: ${(await savedIds())?.slice(0, 40)}`);
+  check('ISSUE-88: the displaced board is kept for recovery', (await stashIds()) === 'MY-BOARD',
+    `stash: ${await stashIds()}`);
+  check('ISSUE-88: the notice switches to recovery', (await noticeKind()) === 'recover');
+
+  await page.click('button:has-text("Restore my board")');
+  await sleep(2200);
+  rows.push(['[Restore my board]', urlOf(page), 'the displaced board comes back']);
+  check('ISSUE-88: Restore puts the displaced board back',
+    (await savedIds()) === 'MY-BOARD' && (await noticeKind()) === null
+      && (await page.locator('[data-widget-id]').first().getAttribute('data-widget-id')) === 'MY-BOARD',
+    `saved: ${await savedIds()}`);
 } finally {
   if (browser) await browser.close();
   if (server) server.kill();

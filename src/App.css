@@ -2320,6 +2320,28 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 }
 .assembly-toast-close { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0 2px; }
 
+/* Board notice (ISSUE-88) — the borrowed/recover bar. Not a toast: it stays until it is answered, because it
+   is the affordance for getting a board back. Reads as a quiet strip under the header rather than a shout. */
+.board-notice {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 12px; padding: 8px 12px;
+  background: #1c1f26; border: 1px solid var(--accent); border-radius: 8px;
+  font-size: 12.5px; color: var(--text);
+}
+.board-notice-borrowed { border-color: var(--accent); }
+.board-notice-recover { border-color: #6f7d8c; }
+.board-notice-msg { flex: 1; min-width: 220px; }
+.board-notice-btn {
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 6px; padding: 3px 10px; cursor: pointer; font-size: 12px; white-space: nowrap;
+}
+.board-notice-btn:hover { background: rgba(90, 170, 255, 0.12); }
+.board-notice-close {
+  border: 0; background: transparent; color: var(--muted, #99a3ae); cursor: pointer; font-size: 13px;
+  padding: 2px 6px; border-radius: 6px;
+}
+.board-notice-close:hover { color: var(--text); }
+
 /* ── Timeline (SPARQL widget, ISSUE-78) ─────────────────────────────────────────
    Lanes on one shared axis. Every dot, gridline, band edge and tick is placed by a
    percentage from the tested layout in src/lib/timeline.js, so the CSS decides how

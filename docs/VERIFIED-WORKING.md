@@ -11,6 +11,28 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A shared link borrows a board (ISSUE-88, 2026-09-16)
+
+- ✅ **The visitor's board survives opening a link.** Reproduced first: seed a board with the id `MY-BOARD`,
+  click `?config=/glam-demo.json`, visit the plain URL — the demo followed them home and `MY-BOARD` was gone.
+  Now the same sequence ends with `MY-BOARD` saved and on screen, and the notice reads *"👀 Viewing a shared
+  board — GLAM. Your own board is saved and untouched."*
+- ✅ **A first-time visitor sees no notice at all** — nothing saved is not a board to lose, and the same rule
+  keeps it hidden when the visitor's board *is* the board the link points at.
+- ✅ **[Back to my board]** restores the saved board and drops the URL claim (address bar back to `/`), so a
+  reload cannot re-borrow the link.
+- ✅ **The first edit adopts, and the displaced board is recoverable.** After removing one card from the
+  borrowed board: the board is adopted, `MY-BOARD` lands in `wikibento-previous-board`, the notice switches to
+  *"💾 Your previous board is saved — recoverable for today"*, and **[Restore my board]** brings `MY-BOARD`
+  back.
+- ✅ **A mount-time layout placement is not an edit** (the trap ISSUE-87 hit on the claim path, here on the
+  write path): react-grid-layout fills gaps in an authored layout and reports `onLayoutChange` while merely
+  placing a board, which would have made a borrowed board adopt itself before anyone touched it.
+- ✅ **An acronym label**: the notice says "GLAM", not "Glam" — an assertion in `tests/borrowed-board.test.mjs`
+  caught the helper title-casing it.
+- Evidence: `npm run smoke:url` — 17 actions traced, 0 invariants broken (six of them ISSUE-88's), plus
+  `tests/borrowed-board.test.mjs`. Design and reasoning: [ISSUES.md](ISSUES.md) (ISSUE-88).
+
 ## The URL as a claim about the board (ISSUE-87, 2026-09-15)
 
 - ✅ **↺ Reset no longer leaves the old directive behind.** Andrew reported that Reset blanked the board but

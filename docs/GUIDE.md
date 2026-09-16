@@ -152,6 +152,9 @@ freely; just don't duplicate a value that several widgets must agree on.
 
 - Layout and config persist in your browser; **↺ Reset** restores the starter board — and clears the URL
   params that pointed at the board you had, so a refresh can't bring the discarded one back ([URL-STATE](URL-STATE.md)).
+- **Opening someone's link borrows their board** — it is shown, not saved over yours, and a slim notice offers
+  **[Save this as mine]** (adopt it) or **[Back to my board]**. Edit anything and it becomes yours; until then
+  your own board is untouched, and after an adoption the one it replaced stays recoverable for the day.
 - **⬇ Export / ⬆ Import** round-trip the board as JSON.
 - **🔗 Share** gives a QR code + link. `?config=<url>` loads a hosted config
   (any CORS-enabled URL, an on-wiki page, or a `w.wiki/…` short link);

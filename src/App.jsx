@@ -7,6 +7,7 @@ import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
 import DiagnosticsPanel from './components/DiagnosticsPanel';
 import SharePanel from './components/SharePanel';
+import BoardNotice from './components/BoardNotice';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
@@ -76,7 +77,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // The first edit adopts it (see `persist`), which is also the moment the URL claim goes stale (ISSUE-87).
   const [borrowed, setBorrowed] = useState(null);  // { label } when the board on screen came from the URL
   const [savedFingerprint, setSavedFingerprint] = useState(null); // the visitor's own board, for the notice
-  const [stash, setStash] = useState(null);        // the board an adoption displaced, recoverable for a day
+  const [stash, setStash] = useState(() => readStash(localStorage.getItem(STASH_KEY))); // displaced board (24h)
   const savedBoardRef = useRef(null);              // the raw payload we are protecting, as loaded at boot
   const borrowedRef = useRef(null);                // mirror of `borrowed`, set synchronously with the state
   const layoutTouchedRef = useRef(false);          // a real drag/resize happened (not a mount-time placement)
@@ -178,17 +179,20 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const text = await fetchRemoteConfig(configUrl);
           const r = validateDashboard(text);
           if (!r.valid) throw new Error(r.errors[0]);
-          apply(r.widgets, r.layout, JSON.parse(text).params, { persist: false });
-          setBorrowedNow({ label: boardLabelFromConfig(configUrl) });
-          setUrlClaim({ kind: 'config', value: configUrl, fingerprint: boardFingerprint(r.widgets, r.layout, JSON.parse(text).params, { includeLayout: false }) });
+          const borrowedParams = JSON.parse(text).params;
+          const borrowedPrint = boardFingerprint(r.widgets, r.layout, borrowedParams, { includeLayout: false });
+          apply(r.widgets, r.layout, borrowedParams, { persist: false });
+          setBorrowedNow({ label: boardLabelFromConfig(configUrl), fingerprint: borrowedPrint });
+          setUrlClaim({ kind: 'config', value: configUrl, fingerprint: borrowedPrint });
           loadedFromUrl = true;
         } else if (hashPayload) {
           const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
+          const borrowedPrint = boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false });
           apply(r.widgets, r.layout, json.params, { persist: false });
-          setBorrowedNow({ label: 'a shared board' });
-          setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false }) });
+          setBorrowedNow({ label: 'a shared board', fingerprint: borrowedPrint });
+          setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: borrowedPrint });
           loadedFromUrl = true;
         }
       } catch (e) {
@@ -301,6 +305,65 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     savedBoardRef.current = payload;
     setSavedFingerprint(boardFingerprint(newWidgets, newLayout, params, { includeLayout: false }));
   }, [setBorrowedNow]);
+
+  /** Load a board as the visitor's OWN — their saved board, or a restore. Not a borrow: it is written, and
+   *  nothing is stashed, because nothing is being displaced. */
+  const applyMyBoard = useCallback((nextWidgets, nextLayout, params) => {
+    const { specs, values } = parseParams(params);
+    setParamBlock(params || null);
+    setParamSpecs(specs);
+    setParamValues(values);
+    setWidgets(nextWidgets);
+    setLayout(nextLayout);
+    setWidgetOutputs({});
+    const payload = savedBoardPayload(nextWidgets, nextLayout, params);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    savedBoardRef.current = payload;
+    setSavedFingerprint(boardFingerprint(nextWidgets, nextLayout, params, { includeLayout: false }));
+  }, []);
+
+  // What the notice should say, if anything (ISSUE-88). `noticeState` is the whole rule: a borrowed board
+  // *and* a different board saved. Nothing at stake, nothing shown — which is why a first-time visitor gets
+  // no notice at all.
+  const notice = noticeState({
+    borrowed,
+    savedFingerprint,
+    borrowedFingerprint: borrowed ? borrowed.fingerprint : null,
+    stash,
+  });
+
+  /** Adopt the borrowed board now, without needing an edit. Goes through `persist`, so the board it displaces
+   *  is stashed exactly as an implicit adoption would. */
+  const keepBorrowedBoard = useCallback(() => {
+    persist(widgets, layout, paramBlock);
+  }, [persist, widgets, layout, paramBlock]);
+
+  /** Go back to the visitor's own board: drop the URL claim so a reload cannot re-borrow it, then load the
+   *  saved board (or the starter set when nothing was saved). */
+  const backToMyBoard = useCallback(() => {
+    dropBoardClaimOnScreen();
+    setUrlClaim(null);
+    setBorrowedNow(null);
+    const board = readSavedBoard(localStorage.getItem(STORAGE_KEY));
+    if (board) applyMyBoard(board.widgets, board.layout, board.params);
+    else applyMyBoard(DEFAULT_WIDGETS, DEFAULT_LAYOUT, null);
+    setReloadKey((k) => k + 1);
+  }, [applyMyBoard, setBorrowedNow]);
+
+  /** Put back the board an adoption displaced (step 3's recovery), then stop offering it. */
+  const restorePreviousBoard = useCallback(() => {
+    if (!stash) return;
+    applyMyBoard(stash.payload.widgets, stash.payload.layout, stash.payload.params);
+    localStorage.removeItem(STASH_KEY);
+    setStash(null);
+    setReloadKey((k) => k + 1);
+  }, [stash, applyMyBoard]);
+
+  const dismissNotice = useCallback(() => {
+    localStorage.removeItem(STASH_KEY);
+    setStash(null);
+  }, []);
+
 
   /** ISSUE-44 Phase 3a — add an Ask-assembled board fragment BELOW the
    *  current board (additive, never supplants). Steps: undo snapshot →
@@ -775,6 +838,15 @@ const handleAutoHeight = useCallback((id, px) => {
           </button>
         </div>
       </header>
+
+      <BoardNotice
+        kind={notice}
+        label={borrowed ? borrowed.label : null}
+        onKeep={keepBorrowedBoard}
+        onBack={backToMyBoard}
+        onRestore={restorePreviousBoard}
+        onDismiss={dismissNotice}
+      />
 
       {bootError && (
         <div className="boot-banner">
