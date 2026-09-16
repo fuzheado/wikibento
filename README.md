@@ -112,12 +112,18 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 ### Sharing & persistence
 
 - **Layout persistence** — saved to `localStorage` (`wikibento-layout`), survives refresh
+- **Opening someone's link borrows their board** — a `?config=` or `#/d/…` link is *shown*, never written
+  over yours: your own board stays saved and untouched, and a slim notice offers **[Save this as mine]** or
+  **[Back to my board]**. Edit anything and the board becomes yours; the one it displaces stays recoverable
+  for 24 hours ([docs/URL-STATE.md](docs/URL-STATE.md))
 - **Export / Import** — ⬇ downloads the whole board as `dashboard.json`; ⬆ loads one back (file or paste) with
   per-field validation, warnings, and nothing applied unless it is valid
-- **Shareable links** — 🔗 opens a Share panel with a QR code and a copyable link: the `?config=` URL when
-  there is one (short and phone-friendly), else the self-contained `#/d/…` hash; an oversized board gets a
-  friendly notice instead of an un-scannable code
-- **Reset** — ⓘ About explains the tool; Reset returns the starter board or a blank one, in one dialog
+- **Shareable links** — 🔗 opens a Share panel with a QR code and a copyable link. An untouched board loaded
+  from `?config=` shares that short, phone-friendly URL; anything else embeds the board itself as `#/d/…`, so
+  the link always describes **the board on screen** rather than the file it started from. An oversized board
+  gets a friendly notice instead of an un-scannable code
+- **Reset** — ⓘ About explains the tool; Reset returns the starter board or a blank one, in one dialog — and
+  clears the URL params that pointed at the board you just discarded, so a refresh cannot bring it back
 
 ### Showing and exporting
 
@@ -186,9 +192,11 @@ wikibento/
     ├── main.jsx               # React 19 bootstrap
     ├── App.jsx                # grid, state, persistence, toolbar, URL boot
     ├── App.css                # dark theme + all component styles
-    ├── components/            # AddWidgetPanel, ImportPanel, SharePanel, AboutPanel, ErrorBoundary
+    ├── components/            # AddWidgetPanel, ImportPanel, SharePanel, AboutPanel, BoardNotice, ErrorBoundary
     ├── lib/
     │   ├── dashboardConfig.js # format v1: example dashboard + validateDashboard()
+    │   ├── urlState.js        # what the URL may claim: one reader, one writer, claim integrity
+    │   ├── borrowedBoard.js   # borrowed vs adopted boards, the recovery stash, the notice's rule
     │   ├── markdown.js        # tiny zero-dep Markdown renderer (Text/Markdown widget)
     │   ├── share.js           # URL loading/sharing (?config=, #/d/<base64>)
     │   └── qr.js              # URL → inline SVG QR code (qrcode-generator)
@@ -222,7 +230,9 @@ WikiBento is smoke-tested per widget in a real browser, against named live asset
 the failures each check was written for, is [docs/VERIFIED-WORKING.md](docs/VERIFIED-WORKING.md). The claims
 are checked rather than asserted: `npm test` regenerates the widget manifest and enforces the cross-document
 consistency gates, `npm run smoke` enforces grid geometry and that every ⚙/ⓘ action is reachable at any panel
-size, and `npm run test:browsers` loads a real board in all three engines.
+size, `npm run test:browsers` loads a real board in all three engines, and the feature E2Es drive the reading
+and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url` — what each of them caught
+is in [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md)).
 
 ## Documentation
 

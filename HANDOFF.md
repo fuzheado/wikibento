@@ -102,7 +102,8 @@ ssh alih@dev.toolforge.org "sudo -niu tools.wikibento webservice --backend=kuber
 ## Architecture in one screen
 
 ```
-App.jsx (state: widgets[] + layout[] + params{}, URL boot, persistence)
+App.jsx (state: widgets[] + layout[] + params{}, URL boot, borrowed-vs-adopted
+persistence, claim drop on divergence)
 ├── GridLayout (12 cols, vertical compaction, single column under 768px)
 │   └── WidgetFrame × N (fetch lifecycle, request-serial guard, ⚙ panel, emit publisher)
 │       └── renderer: StatCard | RankingCard | TrendCard | GlamCard | MarkdownCard | …
@@ -116,7 +117,9 @@ App.jsx (state: widgets[] + layout[] + params{}, URL boot, persistence)
     emit → publishes output for dataflow consumers (a `source` field / {{widget:id}})
 ```
 
-Key files: `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+Key files: `src/lib/urlState.js` (the URL contract: one reader, one writer, claim
+integrity) · `src/lib/borrowedBoard.js` (borrowed boards, the recovery stash, the
+notice's rule) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
 (fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
 renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
 example board) · `src/lib/params.js` (board params, reference resolution) ·
@@ -134,7 +137,8 @@ dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseab
 own files now — `docs/WIDGET-CATALOG.md` (every widget, what it shows, its API),
 `docs/VERIFIED-WORKING.md` (the dated smoke-test record), `docs/BROWSER-TESTING.md`
 (the browser suites + engine-install traps), `docs/EXPORT.md` (the export formats, and why PNG of an HTML
-widget is not a server feature) and `docs/LIFELINE-WIDGET.md` (the timeline renderer, with the measured
+widget is not a server feature) · `docs/URL-STATE.md` (what the address bar may claim — the six rules, the
+action-by-action inventory, and the audit that enforces them) and `docs/LIFELINE-WIDGET.md` (the timeline renderer, with the measured
 Wikidata-vs-prose coverage) — so the README stays a front door.
 
 **Doc convention: append-only applies to exactly two files.** `docs/DEPLOYMENTS.md` (the
@@ -262,6 +266,24 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     *linked* from a Wikisource article is not one — and `prop=proofread` on an `Index:` page returns nothing,
     so grades only come per page.
 
+21. **react-grid-layout reports *lifecycle* events that look exactly like user actions.** Two traps, each of
+which silently changed behaviour until an audit caught it, and both the same root cause: at mount RGL **fills
+gaps in an authored layout** and reports `onLayoutChange`, and RGL 2.2 also fires a drag/resize **stop**
+handler once while placing the board. So "the layout changed" and "the user dragged something" can both be
+true on a board nobody has touched. What that cost: the URL's board claim was dropped on arrival (ISSUE-87),
+and a borrowed board *adopted itself* before the visitor edited anything (ISSUE-88). The rules that now hold:
+a mount-time placement is never an edit; the discriminator for a real gesture is `onDragStart` /
+`onResizeStart` (a *start* cannot happen without a pointer); and arrangement is excluded from the board
+fingerprint entirely. Generalisation worth keeping: **when a library reports an event, ask whether it can fire
+without a user** — driving the real app is what found both.
+
+22. **Read what you must protect at boot, not in the path that applies a board.** A `useRef` does not
+survive a navigation, and on a `?config=` load the "load the saved board" branch never runs — so the first
+attempt at ISSUE-88 adopted a borrowed board while holding `null` as "the board being displaced", and the
+visitor's board was written over with nothing stashed. Whose board is saved is now read *first and
+unconditionally* at the top of boot. Same shape as the state-ordering rules elsewhere in this file: **the
+thing that must not be lost has to be captured before the thing that might lose it.**
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -271,8 +293,12 @@ actually broken or unfinished today:
   half of a bigger problem: the URL was a claim nothing kept honest. Reset now drops the claim, an edit
   drops it too, and Share builds its link from the board instead of from the address bar. The contract,
   the full action-by-action inventory and the audit live in `docs/URL-STATE.md`; `npm run smoke:url`
-  fails if any of it regresses. The secondary finding — a shared link silently overwrites the visitor's
-  own saved board — is ISSUE-88.
+  fails if any of it regresses.
+- ~~**A shared link overwrites the visitor's own saved board.**~~ **Fixed 2026-09-16 (ISSUE-88)** — the same
+  family as the Reset bug: the app treated a URL as state to adopt rather than a document to show. A URL board
+  is now *borrowed*: shown, never written, until the visitor edits; the board an adoption displaces stays
+  recoverable for a day, and a notice offers [Save this as mine] / [Back to my board]. One signal does both
+  jobs — the fingerprint divergence that drops the URL's claim is the moment of adoption.
 - **`public/dashboard.json`'s authored layout overlaps itself.** `fileusage`
   (x9 y14 w3 h5 → occupies through row 18) and `topwikis` (x9 y18 w4 h4) collide;
   react-grid-layout pushes items apart so the *rendered* board is fine, but the
@@ -286,8 +312,10 @@ actually broken or unfinished today:
   Before comparing an artifact to a rebuild, pin the commit
   (`git log --oneline <deployed-commit>..origin/main` shows what is merged but not
   live) — the worked numbers live in `docs/DEPLOYMENTS.md`.
-- **PNG of an arbitrary widget is a decision, not an oversight.** Client-side PNG works only where a widget
-  draws itself as SVG: Chromium taints a canvas for any SVG containing a `foreignObject` (measured — even
+- **PNG of an arbitrary widget is a decision, not an oversight.** Client-side PNG works where a widget draws
+  itself as SVG, **or** where its images come from a CORS-enabled host (`iiif.archive.org`,
+  `upload.wikimedia.org`, `thumb.wikimedia.org` — measured to send ACAO), which is how a book or document page
+  exports as a real PNG. It cannot work for an *arbitrary* HTML/CSS card: Chromium taints a canvas for any SVG containing a `foreignObject` (measured — even
   one holding just `<p>hello</p>`), so an HTML/CSS card can produce a valid .svg but never a .png in the
   page. A server-side render service was considered and **rejected** on 2026-09-14 (four costs: re-fetching
   the whole board per image from a shared Toolforge IP, a browser in a 1 Gi pod parsing untrusted content, a
@@ -298,8 +326,9 @@ actually broken or unfinished today:
   Escape-to-close).
 - **Wikistats CSV parser is naive** (no quoted-field handling) — fetching is cached
   and retried, but the parse still assumes no commas in fields.
-- **`handleLayoutChange` persists to `localStorage` on every drag tick** — fine at
-  the current payload size, wasteful as boards grow.
+- **`handleLayoutChange` persists to `localStorage` on every drag tick** (only *during* a real gesture now — a
+  mount-time auto-placement no longer persists, see gotcha 21) — fine at the current payload size, wasteful as
+  boards grow.
 - **Two pre-existing dev-only React warnings** (cosmetic, 2-line fixes, no
   production impact): the toolbar's ✨ Ask button is nested inside the + Add Widget
   button (`App.jsx:489` — invalid HTML; browsers auto-split them), and the media
