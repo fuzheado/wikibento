@@ -94,11 +94,11 @@ const CATALOG_EXCLUSIONS = {
 
 /** docs/*.md not linked from the README — each needs a reason. */
 const INTERNAL_DOCS = {
-  // Written for a Pi *session*, not for a reader of the tool: it is a work directive for the WDQS
-  // visualization spike (ISSUE-72), landed by a parallel agent session on 2026-09-16. Classified rather
-  // than published — link it from the README instead if it is ever meant to be user-facing.
-  'PI-DIRECTIVE-WDQS-VISUALIZATION-SPIKE.md':
-    'a Pi work directive for the WDQS visualization spike, not user-facing documentation',
+  // (empty: every doc is part of the public documentation index)
+  //
+  // An exemption here is checked to still *exist* (see the loop below): the one added on 2026-09-16 for a
+  // parallel session's Pi directive was left pointing at a file that had since been deleted, and the gate
+  // reported 7/7 — a stale exception silently pre-authorises a future file with the same name.
 };
 
 const DOCS = ['README.md', 'HANDOFF.md'];
@@ -263,6 +263,9 @@ check('every docs/*.md is linked from the README', () => {
   }
   for (const [file, reason] of Object.entries(INTERNAL_DOCS)) {
     if (!reason || !String(reason).trim()) fail(`INTERNAL_DOCS['${file}'] needs a reason`);
+    if (!existsSync(join(ROOT, 'docs', file))) {
+      fail(`INTERNAL_DOCS['${file}'] is an exemption for a file that does not exist — delete the exemption`);
+    }
   }
   return `${files.length} docs indexed`;
 });

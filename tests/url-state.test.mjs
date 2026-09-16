@@ -218,6 +218,24 @@ test('C5: urlState.js is the only place that interprets the URL, and the only wr
   assert.deepEqual(offenders, [], `URL access outside urlState.js:\n  ${offenders.join('\n  ')}`);
 });
 
+test('every claim fingerprint uses the same rule', () => {
+  // App computes the boot baseline AND the effect's comparison; SharePanel asks the same question of the live
+  // board. If one site included the layout and another did not, every claim would read as stale the moment it
+  // loaded — which is exactly what happened when the layout handling was first written, for any config whose
+  // authored layout had gaps. One rule, three call sites, checked against the source rather than trusted.
+  const offenders = [];
+  for (const f of ['src/App.jsx', 'src/components/SharePanel.jsx']) {
+    file(f).split('\n').forEach((line, i) => {
+      if (!line.includes('boardFingerprint(')) return;
+      if (!line.includes('includeLayout: false')) offenders.push(`${f}:${i + 1}  ${line.trim().slice(0, 64)}`);
+    });
+  }
+  assert.deepEqual(offenders, [], `claim fingerprints must exclude the layout (arrangement is not the claim):\n  ${offenders.join('\n  ')}`);
+  // and a real gesture is what drops it, because a mount-time placement is not an edit
+  assert.match(file('src/App.jsx'), /onDragStart=\{dropClaimOnGesture\}/);
+  assert.match(file('src/App.jsx'), /onResizeStart=\{dropClaimOnGesture\}/);
+});
+
 test('C5: the app reads the URL through the helpers, at boot and in present mode', () => {
   const app = file('src/App.jsx');
   assert.match(app, /parseUrlState\(window\.location\.search, window\.location\.hash\)/);

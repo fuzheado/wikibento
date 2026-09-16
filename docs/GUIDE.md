@@ -155,7 +155,9 @@ freely; just don't duplicate a value that several widgets must agree on.
 - **⬇ Export / ⬆ Import** round-trip the board as JSON.
 - **🔗 Share** gives a QR code + link. `?config=<url>` loads a hosted config
   (any CORS-enabled URL, an on-wiki page, or a `w.wiki/…` short link);
-  `#/d/…` embeds the whole config in the link.
+  `#/d/…` embeds the whole config in the link. Either way the link describes the
+  board **on screen**: edit a board you loaded from a demo and Share embeds your
+  version, instead of pointing at the file you started from.
 - **Share modes:** the panel picks what the link *and* the QR open — **📱 Lean
   mode** (`?lean=1`: chrome-free, app-like) or **🖥 Full board** (editable).
   Both variants always carry the same mode, and the caption names it. Leave a

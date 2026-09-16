@@ -101,7 +101,7 @@ Three layers, because prose cannot fail:
 1. **The contract as data** — `URL_STATE_CONTRACT` and `NEVER_IN_URL` in `src/lib/urlState.js`. A reviewer
    adding a URL param has to edit a table that says what each one means, and the read list is *derived* from
    it, so an orphan read is impossible by construction.
-2. **Pure tests + a source scan** — `tests/url-state.test.mjs` (19 tests): the contract is internally
+2. **Pure tests + a source scan** — `tests/url-state.test.mjs`: the contract is internally
    consistent, `pushState` is never called, view/transient keys carry no param, the fingerprint is built on
    the same serialisation localStorage holds — and a walk of `src/` that fails if anything outside
    `urlState.js` writes history or interprets `location.search`/`.hash`.
@@ -174,4 +174,4 @@ imported fine and only the click path failed.
   `?config=` URL) instead of from the address bar.
 - `src/lib/share.js` — `readConfigParam` / `readHashConfig` are thin aliases over `parseUrlState`.
 - `scripts/url-state-audit.mjs` — `npm run smoke:url`.
-- `tests/url-state.test.mjs` — 19 tests, including the one-writer source scan.
+- `tests/url-state.test.mjs` — including the one-writer source scan.

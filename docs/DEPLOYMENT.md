@@ -102,6 +102,8 @@ and `?config=` w.wiki links won't resolve — everything else still works.
 - [ ] Smoke-test `npx vite preview` locally before shipping
 - [ ] `rsync` dist/ → the tool (with `--delete`)
 - [ ] Restart: `sudo -niu tools.wikibento webservice --backend=kubernetes node20 restart`
+- [ ] If the change touches board state or the URL: `AUDIT_BASE=https://wikibento.toolforge.org npm run smoke:url`
+      — driving the deployed app is the only way to catch a claim that silently stops being true
 - [ ] Verify live: bundle hash in index.html changed; ✨ Example renders;
       `/api/resolve` still answers (`?url=https://w.wiki/TR9R`)
 - [ ] New endpoints that need CORS → confirm `origin=*` (Action API) or
