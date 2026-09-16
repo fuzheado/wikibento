@@ -15,6 +15,9 @@ import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dash
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
 import { applyUrl, boardFingerprint, claimIsFresh, dropBoardClaimOnScreen, parseUrlState, setParams } from './lib/urlState.js';
 import { readSavedBoard, savedBoardPayload } from './lib/savedBoard';
+import {
+  STASH_KEY, boardLabelFromConfig, stashPayload, readStash, stashIsLive, noticeState,
+} from './lib/borrowedBoard';
 import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
@@ -68,6 +71,15 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // The board the URL claimed at boot (C1). SharePanel compares the live board against it, so a link we
   // hand someone always describes the board on screen rather than a stale `?config=` (ISSUE-87).
   const [urlClaim, setUrlClaim] = useState(null);
+  // ISSUE-88 — a board loaded from a URL is BORROWED: on screen, not yet the visitor's. While it is
+  // borrowed nothing is written to localStorage, so opening someone's link cannot destroy their board.
+  // The first edit adopts it (see `persist`), which is also the moment the URL claim goes stale (ISSUE-87).
+  const [borrowed, setBorrowed] = useState(null);  // { label } when the board on screen came from the URL
+  const [savedFingerprint, setSavedFingerprint] = useState(null); // the visitor's own board, for the notice
+  const [stash, setStash] = useState(null);        // the board an adoption displaced, recoverable for a day
+  const savedBoardRef = useRef(null);              // the raw payload we are protecting, as loaded at boot
+  const borrowedRef = useRef(null);                // mirror of `borrowed`, set synchronously with the state
+  const layoutTouchedRef = useRef(false);          // a real drag/resize happened (not a mount-time placement)
   const [initialized, setInitialized] = useState(false);
   const [bootError, setBootError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0); // bumped to force widget reloads (import/example/reset) — also by board-param changes (ISSUE-50)
@@ -125,14 +137,18 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     const urlState = parseUrlState(window.location.search, window.location.hash);
     if (urlState.kiosk) setKiosk(true);
     else if (urlState.lean) setLean(true); // ?lean=1 — chrome-free, no fullscreen
-    const apply = (widgets, layout, paramsBlock) => {
+    // `persist: false` shows a board without adopting it (ISSUE-88). Everything else is unchanged.
+    const apply = (widgets, layout, paramsBlock, { persist: doPersist = true } = {}) => {
       const { specs, values } = parseParams(paramsBlock);
       setParamBlock(paramsBlock || null);
       setParamSpecs(specs);
       setParamValues(values);
       setWidgets(widgets);
       setLayout(layout);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedBoardPayload(widgets, layout, paramsBlock)));
+      if (!doPersist) return;
+      const payload = savedBoardPayload(widgets, layout, paramsBlock);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      savedBoardRef.current = payload;
     };
     const loadSaved = () => {
       // readSavedBoard distinguishes "the user saved an empty board" (honour it) from
@@ -142,6 +158,18 @@ const [showAskPanel, setShowAskPanel] = useState(false);
       apply(DEFAULT_WIDGETS, DEFAULT_LAYOUT);
     };
     const boot = async () => {
+      // Whose board is saved? Read it here, first and unconditionally. On a page load that came from a URL
+      // the saved board is never *applied*, but it must still be *remembered*: it is what a borrowed board
+      // must not destroy (ISSUE-88), and the notice needs to know whether anything is at stake. A ref cannot
+      // survive the navigation, so this cannot live in `loadSaved`. `null` means "nothing saved" — which is
+      // also why the notice stays silent for a first-time visitor: null is not a board to lose.
+      const savedBoard = readSavedBoard(localStorage.getItem(STORAGE_KEY));
+      savedBoardRef.current = savedBoard
+        ? savedBoardPayload(savedBoard.widgets, savedBoard.layout, savedBoard.params)
+        : null;
+      setSavedFingerprint(savedBoard
+        ? boardFingerprint(savedBoard.widgets, savedBoard.layout, savedBoard.params, { includeLayout: false })
+        : null);
       const configUrl = readConfigParam();
       const hashPayload = readHashConfig();
       let loadedFromUrl = false;
@@ -150,14 +178,16 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const text = await fetchRemoteConfig(configUrl);
           const r = validateDashboard(text);
           if (!r.valid) throw new Error(r.errors[0]);
-          apply(r.widgets, r.layout, JSON.parse(text).params);
+          apply(r.widgets, r.layout, JSON.parse(text).params, { persist: false });
+          setBorrowedNow({ label: boardLabelFromConfig(configUrl) });
           setUrlClaim({ kind: 'config', value: configUrl, fingerprint: boardFingerprint(r.widgets, r.layout, JSON.parse(text).params, { includeLayout: false }) });
           loadedFromUrl = true;
         } else if (hashPayload) {
           const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
-          apply(r.widgets, r.layout, json.params);
+          apply(r.widgets, r.layout, json.params, { persist: false });
+          setBorrowedNow({ label: 'a shared board' });
           setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false }) });
           loadedFromUrl = true;
         }
@@ -171,11 +201,21 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     return () => { cancelled = true; };
   }, []);
 
+  // `borrowed` needs to be readable *synchronously* by the stable `persist` callback: updating a ref in an
+  // effect lags by a render, and a mount-time persist slipped through that gap on the first attempt (the
+  // borrowed board was written and the visitor's board was lost, exactly the bug). So the ref is set at the
+  // same moment as the state, in one place.
+  const setBorrowedNow = useCallback((value) => {
+    borrowedRef.current = value;
+    setBorrowed(value);
+  }, []);
+
   // A card the user actually moved: `?config=/demos.json` no longer describes the screen, so the claim goes.
   // Bound to drag/resize *start* rather than stop, deliberately: react-grid-layout 2.2 fires a stop handler
   // once while it places the board on mount (a config with layout gaps gets filled in), which dropped every
   // demo's claim the moment it loaded. A start can only follow a real pointer gesture.
   const dropClaimOnGesture = useCallback(() => {
+    layoutTouchedRef.current = true;
     if (!urlClaim) return;
     setUrlClaim(null);
     dropBoardClaimOnScreen();
@@ -244,8 +284,23 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // reload came back without its controls (found 2026-09-11 while testing the share round-trip).
   const persist = useCallback((newWidgets, newLayout, paramsBlock) => {
     const params = paramsBlock === undefined ? paramBlockRef.current : paramsBlock;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedBoardPayload(newWidgets, newLayout, params)));
-  }, []);
+    const payload = savedBoardPayload(newWidgets, newLayout, params);
+    // ISSUE-88: the single place a board is written is also the place an adoption happens. If the board on
+    // screen was borrowed, this write is the visitor saying "I mean it" — so the board it displaces is kept
+    // (one deep, for a day) before it goes, and the notice switches from borrowed to recovery.
+    if (borrowedRef.current) {
+      const displaced = savedBoardRef.current;
+      if (displaced && (displaced.widgets.length || displaced.layout.length)) {
+        const next = stashPayload(displaced);
+        try { localStorage.setItem(STASH_KEY, JSON.stringify(next)); } catch { /* full or blocked: not fatal */ }
+        setStash(next);
+      }
+      setBorrowedNow(null);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    savedBoardRef.current = payload;
+    setSavedFingerprint(boardFingerprint(newWidgets, newLayout, params, { includeLayout: false }));
+  }, [setBorrowedNow]);
 
   /** ISSUE-44 Phase 3a — add an Ask-assembled board fragment BELOW the
    *  current board (additive, never supplants). Steps: undo snapshot →
@@ -373,6 +428,11 @@ const [showAskPanel, setShowAskPanel] = useState(false);
 
   const handleLayoutChange = useCallback((newLayout) => {
     setLayout(newLayout);
+    // react-grid-layout also reports a layout change when it *places* the board on mount (it fills gaps in
+    // an authored layout), and that is not an edit by the user — persisting it here is what made a borrowed
+    // board adopt itself before anyone touched it. Only a real gesture persists; `dropClaimOnGesture` marks
+    // it, and it is the same signal that drops the URL claim.
+    if (!layoutTouchedRef.current) return;
     persist(widgets, newLayout);
   }, [widgets, persist]);
 
