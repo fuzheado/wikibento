@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { buildShareLink, presentModeUrl } from '../lib/share';
+import { buildShareLink, buildCompactShareLink, presentModeUrl } from '../lib/share';
 import { claimIsFresh, boardFingerprint } from '../lib/urlState';
 import { qrSvg } from '../lib/qr';
 import { CONFIG_VERSION } from '../lib/dashboardConfig';
@@ -33,7 +33,17 @@ export default function SharePanel({ widgets, layout, params = null, claim = nul
     () => JSON.stringify({ version: CONFIG_VERSION, widgets, layout, ...(params ? { params } : {}) }),
     [widgets, layout, params],
   );
-  const hashShareUrl = useMemo(() => buildShareLink(shareJson), [shareJson]);
+  // The self-contained link, shortest form (ISSUE-89). Compression is asynchronous, so the plain link is
+  // rendered first and upgraded a moment later; every consumer (QR, copy, the visible field) reads this one
+  // value, so they can never disagree about which link is being shared.
+  const [hashShareUrl, setHashShareUrl] = useState(() => buildShareLink(shareJson));
+  useEffect(() => {
+    let cancelled = false;
+    buildCompactShareLink(shareJson)
+      .then((shortest) => { if (!cancelled) setHashShareUrl(shortest); })
+      .catch(() => {});   // buildCompactShareLink already falls back to the plain form
+    return () => { cancelled = true; };
+  }, [shareJson]);
 
   // A URL loaded with ?config= re-opens that file's dashboard and is dramatically shorter than the hash
   // form — so prefer it, but ONLY while the board on screen still equals what that file contains. The
@@ -121,9 +131,14 @@ export default function SharePanel({ widgets, layout, params = null, claim = nul
           </div>
         ) : (
           <div className="import-notes share-noqr">
-            <div>⚠ Link too long for a QR code ({linkText.length.toLocaleString()} chars).</div>
-            <div>Trim the dashboard to fewer/smaller widgets, or load a hosted
-              <code> ?config=</code> URL and share that instead.</div>
+            <div>⚠ This board is too big for a QR code ({linkText.length.toLocaleString()} chars) — a QR has
+              a hard limit, and a denser one past it is unscannable.</div>
+            <div><strong>The link below still works:</strong> copy it and paste it on your phone, or send it
+              to yourself (Messages, Mail, Signal, WhatsApp) — long text pastes fine.</div>
+            <div><strong>Or skip the link:</strong> ⬇ <strong>Export</strong> the board, AirDrop the
+              <code>dashboard.json</code> to your phone, then ⬆ <strong>Import</strong> it there.</div>
+            <div>A hosted <code>?config=</code> board shares as a short link that scans — if this board already
+              lives at a URL, that is the shortest path of all.</div>
           </div>
         )}
 

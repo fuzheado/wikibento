@@ -3328,7 +3328,7 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
-## ISSUE-89 · Sharing a big board to a phone — the QR failure has better answers than "trim your board" — **open**
+## ISSUE-89 · Sharing a big board to a phone — the QR failure has better answers than "trim your board" — **done + verified 2026-09-16**
 
 **What:** when the board's self-contained link exceeds `QR_MAX_CHARS` (1,500), SharePanel says:
 
@@ -3394,9 +3394,34 @@ works"** — the board is the same, only its encoding changes.
 an honest message), then decide on **2** — it is the only thing that covers every board, and it needs a
 decision about boards being publicly fetchable that is Andrew's to make.
 
-**Verify:** a pure test for the `#/z/` round-trip (encode → decode → same board), the `#/d/` form still loading,
-a documented fallback message when `DecompressionStream` is absent, and an audit check that a 4,000-char board
-renders a QR after compression while the pre-compression link would not.
+**Shipped 2026-09-16 — options 1 and 3.**
+
+1. **The compressed embed** (`#/z/<gzip+base64url>`, `src/lib/share.js`). `buildCompactShareLink` picks the
+   shorter of the two forms (a tiny board genuinely loses to the gzip header, so it is a comparison, not a
+   preference), the plain `#/d/` form keeps loading forever, and a browser without `DecompressionStream` gets a
+   readable error naming the alternatives. Boot accepts both (`src/App.jsx`), and `urlState` treats `#/z/…` as
+   the same claim in another encoding — including `stripBoardClaim`, which drops either form.
+2. **The message** (`src/components/SharePanel.jsx`) no longer asks the user to trim their board or go host a
+   file. It says what is true — a QR has a hard limit — and offers the two transfers with no length limit:
+   copy the link and paste it on the phone (Messages/Mail/Signal/WhatsApp), or ⬇ Export → AirDrop the
+   `dashboard.json` → ⬆ Import. A hosted `?config=` board is mentioned as the shortest path, not as homework.
+3. **Option 2 (publish → short link) is not built** — it is the only thing that would cover *every* board (the
+   42-widget catalogue compresses to 3,651 bytes and the manifest to 11.5 KB, neither of which can ever fit a
+   QR), but it needs a decision about boards being publicly fetchable. Still open below.
+
+**Measured, end to end:** the reported board (`glam-demo.json`, whose plain link was 4,012 characters) now
+shares as a **900-character** `#/z/` link and **renders a QR**. Across the 15 boards in `public/`: plain
+base64url fit a QR for **1**, the compressed form fits **13**. The audit traces it (`Share a big board`), the
+unit suite holds the numbers down (`tests/share-embed.test.mjs`), and the app still *refuses* the two boards
+that genuinely cannot fit rather than rendering a dense unreadable code.
+
+**The trap this cost, now gotcha 23 in HANDOFF:** a `CompressionStream` backpressures, so closing the writer
+before anyone reads the readable deadlocks — the promise never settles, no error is raised, and the panel
+quietly fell back to the uncompressed link. 1.6 KB of gzip hung; a 15-byte test string did not; and **Node does
+not reproduce it**, so the unit tests were green while the app was broken. The live audit is what caught it.
+
+**Still open from this issue:** option 2 (publishing), which is the only fix for boards beyond even a
+version-40 QR; and the `?page=` style deep links it would make cheap.
 
 ## ISSUE-88 · A shared link must not overwrite the visitor's board — **done + verified 2026-09-16**
 

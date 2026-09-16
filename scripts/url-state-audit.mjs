@@ -119,7 +119,8 @@ try {
   await page.waitForSelector('.share-link-input', { timeout: 15000 });
   const link = await page.inputValue('.share-link-input');
   rows.push(['Share after editing', link.replace(BASE, '').slice(0, 46) + (link.length > 60 ? '…' : ''), `${link.length} chars`]);
-  check('C1b: Share hands over the CURRENT board, not the stale ?config=', link.includes('#/d/'),
+  check('C1b: Share hands over the CURRENT board, not the stale ?config=',
+    /#\/[dz]\//.test(link),   // either embedded form; ISSUE-89 makes a real board use the compressed one
     link.includes('config=') ? 'echoed the stale claim ✗' : '');
 
   // an untouched board may still share the short ?config= URL
@@ -182,6 +183,29 @@ try {
   await sleep(700);
   rows.push(['enter Present from a plain URL', urlOf(page), 'no param invented']);
   check('C2: entering present mode does not invent a URL param', !/kiosk=|lean=/.test(urlOf(page)), urlOf(page));
+
+  // ── 4b. ISSUE-89: a big board must FIT IN A QR, because it is compressed before it is embedded ────
+  // The reported failure: a 4,012-character board link and a refusal that told the user to trim their board.
+  // Measured in the app, not in a unit test: load a board whose plain link is too long, adopt it (so Share
+  // embeds rather than reusing ?config=), and check the link Share hands over.
+  await page.goto(`${BASE}/?config=/glam-demo.json`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+  await sleep(2200);
+  await page.locator('[data-widget-id] .widget-btn-remove').first().click();   // adopt: the claim goes stale
+  await sleep(1800);
+  await page.click('button[title^="Share via QR"]');
+  await page.waitForSelector('.share-link-input', { timeout: 15000 });
+  await sleep(1500);   // the compressed link is built asynchronously
+  const bigLink = await page.inputValue('.share-link-input');
+  const qrCount = await page.locator('.share-qr-card svg').count();
+  rows.push(['Share a big board', `#/${bigLink.split('#/')[1]?.slice(0, 1) || '?'}… ${bigLink.length} chars`,
+    qrCount ? 'QR rendered' : 'no QR']);
+  check('ISSUE-89: a big board is embedded compressed', bigLink.includes('#/z/'), bigLink.slice(0, 60));
+  check('ISSUE-89: and therefore renders a QR at all', qrCount === 1);
+  check('ISSUE-89: the link is inside the QR ceiling', bigLink.length <= 1500, `${bigLink.length} chars`);
+  check('ISSUE-89: no "too long for a QR" refusal is shown',
+    (await page.locator('.share-noqr').count()) === 0);
+  await page.keyboard.press('Escape');
 
   // ── 5. ISSUE-88: a shared link borrows a board; it does not adopt one ─────────────────────────────
   // The bug this guards, reproduced before it was fixed: seed the visitor's board, click a link, visit the

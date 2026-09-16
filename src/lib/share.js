@@ -9,6 +9,13 @@
  *                     Toolforge tools, etc.).
  *   #/d/<base64url> — the full dashboard config embedded in the URL hash
  *                     (self-contained link; no hosting needed).
+ *   #/z/<base64url> — the same config with the JSON *gzipped* first (ISSUE-89). Measured against the
+ *                     boards in public/: plain base64url fits a QR code for 1 of 15 of them, the
+ *                     compressed form for 13 of 15 — the board is identical, only the encoding differs.
+ *                     `buildCompactShareLink` picks the shorter of the two, so this is invisible except in
+ *                     the length of the link. `DecompressionStream` is in Chromium, Firefox and WebKit
+ *                     (verified on this machine); a pre-2023 browser gets a readable error rather than a
+ *                     broken board, and `#/d/` links keep working forever.
  */
 
 import { fetchTextWithRetry } from './httpRetry';
@@ -36,6 +43,90 @@ export function decodeDashboardHash(hash) {
 /** Build the self-contained share link for the current dashboard. */
 export function buildShareLink(json) {
   return `${window.location.origin}${window.location.pathname}#/d/${encodeDashboardHash(json)}`;
+}
+
+// ── the compressed form (#/z/…) ────────────────────────────────────────────────────────────────────
+
+/** bytes → base64url, chunked because `String.fromCharCode(...bytes)` blows the argument limit on a big
+ *  board. */
+function bytesToBase64url(bytes) {
+  let bin = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64urlToBytes(payload) {
+  const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+  const bin = atob(padded);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+const NO_COMPRESSION = 'this browser cannot read compressed share links (needs Chrome 80+, Safari 16.4+, '
+  + 'Firefox 113+). Ask the sender for the ?config= link instead, or Import the exported JSON.';
+
+/**
+ * Encode a board into the compressed `#/z/` payload. Throws where CompressionStream is missing.
+ *
+ * THE ORDER MATTERS. A `CompressionStream` backpressures: if nobody is reading `readable`, the queue fills
+ * and `await writer.close()` never resolves. So the read is *started* first and awaited after — getting this
+ * backwards deadlocks silently for any real board (measured: 1.6 KB of gzip hung, a 15-byte test string did
+ * not, which is why the unit tests passed while the app showed a plain link and no QR).
+ */
+export async function encodeCompressedDashboardHash(json) {
+  if (typeof CompressionStream !== 'function') throw new Error('compression unavailable');
+  const cs = new CompressionStream('gzip');
+  const consumed = new Response(cs.readable).arrayBuffer();   // start reading BEFORE closing
+  const writer = cs.writable.getWriter();
+  const [, buf] = await Promise.all([
+    (async () => { await writer.write(new TextEncoder().encode(json)); await writer.close(); })(),
+    consumed,
+  ]);
+  return bytesToBase64url(new Uint8Array(buf));
+}
+
+/** Decode a `#/z/` payload back to the JSON string. Throws a *readable* error, because the only reason
+ *  this fails in practice is a browser from before 2023 — and the person holding the phone needs to know
+ *  what to ask for, not that a stream misbehaved. */
+export async function decodeCompressedDashboardHash(payload) {
+  if (typeof DecompressionStream !== 'function') throw new Error(NO_COMPRESSION);
+  // Same ordering rule as the encoder — the readable must be consumed while the writer is fed, or a board
+  // big enough to fill the queue deadlocks instead of throwing.
+  const ds = new DecompressionStream('gzip');
+  const consumed = new Response(ds.readable).text();
+  try {
+    const writer = ds.writable.getWriter();
+    const [text] = await Promise.all([
+      consumed,
+      (async () => { await writer.write(base64urlToBytes(payload)); await writer.close(); })(),
+    ]);
+    return text;
+  } catch (e) {
+    consumed.catch(() => {});
+    throw new Error(`this share link looks damaged (${e.message}) — ask the sender to share it again`);
+  }
+}
+
+/**
+ * The shortest self-contained link for this board. Compression is worth it for anything real (measured:
+ * 3–4× on the boards in public/), so the compressed form is preferred whenever it actually is shorter —
+ * a tiny board can lose to the gzip header, and this comparison is the only way to know. Falls back to the
+ * plain form when the browser cannot compress at all.
+ */
+export async function buildCompactShareLink(json) {
+  const plain = buildShareLink(json);
+  try {
+    const compressed = `${window.location.origin}${window.location.pathname}`
+      + `#/z/${await encodeCompressedDashboardHash(json)}`;
+    return compressed.length < plain.length ? compressed : plain;
+  } catch {
+    return plain;
+  }
 }
 
 /** Presentation-mode params (ISSUE-18): ?lean=1 is chrome-free, ?kiosk=1 adds
@@ -70,9 +161,11 @@ export function readConfigParam() {
   return parseUrlState(window.location.search, window.location.hash).config || null;
 }
 
-/** Pull a #/d/<base64url> payload from the current hash, if any. */
+/** Pull an embedded board out of the current hash, with the form it used: `{ form: 'd'|'z', payload }`, or
+ *  null. The caller decodes accordingly — `z` goes through `decodeCompressedDashboardHash`. */
 export function readHashConfig() {
-  return parseUrlState(window.location.search, window.location.hash).embed;
+  const s = parseUrlState(window.location.search, window.location.hash);
+  return s.embed ? { form: s.embedForm, payload: s.embed } : null;
 }
 
 /**

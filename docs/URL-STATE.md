@@ -28,7 +28,7 @@ paragraph.
 
 | | rule | why |
 |---|---|---|
-| **C1** | **Claim integrity.** A board claim (`?config=…`, `#/d/<payload>`) is valid only while the board equals what it names. Any action that replaces or modifies the board drops the claim. | The URL is what a reload restores and what a recipient gets. It must not outlive the board it describes. |
+| **C1** | **Claim integrity.** A board claim (`?config=…`, `#/d/<payload>` plain, `#/z/<payload>` gzip+base64url) is valid only while the board equals what it names. Any action that replaces or modifies the board drops the claim. | The URL is what a reload restores and what a recipient gets. It must not outlive the board it describes. |
 | **C2** | **Present mode is opt-in and reversible.** `?kiosk=1` / `?lean=1` are set by the deliberate enter path and stripped by Exit. Escape *keeps* them — a present link stays a present link. | Presentation is a property of the link you hand out, not something a refresh should silently cancel. |
 | **C3** | **View state never enters the URL.** Zoom, page number, open panels, sort order, search boxes, selection. | Not the artifact; and a 40-widget board's every mouse move would explode the URL. |
 | **C4** | **Transient UI never touches the URL.** Dialogs, toasts, boot errors, hover, drag-in-progress. | Same reason, plus these have no meaning to a recipient. |
@@ -48,6 +48,7 @@ the decision written down — including the "no" decisions, which is the point o
 |---|---|---|---|---|
 | load `?config=<file>` | boot | whole board | **yes**, `config` | the claim itself — kept while the board matches, dropped the moment it doesn't |
 | open `#/d/<payload>` | boot | whole board | **yes**, hash | same, as `embed` |
+| open `#/z/<payload>` | boot | whole board | **yes**, hash | the same claim, gzipped first (ISSUE-89) — measured to take the demo boards from 1-of-15 fitting a QR code to 13-of-15. A pre-2023 browser (no `DecompressionStream`) gets a readable error naming the alternatives, never a broken board |
 | ↺ Reset → blank / starter | `handleReset` | whole board | **claim dropped** | was the bug; a blank board must not be re-openable from the address bar |
 | ✨ Example | `handleLoadExample` | whole board | **claim dropped** | wholesale replacement |
 | ⬆ Import | `handleImport` | whole board | **claim dropped** | wholesale replacement |

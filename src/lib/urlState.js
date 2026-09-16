@@ -55,7 +55,11 @@ export const URL_STATE_CONTRACT = [
   },
   {
     key: 'embed', param: null, hash: true, tier: TIERS.BOARD, onBoardChange: 'drop',
-    note: 'the board itself, base64url-encoded as #/d/<payload> — the self-contained share link',
+    note: 'the board itself as #/d/<payload> (plain base64url) or #/z/<payload> (gzip, ISSUE-89)',
+  },
+  {
+    key: 'embedForm', param: null, hash: true, tier: TIERS.BOARD, onBoardChange: 'drop',
+    note: "'d' = plain base64url, 'z' = gzip+base64url — the same claim, and a big board usually only fits a QR compressed",
   },
   {
     key: 'kiosk', param: 'kiosk', tier: TIERS.PRESENT, onBoardChange: 'keep',
@@ -87,8 +91,11 @@ export const READ_PARAMS = URL_STATE_CONTRACT.filter((c) => c.param).map((c) => 
 export const BOARD_CLAIM_PARAMS = URL_STATE_CONTRACT
   .filter((c) => c.tier === TIERS.BOARD && c.param).map((c) => c.param);
 
-/** The hash shape that carries a whole board (`#/d/<base64url>`), from src/lib/share.js. */
-export const EMBED_HASH_RE = /^#\/d\/[A-Za-z0-9_-]+$/;
+/** The two hash shapes that carry a whole board (src/lib/share.js): `#/d/` is plain base64url, `#/z/` is
+ *  gzip+base64url (ISSUE-89 — measured to take the demo boards from 1-of-15 fitting a QR code to 13-of-15).
+ *  They are the same claim in two encodings, which is why the contract treats them as one decision. */
+export const EMBED_HASH_RE = /^#\/[dz]\/[A-Za-z0-9_-]+$/;
+export const EMBED_HASH_FORMS = { d: 'plain', z: 'gzip' };
 
 /**
  * Read the URL state this app cares about — and nothing else. Junk params (`?utm_source=…`) are
@@ -99,13 +106,14 @@ export const EMBED_HASH_RE = /^#\/d\/[A-Za-z0-9_-]+$/;
  */
 export function parseUrlState(search, hash = '') {
   const q = new URLSearchParams(search || '');
-  const out = { config: null, kiosk: null, lean: null, embed: null };
+  const out = { config: null, kiosk: null, lean: null, embed: null, embedForm: null };
   for (const c of URL_STATE_CONTRACT) {
     if (c.param) out[c.key] = q.get(c.param);
   }
   out.kiosk = out.kiosk === '1';
   out.lean = out.lean === '1';
-  if (EMBED_HASH_RE.test(hash || '')) out.embed = (hash || '').replace('#/d/', '');
+  const m = (hash || '').match(/^#\/([dz])\/([A-Za-z0-9_-]+)$/);
+  if (m) { out.embedForm = m[1]; out.embed = m[2]; }
   return out;
 }
 

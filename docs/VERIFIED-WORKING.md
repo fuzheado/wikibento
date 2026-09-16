@@ -11,6 +11,28 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A big board now fits in a QR code (ISSUE-89, 2026-09-16)
+
+- ✅ **The reported failure is gone.** `glam-demo.json`'s self-contained link was 4,012 characters and the panel
+  refused to draw a QR. Compressed it is **900 characters** and the QR renders — measured in the app by the
+  audit (`Share a big board` → `#/z… 900 chars · QR rendered`), not on a bench.
+- ✅ **The win is general, and bounded.** Across the 15 boards in `public/`: plain base64url fits a QR for
+  **1 of 15**, compressed for **13 of 15**. The two that still do not fit (the 42-widget catalogue, and the
+  39 KB widget manifest) are asserted in `tests/share-embed.test.mjs` as refusals, so the app keeps saying
+  "too big for a QR" rather than rendering a dense code nobody can scan.
+- ✅ **Backwards compatible by construction:** `#/d/…` links keep working (asserted), the compressed form is
+  chosen only when it is actually shorter, and a browser without `DecompressionStream` gets a message naming
+  the alternatives instead of a blank board.
+- ✅ **The message offers real options**: copy the link and paste it on the phone, or Export → AirDrop →
+  Import. The old text told the user to trim their board or go host a JSON file — work pushed onto the person
+  who just wanted to show someone a chart.
+- 🐛 **The trap it cost, kept as a gotcha:** a `CompressionStream` deadlocks if you close the writer before
+  reading the readable; the promise never settles and the app silently fell back to the long link. Node does
+  not reproduce it, so this was found by driving the app, and `tests/share-embed.test.mjs` now guards the
+  ordering in the source.
+- Evidence: `npm run smoke:url` (18 actions traced, 0 invariants broken, four of them ISSUE-89's) and
+  `tests/share-embed.test.mjs`. Design and options: [ISSUES.md](ISSUES.md) (ISSUE-89).
+
 ## A shared link borrows a board (ISSUE-88, 2026-09-16)
 
 - ✅ **The visitor's board survives opening a link.** Reproduced first: seed a board with the id `MY-BOARD`,

@@ -99,11 +99,17 @@ test('parseUrlState reads the four carried keys and ignores junk', () => {
   assert.ok(!('utm_source' in s) && !('page' in s), 'a param we do not read must not be mirrored');
 });
 
-test('parseUrlState only treats the #/d/ shape as an embedded board', () => {
+test('parseUrlState treats both embedded-board shapes as a board, and reports the form', () => {
   assert.equal(parseUrlState('', '#/d/abc-123_XYZ').embed, 'abc-123_XYZ');
+  assert.equal(parseUrlState('', '#/d/abc-123_XYZ').embedForm, 'd');
+  // ISSUE-89: the compressed form is the same claim in another encoding
+  assert.equal(parseUrlState('', '#/z/abc-123_XYZ').embed, 'abc-123_XYZ');
+  assert.equal(parseUrlState('', '#/z/abc-123_XYZ').embedForm, 'z');
   assert.equal(parseUrlState('', '#section-2').embed, null);
+  assert.equal(parseUrlState('', '#section-2').embedForm, null);
   assert.equal(parseUrlState('', '#/d/').embed, null, 'an empty payload is not a board');
-  assert.ok(EMBED_HASH_RE.test('#/d/abc'));
+  assert.equal(parseUrlState('', '#/x/abc').embed, null, 'only d and z carry a board');
+  assert.ok(EMBED_HASH_RE.test('#/d/abc') && EMBED_HASH_RE.test('#/z/abc'));
 });
 
 test('boardClaim: config wins over embed, both win over local', () => {
@@ -126,6 +132,12 @@ test('stripBoardClaim removes the claim and keeps the presentation params', () =
   assert.ok(!out.includes('config='), 'the claim is gone');
   assert.ok(out.includes('kiosk=1'), 'present mode is not the board — it stays');
   assert.ok(!out.includes('#/d/'), 'a stale embed is also a stale claim');
+});
+
+test('a compressed embed is dropped by stripBoardClaim too (the claim, not the encoding)', () => {
+  const out = stripBoardClaim('https://x.org/?kiosk=1#/z/abc-123');
+  assert.ok(!out.includes('#/z/'), 'the compressed claim goes');
+  assert.ok(out.includes('kiosk=1'), 'and present mode stays');
 });
 
 test('stripBoardClaim leaves a URL with no claim alone, and keeps unrelated params', () => {

@@ -20,7 +20,7 @@ import {
   STASH_KEY, boardLabelFromConfig, stashPayload, readStash, stashIsLive, noticeState,
 } from './lib/borrowedBoard';
 import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
-import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash } from './lib/share';
+import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash, decodeCompressedDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import './App.css';
@@ -186,7 +186,13 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           setUrlClaim({ kind: 'config', value: configUrl, fingerprint: borrowedPrint });
           loadedFromUrl = true;
         } else if (hashPayload) {
-          const json = JSON.parse(decodeDashboardHash(hashPayload)); // decode returns a JSON STRING
+          // Two embedded forms (ISSUE-89): `d` is plain base64url, `z` is gzip+base64url and is what a big
+          // board needs to fit in a QR code. A decode failure throws a readable message (a pre-2023 browser
+          // is the only realistic cause) which the catch below shows in the boot banner.
+          const jsonText = hashPayload.form === 'z'
+            ? await decodeCompressedDashboardHash(hashPayload.payload)
+            : decodeDashboardHash(hashPayload.payload);
+          const json = JSON.parse(jsonText); // decode returns a JSON STRING
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
           const borrowedPrint = boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false });

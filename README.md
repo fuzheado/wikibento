@@ -119,9 +119,11 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 - **Export / Import** — ⬇ downloads the whole board as `dashboard.json`; ⬆ loads one back (file or paste) with
   per-field validation, warnings, and nothing applied unless it is valid
 - **Shareable links** — 🔗 opens a Share panel with a QR code and a copyable link. An untouched board loaded
-  from `?config=` shares that short, phone-friendly URL; anything else embeds the board itself as `#/d/…`, so
-  the link always describes **the board on screen** rather than the file it started from. An oversized board
-  gets a friendly notice instead of an un-scannable code
+  from `?config=` shares that short, phone-friendly URL; anything else embeds the board itself — **compressed**
+  (`#/z/…`), which is measured to make the difference between a QR code that works for 1 of 15 real boards and
+  one that works for 13. The link always describes **the board on screen** rather than the file it started
+  from, and a board too big for any QR says so and offers the paths that have no length limit (copy the link,
+  or Export → AirDrop → Import on the phone)
 - **Reset** — ⓘ About explains the tool; Reset returns the starter board or a blank one, in one dialog — and
   clears the URL params that pointed at the board you just discarded, so a refresh cannot bring it back
 
