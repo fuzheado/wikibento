@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { boxLinkSelection } from '../lib/wikiBox';
+import {
+  orderProjects, filterProjects, labelFor, readRecentProjects, noteRecentProject,
+  readDefaultProject, toFieldValue,
+} from '../lib/projects';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
 import { getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue } from '../lib/paramSources';
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
@@ -13,7 +17,7 @@ import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
 import { serviceImageUrl, searchHits } from '../lib/iaBook';
-import { fetchIaBookSearch, fetchIaBookPageText, fetchWikisourcePageText } from './dataSources';
+import { fetchProjectList, fetchIaBookSearch, fetchIaBookPageText, fetchWikisourcePageText } from './dataSources';
 import PagedViewer from './PagedViewer';
 import { configFieldValue } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
@@ -215,6 +219,17 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
      *  which is what makes a registry default mean something at render time. Looked up from the registry directly
      *  rather than through `def`, because `def` is declared below this line and a TDZ crash is a silly way to
      *  lose an afternoon. A type that declares no default leaves the frame's centring alone. */
+    /** The project list (ISSUE-93) is fetched only when a card actually has a project field — 121 KB is not
+     *  something to load for a QR code. The list caches itself (mirror + memo), so the second card is free. */
+    const needsProjects = (WIDGET_TYPES[widget.widgetType]?.configFields || []).some((f) => f.type === 'project');
+    const [projectList, setProjectList] = useState(FALLBACK_PROJECTS);
+    useEffect(() => {
+      if (!needsProjects) return undefined;
+      let cancelled = false;
+      fetchProjectList().then((list) => { if (!cancelled && list && list.length) setProjectList(list); }).catch(() => {});
+      return () => { cancelled = true; };
+    }, [needsProjects]);
+
     const vAlign = resolvedConfig.verticalAlign
       || WIDGET_TYPES[widget.widgetType]?.defaults?.verticalAlign
       || null;
@@ -577,6 +592,13 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                     <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
+              ) : field.type === 'project' ? (
+                <ProjectField
+                  field={field}
+                  value={configFieldValue(field, widget.config) || ''}
+                  projects={projectList}
+                  onChange={(v) => handleConfigChange(field.key, v)}
+                />
               ) : field.type === 'source' ? (
                 <div className="config-source-wrap">
                   {/* ISSUE-53: one consistent source control everywhere — a
@@ -2314,6 +2336,82 @@ function TimelineCard({ data }) {
  *  · the box is sized by its content (no fixed height, no scrollbar), which is the reason this is rendered in
  *    the document rather than in a sandboxed frame: a widget that scrolls or clips is not a widget.
  */
+/** The shortlist a picker shows before (or instead of) the site matrix — never an empty dropdown. */
+const FALLBACK_PROJECTS = [
+  { dbname: 'enwiki', label: 'English Wikipedia', config: 'en.wikipedia', lang: 'en', langName: 'English', family: 'wikipedia' },
+  { dbname: 'dewiki', label: 'Deutsch Wikipedia', config: 'de.wikipedia', lang: 'de', langName: 'Deutsch', family: 'wikipedia' },
+  { dbname: 'frwiki', label: 'Français Wikipedia', config: 'fr.wikipedia', lang: 'fr', langName: 'Français', family: 'wikipedia' },
+  { dbname: 'eswiki', label: 'Español Wikipedia', config: 'es.wikipedia', lang: 'es', langName: 'Español', family: 'wikipedia' },
+  { dbname: 'commonswiki', label: 'Wikimedia Commons', config: 'commons.wikimedia', lang: null, langName: null, family: 'commons' },
+  { dbname: 'wikidata', label: 'Wikidata', config: 'www.wikidata', lang: null, langName: null, family: 'wikidata' },
+  { dbname: 'enwikisource', label: 'English Wikisource', config: 'en.wikisource', lang: 'en', langName: 'English', family: 'wikisource' },
+];
+
+/**
+ * The project picker (ISSUE-93) — every wiki, ordered by what this user actually uses, searchable by anything.
+ *
+ * A `<datalist>` was the tempting shortcut and it does not work: the browser matches on the *value*
+ * (`de.wikipedia`), so typing "German" finds nothing — and a list of 364 is exactly where that matters. So this is
+ * a small combobox: type a label, a dbname, a language or a script, see the ranked matches, pick one.
+ *
+ * What it stores is the dotted form the app has always used (`en.wikipedia`), so no board changes meaning; what it
+ * shows is the label ("German Wikipedia"). A pick is remembered, and that is what makes the second visit fast.
+ */
+function ProjectField({ field, value, projects, onChange }) {
+  const mode = field.mode === 'language' ? 'language' : 'project';
+  const store = typeof localStorage !== 'undefined' ? localStorage : null;
+  const [query, setQuery] = useState(null);
+  const [recent, setRecent] = useState(() => readRecentProjects(store));
+  const ranked = orderProjects(projects, { recent, defaultProject: readDefaultProject(store), mode });
+  // A field may carry choices that are not projects at all — the Commons Impact Metrics widgets accept
+  // "all wikis" — so they are offered first, exactly as the registry declares them.
+  const all = [...(field.extras || []).map((e) => ({ ...e, dbname: e.value, config: e.value, extra: true })), ...ranked];
+  const matches = filterProjects(all, query || '', { mode }).slice(0, 40);
+  const currentLabel = labelFor(projects, value, { mode });
+  const disabled = !projects || !projects.length;
+
+  const commit = (project) => {
+    if (project.extra) { onChange(project.value); setQuery(null); return; }
+    const next = toFieldValue(project, { mode });
+    onChange(next);
+    setRecent(noteRecentProject(store, mode === 'language' ? next : project.dbname));
+    setQuery(null);
+  };
+
+  return (
+    <div className="config-project-wrap">
+      <input
+        className="config-project-input"
+        value={query === null ? currentLabel : query}
+        disabled={disabled}
+        placeholder={disabled ? 'loading the project list…' : (field.placeholder || 'en.wikipedia')}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setQuery('')}
+        onBlur={() => setTimeout(() => setQuery(null), 150)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && matches.length) { e.preventDefault(); commit(matches[0]); }
+          if (e.key === 'Escape') setQuery(null);
+        }}
+      />
+      {query !== null && matches.length > 0 && (
+        <ul className="config-project-list" role="listbox">
+          {matches.map((p) => (
+            <li key={p.dbname}>
+              <button type="button" role="option" aria-selected={value === (mode === 'language' ? p.lang : p.config)}
+                onMouseDown={(e) => e.preventDefault()} onClick={() => commit(p)}>
+                <span className="config-project-item-label">{mode === 'language' ? (p.langName || p.label) : p.label}</span>
+                <span className="config-project-item-id">{mode === 'language' ? p.lang : p.config}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {query !== null && matches.length === 0 && <div className="config-hint">No project matches “{query}”.</div>}
+      {field.hint && <small className="config-hint">{field.hint}</small>}
+    </div>
+  );
+}
+
 function WikiBoxCard({ data, onSelect }) {
   const html = (data && data.html) || '';
   const css = (data && data.css) || '';

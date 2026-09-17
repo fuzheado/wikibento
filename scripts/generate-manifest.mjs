@@ -98,7 +98,8 @@ function parseField(slice) {
   const type = prop(slice, 'type');
   if (!key) return null;
   const field = { key, type };
-  for (const p of ['label', 'hint', 'placeholder']) {
+  // `mode` distinguishes a project field from a *language* field (ISSUE-93): a language field takes `de` where
+  for (const p of ['label', 'hint', 'placeholder', 'mode']) {
     const v = prop(slice, p);
     if (v !== undefined) field[p] = v;
   }

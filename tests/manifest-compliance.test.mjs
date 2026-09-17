@@ -77,6 +77,20 @@ test('a widget that emits prose declares where the prose came from (ISSUE-92)', 
   }
 });
 
+test('a project or language field uses the picker, not a hardcoded list (ISSUE-93)', () => {
+  // The sweep this protects: five widgets once offered 6, 3, 2, 13 and 30 options while the site matrix holds 364
+  // wikis and 374 languages. A new widget that types out its own list is how that happened, so the registry is
+  // checked rather than trusted — a hand-rolled `select` for `project`, `wiki` or `lang` fails the build.
+  const offenders = [];
+  for (const w of manifest.widgets) {
+    for (const f of w.configFields || []) {
+      if (!['project', 'wiki', 'lang'].includes(f.key)) continue;
+      if (f.type !== 'project') offenders.push(`${w.id}.${f.key}: type "${f.type}"`);
+    }
+  }
+  assert.deepEqual(offenders, [], `project fields must use the shared picker:\n  ${offenders.join('\n  ')}`);
+});
+
 test('the five emitters declare their output kinds', () => {
   for (const [id, kind] of Object.entries(KNOWN_EMITTERS)) {
     const w = byId.get(id);

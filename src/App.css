@@ -2779,3 +2779,22 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 .wikibox-body sup { font-size: 0.75em; }
 .wikibox-note { margin-top: 6px; font-size: 11px; color: var(--muted); }
 .wikibox-empty { padding: 14px; color: var(--muted); font-size: 12.5px; }
+
+/* Project picker (ISSUE-93). A searchable combobox rather than a select, because the list is 364 wikis and the
+   useful order is recency → default → curated → the rest. The list floats over the panel, so a long list never
+   pushes the fields below it around. */
+.config-project-wrap { position: relative; }
+.config-project-input { width: 100%; }
+.config-project-list {
+  position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% - 2px);
+  max-height: 240px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+  background: var(--panel, #1c1f26); border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.config-project-list button {
+  display: flex; justify-content: space-between; gap: 8px; width: 100%;
+  background: transparent; border: 0; color: var(--text); cursor: pointer;
+  padding: 4px 6px; border-radius: 4px; font-size: 12px; text-align: left;
+}
+.config-project-list button:hover { background: rgba(90, 170, 255, 0.14); }
+.config-project-item-id { color: var(--muted); font-size: 11px; white-space: nowrap; }

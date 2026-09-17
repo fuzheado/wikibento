@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T18:03:51.492Z",
+ "generatedAt": "2026-09-17T18:33:04.357Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -25,14 +25,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia",
-      "commons.wikimedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "displayMode",
@@ -79,13 +73,8 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "namespace",
@@ -130,12 +119,8 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "commons.wikimedia",
-      "en.wikipedia"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "sampleCount",
@@ -167,20 +152,9 @@
    "configFields": [
     {
      "key": "lang",
-     "type": "select",
+     "type": "project",
      "label": "Language",
-     "options": [
-      "en",
-      "de",
-      "fr",
-      "ja",
-      "zh",
-      "es",
-      "ar",
-      "pt",
-      "ru",
-      "it"
-     ]
+     "mode": "language"
     },
     {
      "key": "table",
@@ -361,38 +335,9 @@
    "configFields": [
     {
      "key": "lang",
-     "type": "select",
+     "type": "project",
      "label": "Language",
-     "options": [
-      "en",
-      "de",
-      "fr",
-      "ko",
-      "et",
-      "sv",
-      "hu",
-      "da",
-      "it",
-      "pa",
-      "ca",
-      "es",
-      "fa",
-      "ur",
-      "zh",
-      "kn",
-      "no",
-      "bn",
-      "id",
-      "ta",
-      "lv",
-      "el",
-      "fi",
-      "ar",
-      "cs",
-      "or",
-      "te",
-      "gl"
-     ]
+     "mode": "language"
     },
     {
      "key": "dateMode",
@@ -563,13 +508,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "verticalAlign",
@@ -614,13 +554,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "limit",
@@ -658,13 +593,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     }
    ],
    "defaults": [
@@ -695,13 +625,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "topN",
@@ -739,13 +664,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "displayMode",
@@ -920,13 +840,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "en.wikipedia",
-      "de.wikipedia",
-      "fr.wikipedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "enrich",
@@ -1009,11 +924,8 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "months",
@@ -1030,10 +942,6 @@
     {
      "key": "category",
      "type": "text"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1065,11 +973,8 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "topN",
@@ -1080,10 +985,6 @@
     {
      "key": "category",
      "type": "text"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1157,11 +1058,8 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "topN",
@@ -1172,10 +1070,6 @@
     {
      "key": "category",
      "type": "text"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1259,21 +1153,14 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "highlight",
      "type": "text",
      "label": "Highlight category (optional)",
      "placeholder": "Wiki Loves Monuments 2024"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1302,20 +1189,13 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "showImage",
      "type": "boolean",
      "label": "Show image preview"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1344,21 +1224,14 @@
     },
     {
      "key": "wiki",
-     "type": "select",
-     "label": "Wiki",
-     "options": [
-      "all-wikis"
-     ]
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "months",
      "type": "number",
      "label": "Fetch window (3–24 months)",
      "placeholder": "12"
-    },
-    {
-     "key": "month",
-     "type": "number"
     }
    ],
    "defaults": [
@@ -1458,7 +1331,7 @@
     },
     {
      "key": "project",
-     "type": "text",
+     "type": "project",
      "label": "Wiki",
      "hint": "A project name (en.wikipedia) or a full host",
      "placeholder": "en.wikipedia"
@@ -1521,11 +1394,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "commons.wikimedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "mobile",
@@ -1707,11 +1577,8 @@
     },
     {
      "key": "project",
-     "type": "select",
-     "label": "Project",
-     "options": [
-      "commons.wikimedia"
-     ]
+     "type": "project",
+     "label": "Project"
     },
     {
      "key": "autoRotate",
@@ -1943,7 +1810,7 @@
     },
     {
      "key": "project",
-     "type": "text",
+     "type": "project",
      "label": "Wiki",
      "hint": "Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.",
      "placeholder": "commons.wikimedia"

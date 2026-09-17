@@ -39,15 +39,25 @@ test('category values: Category: prefix stripped, quotes dropped', () => {
   assert.equal(out.category, 'Featured pictures');
 });
 
-test('select values: invalid options dropped, aliases resolved', () => {
-  // commons.org → commons.wikimedia (near-miss alias)
+test('project values: near misses resolve, unknown wikis are kept (ISSUE-93)', () => {
+  // Near misses an Ask prompt produces still resolve.
   assert.equal(normalizeConfig({ wiki: 'commons.org' }, categorySize).wiki, 'commons.wikimedia');
-  // Commons → commons.wikimedia (case-insensitive)
   assert.equal(normalizeConfig({ wiki: 'Commons' }, categorySize).wiki, 'commons.wikimedia');
-  // fully invalid → dropped (widget default applies)
-  assert.deepEqual(normalizeConfig({ wiki: 'mars.wikipedia' }, categorySize), {});
-  // en.wikipedia.org → en.wikipedia
   assert.equal(normalizeConfig({ project: 'en.wikipedia.org' }, defs.get('pageviews')).project, 'en.wikipedia');
+  // A *spoken* language name becomes a project.
+  assert.equal(normalizeConfig({ project: 'German' }, defs.get('pageviews')).project, 'de.wikipedia');
+  // What is gone: dropping a project the registry cannot enumerate. 364 wikis live in the site matrix, so an
+  // unrecognised value passes through — the widget's own error state is the guard, and the picker keeps the UI
+  // honest (ISSUE-93).
+  assert.equal(normalizeConfig({ wiki: 'zh.wikipedia' }, categorySize).wiki, 'zh.wikipedia');
+  assert.equal(normalizeConfig({ wiki: 'mars.wikipedia' }, categorySize).wiki, 'mars.wikipedia');
+});
+
+test('a language field takes a language, not a wiki', () => {
+  const wikistats = defs.get('wikistats');
+  assert.equal(normalizeConfig({ lang: 'German' }, wikistats).lang, 'de');
+  assert.equal(normalizeConfig({ lang: 'en.wikipedia' }, wikistats).lang, 'en');
+  assert.equal(normalizeConfig({ lang: 'zh' }, wikistats).lang, 'zh');
 });
 
 test('file values: File: prefix added, per line for lists', () => {

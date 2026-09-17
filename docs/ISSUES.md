@@ -3372,7 +3372,7 @@ so a board that omitted the field stayed centred, which is every existing board.
 honoured at render time, and the lookup must not reach for `def` twenty lines before it is declared (a TDZ crash,
 which cost a debugging round and is why the frame looks the type's defaults up directly).
 
-## ISSUE-93 · Every language, chosen quickly: the project picker — **open (epic)**
+## ISSUE-93 · Every language, chosen quickly: the project picker — **done + verified 2026-09-16**
 
 **What:** 21 of the 42 widget types ask which wiki to work on, and five of them restrict the answer to a hardcoded
 list. Measured 2026-09-16:
@@ -3566,6 +3566,41 @@ a class whose *rules* are checkable, so a new widget of a known class arrives wi
 
 The value is in the last three: they are the ones with expectations that are currently unwritten, and each row above
 is a source-level assertion (the class of a widget can be checked against how it renders), not a convention.
+
+### Shipped 2026-09-16
+
+**One picker, all 364 wikis.** `src/lib/projects.js` holds the ranking rules (pure, 20 tests) and
+`fetchProjectList` the loading (localStorage mirror for 30 days → a cached `sitematrix` fetch → the shipped
+shortlist if both fail, so a picker is never empty). Measured live: **951 projects** in the mirror, the full matrix
+rather than the 7-entry fallback.
+
+**Ordered by usefulness, not alphabet** — the thing the issue was actually about. Recency (the user's own, on
+`wikibento-recent-projects`, mirroring the widget MRU that already existed) → their **default wiki** → the curated
+shortlist → everything else, alphabetical only *within* its group. Search matches a label, a dbname, a language
+code, a **script** (`العربية`) or an English language name, ranked so an exact hit leads: measured, typing
+"chinese" returns *Chinese Wikipedia*, *Chinese Wikibooks*, *Chinese Wikinews*.
+
+**Every one of the 21 project/language fields uses it** — the five hardcoded lists (`topPages` 30, `wikistats` 13,
+`pageviews` 6, `linkcount` 3, `categorySize` 2) and the twelve free-text fields, plus the two `lang` fields in
+language mode. The three hardcoded constants are **deleted**, and a manifest-constitution test fails the build if a
+new widget types out its own list again.
+
+**Traps worth keeping:**
+
+  · **The site matrix returns *native* language names** (`中文`, `العربية`), so typing "chinese" matched nothing at
+    all — the reason every option now carries both (`Chinese Wikipedia (中文)`) and search looks at both;
+  · the picker **cannot be a `<datalist>`**: the browser filters on the *value* (`de.wikipedia`), so "German" finds
+    nothing. It is a small combobox instead;
+  · **two of my edits were silently lost** to a later failed assertion in the same script (the loader's import, and
+    an earlier one): the symptom was a picker offering 7 options and a loader that threw into its own `.catch`. The
+    fix is the discipline the repo already documents — one edit per script, assert, then **grep to confirm**;
+  · a project field is **no longer enumerable**, so the Ask normaliser stops dropping unknown wikis: it fixes
+    shapes and near misses (`Commons` → `commons.wikimedia`, `German` → `de.wikipedia`) and passes the rest through,
+    because the widget's own error state is the honest guard and the picker is what keeps the UI tight.
+
+**Still open, deliberately:** the Ask path can still hallucinate a project (it is passed through, then reported by
+the widget); and the *default wiki* setting has no UI yet — a stored preference the picker honours, with the
+setting itself left for whoever wants a Settings panel.
 
 **Recommendation:** do (1)+(2)+(3) first — that is the pattern Andrew described, on the one widget where he hit it —
 then add the `class:` field with the enforcement above, because the class rules make more sense once the

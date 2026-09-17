@@ -10,6 +10,9 @@ const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
 import {
+  parseSiteMatrix, packProjects, readPackedProjects, PROJECTS_CACHE_KEY, SITEMATRIX_URL,
+} from '../lib/projects';
+import {
   boxApiUrl, parseBoxResponse, splitBoxHtml, prepareBoxHtml, filterScopedCss, boxWikiBase,
   boxPageUrl, safeCssForStyleTag, boxLooksLikeNotice, expandBoxTokens,
 } from '../lib/wikiBox.js';
@@ -2319,6 +2322,27 @@ export function shapeIaBook(meta, manifest, identifier) {
  * The response is cached for ten minutes: the Main Page boxes are edited a few times a day, and a stale "In the
  * news" is a worse artefact than a slightly slower fetch.
  */
+/**
+ * Every wiki, for the project pickers (ISSUE-93). The site matrix is 121 KB and changes on the order of weeks, so:
+ * a localStorage mirror first (30 days), then the fetch (7-day memo). If the mirror is empty and the fetch fails,
+ * the caller falls back to the shipped shortlist — a picker with 18 options is worse than 364 and much better
+ * than none.
+ */
+export async function fetchProjectList() {
+  const mirror = readPackedProjects(typeof localStorage !== 'undefined' ? localStorage.getItem(PROJECTS_CACHE_KEY) : null);
+  if (mirror) return mirror;
+  const projects = await projectListCache.get('projects', async () => {
+    const json = await fetchJSON(SITEMATRIX_URL);
+    const parsed = parseSiteMatrix(json);
+    if (!parsed.length) throw new Error('the site matrix came back empty');
+    return parsed;
+  });
+  try { localStorage.setItem(PROJECTS_CACHE_KEY, packProjects(projects)); } catch { /* full or blocked */ }
+  return projects;
+}
+
+const projectListCache = createTtlCache(7 * 24 * 60 * 60 * 1000);
+
 const wikiBoxCache = createTtlCache(10 * 60 * 1000);
 
 export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', date } = {}) {

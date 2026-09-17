@@ -40,6 +40,22 @@ A number without its time context is useless.
   subtitle lacks the date pattern — a non-compliant widget cannot be built,
   so it cannot be deployed. This is the "constitutional" gate.
 
+# Config field types (what the panel can render)
+
+| type | renders | notes |
+|---|---|---|
+| `text` · `textarea` · `number` · `boolean` | the obvious control | |
+| `select` | a dropdown | **options must be an enumeration you own** |
+| `preset` | a dropdown with presets | |
+| `source` | a combobox of emitting widgets | the dataflow wire (ISSUE-51) |
+| `params` | the board-param picker | Board Controls |
+| **`project`** | the project picker (ISSUE-93) | every wiki, ordered recency → default → curated → rest, searchable. Add `mode: 'language'` for a field that takes a bare language code, or `extras: [{ value, label }]` for a non-project choice like CIM's "all wikis" |
+| `lookup` | a validated combobox | see `paramSources.js` |
+
+**A project or language field must be `type: 'project'`.** A manifest-constitution test fails the build otherwise,
+because five widgets once offered 6, 3, 2, 13 and 30 options while the site matrix holds 364 wikis and 374
+languages. `options` on such a field is how that happened.
+
 # The Emitter Contract (read before wiring a widget to others)
 
 > *Background:* why this is a one-way, text-shaped convention rather than a message

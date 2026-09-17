@@ -11,6 +11,24 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Every wiki, chosen quickly (ISSUE-93, 2026-09-16)
+
+- ✅ **The full list, live:** the picker loaded **951 projects** from the site matrix into its localStorage mirror,
+  and showed the curated shortlist first (English, German, French, Spanish Wikipedia) rather than the alphabet.
+- ✅ **Ordered by usefulness:** recency → the user's default wiki → the curated shortlist → everything else. Search
+  matched **"chinese"** and returned *Chinese Wikipedia*, *Chinese Wikibooks*, *Chinese Wikinews* — a label search
+  that a `<datalist>` cannot do, because the browser matches on the value (`de.wikipedia`).
+- ✅ **A pick stores what the app already uses** (`zh.wikipedia`), so no board changed meaning, and the widget
+  re-fetched against the new project.
+- ✅ **21 fields, one control:** five hardcoded lists (`topPages` 30, `wikistats` 13, `pageviews` 6, `linkcount` 3,
+  `categorySize` 2), twelve free-text fields and two language fields — with the constants deleted and a gate that
+  fails the build if a new widget hand-rolls a list.
+- 🐛 **The native-name trap:** the matrix returns `中文`, not "Chinese", so the first search for "chinese" matched
+  *nothing*. Options now carry both ("Chinese Wikipedia (中文)") and search reads both.
+- ⚠ **Known:** the Ask path may still name a wiki that does not exist — it is passed through and reported by the
+  widget's own error state, since 364 wikis cannot be enumerated in a validator; and the default-wiki preference
+  is honoured but has no Settings UI yet.
+
 ## A page's wiki travels with it, everywhere (ISSUE-92, 2026-09-16)
 
 - ✅ **The excerpt no longer publishes prose alone.** It emits `extract` *and* `reference`; verified by driving it:

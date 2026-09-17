@@ -54,24 +54,9 @@ const NAMESPACE_LABELS = {
   '14': 'categories',
 };
 
-/** Shared project picker for the article-focused widgets. */
-const PROJECT_OPTIONS = [
-  { value: 'en.wikipedia', label: 'English Wikipedia' },
-  { value: 'de.wikipedia', label: 'German Wikipedia' },
-  { value: 'fr.wikipedia', label: 'French Wikipedia' },
-];
-
-// ── Commons Impact Metrics (CIM) shared options ─────────────
-// Precomputed monthly data for allow-listed categories. Unregistered
-// categories 404 ("not loaded yet") — the widgets surface a friendly
-// register hint; the GLAM live walk is a separate widget (unchanged).
 const CIM_SCOPES = [
   { value: 'deep', label: 'Deep (whole tree)' },
   { value: 'shallow', label: 'Shallow (category only)' },
-];
-const CIM_WIKIS = [
-  { value: 'all-wikis', label: 'All wikis' },
-  ...PROJECT_OPTIONS,
 ];
 const CIM_EDIT_TYPES = [
   { value: 'all-edit-types', label: 'All edit types' },
@@ -103,13 +88,6 @@ const pageHref = (wiki, page) => {
     : { wikidata: 'wikidata.org', species: 'species.wikimedia.org', meta: 'meta.wikimedia.org', commons: 'commons.wikimedia.org', incubator: 'incubator.wikimedia.org', mediawiki: 'www.mediawiki.org' }[wiki];
   return host ? `https://${host}/wiki/${encodeURIComponent(page.replace(/ /g, '_'))}` : null;
 };
-
-// Wiki Page widget: en/de/fr + Commons (the shared PROJECT_OPTIONS stays
-// article-focused — commons.wikimedia breaks the other article widgets).
-const WIKI_PAGE_PROJECTS = [
-  ...PROJECT_OPTIONS,
-  { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
-];
 
 // Previous calendar month (complete pageview data) for widget defaults.
 const PREV_MONTH = (() => {
@@ -162,12 +140,7 @@ export const WIDGET_TYPES = {
     dataSource: 'pageviews',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Main_Page' },
-      { key: 'project', label: 'Project', type: 'select', options: [
-        { value: 'en.wikipedia', label: 'English Wikipedia' },
-        { value: 'de.wikipedia', label: 'German Wikipedia' },
-        { value: 'fr.wikipedia', label: 'French Wikipedia' },
-        { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
-      ]},
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'stat', label: 'Stat Card' },
         { value: 'trend', label: 'Trend Chart' },
@@ -215,11 +188,7 @@ export const WIDGET_TYPES = {
     dataSource: 'exturlusage',
     configFields: [
       { key: 'domain', label: 'Domain', type: 'text', placeholder: 'example.org' },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: [
-        { value: 'en.wikipedia', label: 'English Wikipedia' },
-        { value: 'de.wikipedia', label: 'German Wikipedia' },
-        { value: 'fr.wikipedia', label: 'French Wikipedia' },
-      ]},
+      { key: 'wiki', label: 'Wiki', type: 'project' },
       { key: 'namespace', label: 'Namespace', type: 'select', options: [
         { value: '', label: 'All namespaces' },
         { value: '0', label: 'Articles only' },
@@ -256,10 +225,7 @@ export const WIDGET_TYPES = {
     dataSource: 'categoryinfo',
     configFields: [
       { key: 'category', label: 'Category', type: 'text', placeholder: 'Images from X' },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: [
-        { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
-        { value: 'en.wikipedia', label: 'English Wikipedia' },
-      ]},
+      { key: 'wiki', label: 'Wiki', type: 'project' },
       { key: 'sampleCount', label: 'Sample imgs', type: 'number', placeholder: '0 = off, max 24' },
     ],
     fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCategorySize(p.title, p.projectConfig, config.sampleCount); },
@@ -288,18 +254,7 @@ export const WIDGET_TYPES = {
     renderer: 'StatCard',
     dataSource: 'wikistats',
     configFields: [
-      { key: 'lang', label: 'Language', type: 'select', options: [
-        { value: 'en', label: 'English' },
-        { value: 'de', label: 'German' },
-        { value: 'fr', label: 'French' },
-        { value: 'ja', label: 'Japanese' },
-        { value: 'zh', label: 'Chinese' },
-        { value: 'es', label: 'Spanish' },
-        { value: 'ar', label: 'Arabic' },
-        { value: 'pt', label: 'Portuguese' },
-        { value: 'ru', label: 'Russian' },
-        { value: 'it', label: 'Italian' },
-      ]},
+      { key: 'lang', label: 'Language', type: 'project', mode: 'language' },
       { key: 'table', label: 'Project Type', type: 'select', options: [
         { value: 'wikipedias', label: 'Wikipedias' },
         { value: 'wiktionaries', label: 'Wiktionaries' },
@@ -464,22 +419,7 @@ export const WIDGET_TYPES = {
     getRenderer: (config) => config.showExpanded ? 'TopPagesExpandedCard' : 'RankingCard',
     dataSource: 'top.hatnote.com (via /api/proxy) + WMF pageviews top fallback',
     configFields: [
-      { key: 'lang', label: 'Language', type: 'select', options: [
-        { value: 'en', label: 'English' }, { value: 'de', label: 'Deutsch' },
-        { value: 'fr', label: 'Français' }, { value: 'ko', label: '한국어' },
-        { value: 'et', label: 'Eesti' }, { value: 'sv', label: 'Svenska' },
-        { value: 'hu', label: 'Magyar' }, { value: 'da', label: 'Dansk' },
-        { value: 'it', label: 'Italiano' }, { value: 'pa', label: 'ਪੰਜਾਬੀ' },
-        { value: 'ca', label: 'Català' }, { value: 'es', label: 'Español' },
-        { value: 'fa', label: 'فارسی' }, { value: 'ur', label: 'اردو' },
-        { value: 'zh', label: '中文' }, { value: 'kn', label: 'ಕನ್ನಡ' },
-        { value: 'no', label: 'Norsk bokmål' }, { value: 'bn', label: 'বাংলা' },
-        { value: 'id', label: 'Bahasa Indonesia' }, { value: 'ta', label: 'தமிழ்' },
-        { value: 'lv', label: 'Latviešu' }, { value: 'el', label: 'Ελληνικά' },
-        { value: 'fi', label: 'Suomi' }, { value: 'ar', label: 'العربية' },
-        { value: 'cs', label: 'Čeština' }, { value: 'or', label: 'ଓଡ଼ିଆ' },
-        { value: 'te', label: 'తెలుగు' }, { value: 'gl', label: 'Galego' },
-      ]},
+      { key: 'lang', label: 'Language', type: 'project', mode: 'language' },
       { key: 'dateMode', label: 'Date', type: 'select', options: [
         { value: 'latest', label: 'Latest available' },
         { value: 'date', label: 'Specific date…' },
@@ -663,7 +603,7 @@ export const WIDGET_TYPES = {
     dataSource: 'REST /page/summary',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'verticalAlign', label: 'Vertical position', type: 'select', options: [
         { value: 'top', label: 'Top (default for text)' },
         { value: 'center', label: 'Centred' },
@@ -707,7 +647,7 @@ export const WIDGET_TYPES = {
     dataSource: 'Action API prop=revisions',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'limit', label: 'Edits to show', type: 'number', placeholder: '10 (max 50)' },
     ],
     fetch: (config) => { const p = pageRef(config, 'article'); return fetchEditHistory(p.title, p.projectConfig, Math.min(parseInt(config.limit) || 10, 50)); },
@@ -735,7 +675,7 @@ export const WIDGET_TYPES = {
     dataSource: 'Lift Wing (api.wikimedia.org)',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
     ],
     fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleQuality(p.title, p.projectConfig); },
     transform: (data) => ({
@@ -766,7 +706,7 @@ export const WIDGET_TYPES = {
     dataSource: 'Action API prop=pageassessments',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'topN', label: 'Projects to show', type: 'number', placeholder: '12 (max 50)' },
     ],
     fetch: (config) => { const p = pageRef(config, 'article'); return fetchAssessments(p.title, p.projectConfig, Math.min(parseInt(config.topN) || 12, 50)); },
@@ -819,7 +759,7 @@ export const WIDGET_TYPES = {
     dataSource: 'REST /page/media-list + imageinfo',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'grid', label: 'Grid (captions below)' },
         { value: 'list', label: 'List (thumb left, caption right)' },
@@ -982,7 +922,7 @@ export const WIDGET_TYPES = {
     dataSource: 'MediaWiki API pageimages|extracts (batched, optional)',
     configFields: [
       { key: 'articles', label: 'Article titles (one per line)', type: 'textarea', rows: 8, placeholder: 'Ada Lovelace\nAlbert Einstein' },
-      { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'enrich', label: 'Thumbnails + intros', type: 'boolean' },
       { key: 'maxItems', label: 'Max articles (0 = all)', type: 'number', placeholder: '0' },
     ],
@@ -1057,7 +997,7 @@ export const WIDGET_TYPES = {
     configFields: [
       CIM_CATEGORY_FIELD,
       { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'months', label: 'Months (2–24)', type: 'number', placeholder: '6' },
       CIM_MONTH_FIELD,
       { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
@@ -1093,7 +1033,7 @@ export const WIDGET_TYPES = {
     configFields: [
       CIM_CATEGORY_FIELD,
       { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       CIM_MONTH_FIELD,
       { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' },
     ],
@@ -1142,7 +1082,7 @@ export const WIDGET_TYPES = {
     defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
     renderer: 'RankingCard',
     dataSource: 'CIM top-pages-per-category-monthly',
-    configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
+    configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
     fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopPages(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN); },
     transform: (data, config) => {
  const sc = data.resolvedMonth || resolveMonth(config.month);
@@ -1190,7 +1130,7 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM top-viewed-categories-monthly',
     configFields: [
       { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       CIM_MONTH_FIELD,
       { key: 'highlight', label: 'Highlight category (optional)', type: 'text', placeholder: 'Wiki Loves Monuments 2024' },
     ],
@@ -1228,7 +1168,7 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly',
     configFields: [
       { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'showImage', label: 'Show image preview', type: 'boolean' },
       CIM_MONTH_FIELD,
     ],
@@ -1264,7 +1204,7 @@ export const WIDGET_TYPES = {
     dataSource: 'CIM pageviews-per-media-file-monthly',
     configFields: [
       { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
-      { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS },
+      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'months', label: 'Fetch window (3–24 months)', type: 'number', placeholder: '12' },
       CIM_MONTH_FIELD,
     ],
@@ -1358,7 +1298,7 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'box', label: 'Template', type: 'text', placeholder: 'In the news',
         hint: 'In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}' },
-      { key: 'project', label: 'Wiki', type: 'text', placeholder: 'en.wikipedia', hint: 'A project name (en.wikipedia) or a full host' },
+      { key: 'project', label: 'Wiki', type: 'project', placeholder: 'en.wikipedia', hint: 'A project name (en.wikipedia) or a full host' },
       { key: 'linkAction', label: 'Links in the box', type: 'select', options: [
         { value: 'new tab', label: 'Open in a new tab (default)' },
         { value: 'send to the board', label: 'Send the page to the board' },
@@ -1396,7 +1336,7 @@ export const WIDGET_TYPES = {
     configFields: [
       { key: 'url', label: 'Custom URL (overrides the wiki page below)', type: 'text', placeholder: 'https://objectium.toolforge.org/uploads/213', hint: 'http(s) only — embeddable sites (no X-Frame-Options). The wiki fields below are ignored when set.' },
       { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
-      { key: 'project', label: 'Project', type: 'select', options: WIKI_PAGE_PROJECTS },
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
     ],
@@ -1655,9 +1595,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
       { key: 'filename', label: 'Commons file (360° / equirectangular)', type: 'text', placeholder: 'File:Example 360.jpg' },
-      { key: 'project', label: 'Project', type: 'select', options: [
-        { value: 'commons.wikimedia', label: 'Wikimedia Commons' },
-      ]},
+      { key: 'project', label: 'Project', type: 'project' },
       { key: 'autoRotate', label: 'Auto-rotate', type: 'boolean' },
     ],
     fetch: (config) => fetchPanoramaFile(config.filename, config.project),
@@ -1855,7 +1793,7 @@ export const WIDGET_TYPES = {
     dataSource: 'Commons API imageinfo — pagecount + a page-N thumbnail template (one call)',
     configFields: [
       { key: 'file', label: 'File', type: 'text', placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.' },
-      { key: 'project', label: 'Wiki', type: 'text', placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.' },
+      { key: 'project', label: 'Wiki', type: 'project', placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.' },
       { key: 'spread', label: 'Reading mode', type: 'select', options: [
         { value: 'auto', label: 'Auto — facing pages when the card is wide enough' },
         { value: 'on', label: 'Two facing pages' },

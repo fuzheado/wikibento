@@ -225,6 +225,13 @@ const PROJECT_ALIASES = {
   de: 'de.wikipedia', 'de.wikipedia.org': 'de.wikipedia',
   fr: 'fr.wikipedia', 'fr.wikipedia.org': 'fr.wikipedia',
 };
+/** The handful of language names an Ask prompt actually produces. Not a language list — that is the site matrix's
+ *  job (ISSUE-93); this only rescues "German" when the field wants `de`. */
+const LANGUAGE_WORDS = {
+  english: 'en', german: 'de', dutch: 'nl', french: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt',
+  russian: 'ru', japanese: 'ja', chinese: 'zh', korean: 'ko', arabic: 'ar', hebrew: 'he', hindi: 'hi',
+  polish: 'pl', swedish: 'sv', ukrainian: 'uk', turkish: 'tr', indonesian: 'id', vietnamese: 'vi',
+};
 const fieldOf = (widgetDef, key) => (widgetDef?.configFields || []).find((f) => f.key === key);
 
 function normalizeConfig(config, widgetDef) {
@@ -244,6 +251,24 @@ function normalizeConfig(config, widgetDef) {
       continue;
     }
     let s = String(raw).trim();
+    if (field.type === 'project') {
+      // ISSUE-93: a project field is no longer an enumeration — 364 wikis live in the site matrix, not in the
+      // registry. So this normalises the *shape* and the well-known near misses, and accepts anything else rather
+      // than pretending to know better: a wrong project surfaces in the widget's own error state, and the picker is
+      // what keeps the UI honest.
+      const bare = s.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      const alias = PROJECT_ALIASES[bare];
+      let v = alias || bare;
+      if (!alias && v.endsWith('.org')) v = v.replace(/\.org$/, '');
+      if (field.mode === 'language') {
+        v = LANGUAGE_WORDS[v] || v;
+        if (v.endsWith('.wikipedia')) v = v.replace(/\.wikipedia$/, '');
+      } else if (LANGUAGE_WORDS[v]) {
+        v = `${LANGUAGE_WORDS[v]}.wikipedia`;
+      }
+      if (v) out[key] = v.slice(0, 100);
+      continue;
+    }
     if (field.type === 'select') {
       const opts = field.options || [];
       if (opts.length) {
