@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-Folo7JhJ.js` (+ `index-BWgKdWiq.css`) |
+| production bundle | `index-DEicrUCf.js` (+ `index-BWgKdWiq.css`) |
 | deployed | 2026-09-16 — **Settings** + `translate` emitting (ISSUE-95), **one picker for every wiki** (ISSUE-93), **references everywhere** (ISSUE-92), text gravity (ISSUE-94), **click-through from a box** (ISSUE-91), **Wikipedia boxes** (ISSUE-90), **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the served manifest declares `translate`'s output) |
+| pending deploy | none — production serves this branch's tip (verified live: the translate demo renders its translation, no waiting state) |
 | newest capabilities | ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen — ISSUE-95) · 🌍 **Every wiki, in one picker** — 364 projects from the site matrix, ordered by recency → your default → a curated shortlist → the rest, searchable by label, code, script or English name, and used by all 21 project/language fields (ISSUE-93) · 🧭 **References** — a card that publishes a page publishes *which wiki* too (`enwiki:Weddell Sea`), and a consumer reads the project from the value (ISSUE-92) · 👆 **Click-through from a box** — a link in a rendered Wikipedia box can publish the clicked page title on a `selection` channel, so another widget loads the article or draws it (`{{widget:id#selection}}`; ⚙ *Links in the box*: new tab / send to the board / both, ISSUE-91) · 📰 **Wikipedia boxes** — any template rendered with the wiki's own markup *and* styles: In the news, Did you know, Today's featured article, plus dated ones via `POTD/{date}` and the selected-anniversaries page (ISSUE-90) · 👀 **Borrowed boards** — opening someone's link shows their board without touching yours, with a notice offering [Save this as mine] / [Back to my board] and a day-long recovery for the board an adoption displaces (ISSUE-88) · 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you page by page**, headed by its proofreading grade) · 📖 **IA Book** (search inside a scan, hits boxed on the page) · 🎬 **Media player** (a direct URL plays; `.ogv` does not) · ⤓ **PNG export** where the images come from a CORS-enabled host |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
