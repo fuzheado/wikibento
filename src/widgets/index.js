@@ -39,7 +39,7 @@ import {
  fetchIaItem,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
-import { parseRef, projectSite } from '../lib/reference';
+import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { buildTimeline } from '../lib/timeline';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
@@ -174,7 +174,7 @@ export const WIDGET_TYPES = {
       ]},
       { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Trend chart only. Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
     ],
-    fetch: (config) => fetchPageviews(config.article, config.project),
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchPageviews(p.title, p.projectConfig); },
     transform: (data, config) => {
       if (config.displayMode === 'stat') {
         return {
@@ -262,7 +262,7 @@ export const WIDGET_TYPES = {
       ]},
       { key: 'sampleCount', label: 'Sample imgs', type: 'number', placeholder: '0 = off, max 24' },
     ],
-    fetch: (config) => fetchCategorySize(config.category, config.wiki, config.sampleCount),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCategorySize(p.title, p.projectConfig, config.sampleCount); },
     transform: (data, config) => ({
       title: data.category,
       subtitle: config.wiki === 'commons.wikimedia' ? 'on Wikimedia Commons' : `on ${config.wiki}`,
@@ -669,18 +669,24 @@ export const WIDGET_TYPES = {
         { value: 'center', label: 'Centred' },
       ], default: 'top' },
     ],
-    fetch: (config) => fetchArticleSummary(config.article, config.project),
-    transform: (data) => ({
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleSummary(p.title, p.projectConfig); },
+    transform: (data, config) => ({
       title: data.title,
       description: data.description,
       extract: data.extract,
       thumbnailUrl: data.thumbnailUrl,
       pageUrl: data.pageUrl,
+      // ISSUE-92: prose cannot say where it came from, so the card publishes the *page* as a reference on its own
+      // channel — `enwiki:Albert Einstein` — and a consumer that needs to know which article (a translator writing
+      // back, a gallery of its images, a map of its coordinates) can ask for it.
+      reference: projectRef(config.project, data.title || config.article),
     }),
     // ISSUE-58: emit the excerpt text so other widgets can consume it — e.g. a
     // Translator with text: "{{widget:<this id>}}", or a Filter/Count chain.
-    outputs: { kind: 'extract' }, // emitted: the article extract (plain text)
-    emit: (data) => data.extract,
+    // Two channels (ISSUE-92): `extract` is the prose other widgets translate or read aloud, and `reference` is the
+    // page it came from — the thing prose cannot carry.
+    outputs: { extract: 'extract', reference: 'value' },
+    emit: (data) => ({ extract: data.extract, reference: data.reference }),
   },
 
   edithistory: {
@@ -704,7 +710,7 @@ export const WIDGET_TYPES = {
       { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
       { key: 'limit', label: 'Edits to show', type: 'number', placeholder: '10 (max 50)' },
     ],
-    fetch: (config) => fetchEditHistory(config.article, config.project, Math.min(parseInt(config.limit) || 10, 50)),
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchEditHistory(p.title, p.projectConfig, Math.min(parseInt(config.limit) || 10, 50)); },
     transform: (data) => ({
       title: data.article.replace(/_/g, ' '),
       project: data.project,
@@ -731,7 +737,7 @@ export const WIDGET_TYPES = {
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
     ],
-    fetch: (config) => fetchArticleQuality(config.article, config.project),
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleQuality(p.title, p.projectConfig); },
     transform: (data) => ({
       title: data.article.replace(/_/g, ' '),
       grade: data.grade,
@@ -763,7 +769,7 @@ export const WIDGET_TYPES = {
       { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
       { key: 'topN', label: 'Projects to show', type: 'number', placeholder: '12 (max 50)' },
     ],
-    fetch: (config) => fetchAssessments(config.article, config.project, Math.min(parseInt(config.topN) || 12, 50)),
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchAssessments(p.title, p.projectConfig, Math.min(parseInt(config.topN) || 12, 50)); },
     transform: (data) => ({
       title: data.article.replace(/_/g, ' '),
       rows: data.rows,
@@ -837,11 +843,11 @@ export const WIDGET_TYPES = {
         { value: 'gallery', label: 'Gallery blocks set off as their own groups' },
       ]},
     ],
-    fetch: (config) => fetchArticleGallery(config.article, config.project, config.minSize, config.maxItems, {
+    fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleGallery(p.title, p.projectConfig, config.minSize, config.maxItems, {
       includeAll: config.includeAll,
       hideDecorative: config.hideDecorative,
       groupBy: config.groupBy,
-    }),
+    }); },
     transform: (data, config) => {
       const includeAll = !!config.includeAll;
       const groupBy = config.groupBy === 'section' || config.groupBy === 'gallery' ? config.groupBy : 'none';
@@ -980,7 +986,7 @@ export const WIDGET_TYPES = {
       { key: 'enrich', label: 'Thumbnails + intros', type: 'boolean' },
       { key: 'maxItems', label: 'Max articles (0 = all)', type: 'number', placeholder: '0' },
     ],
-    fetch: (config) => fetchArticleList(config.articles, config.project, { enrich: config.enrich, maxItems: config.maxItems }),
+    fetch: (config) => { const lines = resolveRefLines(config.articles, config.project); return fetchArticleList(lines.map((l) => l.title).join('\n'), lines[0]?.projectConfig || config.project, { enrich: config.enrich, maxItems: config.maxItems }); },
     transform: (data, config) => ({
       title: 'Articles',
       subtitle: `${data.rows.length} article${data.rows.length === 1 ? '' : 's'}${config.enrich ? ' · with thumbnails + intros' : ''}`,
@@ -1004,7 +1010,7 @@ export const WIDGET_TYPES = {
       { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
       CIM_MONTH_FIELD,
     ],
-    fetch: (config) => fetchCimSnapshot(config.category, config.scope, undefined, config.month),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimSnapshot(p.title, config.scope, p.projectConfig, config.month); },
     transform: (data, config) => {
       const scope = data.resolvedMonth || resolveMonth(config.month);
       const deep = config.scope !== 'shallow';
@@ -1056,7 +1062,7 @@ export const WIDGET_TYPES = {
       CIM_MONTH_FIELD,
       { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
     ],
-    fetch: (config) => fetchCimTrend(config.category, config.scope, config.wiki, undefined, config.month, config.months),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTrend(p.title, config.scope, p.projectConfig, undefined, config.month, config.months); },
     transform: (data, config) => {
       const end = data.resolvedMonth || resolveMonth(config.month);
       const n = Math.min(Math.max(parseInt(config.months) || 6, 2), 24);
@@ -1091,7 +1097,7 @@ export const WIDGET_TYPES = {
       CIM_MONTH_FIELD,
       { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' },
     ],
-    fetch: (config) => fetchCimTopFiles(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopFiles(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN); },
     transform: (data, config) => {
       const scope = data.resolvedMonth || resolveMonth(config.month);
       return {
@@ -1114,7 +1120,7 @@ export const WIDGET_TYPES = {
     renderer: 'RankingCard',
     dataSource: 'CIM top-wikis-per-category-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => fetchCimTopWikis(config.category, config.scope, undefined, config.month, config.topN),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopWikis(p.title, config.scope, p.projectConfig, config.month, config.topN); },
     transform: (data, config) => {
  const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
@@ -1137,7 +1143,7 @@ export const WIDGET_TYPES = {
     renderer: 'RankingCard',
     dataSource: 'CIM top-pages-per-category-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'select', options: CIM_WIKIS }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => fetchCimTopPages(config.category, config.scope, config.wiki, undefined, config.month, config.topN),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopPages(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN); },
     transform: (data, config) => {
  const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
@@ -1160,7 +1166,7 @@ export const WIDGET_TYPES = {
     renderer: 'RankingCard',
     dataSource: 'CIM top-editors-monthly',
     configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'editType', label: 'Edit type', type: 'select', options: CIM_EDIT_TYPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => fetchCimTopEditors(config.category, config.scope, config.editType, undefined, config.month, config.topN),
+    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopEditors(p.title, config.scope, config.editType, p.projectConfig, config.month, config.topN); },
     transform: (data, config) => {
  const sc = data.resolvedMonth || resolveMonth(config.month);
  return cimRanking(
@@ -1860,7 +1866,7 @@ export const WIDGET_TYPES = {
         { value: 'off', label: 'Hidden until I press ¶' },
       ], hint: 'Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.' },
     ],
-    fetch: (config) => fetchDocumentPages(config.file, config.project),
+    fetch: (config) => { const p = pageRef(config, 'file'); return fetchDocumentPages(p.title, p.projectConfig); },
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
     // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
     outputs: { kind: 'value' },

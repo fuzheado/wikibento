@@ -291,14 +291,19 @@ test('validateDashboard: the shipped flow demo is valid', async () => {
 });
 // ── ISSUE-58: producer emitter + unresolved-reference guard ──
 
-test('registry: Article Excerpt declares emit and emits its extract text', () => {
+test('registry: Article Excerpt declares emit and publishes both channels (ISSUE-92)', () => {
   const def = WIDGET_TYPES.excerpt;
-  assert.ok(def, 'excerpt registry entry missing');
-  assert.equal(typeof def.emit, 'function', 'excerpt must declare emit');
-  const view = def.transform({ title: 'T', description: 'D', extract: 'The extract.', thumbnailUrl: 'u', pageUrl: 'p' });
-  assert.equal(def.emit(view), 'The extract.');
-  // a summary without an extract (edge) must not throw and must emit undefined
-  assert.equal(def.emit(def.transform({ title: 'T' })), undefined);
+  assert.ok(def.emit, 'excerpt declares emit');
+  assert.deepEqual(def.outputs, { extract: 'extract', reference: 'value' },
+    'the prose and the page it came from travel on separate channels');
+  const emitted = def.emit({ extract: 'Grace Coolidge was…', reference: 'enwiki:Grace Coolidge' });
+  assert.equal(emitted.extract, 'Grace Coolidge was…');
+  assert.equal(emitted.reference, 'enwiki:Grace Coolidge', 'a reference, not a bare title');
+  // and the transform is what fills them, so a bare-title value would mean the reference never got built
+  const shaped = def.transform({ title: 'Grace Coolidge', extract: 'x' }, { project: 'en.wikipedia', article: 'Grace_Coolidge' });
+  assert.equal(shaped.reference, 'enwiki:Grace Coolidge');
+  assert.equal(def.transform({ extract: 'x' }, { project: 'de.wikipedia', article: 'Weddellmeer' }).reference,
+    'dewiki:Weddellmeer', 'the Fallback is the configured article when the API returns no title');
 });
 
 test('findUnresolvedRefs: detects {{widget:id}} and {{param}} deeply, deduped', () => {

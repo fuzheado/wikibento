@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T16:40:13.439Z",
+ "generatedAt": "2026-09-17T18:03:51.492Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -588,7 +588,8 @@
     "verticalAlign"
    ],
    "outputs": {
-    "kind": "extract"
+    "extract": "extract",
+    "reference": "value"
    }
   },
   {
@@ -1485,7 +1486,11 @@
     "box",
     "project",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "items": "lines",
+    "selection": "value"
+   }
   },
   {
    "id": "wikiPage",

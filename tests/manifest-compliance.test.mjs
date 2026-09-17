@@ -28,7 +28,7 @@ const manifest = JSON.parse(
 const byId = new Map(manifest.widgets.map((w) => [w.id, w]));
 
 const KNOWN_EMITTERS = {
-  excerpt: 'extract',
+  excerpt: { extract: 'extract', reference: 'value' },
   listSource: 'lines',
   filterLines: 'lines',
   lineCount: 'count',
@@ -65,15 +65,30 @@ test('no description is truncated at an apostrophe (v2 bug regression)', () => {
   assert.ok(fl.length > 50 && fl.includes('output'), `filterLines description restored: ${fl}`);
 });
 
+test('a widget that emits prose declares where the prose came from (ISSUE-92)', () => {
+  // The one shape that cannot self-describe: an `extract` is text, so nothing inside it says which page or which
+  // wiki it came from. A widget that publishes one therefore has to publish a `reference` beside it — this is the
+  // gate that stops a new emitter quietly dropping the context again, the way `excerpt` did for months.
+  const prose = manifest.widgets.filter((w) => w.outputs && Object.values(w.outputs).includes('extract'));
+  assert.ok(prose.length > 0, 'the registry should still have a prose emitter to check');
+  for (const w of prose) {
+    assert.ok(w.outputs.reference, `${w.id} emits prose without a reference channel`);
+    assert.equal(w.outputs.reference, 'value', `${w.id}: the reference channel is a value`);
+  }
+});
+
 test('the five emitters declare their output kinds', () => {
   for (const [id, kind] of Object.entries(KNOWN_EMITTERS)) {
     const w = byId.get(id);
     assert.ok(w, `emitter ${id} exists`);
     assert.ok(w.outputs, `${id} declares outputs`);
+    // Named channels (ISSUE-92): a widget may publish more than one thing, e.g. the Article Excerpt's prose *and*
+    // the page it came from. The map is checked key-by-key above; a single-output widget keeps its `{ kind }`.
     // Two shapes, one meaning (ISSUE-91): a single output is `{ kind }`, while a widget with named channels —
     // a box that publishes both its items and the reader's selection — maps channel → kind.
-    if ('kind' in w.outputs) assert.equal(w.outputs.kind, kind, `${id} outputs.kind === '${kind}'`);
-    else {
+    const expected = typeof kind === 'string' ? kind : null;
+    if ('kind' in w.outputs && expected) assert.equal(w.outputs.kind, expected, `${id} outputs.kind === '${expected}'`);
+    if (!('kind' in w.outputs)) {
       const kinds = Object.values(w.outputs);
       assert.ok(kinds.length > 0, `${id} names at least one channel`);
       assert.ok(kinds.every((k) => typeof k === 'string'), `${id} channel kinds are strings`);

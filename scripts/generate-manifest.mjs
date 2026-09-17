@@ -176,7 +176,14 @@ while ((m = blockRe.exec(src)) !== null) {
   }
 
   const renderer = prop(block, 'renderer');
+  // Outputs may be a single `{ kind }` or a map of named channels (ISSUE-91/92) — a widget can publish more than
+  // one thing, e.g. an Article Excerpt's prose *and* the page it came from. The manifest is the app's advertised
+  // contract, so both shapes travel.
   const outputsKind = (block.match(/outputs:\s*\{\s*kind:\s*'(\w+)'/) || [])[1];
+  const outputsMap = (block.match(/outputs:\s*\{([^}]*)\}/) || [])[1] || '';
+  const channels = outputsMap && !/kind:/.test(outputsMap)
+    ? Object.fromEntries([...outputsMap.matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]]))
+    : null;
   const nodeKind = (block.match(/nodeKind:\s*'(\w+)'/) || [])[1] || DEFAULT_NODE_KIND;
   const widget = {
     id,
@@ -194,7 +201,8 @@ while ((m = blockRe.exec(src)) !== null) {
     configFields,
     defaults,
   };
-  if (outputsKind) widget.outputs = { kind: outputsKind };
+  if (channels && Object.keys(channels).length) widget.outputs = channels;
+  else if (outputsKind) widget.outputs = { kind: outputsKind };
   widgets.push(widget);
 }
 

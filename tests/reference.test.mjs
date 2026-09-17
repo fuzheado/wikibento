@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 
 import {
   dbnameOf, projectSite, projectRef, parseRef, titleOf, projectOf, withProject,
+  resolvePageConfig, resolveRefLines, projectConfigOf,
 } from '../src/lib/reference.js';
 
 // ── the canonical name ────────────────────────────────────────────────────────────────────────────
@@ -81,6 +82,46 @@ test('titleOf and projectOf read either form', () => {
   assert.equal(titleOf('Weddell Sea'), 'Weddell Sea');
   assert.equal(projectOf('enwiki:Weddell Sea'), 'enwiki');
   assert.equal(projectOf('Weddell Sea'), null);
+});
+
+test('a resolved page carries both names for the same wiki', () => {
+  // The wire form is the dbname; the app's own fetchers build `https://${project}.org` from the dotted form.
+  // Handing a dbname to a fetcher produced `https://enwiki.org` for every converted widget at once (2026-09-16),
+  // which is why the resolver returns both and why this test exists.
+  assert.deepEqual(resolvePageConfig({ article: 'enwiki:Weddell Sea' }, { field: 'article' }),
+    { project: 'enwiki', projectConfig: 'en.wikipedia', title: 'Weddell Sea', isRef: true });
+  assert.equal(projectConfigOf('commonswiki'), 'commons.wikimedia');
+  assert.equal(projectConfigOf('enwikisource'), 'en.wikisource');
+  assert.equal(projectConfigOf('wikidata'), 'www.wikidata');
+  assert.equal(projectConfigOf('en.wikipedia'), 'en.wikipedia', 'already dotted: unchanged');
+  assert.deepEqual(resolveRefLines('dewiki:Bar', 'en.wikipedia')[0].projectConfig, 'de.wikipedia');
+});
+
+test('a widget resolves a page field in one call, reference first', () => {
+  // The reference beats the configured project: a value that says where it is from is better evidence than a field.
+  assert.deepEqual(resolvePageConfig({ article: 'enwiki:Weddell Sea', project: 'de.wikipedia' }, { field: 'article' }),
+    { project: 'enwiki', projectConfig: 'en.wikipedia', title: 'Weddell Sea', isRef: true });
+  assert.deepEqual(resolvePageConfig({ article: 'Weddell Sea', project: 'de.wikipedia' }, { field: 'article' }),
+    { project: 'dewiki', projectConfig: 'de.wikipedia', title: 'Weddell Sea', isRef: false });
+  assert.deepEqual(resolvePageConfig({ page: 'Foo' }, { field: 'page', fallbackProject: 'commons.wikimedia' }),
+    { project: 'commonswiki', projectConfig: 'commons.wikimedia', title: 'Foo', isRef: false });
+  // a category is a page too, and its namespace must survive
+  assert.equal(resolvePageConfig({ category: 'commonswiki:Category:Seas' }, { field: 'category' }).title, 'Category:Seas');
+});
+
+test('a list of pages may mix references and bare titles', () => {
+  assert.deepEqual(resolveRefLines('enwiki:Foo\ndewiki:Bar\nBaz', 'en.wikipedia'), [
+    { project: 'enwiki', projectConfig: 'en.wikipedia', title: 'Foo', isRef: true },
+    { project: 'dewiki', projectConfig: 'de.wikipedia', title: 'Bar', isRef: true },
+    { project: 'enwiki', projectConfig: 'en.wikipedia', title: 'Baz', isRef: false },
+  ]);
+  // The boundary, deliberately: a bare language code is NOT a reference. `de:Bar` is a title, because the
+  // convention is the dbname (`dewiki`) — the form every Wikimedia API already uses. Accepting `de:` would mean
+  // knowing the language list at parse time, which is ISSUE-93's job (`sitematrix`), not this module's guess.
+  assert.deepEqual(resolveRefLines('de:Bar', 'en.wikipedia'),
+    [{ project: 'enwiki', projectConfig: 'en.wikipedia', title: 'de:Bar', isRef: false }]);
+  assert.deepEqual(resolveRefLines('', 'en.wikipedia'), []);
+  assert.deepEqual(resolveRefLines('  \n \n', 'en.wikipedia'), []);
 });
 
 test('a consumer can re-aim a reference at its own wiki', () => {

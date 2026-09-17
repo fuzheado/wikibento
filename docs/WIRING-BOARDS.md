@@ -74,9 +74,10 @@ meaning.
 - **A framed page is invisible.** The page viewer, the 360° viewer and the media player embed a page the browser
   does not let us read, so nothing inside them can be published. A card that embeds is a dead end for wiring —
   it is still a fine consumer (it can be *told* what to show).
-- **Prose loses its article.** An Article Excerpt publishes text, not "the article this text came from". If you
-  need both, ask the card for a reference as well — that is what channels are for, and it is on the list
-  (ISSUE-92).
+- **Prose travels without its article — unless you ask for the second channel.** An Article Excerpt publishes its
+  paragraph on `extract` and the page it came from on `reference` (`enwiki:Albert Einstein`), so "translate this
+  paragraph *and tell me the article*" is two wires rather than one. A card that publishes prose is expected to do
+  this: it is enforced, because prose is the one shape that cannot describe itself.
 - **Nothing is pushed.** A consumer re-reads its source when the value *changes*; a source that emits an identical
   value twice is a deliberate no-op, so boards do not refresh in a loop. A wire that "does not fire" is usually a
   value that did not actually change.

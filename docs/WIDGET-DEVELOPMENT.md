@@ -81,7 +81,12 @@ Corollaries:
    no `File`/`Blob`/`ImageBitmap` handles, no functions. If it is not text (or
    an array of text), it does not belong on the wire yet — `docs/MEDIA-DATAFLOW.md`
    lays out what that would take.
-6. **A widget may publish more than one thing — on named channels (ISSUE-91).**
+6. **Prose must publish its source beside it (ISSUE-92).** An `extract` is text, so nothing inside it says which
+   page or which wiki it came from. A widget that emits one therefore also emits a **reference** on its own channel
+   — `outputs: { extract: 'extract', reference: 'value' }`, as the Article Excerpt does — and a test in the
+   manifest constitution refuses a prose emitter that does not. This is the contract that stops a new emitter
+   quietly dropping the context the way `excerpt` did.
+7. **A widget may publish more than one thing — on named channels (ISSUE-91).**
    The default output keeps the bare widget id (`{{widget:id}}`), so nothing old
    changes meaning. A second channel is declared as `outputs: { items: 'lines',
    selection: 'value' }`, returned as `emit: (data) => ({ items: … })`, stored as

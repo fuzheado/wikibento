@@ -3419,7 +3419,7 @@ fields to use the same field, so every widget is the same widget here.
 **Effort:** the picker is a day; the sweep across 21 types is another, mostly mechanical, and worth doing with a
 gate (a test that no widget hardcodes a language list).
 
-## ISSUE-92 · A page should travel with its wiki: references — **open**
+## ISSUE-92 · A page should travel with its wiki: references — **done + verified 2026-09-16**
 
 **What:** values that name a page carried only the *title*. Measured 2026-09-16 across the emitters:
 
@@ -3439,15 +3439,34 @@ reads the project out of the value and wins over its own configured project — 
 `dewiki` loads the German article. Verified end to end, including the bug this exposed: `wikiPage`'s hand-built
 host produced `https://enwiki.org`, which is now `projectSite`.
 
-**Still to do:**
-1. **`excerpt` (and any prose emitter) should publish its article as a second channel** — `{ extract: 'extract',
-   reference: 'value' }`. That is precisely what channels are for (ISSUE-91), and it is how "translate this
-   paragraph" can also mean "and I know which article it was".
-2. **Every consumer that takes a page should accept a reference** — `articleList`, `quality`, `assessments`,
-   `edithistory`, `gallery`, `categorySize`, `cim*` — today only `wikiPage` does. A shared `parseRef` step plus a
-   test per type.
-3. **The audit gate:** assert that any widget which emits something *about a page* declares a reference channel,
-   so a new emitter cannot quietly drop the context again.
+**All three, shipped 2026-09-16:**
+
+1. **The Article Excerpt publishes both channels** — `outputs: { extract: 'extract', reference: 'value' }`. Its
+   paragraph goes out on `extract` (what a Translator or Speaker consumes) and the page it came from on
+   `reference` — `enwiki:Albert Einstein`, built from the API's canonical title, falling back to the configured
+   article. Prose is the one shape that cannot describe itself, so it no longer travels alone.
+2. **Fifteen page-taking widgets accept a reference.** `pageviews`, `categorySize`, `excerpt`, `edithistory`,
+   `quality`, `assessments`, `gallery`, `articleList` (per line, mixed projects noted below), the six `cim*`
+   widgets and `documentReader` — all through one helper (`pageRef` / `resolvePageConfig`) rather than fifteen
+   hand-rolled parsings. The reference wins over the widget's own project field, because a value that says where
+   it is from is better evidence than a field the board was built with.
+3. **The gate exists:** the manifest constitution now refuses a widget that emits prose without a `reference`
+   channel beside it, so a new emitter cannot quietly drop the context the way this one did.
+
+**The bug this found, and the boundary it drew.** `resolvePageConfig` returns the canonical **dbname** — and the
+app's own fetchers build `https://${project}.org` from the *dotted* form. So the first sweep handed `enwiki` to
+fifteen fetchers, every one of which produced `https://enwiki.org`: a DNS failure that looks nothing like a type
+error, caught only by driving the demo. The resolver now returns both names — `project` (the wire form, for
+anything published) and `projectConfig` (the dotted form, for anything fetched) — with a test that states the
+boundary, and `projectSite`/`projectConfigOf` are the single place it is decided.
+
+**Verified end to end:** an Article Excerpt on `Albert Einstein` publishes `enwiki:Albert Einstein`; a Value
+Display reading `ex#reference` shows exactly that; a page viewer reading `{{widget:ex#reference}}` loads
+`https://en.wikipedia.org/wiki/Albert_Einstein` — with no project configured on either consumer.
+
+**Still open, and smaller:** a *mixed-project* list (an Article List whose lines name different wikis) is fetched
+with the first line's project, because the fetcher takes one project per call; per-item fetching is its own
+feature. And the twelve free-text project fields still take a bare project string — that is ISSUE-93's sweep.
 
 **Why this is the important half of the two:** ISSUE-91 made a click able to mean something to the board; this is
 what makes the meaning *unambiguous* once boards cross languages, which is the normal case for Wikimedia content.

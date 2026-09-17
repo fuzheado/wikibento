@@ -11,6 +11,23 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A page's wiki travels with it, everywhere (ISSUE-92, 2026-09-16)
+
+- ✅ **The excerpt no longer publishes prose alone.** It emits `extract` *and* `reference`; verified by driving it:
+  an Article Excerpt on Albert Einstein published **`enwiki:Albert Einstein`**, a Value Display consuming
+  `ex#reference` showed exactly that string, and a page viewer reading `{{widget:ex#reference}}` loaded
+  `https://en.wikipedia.org/wiki/Albert_Einstein` — **with no project configured on either consumer**.
+- ✅ **Fifteen page-taking widgets accept a reference** through one helper, so "accepts a reference" is one
+  implementation rather than fifteen.
+- ✅ **The gate:** the manifest constitution refuses a prose emitter that declares no `reference` channel — the
+  rule that stops this happening again.
+- 🐛 **The boundary bug worth remembering:** the resolver returned the canonical dbname (`enwiki`) while the app's
+  fetchers build `https://${project}.org` from the dotted form (`en.wikipedia`), so the first sweep produced
+  `https://enwiki.org` for fifteen widgets at once — a DNS failure masquerading as nothing in particular, caught by
+  driving the demo rather than by any unit test. The resolver now returns both names, and a test states the rule.
+- ⚠ **Known limit:** a *mixed-project* Article List is fetched with its first line's project (the fetcher takes one
+  project per call); per-item fetching is a separate feature.
+
 ## Text hangs from the top (ISSUE-94, 2026-09-16)
 
 - ✅ **Measured before and after.** A short Article Excerpt in a 780px card was centred: **139px above, 139px

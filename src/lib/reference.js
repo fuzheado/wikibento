@@ -83,6 +83,23 @@ export function projectSite(project) {
   return null;
 }
 
+/**
+ * A dbname → the **dotted form the app's config fields and fetchers use**: `enwiki` → `en.wikipedia`,
+ * `commonswiki` → `commons.wikimedia`, `wikidata` → `www.wikidata`.
+ *
+ * Two names for the same wiki, and the boundary between them is not cosmetic: the *wire* form is the dbname
+ * (what every API and dump calls these wikis), while the app's own fetchers build `https://${project}.org` from
+ * the dotted form. Handing a dbname to one of those produces `https://enwiki.org` — a plausible-looking wrong
+ * answer that fails as a DNS error rather than as a type error. Measured 2026-09-16 while converting the page
+ * widgets to accept references: every one of them broke this way until the helper returned both.
+ */
+export function projectConfigOf(project) {
+  const site = projectSite(project);
+  if (!site) return String(project ?? '').trim();
+  if (site.dbname === 'wikidata') return 'www.wikidata';
+  return site.host.replace(/\.org$/, '');
+}
+
 /** A reference string for a page on a project: `enwiki:Weddell Sea`, or the bare title when the project is unknown. */
 export function projectRef(project, title) {
   const clean = String(title ?? '').trim();
@@ -119,6 +136,53 @@ export function titleOf(value) {
 /** The project part of a value, or null when it carries none. */
 export function projectOf(value) {
   return parseRef(value).project;
+}
+
+/**
+ * Resolve a widget's page config in one step: a value that may be a reference, plus the widget's own project field
+ * as the fallback. This is what every page-taking widget calls, so "accepts a reference" is one implementation
+ * rather than twelve (ISSUE-92).
+ *
+ *   resolvePageConfig({ article: 'enwiki:Weddell Sea' }, { field: 'article' })
+ *     → { project: 'enwiki', title: 'Weddell Sea', isRef: true }
+ *   resolvePageConfig({ article: 'Weddell Sea', project: 'de.wikipedia' }, { field: 'article' })
+ *     → { project: 'dewiki',  title: 'Weddell Sea', isRef: false }
+ *
+ * The reference wins over the configured project, because a value that says where it is from is better evidence
+ * than a field the board was built with.
+ */
+export function resolvePageConfig(config, { field, projectField = 'project', fallbackProject = 'en.wikipedia' } = {}) {
+  const raw = config && typeof config === 'object' ? config[field] : '';
+  const parsed = parseRef(raw);
+  const configured = config && typeof config === 'object' ? config[projectField] : null;
+  const project = parsed.project || dbnameOf(configured) || dbnameOf(fallbackProject) || null;
+  // `project` is the canonical dbname (the wire form); `projectConfig` is what the app's fetchers and config
+  // fields take. Callers that fetch use the second; anything that *publishes* uses the first.
+  return { project, projectConfig: projectConfigOf(project), title: parsed.title, isRef: parsed.isRef };
+}
+
+/** `resolvePageConfig` under the name call sites use. */
+export function pageRef(config, field, projectField = 'project') {
+  return resolvePageConfig(config, { field, projectField });
+}
+
+/**
+ * The same, for a field that holds *several* pages, one per line (an Article List, a gallery of files): each line
+ * may carry its own reference, and lines that do not inherit the widget's project.
+ *
+ *   resolveRefLines('enwiki:Foo\nde:Bar', 'en.wikipedia') → [{ project: 'enwiki', title: 'Foo' }, { project: 'dewiki', title: 'Bar' }]
+ */
+export function resolveRefLines(text, project) {
+  const fallback = dbnameOf(project);
+  return String(text ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parsed = parseRef(line);
+      const project = parsed.project || fallback;
+      return { project, projectConfig: projectConfigOf(project), title: parsed.title, isRef: parsed.isRef };
+    });
 }
 
 /**
