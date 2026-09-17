@@ -65,6 +65,17 @@ test('no description is truncated at an apostrophe (v2 bug regression)', () => {
   assert.ok(fl.length > 50 && fl.includes('output'), `filterLines description restored: ${fl}`);
 });
 
+test('a multi-channel widget says what its bare id means (the compatibility rule)', () => {
+  // Channels were added as a *compatible* change: `{{widget:id}}` must keep meaning what it always meant. A widget
+  // that publishes several things therefore declares which one the bare id is — the Article Excerpt taught this the
+  // hard way by emptying the bare id, which left `translate` in the demo waiting for a value forever.
+  for (const w of manifest.widgets) {
+    if (!w.outputs || 'kind' in w.outputs) continue;
+    assert.ok(w.primary, `${w.id} names several channels without saying which one the bare id means`);
+    assert.ok(w.primary in w.outputs, `${w.id}: primary "${w.primary}" is not one of its channels`);
+  }
+});
+
 test('a widget that emits prose declares where the prose came from (ISSUE-92)', () => {
   // The one shape that cannot self-describe: an `extract` is text, so nothing inside it says which page or which
   // wiki it came from. A widget that publishes one therefore has to publish a `reference` beside it — this is the

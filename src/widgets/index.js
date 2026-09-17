@@ -625,7 +625,11 @@ export const WIDGET_TYPES = {
     // Translator with text: "{{widget:<this id>}}", or a Filter/Count chain.
     // Two channels (ISSUE-92): `extract` is the prose other widgets translate or read aloud, and `reference` is the
     // page it came from — the thing prose cannot carry.
+    // `primary` says what `{{widget:this}}` — the bare id — means, so every reference written before channels
+    // existed still works. It must directly follow the line above: the manifest generator reads a property that
+    // follows a comma, and an intervening comment is not whitespace.
     outputs: { extract: 'extract', reference: 'value' },
+    primary: 'extract',
     emit: (data) => ({ extract: data.extract, reference: data.reference }),
   },
 
@@ -1295,6 +1299,7 @@ export const WIDGET_TYPES = {
     // when linkAction says so. A widget that names its channels returns `{ channel: value }` from `emit`.
     emit: (data) => ({ items: boxLines(data && data.html) }),
     outputs: { items: 'lines', selection: 'value' },
+    primary: 'items',
     configFields: [
       { key: 'box', label: 'Template', type: 'text', placeholder: 'In the news',
         hint: 'In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}' },

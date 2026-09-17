@@ -380,6 +380,13 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         for (const [channel, value] of Object.entries(emitted)) {
           if (value !== undefined) onOutput(widget.id, value, channel);
         }
+        // …and the *primary* channel also goes on the bare widget id, which is what every reference written before
+        // channels existed means. Turning a single-output widget into a multi-channel one must not silently empty
+        // the bare id — the Article Excerpt did exactly that to `translate`, whose `{{widget:excerpt-src}}` then
+        // waited forever for a value (found in the translate demo, 2026-09-16).
+        if (def.primary && emitted[def.primary] !== undefined) {
+          onOutput(widget.id, emitted[def.primary]);
+        }
       } else {
         onOutput(widget.id, emitted);
       }

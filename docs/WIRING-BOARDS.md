@@ -46,6 +46,36 @@ is about pages reads the project from the reference rather than guessing from it
 is still valid: a value with no project prefix is a title, which is why nothing built before this existed changed
 meaning.
 
+## What a value *is* — and what it is not (measured 2026-09-16)
+
+Every value that travels today is a **primitive or an array of strings**: a number, a paragraph, a URL, or lines.
+Nothing on the wire is an object. That is not a design principle so much as the current truth, and it has two
+consequences worth knowing before you build a chain:
+
+**1. Structure survives one path and not the other.**
+
+| how a value travels | what the consumer receives |
+|---|---|
+| a `source` field (the dataflow picker) | the value **as it is** — an array stays an array, a number stays a number |
+| `{{widget:id}}` inside a text field | **text** — an array is joined with newlines, an object becomes JSON |
+
+That difference is deliberate (a text field can only hold text), but it means "the same value" can arrive with
+different fidelity depending on how you wired it.
+
+**2. Consumers infer from the *shape*, not from a type.** `toLines()` turns an array into lines and splits a
+string; `countOf()` counts an array or the lines of a string. A widget's declared output kind
+(`extract` / `lines` / `count` / `value`) is **documentation**: measured, nothing in the data path reads it. So a
+consumer knows "this is a list", and cannot know **what the list is about** — categories, files and ranked rows all
+arrive as the same shape of lines.
+
+**What that means for a structured value:** if a widget publishes objects, they arrive at a `{{widget:…}}`
+reference as a **single line of JSON**, which a Filter Line or a Text List will happily treat as one very long line.
+Nothing is broken by it — and nothing can *consume* it either, because an anonymous object says nothing about what
+it holds. The fix is a `type` inside the payload (ISSUE-97), which is the difference between a blob and a value.
+
+**The rule to hold on to today:** keep what you publish either text, or lines — and if it has to be structured, say
+what it is.
+
 ## Three ways to wire, easiest first
 
 1. **Pick a source (no typing).** Open the consumer's ⚙, choose **Source widget**, and pick from the cards on the

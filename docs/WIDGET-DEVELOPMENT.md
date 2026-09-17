@@ -102,7 +102,12 @@ Corollaries:
    — `outputs: { extract: 'extract', reference: 'value' }`, as the Article Excerpt does — and a test in the
    manifest constitution refuses a prose emitter that does not. This is the contract that stops a new emitter
    quietly dropping the context the way `excerpt` did.
-7. **A widget may publish more than one thing — on named channels (ISSUE-91).**
+7. **A widget may publish more than one thing — on named channels (ISSUE-91), and it must say which one the bare
+   id means.** `primary: 'extract'` publishes that channel on the widget's own id as well, which is what every
+   reference written before channels existed means. This is not a nicety: the Article Excerpt became a
+   multi-channel widget and stopped filling its bare id, and the translate demo — wired as
+   `{{widget:excerpt-src}}` — sat on *"Waiting for a reference"* forever. A manifest-constitution test now fails a
+   channel-mapped widget that declares no `primary`.
    The default output keeps the bare widget id (`{{widget:id}}`), so nothing old
    changes meaning. A second channel is declared as `outputs: { items: 'lines',
    selection: 'value' }`, returned as `emit: (data) => ({ items: … })`, stored as

@@ -3359,6 +3359,53 @@ found by reading `localStorage` after clicking around the panel, not by a test.
 it is that it is a preference *of the person* with no better home — a board option belongs in the board, and a
 widget option belongs in ⚙ on the card.
 
+## ISSUE-97 · Structured values: a `type` inside the payload, not just a shape — **open**
+
+Andrew asked, after ISSUE-96's audit: we are emitting increasingly complex data — is that scalable? Do we know from
+context whether something is a text block, a list, a category list or an image list? Does this demand a formal
+schema and JSON on the wire?
+
+**Measured, what we do now (2026-09-16):**
+
+| | truth |
+|---|---|
+| the emitted values in the registry | **all primitives or arrays of strings** — a number, a paragraph, a URL, lines; no objects anywhere |
+| how a consumer reads them | **shape sniffing** — `toLines()`/`countOf()` check `Array.isArray` and split strings |
+| the declared `outputs.kind` | **documentation** — measured, nothing in the data path reads it |
+| structure across the two paths | a `source` field delivers the value intact; `{{widget:id}}` stringifies it (arrays joined, objects JSON) |
+
+**So the answer to "do we know from context?": no.** A consumer knows *that* it received a list, never *what the
+list is about*. Categories, files and ranked rows are indistinguishable, and an object arrives as one long line of
+JSON — which is not broken, but is not consumable either.
+
+**Is it scalable?** For text, lines and counts — yes, and that covers 10 of the 42 widgets and most chains people
+build. For the row-shaped emitters ISSUE-96 lists next (a ranking carries a **name and a count**; a file list carries
+a name, a size and a URL; a revision list carries a user and a timestamp) — **no**, and the failure is quiet rather
+than loud: the consumer gets JSON text where it expected lines.
+
+**Proposed, in the smallest form that works:**
+
+1. **A `type` inside the payload.** `{ type: 'ranking', rows: [{ title, count }] }`, `{ type: 'files', rows: [...] }`,
+   `{ type: 'revisions', rows: [...] }`. The discriminator is the whole point: it turns a blob into a value a
+   consumer can branch on.
+2. **Beside the text channel, never instead of it** (channels, ISSUE-91). A ranking publishes `rows` (typed) *and*
+   `lines` (the names, for a Filter or a Speaker) — so the existing consumers keep working and nothing already
+   wired changes meaning. `primary` decides which one the bare id means, as it does now.
+3. **A catalogue, not a schema.** One table in `docs/WIRING-BOARDS.md` (or a `DATAFLOW-TYPES.md`) listing each type
+   and its fields. JSON Schema per channel would be honest and is not worth it yet: with one consumer per producer in
+   practice, the discriminator plus a written shape is the 80%. Revisit if a third party starts publishing.
+4. **What not to do:** never publish an anonymous object, and never make a consumer parse a producer's internals —
+   both are the same mistake, and the `type` is what prevents them.
+
+**How this compares.** Grafana and Tableau pass typed dataframes, but they own both ends of the wire. marimo and
+Observable pass live objects, and have no persistence constraint. A WikiBento board has to survive a URL and
+`localStorage`, which forces a serialisable wire — so *typed JSON* is the ceiling here, and the discriminator is
+what makes it a type rather than a blob.
+
+**Effort:** the discriminator plus the first three structured emitters (a ranking, a file list, an edit list) is
+about a day, and it is best done *with* ISSUE-96's row-shaped work rather than before it — the first structured
+producer is what tells us whether the type list is right.
+
 ## ISSUE-96 · Emitter/consumer audit: 10 of 42 widgets publish anything — **open**
 
 Andrew asked for an audit of "the obvious emitter/consumer functions". Measured from the registry 2026-09-16:

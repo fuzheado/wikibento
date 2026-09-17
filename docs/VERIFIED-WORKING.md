@@ -11,6 +11,24 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A compatibility promise, broken and restored (ISSUE-95/96, 2026-09-16)
+
+- 🐛 **Andrew found this in production:** on `?config=/translate-demo.json` the translator sat on *"Waiting for a
+  reference — widget output 'excerpt-src' (not emitted yet — or the id is unknown)"*. The cause was mine: ISSUE-91
+  promised that named channels keep the bare widget id working, and ISSUE-92 then turned the Article Excerpt into a
+  channel-mapped widget that filled **only** `id#extract` and `id#reference` — so `{{widget:excerpt-src}}`, which
+  every board written before channels means, received nothing.
+- ✅ **Fixed by making the promise checkable:** a channel-mapped widget declares `primary`, and the frame publishes
+  that channel on the bare id as well. `excerpt.primary = extract`, `wikiBox.primary = items`. A
+  manifest-constitution test fails a channel-mapped widget that declares no `primary` (or names a channel it does
+  not have), so the promise cannot be broken silently again.
+- ✅ **Verified in the demo that broke:** the excerpt emits and the translator shows its French rendering
+  (*"…particulier pour sa découverte de la loi de l'effet photoélectrique"*), with no "Waiting for a reference" on
+  the page.
+- ⚠ **And the audit's honest finding** (ISSUE-97): every value on the wire today is a primitive or an array of
+  strings, consumers infer from the *shape* rather than the declared kind, and nothing reads `outputs.kind` —
+  which is why a structured value currently arrives as one long line of JSON that no consumer can interpret.
+
 ## Settings, and a translator that finally talks (ISSUE-95, 2026-09-16)
 
 - ✅ **The panel, driven in a browser:** four sections (My wiki · Recently used wikis · Present mode · About),

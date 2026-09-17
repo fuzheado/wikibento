@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T19:26:45.416Z",
+ "generatedAt": "2026-09-17T19:48:16.193Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -530,7 +530,8 @@
    "outputs": {
     "extract": "extract",
     "reference": "value"
-   }
+   },
+   "primary": "extract"
   },
   {
    "id": "edithistory",
@@ -1363,7 +1364,8 @@
    "outputs": {
     "items": "lines",
     "selection": "value"
-   }
+   },
+   "primary": "items"
   },
   {
    "id": "wikiPage",

@@ -202,7 +202,9 @@ while ((m = blockRe.exec(src)) !== null) {
     configFields,
     defaults,
   };
+  const primary = prop(block, 'primary');
   if (channels && Object.keys(channels).length) widget.outputs = channels;
+  if (primary && channels && primary in channels) widget.primary = primary;
   else if (outputsKind) widget.outputs = { kind: outputsKind };
   widgets.push(widget);
 }
