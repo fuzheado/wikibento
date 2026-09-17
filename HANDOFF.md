@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CQrYr5Qg.js` (+ `index-BWgKdWiq.css`) |
-| deployed | 2026-09-16 — **Wikipedia boxes** (ISSUE-90, the In the news box and four more Main Page boxes, rendered with the wiki's own styles), then **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
+| production bundle | `index-68WWsiDw.js` (+ `index-BWgKdWiq.css`) |
+| deployed | 2026-09-16 — **a click in a box opens a new tab** (ISSUE-91), **Wikipedia boxes** (ISSUE-90), then **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified: the demo board renders all five boxes live, 0 relative URLs, nothing clipped) |
+| pending deploy | none — production serves this branch's tip (verified: 111 links in the demo's five boxes, all targeted, click → new tab, board intact) |
 | newest capabilities | 📰 **Wikipedia boxes** — any template rendered with the wiki's own markup *and* styles: In the news, Did you know, Today's featured article, plus dated ones via `POTD/{date}` and the selected-anniversaries page (ISSUE-90) · 👀 **Borrowed boards** — opening someone's link shows their board without touching yours, with a notice offering [Save this as mine] / [Back to my board] and a day-long recovery for the board an adoption displaces (ISSUE-88) · 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you page by page**, headed by its proofreading grade) · 📖 **IA Book** (search inside a scan, hits boxed on the page) · 🎬 **Media player** (a direct URL plays; `.ogv` does not) · ⤓ **PNG export** where the images come from a CORS-enabled host |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
