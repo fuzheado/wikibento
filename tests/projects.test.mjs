@@ -9,6 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { readFullscreenPreference, writeFullscreenPreference } from '../src/components/SettingsPanel.jsx';
 import {
   parseSiteMatrix, languageList, orderProjects, filterProjects, labelFor,
   readRecentProjects, noteRecentProject, readDefaultProject, writeDefaultProject,
@@ -183,6 +184,22 @@ test('recency is newest-first, deduped and capped', () => {
   assert.equal(readRecentProjects(s).length, RECENT_CAP);
 });
 
+test('the same wiki is one entry, whichever form a caller passes (ISSUE-95)', () => {
+  // Found by using the Settings panel: the picker stored `jawiki` and the panel stored `ja.wikipedia`, so the list
+  // held the same wiki twice and the ranking ignored one of them.
+  const s1 = fakeStorage();
+  noteRecentProject(s1, 'jawiki');
+  noteRecentProject(s1, 'ja.wikipedia');
+  assert.deepEqual(readRecentProjects(s1), ['jawiki']);
+  // and a mixed list written by an older build self-heals on read
+  const s2 = fakeStorage({ 'wikibento-recent-projects': JSON.stringify(['de.wikipedia', 'dewiki', 'frwiki']) });
+  assert.deepEqual(readRecentProjects(s2), ['dewiki', 'frwiki']);
+  // a language code is not a project: it is stored as itself
+  const s3 = fakeStorage();
+  noteRecentProject(s3, 'de');
+  assert.deepEqual(readRecentProjects(s3), ['de']);
+});
+
 test('an empty or corrupt recent list is simply empty', () => {
   assert.deepEqual(readRecentProjects(fakeStorage({ 'wikibento-recent-projects': 'not json' })), []);
   assert.deepEqual(readRecentProjects(fakeStorage({ 'wikibento-recent-projects': '{"a":1}' })), []);
@@ -197,6 +214,20 @@ test('the default project is remembered, and clearing it means clearing it', () 
   assert.equal(readDefaultProject(s), 'dewiki');
   writeDefaultProject(s, '');
   assert.equal(readDefaultProject(s), null);
+});
+
+// ── the settings panel's own preference (ISSUE-95) ────────────────────────────────────────────────
+
+test('the fullscreen preference defaults to on, and remembers an explicit no', () => {
+  // It was a constant in App.jsx until the Settings panel gave it a home; the default keeps the old behaviour.
+  assert.equal(readFullscreenPreference(fakeStorage()), true, 'nothing stored = the previous behaviour');
+  const s1 = fakeStorage();
+  writeFullscreenPreference(s1, false);
+  assert.equal(readFullscreenPreference(s1), false);
+  writeFullscreenPreference(s1, true);
+  assert.equal(readFullscreenPreference(s1), true);
+  assert.equal(readFullscreenPreference(fakeStorage({ 'wikibento-present-fullscreen': 'nonsense' })), false,
+    'anything other than "true" is off, deliberately: fullscreen is an intrusive thing to get wrong');
 });
 
 // ── the mirror that keeps the first paint fast ────────────────────────────────────────────────────

@@ -3328,6 +3328,88 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-95 · Settings: my wiki, recent wikis, present-mode fullscreen — **prototype shipped 2026-09-16**
+
+Andrew asked for a Settings panel prototype, and ISSUE-93 left it owed: the project picker honours a *default wiki*
+that had no UI, and the fullscreen behaviour of Present mode was a constant (`FULLSCREEN_ON_PRESENT`) rather than a
+preference.
+
+**Shipped as a prototype** (⚙ in the toolbar), with deliberately three things and no more — each of which existed
+nowhere before, or only in a constant:
+
+  1. **My wiki** — the project picker from ISSUE-93, reused verbatim (which is why the picker now lives in
+     `src/components/ProjectField.jsx` rather than inside the widget frame). Choosing one records it as used, so the
+     default and the recency list stay consistent by construction.
+  2. **Recently used wikis** — shown, with "Make default" per row and a "Clear the list". A recency list you cannot
+     see is a list you cannot fix.
+  3. **Present mode: ask for fullscreen** — the old constant as a checkbox, defaulting to on so nothing changes for
+     anyone who never opens Settings.
+
+**And `translate` now emits its translation** (the concrete half of the ask): it computed `translation` and
+published nothing, so a Markdown card or a Speaker could not consume it. `outputs: { kind: 'value' }`,
+`emit: (data) => data.translation`.
+
+**The bug the panel immediately surfaced:** the picker stored a recency entry as `jawiki` while the panel stored
+`ja.wikipedia`, so the same wiki appeared twice and the ranking — which matches on the dbname — ignored one of them.
+`recentKey()` now canonicalises on write *and* on read (so a mixed list from an older build self-heals), and a
+language code is stored as itself. That is the argument for settings nobody can inspect being a bad idea: this was
+found by reading `localStorage` after clicking around the panel, not by a test.
+
+**Not built, on purpose:** a Settings panel is a place where features accumulate. The bar for anything else joining
+it is that it is a preference *of the person* with no better home — a board option belongs in the board, and a
+widget option belongs in ⚙ on the card.
+
+## ISSUE-96 · Emitter/consumer audit: 10 of 42 widgets publish anything — **open**
+
+Andrew asked for an audit of "the obvious emitter/consumer functions". Measured from the registry 2026-09-16:
+
+| | count | meaning |
+|---|---|---|
+| widget types | 42 | |
+| **emit** something | **10** | qrCode, excerpt, wikiBox, iaItem, iaBook, documentReader, listSource, filterLines, lineCount, echo, and now `translate` (ISSUE-95) |
+| declare a `source` picker (a *dataflow* consumer) | 3 | filterLines, lineCount, echo |
+| can be **consumed** anyway | all | any text field interpolates `{{widget:id}}`, so a Translator or a Wiki Page does not need a picker to be a consumer |
+
+**The conclusion that matters:** the *consumer* side is in better shape than the counts suggest — interpolation makes
+every widget a potential consumer without new machinery. The **emitter side is the gap**, and it is the side that
+makes a board feel alive rather than merely populated.
+
+**The obvious emitters, in the order I would add them** (each is a one- or two-line `emit` plus an `outputs`
+declaration, and each needs its data shape checked — that is the whole work):
+
+| widget | should emit | kind |
+|---|---|---|
+| `translate` | the translated text | `value` — **done, ISSUE-95** |
+| `articleList` | the article titles | `lines` |
+| `quality` | the ORES grade (`GA`, `B`, …) | `value` |
+| `assessments` | `WikiProject: grade` rows | `lines` |
+| `gallery`, `fileGallery` | the file names | `lines` |
+| `edithistory` | `user — summary` rows, or the users | `lines` |
+| `topPages`, `topWikipedias`, `cimTop*`, `cimLeaderboard`, `wikistats` | the ranked names | `lines` |
+| `sparql` | the result rows | `lines` |
+| `waybackGallery` | the snapshot URLs | `lines` |
+| `mediaPlayer`, `panorama360` | the file/URL being shown | `value` |
+| `wikiPage` | the page it is showing (a **reference**, ISSUE-92) | `value` |
+| `markdown` | its own text, like `qrCode` does | `value` |
+| `pageviews`, `linkcount`, `categorySize`, `fileUsage`, `glamorgan` | the number | `count` / `value` — debatable: useful for a "how many" chain, noise otherwise |
+
+**Not needed:** `speaker` (it says nothing a value could carry), `boardControls` (it drives *params*, which is a
+different mechanism — see the param model in `docs/MODULARITY-AND-DATAFLOW.md`), and the widget families that
+already publish URLs.
+
+**Two rules that came out of doing this one:**
+
+1. **Prose must publish a reference beside it** — already a gate (ISSUE-92). The same argument applies to any value
+   that names a page: a title without its wiki is ambiguous once boards cross languages.
+2. **A number is not automatically worth publishing.** Five statistics widgets could emit their number, and the
+   question each needs is "what would consume this?" — a chain that counts something else is rare, while a *list*
+   of names is the thing boards actually pipe into Filters, Galleries and Maps. That judgement is why this is a
+   checklist rather than a manifest gate: a gate can check a rule, not a purpose.
+
+**No gate for the gap itself**, deliberately. What a widget *should* publish depends on what it is about, and the
+registry cannot know that; what it can know is already enforced (prose → reference; a declared output kind must be
+in the documented set; a channel must exist if referenced).
+
 ## ISSUE-94 · The Article Excerpt: name it honestly, and let text hang from the top — **done + verified 2026-09-16**
 
 Two things Andrew raised about the excerpt widget.

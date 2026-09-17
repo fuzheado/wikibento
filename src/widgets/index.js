@@ -1411,6 +1411,11 @@ export const WIDGET_TYPES = {
       model: data?.model || null,
       truncated: !!data?.truncated,
     }),
+    // ISSUE-95: the translated text is the whole point of this widget, so it travels — a Markdown card can show
+    // it, a Speaker can read it, a Text List can take it apart. The languages do not travel with it: the value is
+    // text, and anything about *where* it came from belongs to the widget that fetched the source (ISSUE-92).
+    outputs: { kind: 'value' }, // emitted: the translated text
+    emit: (data) => data.translation,
   },
 
   sparql: {

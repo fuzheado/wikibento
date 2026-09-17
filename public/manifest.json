@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T18:33:04.357Z",
+ "generatedAt": "2026-09-17T19:26:45.416Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -1456,7 +1456,10 @@
     "from",
     "to",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   },
   {
    "id": "sparql",

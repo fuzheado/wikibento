@@ -1,4 +1,4 @@
-import { projectConfigOf } from './reference.js';
+import { projectConfigOf, dbnameOf } from './reference.js';
 
 /**
  * Projects — every wiki, ordered by what you actually use (ISSUE-93).
@@ -216,19 +216,45 @@ export function labelFor(projects, value, { mode = 'project' } = {}) {
 
 // ── the user's own memory (storage injected, so this is testable without a browser) ─────────────────
 
+/**
+ * The key a recency entry is stored under: the canonical **dbname** whenever the value is recognisably a project,
+ * and the raw value otherwise (a bare language code, for a language field).
+ *
+ * This exists because two callers passed two forms for the same wiki — the picker stored `jawiki` and the Settings
+ * panel stored `ja.wikipedia` — so the list held the same wiki twice and the ranking (which matches on the dbname)
+ * ignored one of them. Found by reading localStorage after using the panel, which is the argument for settings
+ * nobody can inspect being a bad idea.
+ */
+function recentKey(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return '';
+  return dbnameOf(v) || v;
+}
+
 /** Recently used projects, newest first. Corrupt or absent storage is simply "nothing yet". */
 export function readRecentProjects(storage, { key = RECENT_KEY, cap = RECENT_CAP } = {}) {
   try {
     const raw = storage && storage.getItem ? storage.getItem(key) : null;
     const parsed = raw ? JSON.parse(raw) : null;
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((v) => typeof v === 'string' && v).slice(0, cap);
+    // Normalised on read too, so a list written by an older build (or a mixed one) collapses rather than
+    // showing the same wiki twice.
+    const seen = new Set();
+    const out = [];
+    for (const entry of parsed) {
+      const k = recentKey(entry);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out.push(k);
+      if (out.length >= cap) break;
+    }
+    return out;
   } catch { return []; }
 }
 
 /** Note a project as used. Newest first, no duplicates, capped — the same shape as the widget MRU. */
 export function noteRecentProject(storage, value, { key = RECENT_KEY, cap = RECENT_CAP } = {}) {
-  const v = String(value ?? '').trim();
+  const v = recentKey(value);
   if (!v) return readRecentProjects(storage, { key, cap });
   const next = [v, ...readRecentProjects(storage, { key, cap }).filter((x) => x !== v)].slice(0, cap);
   try { if (storage && storage.setItem) storage.setItem(key, JSON.stringify(next)); } catch { /* full or blocked */ }

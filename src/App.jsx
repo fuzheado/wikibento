@@ -8,6 +8,8 @@ import AboutPanel from './components/AboutPanel';
 import DiagnosticsPanel from './components/DiagnosticsPanel';
 import SharePanel from './components/SharePanel';
 import BoardNotice from './components/BoardNotice';
+import SettingsPanel, { readFullscreenPreference } from './components/SettingsPanel';
+import { fetchProjectList } from './widgets/dataSources';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
@@ -55,7 +57,8 @@ const DEFAULT_LAYOUT = [
 // ISSUE-18: enter browser fullscreen when the ⛶ Present button is clicked.
 // Attempted ONLY on the click path (browser requires a user gesture; the
 // ?kiosk=1 boot path must NOT attempt it).
-const FULLSCREEN_ON_PRESENT = true;
+// Present-mode fullscreen is a *setting* now (⚙ Settings) rather than a constant — a preference wearing a
+// constant's clothes. `readFullscreenPreference` decides when the user has expressed none.
 
 export default function App() {
   const [widgets, setWidgets] = useState([]);
@@ -69,6 +72,16 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // Reset is destructive and now offers a choice of fresh start (blank board or
   // the starter set), so it opens a dialog instead of acting on the click.
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  // Settings shows the same project list the pickers use (mirror → fetch → shortlist), re-read when it changes.
+  const [settingsProjects, setSettingsProjects] = useState([]);
+  const [settingsNonce, setSettingsNonce] = useState(0);
+  useEffect(() => {
+    if (!showSettings) return undefined;
+    let cancelled = false;
+    fetchProjectList().then((list) => { if (!cancelled && list && list.length) setSettingsProjects(list); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [showSettings, settingsNonce]);
   // The board the URL claimed at boot (C1). SharePanel compares the live board against it, so a link we
   // hand someone always describes the board on screen rather than a stale `?config=` (ISSUE-87).
   const [urlClaim, setUrlClaim] = useState(null);
@@ -255,7 +268,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const enterKiosk = useCallback(() => {
     setLean(false);
     setKiosk(true);
-    if (FULLSCREEN_ON_PRESENT && document.documentElement.requestFullscreen) {
+    if (readFullscreenPreference(typeof localStorage !== 'undefined' ? localStorage : null)
+      && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
   }, []);
@@ -840,6 +854,9 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn btn-danger" onClick={() => setShowResetDialog(true)} title="Reset to defaults">
             ↺ Reset
           </button>
+          <button className="btn" onClick={() => setShowSettings(true)} title="Settings — your wiki, recent wikis, present mode">
+            ⚙
+          </button>
           <button className="btn" onClick={() => setShowAbout(true)} title="About WikiBento">
             ⓘ
           </button>
@@ -928,6 +945,14 @@ const handleAutoHeight = useCallback((id, px) => {
           claim={urlClaim}
           lean={lean}
           onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsPanel
+          projects={settingsProjects}
+          onClose={() => setShowSettings(false)}
+          onProjectsChanged={() => setSettingsNonce((n) => n + 1)}
         />
       )}
 

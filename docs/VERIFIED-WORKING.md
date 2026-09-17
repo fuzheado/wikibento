@@ -11,6 +11,20 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Settings, and a translator that finally talks (ISSUE-95, 2026-09-16)
+
+- ✅ **The panel, driven in a browser:** four sections (My wiki · Recently used wikis · Present mode · About),
+  searching "japanese" in its picker returned *Japanese Wikipedia* and *Japanese Wikibooks*, picking one stored
+  `ja.wikipedia` as the default, the recent list showed it, and the fullscreen checkbox persisted `false`. No page
+  errors.
+- ✅ **`translate` emits its translation.** It computed the text and published nothing, so nothing could consume it.
+  Now `outputs: { kind: 'value' }` — a Markdown card can show it, a Speaker can read it.
+- 🐛 **The bug the panel surfaced in its first minute of use:** the picker wrote a recency entry as `jawiki` and
+  the panel wrote `ja.wikipedia` — the same wiki twice, with the ranking (which matches on the dbname) ignoring one
+  of them. Canonicalised on write *and* read, so a mixed list self-heals and a language code stays itself. Found by
+  reading localStorage after using the panel, which is why "settings you can inspect" is a design rule, not a
+  nicety.
+
 ## Every wiki, chosen quickly (ISSUE-93, 2026-09-16)
 
 - ✅ **The full list, live:** the picker loaded **951 projects** from the site matrix into its localStorage mirror,

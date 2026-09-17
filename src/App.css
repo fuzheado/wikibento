@@ -2798,3 +2798,25 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
 }
 .config-project-list button:hover { background: rgba(90, 170, 255, 0.14); }
 .config-project-item-id { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+/* Settings panel (ISSUE-95). Reuses the add-widget overlay and panel shell, so it feels like the other panels;
+   only the body is its own. Small on purpose: preferences of the person, not options of a board. */
+.settings-panel { max-width: 560px; }
+.settings-body { padding: 4px 16px 16px; overflow-y: auto; max-height: 70vh; }
+.settings-section { padding: 12px 0; border-top: 1px solid var(--border); }
+.settings-section:first-child { border-top: 0; }
+.settings-section h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+.settings-note { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.settings-list { list-style: none; margin: 4px 0 8px; padding: 0; }
+.settings-list li { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 12px; }
+.settings-tag {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+  border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 1px 5px;
+}
+.settings-mini, .settings-clear {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer;
+}
+.settings-mini { margin-left: auto; }
+.settings-mini:hover, .settings-clear:hover { color: var(--text); border-color: var(--accent); }
+.settings-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }

@@ -126,6 +126,8 @@ All 33 data-driven widget types render live data in the browser; the 9 static on
   one that works for 13. The link always describes **the board on screen** rather than the file it started
   from, and a board too big for any QR says so and offers the paths that have no length limit (copy the link,
   or Export → AirDrop → Import on the phone)
+- **⚙ Settings** — your wiki (the default the project picker offers first), the wikis you have used recently, and
+  whether Present asks for fullscreen. Stored in this browser, inspectable in devtools, no account
 - **Reset** — ⓘ About explains the tool; Reset returns the starter board or a blank one, in one dialog — and
   clears the URL params that pointed at the board you just discarded, so a refresh cannot bring it back
 
