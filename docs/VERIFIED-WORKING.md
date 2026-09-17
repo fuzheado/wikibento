@@ -11,6 +11,22 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A page travels with its wiki (ISSUE-92, 2026-09-16)
+
+- ✅ **The reference form, measured end to end:** clicking "Weddell Sea" in a live `List of seas` box publishes
+  **`enwiki:Weddell Sea`** (not a bare title), and the page viewer beside it reads the project out of the value and
+  loads `https://en.wikipedia.org/wiki/Weddell_Sea`. A `dewiki` box would load the German article with no
+  configuration change on the consumer side — the value says where the page is.
+- 🐛 **A bug the convention immediately exposed:** `wikiPage` built its host as `https://${project}.org`, so the
+  moment a *reference* arrived it produced **`https://enwiki.org`** — a plausible-looking wrong answer, caught by
+  driving the demo. It now uses the shared `projectSite` mapping, which accepts either `en.wikipedia` or `enwiki`.
+  That is the argument for one mapping: the same hand-rolled line exists in other call sites (ISSUE-93).
+- ✅ **Nothing old changed meaning:** a bare title parses as a title (and a `File:`/`Category:` namespace is not
+  mistaken for a project), which is what lets every value and config written before this keep working. 10 tests in
+  `tests/reference.test.mjs`, including the awkward dbnames (`zh_min_nanwiki`, `be_x_oldwiki`).
+- ⚠ **Still missing, and filed:** `excerpt` publishes prose with no article at all, and only one consumer
+  (`wikiPage`) accepts a reference today. Both are ISSUE-92.
+
 ## A click can send a page to the board (ISSUE-91, 2026-09-16)
 
 - ✅ **The whole pattern, driven in a browser:** a live `{{List of seas}}` card (161 article links, Wikipedia's own

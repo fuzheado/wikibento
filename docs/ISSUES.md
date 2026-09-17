@@ -3328,6 +3328,86 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-93 · Every language, chosen quickly: the project picker — **open (epic)**
+
+**What:** 21 of the 42 widget types ask which wiki to work on, and five of them restrict the answer to a hardcoded
+list. Measured 2026-09-16:
+
+| widget | options offered today |
+|---|---|
+| `topPages` | 30 (a hand-picked "top 30 languages") |
+| `wikistats` | 13 |
+| `pageviews` | 6 |
+| `linkcount` | 3 |
+| `categorySize` | 2 |
+
+The wiki's own site matrix says how many there are: **374 languages, 364 wikis**, keyed by dbname (`enwiki`,
+`dewiki`, `commonswiki`, `enwikisource`) — `meta.wikimedia.org` `action=sitematrix`, 121 KB, cacheable. So a
+6-option select covers **1.6%** of what exists, and Andrew's report is exact: an Article Excerpt only offers
+English, German and French.
+
+**Why it matters:** the app's whole premise is Wikimedia content, and most of it is not in English. A widget that
+cannot be pointed at `eswiki`, `arwiki` or `zhwikisource` is a widget that cannot be used by most of the movement.
+This is an epic precisely because it touches 21 types.
+
+**The design question Andrew raised, and the answer to build:** an alphabetical list of 364 is not a solution. The
+picker should order by *usefulness*, not by alphabet:
+
+1. **the projects this user has used recently** — the app already has exactly this pattern for widgets
+   (`wikibento-recent-widgets` + a "Recent" section in the add panel); projects mirror it as
+   `wikibento-recent-projects`;
+2. **a user-chosen default** (one setting, "my wiki"), so the common case is zero clicks;
+3. **a short curated list** of the languages that actually carry the most content, as suggestions rather than a
+   limit;
+4. **everything else, searchable** — type `zh` or `中文` or `wikisource` and it appears;
+5. and the list must remain *complete*: inclusion is the point, ranking is only the convenience.
+
+**Sketch:** one shared `src/lib/projects.js` — a cached `sitematrix` fetch (with a shipped fallback list so a first
+run is never empty), `dbnameOf`/`projectSite` from `src/lib/reference.js` for naming, an MRU store, and a single
+`type: 'project'` config field replacing the five hardcoded `select`s. Then a sweep of the 12 free-text project
+fields to use the same field, so every widget is the same widget here.
+
+**Related, and to do at the same time:** the scattered project→host logic. There is a shared mapping in
+`src/lib/reference.js` (`projectSite`), but the older call sites each build a host by hand — `wikiPage` did
+`https://${project}.org`, which turned a dbname into `https://enwiki.org` the moment a *reference* reached it
+(found 2026-09-16 while shipping ISSUE-92). Every one of those should go through `projectSite`.
+
+**Effort:** the picker is a day; the sweep across 21 types is another, mostly mechanical, and worth doing with a
+gate (a test that no widget hardcodes a language list).
+
+## ISSUE-92 · A page should travel with its wiki: references — **open**
+
+**What:** values that name a page carried only the *title*. Measured 2026-09-16 across the emitters:
+
+| emitter | what it published | context |
+|---|---|---|
+| `excerpt` | the article's prose | **none** — not even which article ✗ |
+| `wikiBox` (`selection`) | `Weddell Sea` | **none** — no wiki, no language ✗ |
+| `iaItem`, `iaBook`, `documentReader` | a URL | complete (a URL knows where it points) ✓ |
+| `listSource`, `filterLines`, `lineCount`, `echo`, `qrCode` | text/number | not applicable ✓ |
+
+**Shipped 2026-09-16 (the convention):** `src/lib/reference.js` defines the wire form — `enwiki:Weddell Sea`,
+`dewiki:Weddellmeer`, `commonswiki:File:KM Virgo.jpg`, `wikidata:Q1094710` — using the **dbname**, because that is
+what every Wikimedia API, dump and replica already calls these wikis (and `dbnameOf` accepts the app's own
+`en.wikipedia` spelling, so nobody has to learn it). A bare title parses as a title, which is why nothing built
+earlier changed meaning. The box's `selection` now publishes a reference, and a `wikiPage` **consumes** one: it
+reads the project out of the value and wins over its own configured project — so a click in a box known to be
+`dewiki` loads the German article. Verified end to end, including the bug this exposed: `wikiPage`'s hand-built
+host produced `https://enwiki.org`, which is now `projectSite`.
+
+**Still to do:**
+1. **`excerpt` (and any prose emitter) should publish its article as a second channel** — `{ extract: 'extract',
+   reference: 'value' }`. That is precisely what channels are for (ISSUE-91), and it is how "translate this
+   paragraph" can also mean "and I know which article it was".
+2. **Every consumer that takes a page should accept a reference** — `articleList`, `quality`, `assessments`,
+   `edithistory`, `gallery`, `categorySize`, `cim*` — today only `wikiPage` does. A shared `parseRef` step plus a
+   test per type.
+3. **The audit gate:** assert that any widget which emits something *about a page* declares a reference channel,
+   so a new emitter cannot quietly drop the context again.
+
+**Why this is the important half of the two:** ISSUE-91 made a click able to mean something to the board; this is
+what makes the meaning *unambiguous* once boards cross languages, which is the normal case for Wikimedia content.
+
 ## ISSUE-91 · Clicks on rendered Wikimedia content: what should they do? (and formal widget classes) — **open**
 
 Andrew clicked a link inside a `wikiBox` ("Weddell Sea" in `{{List of seas}}`) and the **whole board was replaced**

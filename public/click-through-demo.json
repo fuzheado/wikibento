@@ -5,7 +5,7 @@
       "id": "click-note",
       "widgetType": "markdown",
       "config": {
-        "text": "## 👆 Click through: from a box to another widget\n\n**The list of seas is live Wikipedia content** (155 article links). Click any sea name: with *Links in the box* set to **send to the board**, the click publishes the page title on this box's `selection` channel instead of just opening a tab.\n\nTwo things consume it: the **page viewer** beside it loads that article, and the **value** card shows the exact string that travelled. Wire it up with `{{widget:click-seas#selection}}`, or pick `click-seas#selection` in any consumer's *source* field.\n\n⚙ → *Links in the box*: **new tab** (default) · **send to the board** · **both**."
+        "text": "## 👆 Click through: from a box to another widget\n\n**The list of seas is live Wikipedia content** (155 article links). Click any sea name: with *Links in the box* set to **send to the board**, the click publishes the page title on this box's `selection` channel instead of just opening a tab.\n\nTwo things consume it: the **page viewer** beside it loads that article, and the **value** card shows the exact string that travelled — a **reference**, `enwiki:Weddell Sea`, so the consumer knows *which* wiki the page is on and not just what it is called. Wire it up with `{{widget:click-seas#selection}}`, or pick `click-seas#selection` in any consumer's *source* field.\n\n⚙ → *Links in the box*: **new tab** (default) · **send to the board** · **both**."
       }
     },
     {

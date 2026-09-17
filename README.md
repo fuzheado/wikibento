@@ -248,7 +248,8 @@ front door.
   board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 41, with APIs) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
-- **Build & extend** — [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)
+- **Build & extend** — [WIRING-BOARDS](docs/WIRING-BOARDS.md) (what travels between cards: sources, consumers,
+  channels, references — the advanced guide after the GUIDE) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)
   · [BOARD-COMPOSITION](docs/BOARD-COMPOSITION.md) (every widget, wired) · [DATA-SOURCES](docs/DATA-SOURCES.md)
   (every endpoint, cap and gotcha) · [MODULARITY-AND-DATAFLOW](docs/MODULARITY-AND-DATAFLOW.md) ·
   [MEDIA-DATAFLOW](docs/MEDIA-DATAFLOW.md) · [SCALABILITY](docs/SCALABILITY.md) ·

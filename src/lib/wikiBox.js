@@ -29,6 +29,8 @@
  */
 
 /** The Main Page boxes, offered as the config field's examples. */
+import { projectRef } from './reference.js';
+
 export const BOX_PRESETS = [
   'In the news',
   'Did you know',
@@ -322,10 +324,21 @@ export function boxLinkTarget(href, text = '') {
   return { title: title || label, text: label, url: url.href, kind };
 }
 
-/** The value a click publishes on the `selection` channel: the page title, or null if there is nothing to say. */
-export function boxLinkSelection(href, text = '') {
+/**
+ * The value a click publishes on the `selection` channel: a **reference** to the page — `enwiki:Weddell Sea`, not
+ * a bare title (ISSUE-92). The project matters: the same title on another wiki, or in another language, is a
+ * different page, and a consumer should not have to guess from its own configuration what the reader meant.
+ *
+ * @param {string} href the clicked anchor
+ * @param {string} text its display text
+ * @param {{project?: string}} [options] the box's own project, used to name the wiki the page is on
+ */
+export function boxLinkSelection(href, text = '', { project } = {}) {
   const target = boxLinkTarget(href, text);
-  return target ? target.title : null;
+  if (!target) return null;
+  // An off-wiki link keeps its URL: that is its context, and a project prefix would be a lie.
+  if (target.kind === 'external') return target.text || target.url;
+  return projectRef(project, target.title);
 }
 
 /**

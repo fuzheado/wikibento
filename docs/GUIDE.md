@@ -171,7 +171,20 @@ freely; just don't duplicate a value that several widgets must agree on.
 - **⛶ Present** (kiosk, fullscreen) and **▣ Lean** (chrome-free, resizable)
   give a clean display; Esc or ✕ exits.
 
-## 7. Troubleshooting
+## 7. Making cards affect each other
+
+Everything above is one card showing one thing. Cards can also **publish** what they found, and other cards can
+read it — a Text List can feed a Filter Lines, an Article Excerpt can feed a Translator, and a rendered Wikipedia
+box can publish **the page you clicked** so a page viewer beside it loads that article (see the demo
+[`?config=/click-through-demo.json`](https://wikibento.toolforge.org/?config=/click-through-demo.json)).
+
+The rule to hold on to: **nothing is wired by default.** A card shows its own thing; making one card affect
+another is always something you asked for, in one field, and clearing that field undoes it.
+
+The next step, with the vocabulary and worked examples: [WIRING-BOARDS.md](WIRING-BOARDS.md) — *what travels
+between cards*.
+
+## 8. Troubleshooting
 
 | symptom | cause → fix |
 |---|---|
@@ -184,7 +197,7 @@ freely; just don't duplicate a value that several widgets must agree on.
 | *HTTP 429 — rate-limiting this browser* | the app already backed off (paced, honored `Retry-After`, retried once). Wait ~a minute, then **Retry**. If *everything* 429s, your network (VPN / shared NAT) is throttled — try another network |
 | Widget shows another error | the API refused; the card names the error and **Retry** re-runs it |
 
-## 8. Cookbook
+## 9. Cookbook
 
 - **One control, many cards** — declare a param once, reference `{{name}}` wherever it matters.
 - **Two independent selectors** — two params + two Board Controls cards, each scoped with *Params on this card*.

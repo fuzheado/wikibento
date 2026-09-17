@@ -39,6 +39,7 @@ import {
  fetchIaItem,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
+import { parseRef, projectSite } from '../lib/reference';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { buildTimeline } from '../lib/timeline';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
@@ -1390,7 +1391,10 @@ export const WIDGET_TYPES = {
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
     // send no X-Frame-Options / frame-ancestors, verified 2026-08-13).
     transform: (data, config) => {
-      const project = config.project || 'en.wikipedia';
+      // A `page` may be a bare title or a *reference* (`enwiki:Weddell Sea`, ISSUE-92) — the form another
+      // widget publishes. The reference wins over the configured project: it says where the page is.
+      const ref = parseRef(config.page);
+      const project = ref.isRef ? ref.project : (config.project || 'en.wikipedia');
       const mobile = !!config.mobile;
       // ISSUE-62: custom-URL mode — embed any http(s) page (Objectium, maps, …).
       const rawUrl = String(config.url || '').trim();
@@ -1399,7 +1403,7 @@ export const WIDGET_TYPES = {
         if (!url) return { url: null, page: '', project, error: 'Enter an http(s) URL' };
         return { url, page: embedLabel(url), external: true };
       }
-      const page = String(config.page || '').trim();
+      const page = String(ref.isRef ? ref.title : (config.page || '')).trim();
       if (!page) return { url: null, page: '', project };
       const title = page.replace(/ /g, '_');
       const frag = String(config.fragment || '').replace(/^#/, '').trim();
@@ -1410,9 +1414,11 @@ export const WIDGET_TYPES = {
       // view on the standard domain (verified 200 + Minerva skin HTML,
       // 2026-08-13; no special cookies). `?useskin=minerva` also works but
       // is the generic skin override rather than the documented switch.
-      const host = project === 'commons.wikimedia'
-        ? 'https://commons.wikimedia.org'
-        : `https://${project}.org`;
+      // One place maps a project to a host (ISSUE-92). The hand-rolled version here turned the dbname of a
+      // reference into `https://enwiki.org` — every consumer that builds a URL should use `projectSite`,
+      // which accepts either form (`en.wikipedia` or `enwiki`).
+      const site = projectSite(project);
+      const host = site ? `https://${site.host}` : 'https://en.wikipedia.org';
       return {
         url: `${host}/wiki/${title}${mobile ? '?useformat=mobile' : ''}${frag ? `#${frag.replace(/ /g, '_')}` : ''}`,
         page: title.replace(/_/g, ' '),

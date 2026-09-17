@@ -2313,7 +2313,7 @@ function WikiBoxCard({ data, onSelect }) {
     if (!sendInstead || !onSelect) return;
     const anchor = event.target && event.target.closest ? event.target.closest('a') : null;
     if (!anchor) return;
-    const value = boxLinkSelection(anchor.getAttribute('href'), anchor.textContent);
+    const value = boxLinkSelection(anchor.getAttribute('href'), anchor.textContent, { project: data.project });
     if (!value) return;
     if (linkAction === 'send to the board') event.preventDefault();   // `both` also opens the tab
     onSelect(value);
