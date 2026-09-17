@@ -106,6 +106,13 @@ makes the chain safe to put in front of an audience.
 is *added beside it*, and `primary` decides which one the bare id means (for the translator, the text — so every
 board wired before channels existed is untouched).
 
+### A board param can carry a reference (ISSUE-99)
+
+The validated page box stores `dewiki:Weddellmeer` rather than `Weddellmeer` — so the wiki travels with the page, and
+the cards consuming `{{page}}` name no project at all. That is the same rule as everywhere else on this page: *a
+reference beats a configured project*, because a value that says where it is from is better evidence than a field
+the board was built with. It also means one box can aim at German Wikipedia without a second param for the language.
+
 ## Three ways to wire, easiest first
 
 1. **Pick a source (no typing).** Open the consumer's ⚙, choose **Source widget**, and pick from the cards on the

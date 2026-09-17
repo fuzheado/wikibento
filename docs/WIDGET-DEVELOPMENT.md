@@ -129,6 +129,30 @@ Corollaries:
    channel map with documented kinds, and the demos constitution refuses a
    reference to a channel a widget does not declare.
 
+## The validated lookup param (ISSUE-68/99)
+
+A Board Controls param may be `type: 'lookup'`, which renders a box that checks what you type against live
+Wikimedia data:
+
+```json
+"collection": { "type": "lookup", "source": "cim-category", "options": ["…curated shortlist…"] },
+"page":       { "type": "lookup", "source": "page", "project": "de.wikipedia" }
+```
+
+| source | validates against | project-aware? |
+|---|---|---|
+| `article` | an article (main namespace) on the chosen wiki | ✅ |
+| `page` | any page (article, project/meta, template, file, category) | ✅ |
+| `cim-category` | Commons Impact Metrics (allow list + live probe) | ✗ — Commons by definition |
+| `commons-category`, `commons-file` | a Commons page | ✗ |
+| `wikidata-item` | a Wikidata QID | ✗ |
+| `curated` (or no source) | membership in the param's own `options` | ✗ |
+
+A **project-aware** source takes `project` (a wiki, the same value the shared picker produces) and commits a
+**reference** (`enwiki:Marie Curie`), so the wiki travels to every consumer. `projectAware` is declared on the source
+in `paramSources.js`; the control grows its wiki picker only for those, because offering a picker that does nothing
+would be a lie. A source may also declare a `noun` for its verdict copy (`no such page on de.wikipedia`).
+
 ## Current emitters (the reference set)
 
 | id | kind | emits | typical consumers |

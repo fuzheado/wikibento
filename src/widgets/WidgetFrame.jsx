@@ -5,7 +5,10 @@ import {
   readDefaultProject, toFieldValue, LANGUAGE_EN,
 } from '../lib/projects';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
-import { getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue } from '../lib/paramSources';
+import {
+  getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue,
+  sourceUsesProject, formatLookupValue, splitLookupValue, parseProjectPrefix, DEFAULT_LOOKUP_PROJECT,
+} from '../lib/paramSources';
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
@@ -222,7 +225,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
      *  lose an afternoon. A type that declares no default leaves the frame's centring alone. */
     /** The project list (ISSUE-93) is fetched only when a card actually has a project field — 121 KB is not
      *  something to load for a QR code. The list caches itself (mirror + memo), so the second card is free. */
-    const needsProjects = (WIDGET_TYPES[widget.widgetType]?.configFields || []).some((f) => f.type === 'project');
+    /* …and a Board Controls card needs it when the board declares a page box: the wiki picker beside a lookup
+       input is the same 364-project control (ISSUE-99), so the list it needs is the same list. */
+    const needsProjects = (WIDGET_TYPES[widget.widgetType]?.configFields || []).some((f) => f.type === 'project')
+      || Object.values(paramSpecs || {}).some((p) => p && p.type === 'lookup' && sourceUsesProject(p.source));
     const [projectList, setProjectList] = useState(FALLBACK_PROJECTS);
     useEffect(() => {
       if (!needsProjects) return undefined;
@@ -782,7 +788,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         )}
         {state.data && !state.loading && (
   <>
-    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} />
+    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} projects={projectList} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
         ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(resolvedConfig.refreshSeconds)}
@@ -795,7 +801,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   );
 }
 
-function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect }) {
+function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, projects }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
     case 'RankingCard': return <RankingCard data={data} />;
@@ -803,7 +809,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'GlamCard': return <GlamCard data={data} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
     case 'QrCard': return <QrCard data={data} />;
-    case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />;
+    case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} projects={projects} />;
     case 'SpeakerCard': return <SpeakerCard data={data} onSetParam={onSetParam} />;
     case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
     case 'ExcerptCard': return <ExcerptCard data={data} />;
@@ -1201,7 +1207,7 @@ function TranslateCard({ data }) {
  *  reloadKey → referencing widgets re-fetch. The specs/values/setter arrive
  *  as WidgetFrame props (only this renderer consumes them) — `data` is just
  *  the card's own config (title). */
-function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
+function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam, projects = [] }) {
   const specs = paramSpecs || {};
   const declared = Object.keys(specs);
   // ISSUE-59: a card may render a subset of the board's params (per-widget scoping).
@@ -1250,7 +1256,7 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
             ) : spec.type === 'month' ? (
               <MonthParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
             ) : spec.type === 'lookup' ? (
-              <LookupParam spec={spec} value={current} onSetParam={onSetParam} name={name} />
+              <LookupParam spec={spec} value={current} onSetParam={onSetParam} name={name} projects={projects} />
             ) : (
               <div className="board-param-buttons">
                 {(spec.options || []).map((opt) => (
@@ -1289,31 +1295,45 @@ function BoardControlsCard({ data, paramSpecs, paramValues, onSetParam }) {
  *     badge stuck on "checking…" (caught in verification 2026-09-11).
  *
  *  An unknown/absent source degrades to a plain text input: a bad source id
- *  must never break a board. */
-function LookupParam({ spec, value, onSetParam, name }) {
+ *  must never break a board.
+ *
+ *  ISSUE-99 — a page box knows its wiki. For a project-aware source (`article`, `page`) the control grows a wiki
+ *  picker (the shared 364-wiki one), the verdict is asked of THAT wiki, and the committed value is a reference
+ *  (`enwiki:Weddell Sea`) so the wiki travels to every consumer with no project field anywhere. Typing a prefix —
+ *  `en:Marie Curie`, `dewiki:Marie Curie`, `commons:File:X.jpg` — sets the picker, which is the visible
+ *  confirmation that the guess was understood. */
+function LookupParam({ spec, value, onSetParam, name, projects = [] }) {
   const source = getParamSource(spec.source);
+  const usesProject = sourceUsesProject(spec.source);
   const [draft, setDraft] = useState(value ?? '');
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [verdict, setVerdict] = useState({ state: 'empty' });
   const [optionCount, setOptionCount] = useState(null);
+  const [project, setProject] = useState(spec.project || DEFAULT_LOOKUP_PROJECT);
+  const [prefixNote, setPrefixNote] = useState(null);
 
-  // Keep the draft in step with external changes (another card, URL, import).
-  useEffect(() => { setDraft(value ?? ''); }, [value]);
+  // Keep the draft in step with WHAT THE VALUE SAYS — a reference carries its wiki, so an external change (another
+  // card, a URL, an import, or the picker itself) updates both controls from one source of truth.
+  useEffect(() => {
+    const split = splitLookupValue(value ?? '');
+    setDraft(split.title);
+    if (usesProject) setProject(split.project || spec.project || DEFAULT_LOOKUP_PROJECT);
+  }, [value, usesProject, spec.project]);
 
-  // Validate the committed value. Best-effort: a failed check is `unknown`.
-  // `alive` (set false by this effect's own cleanup) is the supersession guard;
-  // it must NOT be shared with the suggestion effect below.
+  // Validate the committed value against the wiki it names. Best-effort: a failed
+  // check is `unknown`. `alive` (set false by this effect's own cleanup) is the
+  // supersession guard; it must NOT be shared with the suggestion effect below.
   useEffect(() => {
     if (!value) { setVerdict({ state: 'empty' }); return undefined; }
     let alive = true;
     setVerdict({ state: 'checking' });
-    validateLookupValue(spec.source, value, { options: spec.options })
+    validateLookupValue(spec.source, value, { options: spec.options, project })
       .then((v) => { if (alive) setVerdict(v); })
       .catch(() => { if (alive) setVerdict({ state: 'unknown' }); });
     return () => { alive = false; };
-  }, [value, spec.source, spec.options]);
+  }, [value, spec.source, spec.options, project]);
 
   // Warm an enumerable source on mount so the first keystroke is instant, and
   // report its size (this is also the freshness note for the downloaded list).
@@ -1334,20 +1354,43 @@ function LookupParam({ spec, value, onSetParam, name }) {
     const delay = source?.kind === 'search' ? 280 : 0;
     const t = setTimeout(() => {
       setBusy(true);
-      suggestForSource(spec.source, draft, { options: spec.options })
+      suggestForSource(spec.source, draft, { options: spec.options, project })
         .then((s) => { if (alive) setSuggestions(s); })
         .catch(() => { if (alive) setSuggestions([]); })
         .finally(() => { if (alive) setBusy(false); });
     }, delay);
     return () => { alive = false; clearTimeout(t); };
-  }, [draft, open, spec.source, spec.options, source]);
+  }, [draft, open, spec.source, spec.options, source, project]);
 
+  /* Commit: the value is a REFERENCE for a project-aware source, so the wiki travels (ISSUE-99). A title that
+     already carries its own project is left exactly as typed — which is how a consumer can point one box at
+     another wiki without moving this picker. */
   const commit = (raw) => {
-    const v = normalizeLookupValue(spec.source, raw);
-    if (!v) return;
-    onSetParam?.(name, v);
-    setDraft(v);
+    const split = splitLookupValue(raw);
+    const title = normalizeLookupValue(spec.source, split.isRef ? split.title : raw);
+    if (!title) return;
+    const next = usesProject
+      ? formatLookupValue(spec.source, split.isRef ? split.project : project, title)
+      : title;
+    onSetParam?.(name, next);
+    setDraft(title);
+    if (split.isRef) setProject(split.project);
+    setPrefixNote(null);
     setOpen(false);
+  };
+
+  /* The keyboard shortcut: `en:Marie Curie` sets the wiki and leaves the title.
+     Applied while typing (so the picker visibly moves) and only when the head is
+     an unambiguous wiki — a namespace like `File:` is never a project. */
+  const handleDraft = (next) => {
+    setDraft(next);
+    setOpen(true);
+    if (!usesProject) return;
+    const hit = parseProjectPrefix(next);
+    if (!hit || hit.project === project) return;
+    setProject(hit.project);
+    setDraft(hit.title);
+    setPrefixNote(`wiki → ${hit.project}`);
   };
 
   const BADGE = {
@@ -1360,13 +1403,30 @@ function LookupParam({ spec, value, onSetParam, name }) {
 
   return (
     <div className="lookup-wrap">
+      {usesProject && (
+        <div className="lookup-project">
+          <ProjectField
+            field={{ mode: 'project' }}
+            value={project}
+            projects={projects}
+            onChange={(v) => {
+              if (!v) return;
+              setProject(v);
+              // Re-commit immediately so the reference follows the picker — the point of the control is that the
+              // value always says where the page is.
+              const title = normalizeLookupValue(spec.source, draft);
+              if (title) onSetParam?.(name, formatLookupValue(spec.source, v, title));
+            }}
+          />
+        </div>
+      )}
       <div className="lookup-row">
         <input
           className="board-param-input lookup-input"
           value={draft}
           placeholder={source?.placeholder || spec.label}
           aria-label={spec.label}
-          onChange={(e) => { setDraft(e.target.value); setOpen(true); }}
+          onChange={(e) => handleDraft(e.target.value)}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           onKeyDown={(e) => {
@@ -1400,6 +1460,8 @@ function LookupParam({ spec, value, onSetParam, name }) {
       <div className="lookup-meta">
         {source?.hint || 'Free text; press ↵ to apply. A suggestion applies immediately.'}
         {optionCount != null && ` · ${optionCount.toLocaleString()} options`}
+        {usesProject && <div className="lookup-value">{value ? `stores “${value}”` : 'the wiki travels with the page'}</div>}
+        {prefixNote && <div className="lookup-prefix">{prefixNote}</div>}
       </div>
     </div>
   );

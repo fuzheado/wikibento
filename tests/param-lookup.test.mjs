@@ -25,6 +25,8 @@ import {
   normalizeLookupValue, matchRank, filterLocal, mergeSuggestions, cimVerdict,
   parseAllowList, parseActionSearch, parseWbSearchEntities,
   getParamSource, PARAM_SOURCE_IDS, PARAM_SOURCES,
+  wikiApiUrl, parseProjectPrefix, sourceUsesProject, formatLookupValue, splitLookupValue,
+  lookupValidationTarget, DEFAULT_LOOKUP_PROJECT,
 } from '../src/lib/paramSources.js';
 
 // ── spec/JSON round-trip ────────────────────────────────────────────────────
@@ -289,4 +291,148 @@ test('parseAllowListSnapshot accepts a bare array and rejects junk', () => {
   assert.throws(() => parseAllowListSnapshot('{}'));
   assert.throws(() => parseAllowListSnapshot('{"categories":[]}'));
   assert.throws(() => parseAllowListSnapshot('not json'));
+});
+
+// ── ISSUE-99: a page box that knows its wiki ─────────────────────────────────
+/*
+   The contract, in one line: for a project-aware source the control validates
+   against the wiki the user chose and commits a REFERENCE (`enwiki:Weddell Sea`),
+   so the wiki travels to every consumer and no widget config repeats
+   `"project": "en.wikipedia"`. Everything that existed before is untouched:
+   a value with no project is a title, and Commons/Wikidata sources keep theirs.
+*/
+
+test('the wiki URL is built from the project, not from a constant', () => {
+  assert.equal(wikiApiUrl('de.wikipedia'), 'https://de.wikipedia.org/w/api.php');
+  assert.equal(wikiApiUrl('en.wikipedia'), 'https://en.wikipedia.org/w/api.php');
+  // a family that is not Wikipedia, and the special wikis — all through one mapper (reference.js)
+  assert.equal(wikiApiUrl('en.wikisource'), 'https://en.wikisource.org/w/api.php');
+  assert.equal(wikiApiUrl('commons.wikimedia'), 'https://commons.wikimedia.org/w/api.php');
+  assert.equal(wikiApiUrl('enwikisource'), 'https://en.wikisource.org/w/api.php', 'a dbname works too');
+  assert.equal(wikiApiUrl('fr.wiktionary'), 'https://fr.wiktionary.org/w/api.php');
+  // nothing at all → the default wiki, rather than a broken URL or a thrown error inside a control
+  assert.equal(wikiApiUrl(''), 'https://en.wikipedia.org/w/api.php');
+  assert.equal(wikiApiUrl(null), 'https://en.wikipedia.org/w/api.php');
+  assert.equal(wikiApiUrl('???'), 'https://en.wikipedia.org/w/api.php');
+  // NB a dbname-SHAPED string is taken at its word (`not-a-wiki` ends in the Wikipedia suffix, so it is read as
+  // the wiki `not-a-`): the guard against a nonsense wiki is the picker, and a failed check degrades to `unknown`.
+});
+
+test('the `en:Name` shortcut parses a wiki prefix — and never eats a namespace', () => {
+  assert.deepEqual(parseProjectPrefix('en:Marie Curie'), { project: 'en.wikipedia', title: 'Marie Curie', dbname: 'enwiki' });
+  assert.deepEqual(parseProjectPrefix('de:Marie Curie'), { project: 'de.wikipedia', title: 'Marie Curie', dbname: 'dewiki' });
+  assert.deepEqual(parseProjectPrefix('dewiki:Marie Curie'), { project: 'de.wikipedia', title: 'Marie Curie', dbname: 'dewiki' });
+  assert.deepEqual(parseProjectPrefix('commons:File:X.jpg'), { project: 'commons.wikimedia', title: 'File:X.jpg', dbname: 'commonswiki' });
+  // the special wikis have no `<lang>.<family>` form, so the short name is spelled out
+  assert.equal(parseProjectPrefix('wikidata:Q42').project, 'www.wikidata');
+  assert.equal(parseProjectPrefix('meta:WikiBento').project, 'meta.wikimedia');
+  assert.deepEqual(parseProjectPrefix('en.wikisource:The Raven'), { project: 'en.wikisource', title: 'The Raven', dbname: 'enwikisource' });
+  // namespaces are titles, not wikis: switching to Commons here would silently reinterpret a real title
+  for (const ns of ['File:X.jpg', 'Category:Mainz', 'Template:Infobox person', 'User:Example', 'Wikipedia:Featured articles']) {
+    assert.equal(parseProjectPrefix(ns), null, ns);
+  }
+  assert.equal(parseProjectPrefix('Marie Curie'), null, 'no colon at all');
+  assert.equal(parseProjectPrefix('en:'), null, 'nothing after the colon');
+  assert.equal(parseProjectPrefix(':Marie Curie'), null, 'nothing before it');
+  assert.equal(parseProjectPrefix(''), null);
+  // a bare language code means that language's Wikipedia — what someone typing `en:` means
+  assert.equal(parseProjectPrefix('simple:Foo').project, 'simple.wikipedia');
+  assert.equal(parseProjectPrefix('zh-yue:Foo').project, 'zh-yue.wikipedia');
+});
+
+test('only the page sources are project-aware', () => {
+  assert.equal(sourceUsesProject('article'), true);
+  assert.equal(sourceUsesProject('page'), true);
+  for (const id of ['cim-category', 'commons-category', 'commons-file', 'wikidata-item']) {
+    assert.equal(sourceUsesProject(id), false, id);
+  }
+  assert.equal(PARAM_SOURCES.page.projectAware, true);
+  assert.equal(PARAM_SOURCES.article.projectAware, true);
+  // the label no longer claims English, because it is no longer only English
+  assert.doesNotMatch(PARAM_SOURCES.article.label, /\(en\)/);
+});
+
+test('a commit becomes a reference — the wiki travels with the page', () => {
+  assert.equal(formatLookupValue('article', 'en.wikipedia', 'Weddell Sea'), 'enwiki:Weddell Sea');
+  assert.equal(formatLookupValue('page', 'de.wikipedia', 'Wikipedia:Featured articles'), 'dewiki:Wikipedia:Featured articles');
+  assert.equal(formatLookupValue('article', 'commons.wikimedia', 'File:X.jpg'), 'commonswiki:File:X.jpg');
+  // a Commons/Wikidata source has one home and keeps the plain value it always had
+  assert.equal(formatLookupValue('commons-file', 'commons.wikimedia', 'X.jpg'), 'X.jpg');
+  assert.equal(formatLookupValue('cim-category', 'commons.wikimedia', 'Images from the Met'), 'Images from the Met');
+  assert.equal(formatLookupValue('article', 'en.wikipedia', ''), '', 'nothing to commit');
+});
+
+test('splitLookupValue reads a value back into picker + title (and leaves plain titles alone)', () => {
+  assert.deepEqual(splitLookupValue('enwiki:Weddell Sea'), { project: 'en.wikipedia', title: 'Weddell Sea', isRef: true });
+  assert.deepEqual(splitLookupValue('commonswiki:File:X.jpg'), { project: 'commons.wikimedia', title: 'File:X.jpg', isRef: true });
+  // the compatibility rule: a value with no readable project is a title, unchanged — so every board built
+  // before this feature keeps working exactly as it did
+  assert.deepEqual(splitLookupValue('Weddell Sea'), { project: null, title: 'Weddell Sea', isRef: false });
+  assert.deepEqual(splitLookupValue('Category:Mainz'), { project: null, title: 'Category:Mainz', isRef: false });
+  assert.deepEqual(splitLookupValue(''), { project: null, title: '', isRef: false });
+  assert.deepEqual(splitLookupValue(null), { project: null, title: '', isRef: false });
+});
+
+test('the round trip holds: split(format(x)) === x', () => {
+  for (const [project, title] of [
+    ['en.wikipedia', 'Marie Curie'], ['de.wikipedia', 'Marie Curie'],
+    ['commons.wikimedia', 'File:The Earth seen from Apollo 17.jpg'],
+    ['en.wikisource', 'The Raven'], ['simple.wikipedia', 'Foo'],
+  ]) {
+    const committed = formatLookupValue('article', project, title);
+    const back = splitLookupValue(committed);
+    assert.equal(back.project, project, committed);
+    assert.equal(back.title, title, committed);
+  }
+});
+
+test('a lookup param carries its wiki through JSON and the spec line', () => {
+  const block = parseParams({
+    page: { label: 'Page', type: 'lookup', source: 'article', project: 'de.wikipedia', value: 'dewiki:Marie Curie' },
+  });
+  assert.equal(block.specs.page.source, 'article');
+  assert.equal(block.specs.page.project, 'de.wikipedia');
+  assert.equal(block.values.page, 'dewiki:Marie Curie');
+  // the 5th spec field is the wiki: `name | lookup | Label | source | project`
+  const parsed = parseParamSpecText('page | lookup | Page | article | de.wikipedia');
+  assert.equal(parsed.page.type, 'lookup');
+  assert.equal(parsed.page.source, 'article');
+  assert.equal(parsed.page.project, 'de.wikipedia');
+  // 4 fields still mean what they always meant, and other types ignore the 5th
+  const four = parseParamSpecText('coll | lookup | Collection | cim-category');
+  assert.equal(four.coll.source, 'cim-category');
+  assert.equal(four.coll.project, undefined);
+  assert.deepEqual(parseParamSpecText('n | number | Photos | 3, 12, 1').n.options, ['3', '12', '1']);
+  // and the renderer writes it back
+  assert.equal(paramSpecToText({ page: { type: 'lookup', label: 'Page', source: 'article', project: 'de.wikipedia' } }),
+    'page | lookup | Page | article | de.wikipedia');
+  assert.equal(paramSpecToText({ coll: { type: 'lookup', label: 'Collection', source: 'cim-category' } }),
+    'coll | lookup | Collection | cim-category');
+});
+
+test('the lookup param spec survives a full text → block → text round trip', () => {
+  const text = 'page | lookup | Page | article | de.wikipedia\nlang | select | Language | fr, de, es';
+  const block = parseParamSpecText(text);
+  const again = parseParamSpecText(paramSpecToText(block));
+  assert.deepEqual(again, block);
+});
+
+test('a check asks about the TITLE on the wiki the REFERENCE names (the false ✗ bug)', () => {
+  // Measured in the browser before this existed: the excerpt rendered German text while the badge said
+  // "no such page on de.wikipedia" — because the lookup API was asked for a page named "dewiki:Weddellmeer".
+  assert.deepEqual(lookupValidationTarget('article', 'dewiki:Weddellmeer', 'en.wikipedia'),
+    { title: 'Weddellmeer', project: 'de.wikipedia' });
+  assert.deepEqual(lookupValidationTarget('page', 'enwiki:Wikipedia:Featured articles', 'de.wikipedia'),
+    { title: 'Wikipedia:Featured articles', project: 'en.wikipedia' });
+  // a plain title keeps using the picker — the compatibility rule again
+  assert.deepEqual(lookupValidationTarget('article', 'Marie Curie', 'fr.wikipedia'),
+    { title: 'Marie Curie', project: 'fr.wikipedia' });
+  // no picker and no reference → the default wiki
+  assert.deepEqual(lookupValidationTarget('article', 'Marie Curie', ''),
+    { title: 'Marie Curie', project: DEFAULT_LOOKUP_PROJECT });
+  // a source with one home is never asked about a wiki
+  assert.deepEqual(lookupValidationTarget('commons-file', 'X.jpg', 'de.wikipedia'),
+    { title: 'X.jpg', project: null });
+  assert.deepEqual(lookupValidationTarget('cim-category', 'Category:Images from the Met', ''),
+    { title: 'Images from the Met', project: null }, 'the Category: prefix still normalises');
 });

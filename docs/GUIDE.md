@@ -86,6 +86,35 @@ every widget referencing it reloads.
   Edit the source in the card's ⚙ as the 4th field:
   `collection | lookup | Collection | cim-category`.
 
+## 2b. One box, any wiki: the validated page picker (ISSUE-99)
+
+A board param can be a **validated page box** — the quickest way to aim a whole board at a page, on any wiki:
+
+```json
+"params": {
+  "page": { "label": "Page", "type": "lookup", "source": "page",
+            "project": "en.wikipedia", "value": "enwiki:Marie Curie" }
+}
+```
+
+Then point anything at it: `"article": "{{page}}"`. The cards need **no project field** — the value is a
+*reference*, and a reference carries its wiki.
+
+In the box:
+
+- **Type** for suggestions from the wiki the picker shows; **Enter** (or clicking a suggestion) commits. It commits
+  on Enter deliberately: a param fans out to every consumer, so committing per keystroke would re-fetch the whole
+  board on every letter.
+- **The badge is the verdict** — `✓ exists on de.wikipedia`, `✗ no such page on de.wikipedia`, `?` when it could not
+  check. It describes what is *committed*, not what you are typing.
+- **`en:Marie Curie`, `de:Weddellmeer`, `commons:File:X.jpg`** — a wiki prefix moves the picker as you type it, so
+  you see the interpretation instead of trusting it. On their own, `File:` and `Category:` are titles and not wikis:
+  a category can live anywhere, so you write `commons:Category:Mainz` when you mean Commons.
+- **`source: "page"`** searches every namespace (articles, project/meta pages, templates, files); **`source:
+  "article"`** is main-namespace only. Both let you pick the wiki.
+
+`?config=/page-picker-demo.json` is the working example: one box, three cards, no project field anywhere.
+
 ## 3. Dataflow — feeding one widget into another
 
 A widget can **emit** an output; others consume it two ways:

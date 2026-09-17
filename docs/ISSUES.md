@@ -3045,7 +3045,46 @@ URL. Leaving a lean link: ✕ Exit / Esc (already strips the param).
 `src/App.jsx`, `src/App.css`, `tests/share-lean.test.mjs`,
 `scripts/share-lean-e2e.mjs`).
 
-## ISSUE-99 · The page box: a validated page name that knows its wiki — **open** (ISSUE-68's deferred slice)
+## ISSUE-99 · The page box: a validated page name that knows its wiki — **done + verified 2026-09-16** (ISSUE-68's deferred slice)
+
+**Shipped.** A `lookup` param of `source: 'article'` or the new `source: 'page'` now takes a `project`, grows a wiki
+picker beside the box, validates against *that* wiki, and commits a **reference** — so the board below carries no
+project fields at all:
+
+```json
+"page": { "label": "Page", "type": "lookup", "source": "page",
+          "project": "en.wikipedia", "value": "enwiki:Marie Curie" }
+```
+
+Spec-line form is `page | lookup | Page | page | de.wikipedia` (the 5th field is the wiki). The control:
+suggestions from the chosen wiki, a ✓/✗ verdict that names it (`✓ exists on de.wikipedia`,
+`✗ no such page on de.wikipedia`), a line showing what it **stores** (`stores "dewiki:Weddellmeer"`), and the
+keyboard shortcut — `en:Marie Curie`, `de:Weddellmeer`, `dewiki:…`, `commons:File:…` — which moves the picker as
+you type it, so the guess is visible rather than silent.
+
+**Measured in the browser** (three consumers, zero project fields, 0 errors): seeded `enwiki:Marie Curie` → ✓;
+typing `de:Weddellmeer` moved the picker to `de.wikipedia`; committing stored `dewiki:Weddellmeer` and the Article
+Excerpt, Article Pageviews and Quality cards all re-fetched **German** content; a fictional title gave
+✗ *no such page on de.wikipedia*. Demo: `?config=/page-picker-demo.json`.
+
+**Two revisions made while implementing, recorded rather than silently skipped:**
+
+1. **A bare `File:`/`Category:` does *not* switch to Commons** (the plan above said it should). A category can live
+   on any wiki, so quietly reinterpreting `Category:Mainz` as a Commons category would be exactly the class of
+   silent wrongness the rest of this work avoids. `commons:Category:Mainz` is explicit and one keystroke longer, and
+   the picker is right there.
+2. **`commons:` needs a short-name table.** The reference grammar requires `commonswiki` (`dbnameOf('commons')` is
+   null — a bare word with no family suffix is not a dbname), so `commons:`, `wikidata:`, `meta:` and `species:`
+   resolve through a small alias map in the input. The grammar's boundary stays where ISSUE-92 put it.
+
+**And the bug the browser found, which no unit test would have:** validation was asking the API for a page literally
+named `dewiki:Weddellmeer` → *missing* → a ✗ badge on a page that plainly existed (the excerpt beside it was
+rendering German text). The target is now one pure function — `lookupValidationTarget()` asks about the **title**, on
+the wiki the **reference** names (a reference beats the picker, for the same reason it beats a widget's project
+field) — and it has its own test. The lesson is the same one as ISSUE-97: a value's *name* is not its *content*, and
+every layer that handles one has to say which it means.
+
+**The original slice notes follow.**
 
 Andrew asked (2026-09-16): *"do we have a simple just text entry box … all it would do is just match against article
 names? I just want a box where I can enter a validated name of a Wikipedia article, and then that language that

@@ -76,9 +76,125 @@ import { fetchTextWithRetry } from './httpRetry';
 import { createTtlCache } from './fetchCache';
 import { latestCimMonth } from '../widgets/dataSources';
 import { CIM_ALLOW_LIST_URL, CIM_ALLOW_LIST_SNAPSHOT, parseAllowList, parseAllowListSnapshot } from './cimAllowList';
+import { dbnameOf, projectConfigOf, projectSite, projectRef, parseRef } from './reference';
 
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
+
+/** The wiki a page-shaped lookup runs against when nothing else says. */
+export const DEFAULT_LOOKUP_PROJECT = 'en.wikipedia';
+
+/**
+ * The Action API for a project, built from the project (ISSUE-99).
+ *
+ * `projectSite` already turns every name the app writes for a wiki into its host — `de.wikipedia` →
+ * `de.wikipedia.org`, `enwikisource` → `en.wikisource.org`, `commons.wikimedia` → `commons.wikimedia.org` — so a
+ * project-aware lookup is one call rather than a table. An unreadable project falls back to the default wiki
+ * (the caller still shows the picker, so the user can see and fix it) instead of throwing in a control.
+ */
+export function wikiApiUrl(project) {
+  const site = projectSite(project || DEFAULT_LOOKUP_PROJECT);
+  return site ? `https://${site.host}/w/api.php` : WIKI_API;
+}
+
+/** MediaWiki namespaces, which are never project prefixes: `File:Foo.jpg` is a page title, not the wiki "file".
+ *  (`dbnameOf` already rejects most of these — none of them ends in a family suffix — but `Category:` and
+ *  `Special:`-style heads are worth naming so the intent is explicit and testable.) */
+/**
+ * Short names for the wikis that are not `<lang>.<family>` at all. `commons` is the one everybody types, and the
+ * reference grammar deliberately requires `commonswiki` (a bare language code is not a reference — ISSUE-92) — so
+ * the shortcut lives here, in the input, where the picker confirms it.
+ */
+const PROJECT_ALIASES = {
+  commons: 'commons.wikimedia',
+  wikidata: 'www.wikidata',
+  meta: 'meta.wikimedia',
+  species: 'species.wikimedia',
+  mediawiki: 'www.mediawiki',
+};
+
+const PAGE_PREFIXES = [
+  'file', 'image', 'media', 'category', 'template', 'user', 'talk', 'help', 'portal', 'special',
+  'wikipedia', 'project', 'module', 'draft', 'timedtext', 'gadget', 'w',
+];
+
+/**
+ * The `en:Marie Curie` shortcut (ISSUE-99): a typed prefix that names the wiki.
+ *
+ *   `en:Marie Curie`        → { project: 'en.wikipedia', title: 'Marie Curie' }
+ *   `dewiki:Marie Curie`    → { project: 'de.wikipedia', title: 'Marie Curie' }
+ *   `commons:File:X.jpg`    → { project: 'commons.wikimedia', title: 'File:X.jpg' }
+ *   `File:X.jpg`            → null  (a namespace, not a wiki)
+ *   `Category:Mainz`        → null  (deliberately: a category can live on any wiki, so guessing Commons here
+ *                                    would silently reinterpret a Wikipedia category — the picker is one click)
+ *
+ * A bare language code means *that language's Wikipedia*, because that is what someone typing `en:` means. This is
+ * a UI convenience with a visible result (the picker moves), not a grammar change: in the reference grammar a bare
+ * language code is still not a reference (ISSUE-92), and the user can always correct the picker.
+ */
+export function parseProjectPrefix(input, { namespaces = PAGE_PREFIXES } = {}) {
+  const raw = String(input ?? '').trim();
+  const colon = raw.indexOf(':');
+  if (colon <= 0) return null;
+  const head = raw.slice(0, colon).trim().toLowerCase();
+  const title = raw.slice(colon + 1).trim();
+  if (!head || !title || namespaces.includes(head)) return null;
+  const alias = PROJECT_ALIASES[head];
+  if (alias && projectSite(alias)) return { project: alias, title, dbname: dbnameOf(alias) };
+  const dbname = dbnameOf(head);
+  if (dbname) return { project: projectConfigOf(dbname), title, dbname };
+  // a bare language code (`en`, `de`, `simple`, `zh-yue`) → that language's Wikipedia
+  if (!/^[a-z]{2,12}(-[a-z0-9]{2,8})*$/.test(head)) return null;
+  return { project: `${head}.wikipedia`, title, dbname: dbnameOf(`${head}.wikipedia`) };
+}
+
+/** Does this source validate against a wiki the user chooses? Only the page sources — Commons and Wikidata
+ *  lookups have exactly one home by definition, and pretending otherwise would offer a picker that does nothing. */
+export function sourceUsesProject(sourceId) {
+  return sourceId === 'article' || sourceId === 'page';
+}
+
+/** The committed value for a lookup box: a REFERENCE for a project-aware source, so the wiki travels with the
+ *  page (ISSUE-92/99) — `enwiki:Weddell Sea` rather than `Weddell Sea`. Every other source keeps the plain value
+ *  it always had. */
+export function formatLookupValue(sourceId, project, title) {
+  const clean = String(title ?? '').trim();
+  if (!clean) return '';
+  if (!sourceUsesProject(sourceId)) return clean;
+  return projectRef(project || DEFAULT_LOOKUP_PROJECT, clean);
+}
+
+/** The inverse, for filling the controls: a committed value → `{ project, title }`. A value that carries no
+ *  project is a title, unchanged — which is what keeps every existing board working. `project` is null then, and
+ *  the caller shows the spec's own project. */
+export function splitLookupValue(value) {
+  const ref = parseRef(value);
+  return {
+    project: ref.project ? projectConfigOf(ref.project) : null,
+    title: ref.title,
+    isRef: ref.isRef,
+  };
+}
+
+/**
+ * What a check should actually ask about: the TITLE, and the wiki it belongs to.
+ *
+ * A committed value is a reference (`enwiki:Marie Curie`) and a lookup API does not know that name — asking for a
+ * page called "enwiki:Marie Curie" answers *missing*, which is a false ✗ on a page that plainly exists (measured
+ * in the browser: the excerpt rendered German text while the badge said "no such page on de.wikipedia").
+ *
+ * The reference also **wins over the picker**, for the same reason a reference wins over a widget's project field
+ * (ISSUE-92): a value that says where it is from is better evidence than a control's current state.
+ */
+export function lookupValidationTarget(sourceId, value, project) {
+  const split = splitLookupValue(value);
+  return {
+    title: normalizeLookupValue(sourceId, split.title),
+    project: sourceUsesProject(sourceId)
+      ? (split.project || project || DEFAULT_LOOKUP_PROJECT)
+      : null,
+  };
+}
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 const CIM_BASE = 'https://wikimedia.org/api/rest_v1/metrics/commons-analytics/';
 
@@ -276,13 +392,26 @@ async function searchCommonsFiles(query, limit) {
 
 /** Article titles start with their subject, so prefix search fits. (Slice 2
  *  will make the wiki project-aware; en.wikipedia is the default here.) */
-async function searchArticles(query, limit) {
+/** Prefix search on a wiki. Shared by `article` (main namespace) and `page` (the namespaces where a person
+ *  looking for "a page" would look — article, talk, user, project/meta, file, template, help, category). */
+async function prefixSearch(query, limit, project, psnamespace) {
   const params = new URLSearchParams({
-    action: 'query', list: 'prefixsearch', pssearch: query, psnamespace: '0',
+    action: 'query', list: 'prefixsearch', pssearch: query,
     pslimit: String(limit), format: 'json', formatversion: '2', origin: '*',
   });
-  const json = JSON.parse(await fetchTextWithRetry(`${WIKI_API}?${params}`, { timeoutMs: 15000 }));
+  if (psnamespace) params.set('psnamespace', psnamespace);
+  const json = JSON.parse(await fetchTextWithRetry(`${wikiApiUrl(project)}?${params}`, { timeoutMs: 15000 }));
   return parseActionSearch(json);
+}
+
+const PAGE_NAMESPACES = '0|1|2|4|6|10|12|14';
+
+async function searchArticles(query, limit, project) {
+  return prefixSearch(query, limit, project, '0');
+}
+
+async function searchPages(query, limit, project) {
+  return prefixSearch(query, limit, project, PAGE_NAMESPACES);
 }
 
 async function searchWikidataItems(query, limit) {
@@ -330,11 +459,23 @@ export const PARAM_SOURCES = {
   },
   article: {
     id: 'article',
-    label: 'Wikipedia article (en)',
+    label: 'Wiki article',
+    noun: 'article',
     kind: 'search',
+    projectAware: true,
     placeholder: 'Albert Einstein',
-    hint: 'English Wikipedia article title.',
+    hint: 'An article (main namespace) on the chosen wiki. Type `en:Name`, `de:Name` or `commons:File:X` to set the wiki from the keyboard; commit with ↵.',
     search: searchArticles,
+  },
+  page: {
+    id: 'page',
+    label: 'Wiki page (any namespace)',
+    noun: 'page',
+    kind: 'search',
+    projectAware: true,
+    placeholder: 'Marie Curie · Wikipedia:Featured articles · Template:Infobox person',
+    hint: 'Any page: articles, project/meta pages, templates, files. Type a wiki prefix (`en:`, `dewiki:`) to switch wikis.',
+    search: searchPages,
   },
   'wikidata-item': {
     id: 'wikidata-item',
@@ -375,7 +516,7 @@ export function mergeSuggestions(local, remote, limit = 8) {
  *  first (no request) and fall back to their server search when the local list
  *  cannot answer — the CIM seed list is partial, so "Metropolitan" must still
  *  find the Met even though it is not in the 886. Returns display strings. */
-export async function suggestForSource(id, query, { limit = 8, options } = {}) {
+export async function suggestForSource(id, query, { limit = 8, options, project } = {}) {
   const source = getParamSource(id);
   if (!source) return filterLocal(options || [], query, limit);
   if (source.kind === 'enumerable') {
@@ -387,14 +528,14 @@ export async function suggestForSource(id, query, { limit = 8, options } = {}) {
     // Enough local hits, or nothing to search with, or no server search → done.
     if (local.length >= Math.min(limit, 3) || q.length < 2 || !source.search) return local;
     try {
-      return mergeSuggestions(local, await source.search(q, limit), limit);
+      return mergeSuggestions(local, await source.search(q, limit, project), limit);
     } catch {
       return local;
     }
   }
   const q = String(query || '').trim();
   if (q.length < 2) return filterLocal(options || [], query, limit);
-  return source.search(q, limit);
+  return source.search(q, limit, project);
 }
 
 /**
@@ -402,9 +543,10 @@ export async function suggestForSource(id, query, { limit = 8, options } = {}) {
  * shows an amber `unregistered` for real-but-unprocessed CIM categories rather
  * than a red error, because that is a registerable state, not a typo.
  */
-export async function validateLookupValue(id, value, { options } = {}) {
+export async function validateLookupValue(id, value, { options, project } = {}) {
   const source = getParamSource(id);
-  const v = normalizeLookupValue(id, value);
+  const target = lookupValidationTarget(id, value, project);
+  const v = target.title;
   if (!v) return { state: 'empty' };
   if (!source) {
     // curated / unknown source: membership in the authored options list
@@ -441,14 +583,23 @@ export async function validateLookupValue(id, value, { options } = {}) {
     }
     return cimVerdict({ allowed, status, exists });
   }
-  // search sources: existence only (no capability notion)
+  // search sources: existence only (no capability notion).
+  // A project-aware source (ISSUE-99) checks the wiki the user chose, and says which one it checked — an
+  // unexplained ✗ on a board showing German text is a puzzle; "no such page on de.wikipedia" is not.
+  const wiki = target.project;
   let exists;
   try {
-    exists = await valueExists(id, v);
+    exists = await valueExists(id, v, wiki);
   } catch {
     return { state: 'unknown', note: 'could not verify' };
   }
-  return { state: exists ? 'ok' : 'invalid', note: exists ? '' : `no such ${source.label.toLowerCase()}` };
+  const noun = source.noun || source.label.toLowerCase();
+  return {
+    state: exists ? 'ok' : 'invalid',
+    note: exists
+      ? (wiki ? `exists on ${wiki}` : '')
+      : (wiki ? `no such ${noun} on ${wiki}` : `no such ${noun}`),
+  };
 }
 
 /** Does an exact Commons category page exist? */
@@ -493,7 +644,7 @@ async function probeCimCategory(value) {
 }
 
 /** Existence check for the search sources (one exact-title lookup each). */
-async function valueExists(id, value) {
+async function valueExists(id, value, project = null) {
   const source = getParamSource(id);
   const title = id === 'commons-file' ? `File:${value}`
     : id === 'commons-category' ? `Category:${value}`
@@ -503,7 +654,8 @@ async function valueExists(id, value) {
     const json = JSON.parse(await fetchTextWithRetry(`${WIKIDATA_API}?${params}`, { timeoutMs: 15000 }));
     return Boolean(json?.entities && !json.entities[value]?.missing);
   }
-  const api = id === 'article' ? WIKI_API : COMMONS_API;
+  // A page source asks the chosen wiki; everything else has one home (Commons, Wikidata).
+  const api = sourceUsesProject(id) ? wikiApiUrl(project) : COMMONS_API;
   const params = new URLSearchParams({ action: 'query', titles: title, format: 'json', formatversion: '2', origin: '*' });
   const json = JSON.parse(await fetchTextWithRetry(`${api}?${params}`, { timeoutMs: 15000 }));
   const page = json?.query?.pages?.[0];

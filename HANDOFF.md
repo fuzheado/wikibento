@@ -27,14 +27,14 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-7xqRkO3-.js` (+ `index-DGgNKMSYL.css`) |
-| deployed | 2026-09-16 — **a translation that knows its language** (ISSUE-97): the Translator's *Show* option, a typed `speech` channel (`{type,text,lang}`) beside its text, a Speaker whose voice follows the language it hears, and auto-speak armed by one click · before that: **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
+| production bundle | `index-CCKrq_yr.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-16 — **the page box knows its wiki** (ISSUE-99): a validated page name with a wiki picker beside it, committed as a reference so consumers name no project · before that: **a translation that knows its language** (ISSUE-97) · **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the translate chain speaks in French, `fr-FR` voice, after one arm click) |
-| newest capabilities | ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
+| pending deploy | none — production serves this branch's tip (verified live: the page picker re-aims three cards to German Wikipedia from `de:Weddellmeer`) |
+| newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -337,6 +337,12 @@ and a stream pipeline that works in Node is not evidence about a browser.
     empty), which is now the normal way to use it. Worth knowing: the crash text names the *transformed* line
     number, so a stack trace pointing past the end of the file is this, not a stale bundle.
 
+28. **Transform the module after editing it — a duplicate import is a blank page, not an error message.** `import
+    ProjectField` written twice in `WidgetFrame.jsx` (once with `FALLBACK_PROJECTS`, which I did not notice) does
+    not fail loudly: the dev server answers **500 for the whole module**, the app never boots, the page is empty,
+    and the symptom looks exactly like a bad board config. Ten minutes went into checking JSON that was fine. The
+    one-second check, which belongs in the loop after every module edit: `npx esbuild --bundle <file> --loader:.jsx=jsx --outfile=/dev/null` (or just `npm test`, which bundles everything). Related and worth knowing: a stack trace naming a line past the end of the file is the *transformed* file — see gotcha 27.
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -415,12 +421,10 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      means. Next: the same for a ranking with counts (`{ type: 'ranking', rows: [{ title, count }] }`), a file list
      and an edit list — and copy the speaker's `readSpeechPayload` strictness (a value without a `type` is *not*
      that type, so plain strings keep their old meaning).
-   - **ISSUE-99 — the page box, made project-aware.** The validated lookup box already exists (a `lookup` param,
-     `source: 'article'`, verified re-aiming a three-card board from one box) but is hardcoded to en.wikipedia and
-     commits a bare title — so the wiki does not travel and every consumer repeats `"project": "en.wikipedia"`.
-     The slice: a project picker beside the box, a reference as the committed value (`enwiki:Weddell Sea`, which the
-     15 reference-aware widgets already understand), and the `en:` prefix shortcut. Also ISSUE-68's Slice 2 (a
-     Finder widget) — compatible: the widget sets the param.
+   - ~~**ISSUE-99 — the page box, made project-aware.**~~ **Done 2026-09-16** (below): a wiki picker beside the
+     box, a reference as the committed value, the `en:`/`de:`/`commons:` shortcut. What remains of this family is
+     ISSUE-68's Slice 2 — a Finder **widget** (a prominent search-and-pick card with result previews), which would
+     set the param rather than compete with it.
    - **ISSUE-98 — should a widget's display be a template?** Andrew's question after seeing the Translator show
      original *and* translation. Today: the *Show* select is the whole answer, and it covers the real need (show
      less) with no new grammar. Filed with the two design traps (a widget-local namespace colliding with the

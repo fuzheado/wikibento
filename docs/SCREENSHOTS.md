@@ -137,6 +137,14 @@ rankings, article text and history — every number live from a Wikimedia API.
 or photographs. The full-colour originals are still in git history (the commit that added
 them, `339a275`), so this is reversible.
 
+## `wikibento-2026-09-16-page-picker.png` — one validated box, three cards, no project field (2026-09-16)
+
+`?config=/page-picker-demo.json` — the page picker ISSUE-99. At the top: a wiki picker (`en.wikipedia`), a page
+name (`Marie Curie`) and a ✓ verdict. Under it, in small mono type, **`stores "enwiki:Marie Curie"`** — the value is
+a *reference*, which is why the three cards to the right (Article Excerpt, Article Pageviews, Quality) resolve the
+right wiki without naming a project anywhere in their config. Type `de:` before the name and the picker moves as you
+type; commit and every card follows to German Wikipedia.
+
 ## `wikibento-2026-09-16-translate-speaker-chain.png` — a chain that ends in speech (2026-09-16)
 
 `?config=/translate-demo.json` — four steps and no ceremony: a Board Controls card picks the article, the Article

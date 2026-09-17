@@ -487,6 +487,17 @@ describe it in the docs above, done.
 - **Config:** `page` (any namespace), `project` (en/de/fr + commons — a local project list, since the shared PROJECT_OPTIONS stays article-only), `fragment` (optional `#anchor`), `mobile` (boolean).
 - **Privacy:** the framed page is a trusted Wikimedia page (same as opening a tab); no sandbox needed.
 
+## 18b. Per-project Action API for page lookups (ISSUE-99)
+
+The validated page box (`lookup` param, sources `article` and `page`) suggests and validates against **the wiki the
+user chose**, not against a fixed one: `list=prefixsearch` (with `psnamespace=0` for `article`, or
+`0|1|2|4|6|10|12|14` for `page`) and an existence check via `action=query&titles=<exact>`, both on
+`https://<project>/w/api.php` built by `wikiApiUrl()` from the project through `projectSite()` (reference.js). So
+`de.wikipedia` → `de.wikipedia.org`, `en.wikisource` → `en.wikisource.org`, `commons.wikimedia` →
+`commons.wikimedia.org`, and a dbname works too. The verdict is a three-state badge (✓ exists / ✗ no such page,
+naming the wiki it asked / ? could not check) — a failed request degrades to `unknown` and never blocks the board.
+The committed value is a reference (`dewiki:Weddellmeer`), which is how the wiki reaches the consumers.
+
 ## 19. CIM widgets — Commons Impact Metrics (precomputed, allow-list) **Widgets:** CIM Category Snapshot · Views Over Time · Top Files · Top Wikis · Top Pages · Top Editors · Global Leaderboard · File Spotlight
 - **Base:** `https://wikimedia.org/api/rest_v1/metrics/commons-analytics/` — CORS `*`, no auth, `{context, items}` envelope; **14 endpoints** (authoritative: `api-spec.json` at the base URL). All 8 widgets verified live 2026-08-13 against `Files_from_the_Biodiversity_Heritage_Library`.
 - **Allow-list reality:** only ~1,775 primary categories + subcats (7 levels) have data, and the set is published as a TSV by WMF Data Engineering (`gitlab.wikimedia.org/repos/data-engineering/airflow-dags/-/raw/main/main/dags/commons/commons_category_allow_list.tsv`, ~73 KB, one underscored slug per line, **no CORS** — read it via the deployment's `/api/proxy`). Unregistered categories (and registered ones with no data for the requested month) return **HTTP 404** with `"not loaded yet"` in the body — the 404 is **ambiguous** (verified: BHL itself 404s for 2015-01). `fetchCimMonth` disambiguates with a previous-month probe: probe OK → "no CIM data for this month"; probe 404 → not allow-listed (friendly hint: request it via Phabricator, project `Commons-Impact-Metrics-Requests`, by the 20th). **Bundled snapshot (2026-09-11):** the parsed list ships as `public/cim-allow-list.json` (refresh: `npm run update:cim-allow-list`, which verifies count + staleness via `npm run check:cim-allow-list`), so the app's instant suggestions no longer depend on the `/api/proxy` relay; that relay stays as the live fallback. The bundled file is a snapshot on purpose — it only *seeds* suggestions, while the per-category probe decides validity. **⚠️ `{{Views from category}}` is NOT the allow list** — it is the legacy COM:VIEWS category-page-views system and does not register anything; 872 of the 886 categories transcluding it (98.4%) happen to be allow-listed because GLAM categories commonly have both (corrected 2026-09-11 per the `wikimedia-commons` skill).

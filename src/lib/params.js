@@ -43,8 +43,14 @@ export function parseParams(block) {
     // The source may arrive as `source`, or as the 4th field of a spec line
     // (parseParamSpecText); an unknown name leaves the control a plain input.
     const source = type === 'lookup' && raw.source ? String(raw.source).trim() : undefined;
-    specs[name] = source ? { label: raw.label || name, type, options, source }
-      : { label: raw.label || name, type, options };
+    // ISSUE-99: a page-shaped lookup validates against a wiki, and the wiki is part of the spec — not baked into
+    // the widget configs, so one box can re-aim every consumer (`a reference beats a configured project`, ISSUE-92).
+    const project = type === 'lookup' && raw.project ? String(raw.project).trim() : undefined;
+    specs[name] = {
+      label: raw.label || name, type, options,
+      ...(source ? { source } : {}),
+      ...(project ? { project } : {}),
+    };
     values[name] = value;
   }
   return { specs, values };
@@ -71,8 +77,12 @@ export function parseParamSpecText(text) {
     const parts = t.split('|').map((s) => s.trim());
     const name = parts[0];
     if (!name || !/^[a-zA-Z0-9_-]+$/.test(name)) continue;
-    let type, label, options;
-    if (parts.length >= 4) {
+    let type, label, options, project;
+    if (parts.length >= 5) {
+      // `name | lookup | Label | source | project` — the 5th field is the wiki a page lookup validates against
+      // (ISSUE-99); for every other type it is ignored, and for lookup it may be left empty.
+      [type, label, options, project] = [parts[1], parts[2], parts[3], parts[4]]; // name | type | Label | options | project
+    } else if (parts.length === 4) {
       [type, label, options] = [parts[1], parts[2], parts[3]]; // name | type | Label | options
     } else if (parts.length === 3) {
       if (TYPES.includes(parts[1])) { [type, label] = [parts[1], parts[2]]; } // name | type | Label
@@ -84,8 +94,9 @@ export function parseParamSpecText(text) {
     const entry = { label: label || name };
     if (TYPES.includes(type)) entry.type = type;
     if (entry.type === 'lookup') {
-      // 4th field is the option source id (see src/lib/paramSources.js)
+      // 4th field is the option source id (see src/lib/paramSources.js), 5th the wiki it validates against
       if (options) entry.source = String(options).trim();
+      if (project) entry.project = String(project).trim();
     } else if (options !== undefined && options !== '') {
       entry.options = options.split(',').map((s) => s.trim()).filter(Boolean);
       if (!entry.type) entry.type = 'select';
@@ -102,8 +113,11 @@ export function paramSpecToText(block) {
     const type = p.type || (p.options ? 'select' : 'text');
     // lookup's 4th field is the source id; a curated shortlist is intentionally
     // NOT rendered back (it would parse as a source) — edit it in the JSON.
+    // For lookup the 4th field is the source and the 5th the wiki (ISSUE-99); a curated shortlist is
+    // deliberately not rendered back for lookup (it would parse as a source) — edit that in the JSON.
     const rest = type === 'lookup' ? (p.source || '') : (p.options || []).join(', ');
-    return [name, type, p.label || name, rest].filter((v, i) => i < 3 || v).join(' | ');
+    const tail = type === 'lookup' ? (p.project || '') : '';
+    return [name, type, p.label || name, rest, tail].filter((v, i) => i < 3 || v).join(' | ');
   }).join('\n');
 }
 

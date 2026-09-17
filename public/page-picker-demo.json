@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "params": {
+    "page": {
+      "label": "Page",
+      "type": "lookup",
+      "source": "page",
+      "project": "en.wikipedia",
+      "options": [
+        "Marie Curie",
+        "Weddell Sea",
+        "Wikipedia:Featured articles"
+      ],
+      "value": "enwiki:Marie Curie"
+    }
+  },
+  "widgets": [
+    {
+      "id": "pick",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "Type a page name — `en:`, `de:` or `commons:` switches the wiki",
+        "show": "page",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "excerpt",
+      "widgetType": "excerpt",
+      "config": {
+        "article": "{{page}}",
+        "refreshSeconds": 3600,
+        "verticalAlign": "top"
+      }
+    },
+    {
+      "id": "views",
+      "widgetType": "pageviews",
+      "config": {
+        "article": "{{page}}",
+        "days": 30,
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "quality",
+      "widgetType": "quality",
+      "config": {
+        "article": "{{page}}",
+        "refreshSeconds": 3600
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "pick",
+      "x": 0,
+      "y": 0,
+      "w": 4,
+      "h": 5,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "excerpt",
+      "x": 4,
+      "y": 0,
+      "w": 4,
+      "h": 6,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "views",
+      "x": 8,
+      "y": 0,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "quality",
+      "x": 8,
+      "y": 3,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    }
+  ]
+}

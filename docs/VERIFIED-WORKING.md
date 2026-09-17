@@ -11,6 +11,29 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## The page box learns its wiki — and the badge that lied for a day (ISSUE-99, 2026-09-16)
+
+Andrew asked for a box where you type a page name, have it validated, and get the project/language back out — with an
+`en:`-style shortcut. The box existed (ISSUE-68's `article` lookup param); it just could not say which wiki.
+
+- ✅ **The wiki is now part of the box.** `source: 'article'` and the new `source: 'page'` are *project-aware*: a
+  wiki picker sits above the input (the same 364-project control Settings uses), the verdict is asked of *that*
+  wiki, and the committed value is a **reference** (`dewiki:Weddellmeer`).
+- ✅ **The keyboard shortcut works as asked.** Typing `de:Weddellmeer` moved the picker to `de.wikipedia` — the guess
+  is visible, not silent. `en:`, `dewiki:`, `commons:`, `wikidata:` all resolve; `File:` and `Category:` on their own
+  are titles, because a category can live on any wiki and guessing Commons there would silently reinterpret it.
+- ✅ **No consumer names a project.** Measured in the browser with one box and three cards (Excerpt, Pageviews,
+  Quality): seeding `enwiki:Marie Curie` → ✓, typing `de:Weddellmeer` → picker moves, committing → all three
+  re-fetched **German** content, a fictional title → ✗ *no such page on de.wikipedia*. Zero page errors.
+- 🐛 **And the badge lied at first.** Validation was asking the API for a page named `dewiki:Weddellmeer` → *missing*
+  → a red ✗ beside a German excerpt that was plainly rendering. A value's *name* is not its *content*, and every
+  layer handling one has to say which it means (the same lesson as ISSUE-97, one day later). Fixed with a pure,
+  tested `lookupValidationTarget()`.
+- ⚠️ **My own probe debugged the wrong thing for ten minutes**, because a duplicate `import ProjectField` made the
+  module fail to load: the dev server returned 500 for the whole file, the page rendered blank, and I went looking
+  at the board JSON. The habit that would have caught it in one second — *transform the module after editing it* —
+  is now part of how this repo is worked on.
+
 ## A chain that speaks in the right language, and the crash hiding in an empty text field (ISSUE-97, 2026-09-16)
 
 Andrew asked four things about `?config=/translate-demo.json`: can the translator show only the translation; can the
