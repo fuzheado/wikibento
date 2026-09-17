@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip (verified live: the translate demo renders its translation, no waiting state) |
-| newest capabilities | ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen — ISSUE-95) · 🌍 **Every wiki, in one picker** — 364 projects from the site matrix, ordered by recency → your default → a curated shortlist → the rest, searchable by label, code, script or English name, and used by all 21 project/language fields (ISSUE-93) · 🧭 **References** — a card that publishes a page publishes *which wiki* too (`enwiki:Weddell Sea`), and a consumer reads the project from the value (ISSUE-92) · 👆 **Click-through from a box** — a link in a rendered Wikipedia box can publish the clicked page title on a `selection` channel, so another widget loads the article or draws it (`{{widget:id#selection}}`; ⚙ *Links in the box*: new tab / send to the board / both, ISSUE-91) · 📰 **Wikipedia boxes** — any template rendered with the wiki's own markup *and* styles: In the news, Did you know, Today's featured article, plus dated ones via `POTD/{date}` and the selected-anniversaries page (ISSUE-90) · 👀 **Borrowed boards** — opening someone's link shows their board without touching yours, with a notice offering [Save this as mine] / [Back to my board] and a day-long recovery for the board an adoption displaces (ISSUE-88) · 📄 **Document Reader** (Commons PDFs and DjVu, sharing one viewer with 📖 IA Book; facing pages; a **Wikisource transcription that shows from the start and follows you page by page**, headed by its proofreading grade) · 📖 **IA Book** (search inside a scan, hits boxed on the page) · 🎬 **Media player** (a direct URL plays; `.ogv` does not) · ⤓ **PNG export** where the images come from a CORS-enabled host |
+| newest capabilities | ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -47,7 +47,7 @@ Gallery).
 
 | command | asserts |
 |---|---|
-| `npm test` | the whole suite (a bundle per constitution area: scope compliance, freshness, manifest compliance, panel/dataflow/demos/assembly/trend-axis/gallery/config-load…) plus `scripts/docs-facts.mjs` |
+| `npm test` | the whole suite — a bundle per constitution area: scope, freshness, manifest compliance (including **emitters, channels, `primary`, prose→reference, and the project picker's no-hardcoded-lists rule**), panel, dataflow, demos, assembly, trend-axis, gallery, config-load, references, projects, URL state… — plus `scripts/docs-facts.mjs` |
 | `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
@@ -119,17 +119,22 @@ persistence, claim drop on divergence)
 
 Key files: `src/lib/urlState.js` (the URL contract: one reader, one writer, claim
 integrity) · `src/lib/borrowedBoard.js` (borrowed boards, the recovery stash, the
-notice's rule) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+notice's rule) · `src/lib/reference.js` (a page plus its wiki: `enwiki:Weddell Sea`,
+and the one project→host mapping) · `src/lib/projects.js` (every wiki, ordered
+recency → default → curated → rest) · `src/lib/wikiBox.js` (rendering a wiki template:
+sanitise, scope, rewrite, and what a click means) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
 (fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
 renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
 example board) · `src/lib/params.js` (board params, reference resolution) ·
 `src/lib/dataflow.js` (emitter signatures) · `src/lib/httpRetry.js` (rate-limit
-layer) · `src/lib/markdown.js` · `src/lib/share.js` · `deploy/server.js`
+layer) · `src/lib/markdown.js` · `src/lib/share.js` · `src/components/ProjectField.jsx` (the shared project
+picker, used by widget ⚙ panels and Settings) · `src/components/SettingsPanel.jsx` (⚙ — your wiki, recents,
+present-mode fullscreen) · `src/components/BoardNotice.jsx` (the borrowed/recover bar) · `deploy/server.js`
 (relays) · `scripts/docs-facts.mjs` (docs↔code constitution).
 
 Docs worth knowing: `docs/GUIDE.md` (user model: board params vs widget config vs
-`docs/WIRING-BOARDS.md` (the advanced wiring guide: sources, consumers, channels, references)
-dataflow) · `docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseable) ·
+dataflow) and its sequel `docs/WIRING-BOARDS.md` (sources, consumers, channels, references — and what a value is) ·
+`docs/BOARD-COMPOSITION.md` (complete wiring reference, LLM-parseable) ·
 `docs/JSON-FORMAT.md` + `dashboard.schema.json` · `docs/DATA-SOURCES.md` ·
 `docs/ARCHITECTURE.md` (incl. the third-party API-contract watchlist) ·
 `docs/WIDGET-DEVELOPMENT.md` (how to add a type) · `docs/MEDIA-DATAFLOW.md`
@@ -314,6 +319,15 @@ and a stream pipeline that works in Node is not evidence about a browser.
     self-updating and board-legal. Lexical collisions between a host platform's syntax and ours are worth checking
     before building on the host's version.
 
+26. **One edit per script, assert, then grep — because a later failure silently discards earlier ones.** A
+    multi-edit script that asserts on its second edit writes *nothing*, so the first edit is lost while the run
+    still prints the first `✔`. This cost three separate debugging rounds in one session (a loader whose import
+    vanished, an output handler that stayed on the old signature, a picker that fell back to 7 options) and every
+    time the symptom looked like a *logic* bug rather than a lost write. The habit that prevents it: one edit,
+    `assert old in s`, write, then **grep the file for the new text** before moving on — and when a runtime
+    behaviour surprises you, print `repr()` of the region first, because indentation guessed from a `sed` dump is
+    wrong about half the time (that one recurred all day, on Python, JSX, CSS and Markdown alike).
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -359,6 +373,15 @@ actually broken or unfinished today:
 - **`handleLayoutChange` persists to `localStorage` on every drag tick** (only *during* a real gesture now — a
   mount-time auto-placement no longer persists, see gotcha 21) — fine at the current payload size, wasteful as
   boards grow.
+- **The Ask path can name a wiki that does not exist.** The project picker constrains the UI (ISSUE-93), but the
+  Ask path reads the *manifest* and passes an unfamiliar project through: 364 wikis cannot be enumerated in a
+  validator, so the widget's own error state is the guard. Aliases and shapes are normalised (`Commons` →
+  `commons.wikimedia`, `German` → `de.wikipedia`); an invented wiki reaches the fetcher and reports itself.
+- **A mixed-project Article List is fetched with its first line's project.** `resolveRefLines` parses a reference per
+  line, but the fetcher takes one project per call, so lines naming different wikis need per-item fetching — a
+  feature, not a fix (ISSUE-92's known limit).
+- **Settings has no home for anything else yet, on purpose.** The panel holds three preferences (your wiki, the
+  recents, present-mode fullscreen). The bar for a fourth: a preference *of the person* with no better home.
 - **Two pre-existing dev-only React warnings** (cosmetic, 2-line fixes, no
   production impact): the toolbar's ✨ Ask button is nested inside the + Add Widget
   button (`App.jsx:489` — invalid HTML; browsers auto-split them), and the media
@@ -369,12 +392,27 @@ actually broken or unfinished today:
 
 Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
-1. **Nothing is pending** — production is level with this branch, and the two state lines above plus
-   `docs-facts --live` are the evidence for it. The real queue, in order: the **reading enhancements** filed as
-   ISSUE-83 (how much room the transcription gets), ISSUE-84 (a copy button, with the proofreading grade
-   travelling with the text), ISSUE-85 (where the text lives), ISSUE-86 (duplicate / copy-paste a widget); then
-   the **Internet Archive media family** — `iaPlaylist` → `iaVideo` + keyframe filmstrip → `iaAudio`, all
-   measured and specced in `docs/INTERNET-ARCHIVE.md`.
+1. **Nothing is pending** — production is level with this branch, and the state lines above plus
+   `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
+
+   - **ISSUE-96 — finish the emitter audit.** 10 of 42 widget types publish anything, and the audit ranks the
+     obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the galleries, `edithistory`, every
+     ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
+     is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The
+     consumer side needs nothing: any text field already interpolates `{{widget:id}}`.
+   - **ISSUE-97 — typed payloads, with ISSUE-96's row-shaped emitters.** Measured: every value on the wire today is
+     a primitive or an array of strings, consumers infer from the *shape*, and nothing reads the declared
+     `outputs.kind`. So a ranking with counts has nowhere to put them. Add a `type` inside the payload
+     (`{ type: 'ranking', rows: [{ title, count }] }`) on a channel *beside* the text one.
+   - **ISSUE-91's `class:` field** — the widget taxonomy. It was waiting for the `interactive` class to have
+     implementations to describe; it now has three (channels, `selection`, `linkAction`).
+   - **ISSUE-83/84/85 — the Document Reader's reading enhancements** (how much room the transcription gets, a copy
+     button that carries the proofreading grade, and where the text lives). Filed from Andrew's notes, none built.
+   - **ISSUE-86 — duplicate / copy-paste a widget.** The machinery exists (`handleAddAssembly`'s `idMap`,
+     `validateDashboard`, the undo toast); it needs the ⧉ button. Also latent: `Date.now()` ids collide within a
+     millisecond.
+   - **Then the Internet Archive media family** — `iaPlaylist` → `iaVideo` + keyframe filmstrip → `iaAudio`, all
+     measured and specced in `docs/INTERNET-ARCHIVE.md`.
 2. **Tier-A wiring view** — a derived, read-only map of who drives whom on a board.
    Fully specced in `docs/MODULARITY-AND-DATAFLOW.md` §Part 6, not started. This is
    the biggest remaining UX gap now that params and dataflow both ship.
