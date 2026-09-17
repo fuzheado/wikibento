@@ -415,6 +415,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      means. Next: the same for a ranking with counts (`{ type: 'ranking', rows: [{ title, count }] }`), a file list
      and an edit list — and copy the speaker's `readSpeechPayload` strictness (a value without a `type` is *not*
      that type, so plain strings keep their old meaning).
+   - **ISSUE-99 — the page box, made project-aware.** The validated lookup box already exists (a `lookup` param,
+     `source: 'article'`, verified re-aiming a three-card board from one box) but is hardcoded to en.wikipedia and
+     commits a bare title — so the wiki does not travel and every consumer repeats `"project": "en.wikipedia"`.
+     The slice: a project picker beside the box, a reference as the committed value (`enwiki:Weddell Sea`, which the
+     15 reference-aware widgets already understand), and the `en:` prefix shortcut. Also ISSUE-68's Slice 2 (a
+     Finder widget) — compatible: the widget sets the param.
    - **ISSUE-98 — should a widget's display be a template?** Andrew's question after seeing the Translator show
      original *and* translation. Today: the *Show* select is the whole answer, and it covers the real need (show
      less) with no new grammar. Filed with the two design traps (a widget-local namespace colliding with the

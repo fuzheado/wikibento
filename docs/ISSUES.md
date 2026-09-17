@@ -3045,6 +3045,68 @@ URL. Leaving a lean link: ✕ Exit / Esc (already strips the param).
 `src/App.jsx`, `src/App.css`, `tests/share-lean.test.mjs`,
 `scripts/share-lean-e2e.mjs`).
 
+## ISSUE-99 · The page box: a validated page name that knows its wiki — **open** (ISSUE-68's deferred slice)
+
+Andrew asked (2026-09-16): *"do we have a simple just text entry box … all it would do is just match against article
+names? I just want a box where I can enter a validated name of a Wikipedia article, and then that language that
+maybe we pull down from a menu. Or maybe we type EN colon and the name, and then automatically it sets the project
+and language. … it should be page name, because it could be meta, it could be something else. But then that box
+just emits the project language and page name out."*
+
+**The box already exists — and it works.** Measured 2026-09-16 in a browser, with no new code:
+
+- A Board Controls param, `{ "type": "lookup", "source": "article", "options": [ …shortlist… ] }`, renders a text
+  box with a ✓/✗/⚠/? verdict, live suggestions (`Weddell` → *Weddell, Weddell Island, Weddell seal, Weddell Sea,
+  James Weddell, Mimi Weddell*), a curated shortlist before you type, and **commit on Enter or picking a
+  suggestion** — never per keystroke, because a param fans out to N widgets (ISSUE-68's UI contract).
+- One box re-aims a whole board: in the probe, `Marie Curie` → `Weddell Sea` re-fetched an Article Excerpt, an
+  Article Pageviews card and an embedded Wiki Page together. A fictional title got ✗ *"no such wikipedia article
+  (en)"* and the board stayed where it was. (ISSUE-68 Slice 1, `tests/param-lookup.test.mjs`.)
+
+**What it does not do is what Andrew actually asked for: know its wiki.** Three gaps, all visible in that probe:
+
+1. `source: 'article'` is hardcoded to **en.wikipedia** (`WIKI_API` in `paramSources.js`) and says so: *"English
+   Wikipedia article title."* The label is honest and the limitation is real.
+2. There is **no language/project menu** beside the box.
+3. **The committed value is a bare title**, so the project does not travel with it. The probe board needed
+   `"project": "en.wikipedia"` written out **three times**, once per consumer — which is exactly the duplication
+   ISSUE-92's references exist to remove: a page that travels with its wiki. A committed `enwiki:Weddell Sea` would
+   re-aim all three cards with no project field anywhere.
+
+**Design (additive, no format break):**
+
+```json
+"page": { "label": "Page", "type": "lookup", "source": "article",
+          "project": "en.wikipedia",         // NEW: the wiki the box validates against (default en.wikipedia)
+          "value": "enwiki:Weddell Sea" }    // NEW: committed as a REFERENCE, so the wiki travels
+```
+
+1. **The source becomes project-aware.** `searchArticles`/the article validator take a project (the ISSUE-93
+   `projectConfigOf` mapping already turns `de.wikipedia` into `de.wikipedia.org`, and the reference module already
+   turns a wiki into its dbname). Everything else about the control is unchanged.
+2. **The committed value is a reference** (`dbname:Title`) — which is what makes Andrew's "emits the project,
+   language and page name" true without a single new mechanism: 15 page-taking widgets already resolve references
+   (ISSUE-92), and *a reference beats a configured project*, so a board can drop its project fields entirely.
+3. **A project picker beside the box** (the shared `ProjectField`, ISSUE-93 — 364 wikis, ordered by recency).
+4. **The prefix shortcut**: typing `en:Marie Curie`, `de:…`, `commons:File:…` or `enwiki:…` sets the picker and
+   strips the prefix. `File:`/`Category:` should switch the project to Commons, which is the overwhelming case.
+   Honest boundary: in the *reference grammar* a bare language code is still not a reference (ISSUE-92's deliberate
+   line) — `en:` is a **UI convenience** that the visible picker immediately confirms, so the user can see and
+   correct the interpretation rather than trusting a silent guess.
+5. **The verdict follows the picker** — ✓/✗ against the chosen wiki, with the language named beside the box.
+
+**Why a param and not a widget (the fork worth stating).** Andrew's phrasing — "that box just emits the project
+language and page name out" — describes an emitter. ISSUE-68 already argued the other way, and the argument holds:
+`{{param}}` resolves into any config field, so *one* box re-aims *N* consumers, while `emit`/`source` is
+point-to-point and would create a second, competing wiring mechanism for the same job. With the value being a
+reference, the param *does* hand out project + language + page name — to every consumer at once. (A Finder **widget**
+— a prominent search-and-pick card — is ISSUE-68's Slice 2, and remains the right home for a *visual* picker with
+result previews; the two are compatible: the widget sets the param.)
+
+**Effort:** small — `paramSources.js` (project parameter + reference formatting), the lookup control (picker +
+prefix parsing), `parseParams` (carry `project`), tests, docs. No new format, no migration: a lookup param without
+a `project` keeps validating against en.wikipedia, so every existing board behaves exactly as it does today.
+
 ## ISSUE-68 · Validated lookup params: "type an institution, the whole board follows" (GitHub #51–#53 family) — **Slice 1 done 2026-09-10**
 
 **What:** a Board Controls param type that accepts free text *checked against live
