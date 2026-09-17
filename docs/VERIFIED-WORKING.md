@@ -11,6 +11,19 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Text hangs from the top (ISSUE-94, 2026-09-16)
+
+- ✅ **Measured before and after.** A short Article Excerpt in a 780px card was centred: **139px above, 139px
+  below** — a paragraph floating in the middle of nothing. With the type's new default it is **12px above, 524px
+  below**, and with `verticalAlign: center` it is 268/268. The card also claims the full width in top mode
+  (677px), because a text block centred horizontally reads as a mistake even when it is at the top.
+- ✅ **Generic, not special-cased:** any card may declare `verticalAlign` (`top` | `center`); a card that declares
+  nothing is unchanged, so this is a per-type decision rather than a new house style. The shipped
+  `translate-demo` board was checked too (12px above, nothing clipped).
+- ⚠ **The trap:** the default lived in the registry while the frame read only the board's config, so a board that
+  omitted the field — every existing board — stayed centred. A registry default must be honoured at render time,
+  and the lookup must not reference `def` before it is declared (that was a TDZ crash).
+
 ## A page travels with its wiki (ISSUE-92, 2026-09-16)
 
 - ✅ **The reference form, measured end to end:** clicking "Weddell Sea" in a live `List of seas` box publishes

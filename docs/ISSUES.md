@@ -3328,6 +3328,50 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-94 · The Article Excerpt: name it honestly, and let text hang from the top — **done + verified 2026-09-16**
+
+Two things Andrew raised about the excerpt widget.
+
+**1. The name.** His worry was that "excerpt" is too generic for a widget that we now have to distinguish from
+Internet Archive books and Commons documents. Measured: the registry's own `name` has been **"Article Excerpt"**
+all along, and the picker, the catalog and the guides all say that. What looks generic is the *type id* (`excerpt`)
+— which is what appears in configs, in the emitter contract, and as the instance-id chip on the card once the
+widget is on a board.
+
+The philosophy question underneath it is worth answering, because the registry already answers it consistently:
+**generic names for generic functions, specific names for specific sources.**
+
+| generic (a function, indifferent to what it touches) | specific (one source, one API) |
+|---|---|
+| Text List · Filter Lines · Line Count · Value Display · QR Code | Article Pageviews · Article Quality (ORES) · **Article Excerpt** · Internet Archive Item · IA Book · Document Reader |
+
+The excerpt fetches *one specific thing* — the summary endpoint of a Wikipedia article, in one language — so it is
+correctly specific, and it should stay that way. The generic thing Andrew was reaching for is a *different* widget:
+something that accepts a **reference** and fetches the right passage from whatever it names (a Wikipedia article, a
+Wikisource chapter, an IA book page). That is possible precisely because of ISSUE-92, and it is filed there rather
+than smuggled into this one.
+
+**Done:** the description now says what it is and where it comes from — *"The first paragraph, short description
+and lead image of a Wikipedia article (the REST summary API — every language, not just English)"* — so the picker
+answers "which project?" without a doc. The **type id stays `excerpt`**: it is the config contract, referenced by
+every board, demo, guide and by the emitter contract, and renaming it for cosmetics would break all of them (an
+alias map would be the way to ever do it).
+
+**2. Vertical gravity.** A short excerpt in a tall card was centred, floating in the middle of nothing. Measured:
+`139px above, 139px below` in a 780px card.
+
+**Done, as a general option rather than a special case:** the frame now reads `config.verticalAlign`
+(`top` | `center`) and applies a class. Nothing changes for a card that declares nothing — so this is a per-type
+decision, not a new house style — and the **Article Excerpt defaults to `top`**: measured after, `12px above,
+524px below`. A top-gravity card also claims the full width, because a text column centred as a *block* reads as a
+mistake even when it is vertically at the top. Verified in a browser at two settings and on the shipped
+`translate-demo` board (12px above, nothing clipped).
+
+**A trap worth recording:** the first attempt put the default in the registry and the *frame* read only the config —
+so a board that omitted the field stayed centred, which is every existing board. A registry default has to be
+honoured at render time, and the lookup must not reach for `def` twenty lines before it is declared (a TDZ crash,
+which cost a debugging round and is why the frame looks the type's defaults up directly).
+
 ## ISSUE-93 · Every language, chosen quickly: the project picker — **open (epic)**
 
 **What:** 21 of the 42 widget types ask which wiki to work on, and five of them restrict the answer to a hardcoded

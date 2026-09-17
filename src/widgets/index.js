@@ -650,18 +650,24 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Article Excerpt',
     icon: '📄',
-    description: 'First paragraph, description, and thumbnail for an article',
+    description: 'The first paragraph, short description and lead image of a Wikipedia article (the REST summary API — every language, not just English)',
     labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
     defaults: {
       article: 'Albert Einstein',
       project: 'en.wikipedia',
       refreshSeconds: 3600,
+      // ISSUE-94: a paragraph hangs from the top of its card; a chart or a picture wants the middle.
+      verticalAlign: 'top',
     },
     renderer: 'ExcerptCard',
     dataSource: 'REST /page/summary',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'select', options: PROJECT_OPTIONS },
+      { key: 'verticalAlign', label: 'Vertical position', type: 'select', options: [
+        { value: 'top', label: 'Top (default for text)' },
+        { value: 'center', label: 'Centred' },
+      ], default: 'top' },
     ],
     fetch: (config) => fetchArticleSummary(config.article, config.project),
     transform: (data) => ({

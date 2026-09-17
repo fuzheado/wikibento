@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T15:40:36.990Z",
+ "generatedAt": "2026-09-17T16:40:13.439Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -545,7 +545,7 @@
    "id": "excerpt",
    "name": "Article Excerpt",
    "icon": "📄",
-   "description": "First paragraph, description, and thumbnail for an article",
+   "description": "The first paragraph, short description and lead image of a Wikipedia article (the REST summary API — every language, not just English)",
    "dataSource": "REST /page/summary",
    "category": "Articles",
    "type": "stat",
@@ -570,12 +570,22 @@
       "de.wikipedia",
       "fr.wikipedia"
      ]
+    },
+    {
+     "key": "verticalAlign",
+     "type": "select",
+     "label": "Vertical position",
+     "options": [
+      "top",
+      "center"
+     ]
     }
    ],
    "defaults": [
     "article",
     "project",
-    "refreshSeconds"
+    "refreshSeconds",
+    "verticalAlign"
    ],
    "outputs": {
     "kind": "extract"

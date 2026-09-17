@@ -207,6 +207,18 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     () => resolveSourceValue(resolvedConfig, widgetOutputs),
     [resolvedConfig, widgetOutputs],
   );
+    /** Vertical gravity (ISSUE-94) — the frame centres every card's content, which is right for a chart or a
+     *  picture and wrong for a paragraph: a short excerpt in a tall box floats in the middle of nothing. A card
+     *  may declare `verticalAlign` ('top' | 'center') and get a class; a card that declares nothing keeps exactly
+     *  the look it had, so this is a per-type decision rather than a change of house style. */
+    /** The effective vertical gravity (ISSUE-94): a board that omits the field still gets the *type's* default,
+     *  which is what makes a registry default mean something at render time. Looked up from the registry directly
+     *  rather than through `def`, because `def` is declared below this line and a TDZ crash is a silly way to
+     *  lose an afternoon. A type that declares no default leaves the frame's centring alone. */
+    const vAlign = resolvedConfig.verticalAlign
+      || WIDGET_TYPES[widget.widgetType]?.defaults?.verticalAlign
+      || null;
+
     /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
      *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
      *  consumer picks it up with `{{widget:id#selection}}` or by naming `id#selection` as its source. */
@@ -712,7 +724,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         </div>
       )}
 
-      <div className="widget-body">
+      <div className={`widget-body${vAlign ? ` v-align-${vAlign}` : ''}`}>
         {state.loading && (
         <div className="widget-loading">
           {def?.intensity === 'high'

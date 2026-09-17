@@ -445,6 +445,14 @@ body {
   overflow: hidden;
 }
 
+/* Vertical gravity (ISSUE-94). The frame centres content by default — right for a chart or a picture, wrong for
+   a paragraph, which floated in the middle of a tall card. A card that declares `config.verticalAlign` gets one
+   of these classes; a card that declares nothing is unchanged. A top-gravity card also claims the full width,
+   because a text card centred as a block reads as a mistake even when it is vertically at the top. */
+.widget-body.v-align-top { align-items: flex-start; }
+.widget-body.v-align-top > * { width: 100%; }
+.widget-body.v-align-center { align-items: center; }
+
 /* Markdown card fills the body; frame keeps it scrollable */
 .widget-body:has(.markdown-card) {
   align-items: stretch;
