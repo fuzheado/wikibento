@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import {
   BOX_PRESETS, transclusionFor, boxApiUrl, boxPageUrl, parseBoxResponse, splitBoxHtml,
   rewriteBoxUrls, sanitizeBoxHtml, prepareBoxHtml, filterScopedCss, isAllowedBoxAsset, boxLines,
-  expandBoxTokens, boxLooksLikeNotice,
+  expandBoxTokens, boxLooksLikeNotice, openBoxLinksNewTab,
 } from '../src/lib/wikiBox.js';
 
 // ── the transclusion trick ────────────────────────────────────────────────────────────────────────
@@ -151,6 +151,28 @@ test('a root-relative URL is refused by the sanitiser, and absolute by the pipel
   // Wikipedia. Dropping it loses a link; following it would be an invisible wrong turn.
   assert.equal(sanitizeBoxHtml('<a href="/wiki/X">x</a>'), '<a>x</a>');
   assert.ok(prepareBoxHtml('<a href="/wiki/X">x</a>').includes('href="https://en.wikipedia.org/wiki/X"'));
+});
+
+test('a link in a box opens in a new tab, so a click cannot replace the board', () => {
+  // The bug: MediaWiki's own markup has no target (on the wiki, replacing the page IS the point). Here it threw
+  // away the reader's whole board. 22 other places in this app already open content links in a new tab.
+  const out = prepareBoxHtml('<ul><li><a href="/wiki/Weddell_Sea">Weddell Sea</a></li></ul>');
+  assert.ok(out.includes('target="_blank"'), out);
+  assert.ok(out.includes('rel="noopener noreferrer"'), out);
+  assert.ok(out.includes('href="https://en.wikipedia.org/wiki/Weddell_Sea"'), 'and the URL is still absolute');
+});
+
+test('a box may ask for something else, and is left alone', () => {
+  const out = openBoxLinksNewTab('<a href="https://x/y" target="_self">x</a>');
+  assert.equal((out.match(/target=/g) || []).length, 1, out);
+  assert.ok(out.includes('target="_self"'));
+});
+
+test('the new-tab rewrite survives the sanitiser (it runs first, deliberately)', () => {
+  // Order matters: sanitise-then-rewrite would have the attribute stripped as unknown.
+  const out = prepareBoxHtml('<a href="/wiki/X">x</a>');
+  assert.ok(out.includes('target="_blank"'), 'the attribute must not be filtered out');
+  assert.ok(!/onclick/i.test(out));
 });
 
 test('closing tags stay closing tags', () => {

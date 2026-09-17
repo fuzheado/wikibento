@@ -138,7 +138,7 @@ const ALLOWED_TAGS = new Set([
 ]);
 
 const ALLOWED_ATTRS = new Set([
-  'href', 'src', 'srcset', 'alt', 'title', 'class', 'id', 'lang', 'dir', 'width', 'height', 'rel',
+  'href', 'src', 'srcset', 'alt', 'title', 'class', 'id', 'lang', 'dir', 'width', 'height', 'rel', 'target',
   'typeof', 'about', 'resource', 'property', 'colspan', 'rowspan', 'scope', 'start', 'value', 'decoding',
   'loading', 'sizes', 'style',
 ]);
@@ -359,13 +359,35 @@ export function boxLines(html) {
 }
 
 /**
+ * Links open in a new tab, like every other content link in this app.
+ *
+ * Measured: 22 places in `WidgetFrame.jsx` already render content links with `target="_blank"`, and the widget
+ * that renders a wiki *page* keeps its browsing inside its own frame. `wikiBox` was the exception, because the
+ * markup is MediaWiki's own — where a link sensibly replaces the page you are reading. Here it replaced the
+ * *board*: clicking "Weddell Sea" in a list of seas threw away everything the reader had arranged. One delegated
+ * rule fixes it for every box, present and future.
+ *
+ * An anchor that already carries a target is left alone (a box can legitimately ask for something else), and the
+ * rewrite runs before the sanitiser so the attribute survives the allowlist rather than being stripped back out.
+ */
+export function openBoxLinksNewTab(html) {
+  return String(html).replace(/<a\b([^>]*)>/gi, (match, attrs) => {
+    if (/\btarget\s*=/i.test(attrs)) return match;
+    const rel = /\brel\s*=/i.test(attrs) ? '' : ' rel="noopener noreferrer"';
+    return `<a${attrs} target="_blank"${rel}>`;
+  });
+}
+
+/**
  * The whole markup pipeline in the order that matters: **rewrite, then sanitise**. Rewriting first turns the
  * wiki's `/wiki/…` and `//upload…` URLs into absolute ones; the sanitiser then refuses anything that is not
  * absolute http(s) or a fragment — deliberately, because a root-relative URL left behind would point at
  * wikibento rather than at Wikipedia, and silently following it is worse than dropping it.
  */
-export function prepareBoxHtml(html, { wikiBase = 'https://en.wikipedia.org' } = {}) {
-  return sanitizeBoxHtml(rewriteBoxUrls(html, { wikiBase }));
+export function prepareBoxHtml(html, { wikiBase = 'https://en.wikipedia.org', linkTarget = '_blank' } = {}) {
+  const absolute = rewriteBoxUrls(html, { wikiBase });
+  const linked = linkTarget ? openBoxLinksNewTab(absolute) : absolute;
+  return sanitizeBoxHtml(linked);
 }
 
 /** Is this a URL we are willing to let a rendered box load? Images may come from the wiki or Commons. */

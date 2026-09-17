@@ -11,6 +11,24 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A click in a box no longer throws the board away (ISSUE-91, 2026-09-16)
+
+- ✅ **The bug Andrew hit:** clicking "Weddell Sea" inside `{{List of seas}}` replaced the entire board with that
+  page. Every anchor in a rendered box now carries `target="_blank" rel="noopener noreferrer"`, applied before the
+  sanitiser so the attribute is allowlisted rather than stripped out — which is what the other **36** content-link
+  sites in this app already did (audited: 36 with `_blank`, 3 iframes, and `wikiBox` was the exception because the
+  markup is MediaWiki's own).
+- ✅ **Verified in a browser, not by inspection:** clicking an In the news link opens a new tab
+  (`en.wikipedia.org/wiki/File:KM_Virgo_Transport_8_at_sea.jpg`) and the board is still there with all five cards.
+- ⚠ **What is still not possible**, and now written down: a click that *means something to the board* (load it into
+  another widget, emit the title to a map or a gallery). Nothing in the app emits because a reader clicked
+  something — all 10 emitters are pure functions of fetched data — and `wikiPage` cannot participate at all, since a
+  cross-origin iframe never reports its clicks. The design (named output channels, a click hook, a `linkAction`
+  field, consumers that accept a value) and the effort estimate are ISSUE-91.
+- ✅ **An audit of where this pattern applies:** see the table in ISSUE-91. Short version: links are the easy half
+  and are now consistent; the interaction channel is the missing half, and it needs the emitter contract to grow a
+  second channel before a box can both list its items *and* report a selection.
+
 ## Wikipedia boxes, rendered faithfully (ISSUE-90, 2026-09-16)
 
 - ✅ **The In the news box renders as the box**, not as a list of links: bullets with bolded article titles, the

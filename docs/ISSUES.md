@@ -3328,6 +3328,80 @@ and the component, so the module's default export became the helper and App rend
 a boolean — for every card (no error, clean build, zero widgets on the page). A source-level test now
 pins that export, and `tests/export-data.test.mjs` covers the row mapping, CSV quoting and filenames.
 
+## ISSUE-91 · Clicks on rendered Wikimedia content: what should they do? (and formal widget classes) — **open**
+
+Andrew clicked a link inside a `wikiBox` ("Weddell Sea" in `{{List of seas}}`) and the **whole board was replaced**
+by that page. He asked for options — new tab, load it into another widget, or send the string to a widget that does
+something else with it (a map, a gallery) — then widened it: this should be a general pattern wherever we render
+Wikimedia content, and it raises the question of whether widgets should have **formal classes** with expected
+behaviour.
+
+### Shipped 2026-09-16: the link no longer eats the board
+
+Measured: **36 places** in `WidgetFrame.jsx` already render content links with `target="_blank"`, and the page
+widget keeps its browsing inside its own frame — `wikiBox` was the exception because the markup is MediaWiki's own.
+Every box's anchors are now rewritten to `target="_blank" rel="noopener noreferrer"` before sanitising (so the
+attribute survives the allowlist), an anchor that asks for another target is respected, and a box that is a *list of
+seas* is a nice demonstration: 155 article links, all of which now open without losing the board. Verified in a
+browser: click → new tab, board intact with all five cards.
+
+### The audit: who faces Wikimedia content, and what can we do about a click?
+
+| how a widget presents wiki content | count (2026-09-16) | what a click can do today |
+|---|---|---|
+| Content links rendered by us (cards, tables, galleries, lists) | **36 sites** | new tab ✓ — the app's house rule |
+| Remote markup rendered inline (the box pipeline) | 5 uses (`wikiBox`) | new tab ✓ (shipped above) |
+| A wiki page framed in an iframe (`wikiPage`, panorama, media player) | 3 | nothing: **cross-origin, we cannot see the click** ✗ |
+| Widgets that emit a value | 10, **all computed from data** | no widget emits *because the reader clicked something* ✗ |
+| Widgets that accept a source widget (`source`) | the dataflow set (textList, filterLines, lineCount, valueDisplay) | they can be wired widget→widget ✓ |
+
+Two conclusions worth committing to: **the iframe path is a dead end for interaction** (worth saying plainly, since
+`wikiPage` was Andrew's example — a *page* viewer cannot participate unless it is re-rendered inline, and a whole
+article is **107 KB** of HTML versus 8–23 KB for a box, so that trade is a separate decision, not an oversight);
+and **the missing capability is not the link, it is an interaction channel** — a click that means something to the
+board rather than to the browser.
+
+### What the interaction channel would take
+
+1. **Named output channels** — the blocking change. Today `outputs` is one kind per widget and `emit` is a pure
+   function of the fetched data, so "the box emits its items" *and* "the box emits what you clicked" cannot both
+   exist. Proposed: `outputs: { items: 'lines', selection: 'value' }`, `emit: (data) => ({ items: … })`,
+   `onOutput(id, channel, value)`, and `source: 'fp-itn#selection'` for the consumer — with the 10 existing
+   emitters keeping their meaning (a widget with one channel is the common case and stays unchanged).
+2. **A click hook in the frame** (`onSelect(widgetId, value)`) plus a delegated handler in the card that reads the
+   clicked anchor and turns `/wiki/Weddell_Sea` into `Weddell Sea` (a pure function, `boxLinkSelection`).
+3. **A `linkAction` config field**: `new tab` (default, shipped) · `send to the board` · `both`. The reader decides;
+   nothing about the default changes.
+4. **Consumers that accept a value**: a `wikiPage` taking its page from a source, an article gallery taking its
+   title, and later a map. Today `source` exists only for the dataflow widgets, so this is the other half of the
+   pattern.
+5. **Tests**: the click→emit→consume path end to end (extend `scripts/url-state-audit.mjs`-style driving rather than
+   a unit test, since the whole point is that a human gesture does something).
+
+Effort: **1.5–2 days** for the pattern on `wikiBox` plus one consumer; the link fix above was the 20-minute part.
+
+### Formal widget classes — proposed
+
+The registry already carries half a taxonomy (`nodeKind`, `category`, `timeScope`, `outputs.kind`, `emit`, `source`,
+`intensity`) and the docs gate *derives* the static/data-driven split rather than trusting prose. What is missing is
+a class whose *rules* are checkable, so a new widget of a known class arrives with known behaviour. Proposal:
+
+| class | what it is | rules a test can enforce |
+|---|---|---|
+| `measure` | fetches numbers/facts and displays them (the 33 data-driven widgets) | declares freshness + error handling; exports its data |
+| `content` | renders *someone else's* markup (`wikiBox`) | must go through sanitise + scope; links follow the house rule; carries a credit link |
+| `framed` | embeds a page or player it cannot see into (`wikiPage`, panorama, media player) | declares `sandbox`/`allow`; **says so** when it cannot intercept clicks |
+| `control` | params and dataflow nodes (`boardControls`, textList, filterLines, …) | declares its output kind/channels; no network without a reason |
+| `present` | renders from config only (`markdown`, `qrCode`, `speaker`) | no fetch; safe to place anywhere |
+| `interactive` | its content is a list of things the reader picks (`wikiBox` with `linkAction`, galleries, search results) | declares a `selection` channel and what a click does when nothing is wired |
+
+The value is in the last three: they are the ones with expectations that are currently unwritten, and each row above
+is a source-level assertion (the class of a widget can be checked against how it renders), not a convention.
+
+**Recommendation:** do (1)+(2)+(3) first — that is the pattern Andrew described, on the one widget where he hit it —
+then add the `class:` field with the enforcement above, because the class rules make more sense once the
+interactive class has an implementation to describe.
+
 ## ISSUE-90 · Render a Wikipedia template faithfully — the In the news box — **done + verified 2026-09-16**
 
 **Ask:** "Can you make a widget for a specific template or box to render correctly, like the In the news box on

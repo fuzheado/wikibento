@@ -728,6 +728,14 @@ framed box: the CSS cannot reach the app.
    `style=`/`on*`, refuses `javascript:`/`data:`, and keeps only CSS rules whose selectors start with
    `.mw-parser-output`. Two promises, not one: the wiki's about its output, ours about what we inject.
 
+**Links open in a new tab.** MediaWiki's markup has no `target` — on the wiki, replacing the page *is* the point.
+Here it replaced the reader's board: clicking "Weddell Sea" in a list of seas threw away everything arranged on
+screen. Every box's anchors are now rewritten with `target="_blank" rel="noopener noreferrer"`, which is what the
+other 36 content links in this app already do (audited 2026-09-16: 36 sites with `_blank`, and the app's page
+widget keeps its browsing inside its own frame). The rewrite runs *before* the sanitiser so the attribute is
+allowlisted rather than stripped. A box that asks for a different target is left alone. What is *not* yet possible
+is a click that means something to the board — see ISSUE-91.
+
 **Caching:** 10 minutes. The Main Page boxes change a few times a day; a stale headline is worse than a refetch.
 The card's footer shows the fetch time like every other widget, and each card links back to its template (CC BY-SA).
 
