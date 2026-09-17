@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { boxLinkSelection } from '../lib/wikiBox';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
 import { getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue } from '../lib/paramSources';
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
@@ -206,6 +207,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     () => resolveSourceValue(resolvedConfig, widgetOutputs),
     [resolvedConfig, widgetOutputs],
   );
+    /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
+     *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
+     *  consumer picks it up with `{{widget:id#selection}}` or by naming `id#selection` as its source. */
+    const handleSelect = useCallback((value) => {
+      if (value === undefined || value === null || value === '') return;
+      if (onOutput) onOutput(widget.id, value, 'selection');
+    }, [onOutput, widget.id]);
+
   // What the export menu captures: the card itself, chrome and panels excluded by the serialiser.
   const cardRef = useRef(null);
   const [state, setState] = useState({ loading: true, error: null, data: null });
@@ -333,9 +342,18 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     // producers — Text List / Filter / Count / Echo — are all static).
     // Skip undefined (an echo with no input isn't a value).
     const publishOutput = (transformed) => {
-      if (def.emit && onOutput) {
-        const emitted = def.emit(transformed, resolvedConfig);
-        if (emitted !== undefined) onOutput(widget.id, emitted);
+      if (!def.emit || !onOutput) return;
+      const emitted = def.emit(transformed, resolvedConfig);
+      if (emitted === undefined) return;
+      // Named channels (ISSUE-91): a widget that declares them returns `{ channel: value }`. Otherwise the
+      // single returned value is the widget's default output and goes on the bare id, exactly as before.
+      const named = def.outputs && typeof def.outputs === 'object' && !('kind' in def.outputs);
+      if (named) {
+        for (const [channel, value] of Object.entries(emitted)) {
+          if (value !== undefined) onOutput(widget.id, value, channel);
+        }
+      } else {
+        onOutput(widget.id, emitted);
       }
     };
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
@@ -722,7 +740,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         )}
         {state.data && !state.loading && (
   <>
-    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} />
+    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
         ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(resolvedConfig.refreshSeconds)}
@@ -735,7 +753,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   );
 }
 
-function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam }) {
+function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
     case 'RankingCard': return <RankingCard data={data} />;
@@ -772,7 +790,7 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'IaBookCard': return <IaBookCard data={data} />;
     case 'DocumentReaderCard': return <DocumentReaderCard data={data} />;
 
-    case 'WikiBoxCard': return <WikiBoxCard data={data} />;
+    case 'WikiBoxCard': return <WikiBoxCard data={data} onSelect={onSelect} />;
     default: return <StatCard data={data} />;
   }
 }
@@ -2284,15 +2302,28 @@ function TimelineCard({ data }) {
  *  · the box is sized by its content (no fixed height, no scrollbar), which is the reason this is rendered in
  *    the document rather than in a sandboxed frame: a widget that scrolls or clips is not a widget.
  */
-function WikiBoxCard({ data }) {
+function WikiBoxCard({ data, onSelect }) {
   const html = (data && data.html) || '';
   const css = (data && data.css) || '';
+  // `new tab` is the default and needs no code: the anchors carry target="_blank". The other two modes make the
+  // click mean something to the board — see ISSUE-91 — so the handler has to intercept it.
+  const linkAction = (data && data.linkAction) || 'new tab';
+  const sendInstead = linkAction === 'send to the board' || linkAction === 'both';
+  const handleClick = (event) => {
+    if (!sendInstead || !onSelect) return;
+    const anchor = event.target && event.target.closest ? event.target.closest('a') : null;
+    if (!anchor) return;
+    const value = boxLinkSelection(anchor.getAttribute('href'), anchor.textContent);
+    if (!value) return;
+    if (linkAction === 'send to the board') event.preventDefault();   // `both` also opens the tab
+    onSelect(value);
+  };
   if (!html) return <div className="wikibox-empty">That box is empty right now.</div>;
   return (
     <div className="wikibox">
       {css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null}
       {/* eslint-disable-next-line react/no-danger -- MediaWiki-sanitised, then allowlisted by src/lib/wikiBox.js */}
-      <div className="mw-parser-output wikibox-body" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="mw-parser-output wikibox-body" onClick={handleClick} dangerouslySetInnerHTML={{ __html: html }} />
       {data.notice ? (
         <div className="wikibox-note" title="Some Main Page wrappers only render their box in the Main Page context, and return a notice anywhere else.">
           ⓘ the template returned a notice, not its box — some boxes need a dated subpage (⚙)

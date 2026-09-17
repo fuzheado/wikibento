@@ -111,7 +111,13 @@ test('registry: iaItem emits its canonical URL (Emitter Contract)', () => {
 
 test('registry: every widget declares an emit only alongside an output kind', () => {
   for (const [id, w] of Object.entries(WIDGET_TYPES)) {
-    if (w.emit) assert.ok(w.outputs && w.outputs.kind, `${id} emits without outputs.kind`);
+    // A widget declares either one output ({ kind }) or named channels (ISSUE-91) — e.g. a box that
+    // publishes its items AND what the reader clicked.
+    if (!w.emit) continue;
+    const declared = w.outputs && ('kind' in w.outputs
+      ? Boolean(w.outputs.kind)
+      : Object.values(w.outputs).every((k) => typeof k === 'string' && k));
+    assert.ok(declared, `${id} emits without outputs.kind or named channels`);
   }
 });
 

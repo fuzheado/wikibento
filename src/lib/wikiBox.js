@@ -289,6 +289,46 @@ export function filterScopedCss(css, { scope = '.mw-parser-output' } = {}) {
 }
 
 /**
+ * What a clicked link in a box *means* (ISSUE-91).
+ *
+ * The reader's click is a choice, and the useful part of that choice is the page it names — "Weddell Sea", not
+ * `https://en.wikipedia.org/wiki/Weddell_Sea`. That string is what another widget can act on: a page viewer can
+ * load it, a gallery can show its images, a map can look for coordinates. The link's own text is preferred when
+ * it says something (a piped link reads "this sea" on the page but names `Weddell_Sea`), because what a consumer
+ * needs is a *title*, and `title` is derived from the URL for exactly that reason.
+ *
+ * Namespaces are reported rather than guessed at: a File:/Category:/Template:/Help:/Portal:/Special: link is not
+ * an article, and a consumer that wants article titles should be able to ignore the rest.
+ *
+ * @returns {{ title: string, text: string, url: string, kind: 'article'|'file'|'category'|'template'|'help'|'portal'|'special'|'external' } | null}
+ */
+export function boxLinkTarget(href, text = '') {
+  const raw = String(href || '').trim();
+  if (!raw) return null;
+  let url;
+  try { url = new URL(raw, 'https://en.wikipedia.org'); } catch { return null; }
+  const wiki = /(^|\.)wikipedia\.org$/i.test(url.hostname) || /(^|\.)wikimedia\.org$/i.test(url.hostname);
+  const label = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!wiki || !url.pathname.startsWith('/wiki/')) {
+    // An off-wiki link still has a title worth passing on (the host, or the text the reader saw).
+    return { title: label || url.hostname, text: label, url: url.href, kind: 'external' };
+  }
+  let title = url.pathname.slice('/wiki/'.length);
+  try { title = decodeURIComponent(title); } catch { /* keep as written */ }
+  title = title.replace(/_/g, ' ').replace(/#.*$/, '').trim();
+  const ns = /^(File|Image|Category|Template|Help|Portal|Special|Wikipedia|Talk|User|Draft|Module|MediaWiki):/i.exec(title);
+  const kind = ns ? ns[1].toLowerCase().replace('image', 'file') : 'article';
+  if (!title && !label) return null;   // a link to nothing is not a selection
+  return { title: title || label, text: label, url: url.href, kind };
+}
+
+/** The value a click publishes on the `selection` channel: the page title, or null if there is nothing to say. */
+export function boxLinkSelection(href, text = '') {
+  const target = boxLinkTarget(href, text);
+  return target ? target.title : null;
+}
+
+/**
  * `{date}`-style tokens in a box name, expanded by us.
  *
  * Why not MediaWiki's own `{{CURRENTYEAR}}` magic words? Because in this app `{{name}}` already means a *board

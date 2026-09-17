@@ -11,6 +11,29 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A click can send a page to the board (ISSUE-91, 2026-09-16)
+
+- ✅ **The whole pattern, driven in a browser:** a live `{{List of seas}}` card (161 article links, Wikipedia's own
+  markup and styles), *Links in the box* = **send to the board**; clicking **Weddell Sea** loaded that article in
+  the page viewer beside it (`en.wikipedia.org/wiki/Weddell_Sea`) and put the string `Weddell Sea` in a Value
+  Display card. The board kept every card. Screenshot:
+  [docs/screenshots/wikibento-2026-09-16-click-through.png](screenshots/wikibento-2026-09-16-click-through.png).
+- ✅ **Named channels, backwards compatible by construction:** the default output keeps the bare widget id
+  (`{{widget:id}}`), so the 10 pre-existing emitters and every existing board mean exactly what they did. A second
+  channel is `id#channel` — declared as `outputs: { items, selection }`, stored under that key, offered in the
+  source picker, resolved by `{{widget:…}}`, and repointed by a rename. Three gates learned the shape; the demos
+  constitution now fails a reference to an undeclared channel.
+- ✅ **A click is a choice, and the choice is a title:** `boxLinkSelection` turns `/wiki/Weddell_Sea` into
+  `Weddell Sea` (decoding underscores and percent-escapes, dropping fragments), reports namespaces rather than
+  pretending a File:/Category: link is an article, and keeps a display text for off-wiki links. The link still
+  opens a tab by default — the two behaviours are separate settings, not a replacement.
+- 🐛 **Two of my own wiring bugs, both caught by driving it:** `onSelect` was threaded into `WidgetContent` but the
+  dispatch inside it still named the frame's local (`handleSelect is not defined` — the card showed its own error
+  boundary), and an earlier edit of App's output handler had been silently discarded by a later failed assertion in
+  the same script, so the selection was landing on the widget's *default* channel and clobbering its items. The
+  first is why the error boundary is worth having; the second is why the fix is now written in one edit and
+  grep-verified.
+
 ## A click in a box no longer throws the board away (ISSUE-91, 2026-09-16)
 
 - ✅ **The bug Andrew hit:** clicking "Weddell Sea" inside `{{List of seas}}` replaced the entire board with that

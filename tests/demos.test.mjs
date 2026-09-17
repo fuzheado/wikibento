@@ -45,10 +45,17 @@ test('demos: every {{widget:id}} and {{param}} resolves inside the board', () =>
     const params = new Set(Object.keys(d.params || {}));
     const configs = d.widgets.map((w) => w.config);
     for (const ref of extractWidgetRefs(configs)) {
-      assert.ok(ids.has(ref), `${f}: {{widget:${ref}}} points off-board`);
+      // A reference may name a channel (ISSUE-91): `id#selection`. The widget must exist, and a named
+      // channel must be declared — a typo in a channel is as broken as a typo in an id.
+      const [refId, channel] = ref.split('#');
+      assert.ok(ids.has(refId), `${f}: {{widget:${ref}}} points off-board`);
+      if (channel) {
+        const def = WIDGET_TYPES[d.widgets.find((w) => w.id === refId).widgetType];
+        assert.ok(channel in (def.outputs || {}), `${f}: {{widget:${ref}}} names an undeclared channel`);
+      }
     }
     const blob = JSON.stringify(configs);
-    for (const m of blob.matchAll(/\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?\s*\}\}/g)) {
+    for (const m of blob.matchAll(/\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?(?:#([a-zA-Z0-9_-]+))?\s*\}\}/g)) {
       const name = m[1];
       if (name === 'widget') continue; // covered by extractWidgetRefs above
       assert.ok(params.has(name), `${f}: {{${name}}} is not a declared param`);

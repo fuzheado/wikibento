@@ -310,9 +310,26 @@ test('findUnresolvedRefs: detects {{widget:id}} and {{param}} deeply, deduped', 
   const refs = findUnresolvedRefs(cfg);
   assert.equal(refs.length, 2, JSON.stringify(refs));
   assert.deepEqual(refs.map((r) => r.kind).sort(), ['param', 'widget']);
-  assert.deepEqual(refs.find((r) => r.kind === 'widget'), { raw: '{{widget:excerpt-1}}', kind: 'widget', name: 'excerpt-1' });
+  assert.deepEqual(refs.find((r) => r.kind === 'widget'), { raw: '{{widget:excerpt-1}}', kind: 'widget', name: 'excerpt-1', channel: null });
   assert.deepEqual(refs.find((r) => r.kind === 'param'), { raw: '{{topic}}', kind: 'param', name: 'topic' });
 });
+
+  test('a channel reference resolves from the channel-keyed output (ISSUE-91)', () => {
+    const cfg = { page: '{{widget:seas#selection}}', title: '{{widget:seas}}' };
+    const out = resolveParams(cfg, {}, { 'seas#selection': 'Weddell Sea', seas: ['one', 'two'] });
+    assert.equal(out.page, 'Weddell Sea');
+    assert.equal(out.title, 'one\ntwo', 'the default channel is unaffected by the new one');
+  });
+
+  test('a channel reference is reported, so a rename repoints it too', () => {
+    const refs = findUnresolvedRefs({ page: '{{widget:seas#selection}}' });
+    assert.deepEqual(refs, [{ raw: '{{widget:seas#selection}}', kind: 'widget', name: 'seas', channel: 'selection' }]);
+  });
+
+  test('a channel that has not published yet is left literal, like any unresolved reference', () => {
+    const out = resolveParams({ page: '{{widget:seas#selection}}' }, {}, { seas: ['one'] });
+    assert.equal(out.page, '{{widget:seas#selection}}');
+  });
 
 test('findUnresolvedRefs: empty once resolveParams has substituted everything', () => {
   const cfg = { text: '{{widget:excerpt-1}}', article: '{{topic}}' };

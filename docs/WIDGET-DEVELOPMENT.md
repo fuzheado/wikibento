@@ -81,6 +81,18 @@ Corollaries:
    no `File`/`Blob`/`ImageBitmap` handles, no functions. If it is not text (or
    an array of text), it does not belong on the wire yet — `docs/MEDIA-DATAFLOW.md`
    lays out what that would take.
+6. **A widget may publish more than one thing — on named channels (ISSUE-91).**
+   The default output keeps the bare widget id (`{{widget:id}}`), so nothing old
+   changes meaning. A second channel is declared as `outputs: { items: 'lines',
+   selection: 'value' }`, returned as `emit: (data) => ({ items: … })`, stored as
+   the key `id#channel`, and referenced as `{{widget:id#selection}}` or by naming
+   `id#selection` in a consumer's `source` picker. Today exactly one widget uses
+   it, for the thing none of the rules above describe: **what the reader clicked**
+   — a `wikiBox` publishes the page title of a link the reader picked, which is
+   the only emit in the app that is *not* a pure function of fetched data. Two
+   checks enforce the shape: the manifest gate accepts either `{ kind }` or a
+   channel map with documented kinds, and the demos constitution refuses a
+   reference to a channel a widget does not declare.
 
 ## Current emitters (the reference set)
 
@@ -92,6 +104,7 @@ Corollaries:
 | `lineCount` | `count` | a number | `echo`, `markdown` |
 | `echo` | `value` | pass-through | any text field |
 | `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
+| `wikiBox` | `items` · `selection` | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
 
 ## Anti-patterns (with the concrete reason)
 

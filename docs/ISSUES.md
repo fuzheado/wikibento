@@ -3361,7 +3361,33 @@ article is **107 KB** of HTML versus 8–23 KB for a box, so that trade is a sep
 and **the missing capability is not the link, it is an interaction channel** — a click that means something to the
 board rather than to the browser.
 
-### What the interaction channel would take
+### Shipped 2026-09-16: the interaction channel (steps 1–3)
+
+Built in the order proposed, on the widget where the problem appeared:
+
+1. **Named output channels.** `outputs` now takes either `{ kind }` (unchanged, and what every existing emitter
+   still declares) or a channel map — `wikiBox` publishes `{ items: 'lines', selection: 'value' }` and returns
+   `emit: (data) => ({ items: … })`. A channel is stored under `id#channel`, resolved as `{{widget:id#selection}}`,
+   offered in the source picker as `id#selection`, and the rename path repoints it. Three gates learned the shape:
+   the manifest-compliance check, the registry emit check, and the demos constitution (which now refuses a
+   reference to a channel a widget does not declare — a typo in a channel is as broken as a typo in an id).
+2. **A click hook.** The frame passes `onSelect` into the card layer; the box's delegated handler reads the clicked
+   anchor and `boxLinkSelection` turns `/wiki/Weddell_Sea` into `Weddell Sea` (namespace-aware: File:/Category:/
+   Template: links report their kind, and an off-wiki link keeps its display text).
+3. **A `linkAction` field**: *new tab* (default) · *send to the board* · *both*.
+
+**Verified end to end (the screenshot in `docs/screenshots/wikibento-2026-09-16-click-through.png`):** clicking
+"Weddell Sea" in a live `{{List of seas}}` card (161 article links) loaded the article in the page viewer beside it
+and put `Weddell Sea` in a Value Display card — the exact scenario, with the board intact.
+
+### What remains from this issue
+
+4. **Consumers that take a value as their *subject*** — a `wikiPage` whose page is `{{widget:…}}` works today
+   through generic interpolation, but fields that are *about* a selection (a gallery's title, a map's target)
+   deserve to say so in their own config hints.
+5. **The `class:` field** — the taxonomy below, now that the `interactive` class has an implementation to describe.
+
+### What the interaction channel took (the original plan)
 
 1. **Named output channels** — the blocking change. Today `outputs` is one kind per widget and `emit` is a pure
    function of the fetched data, so "the box emits its items" *and* "the box emits what you clicked" cannot both

@@ -653,10 +653,13 @@ const handleAutoHeight = useCallback((id, px) => {
 
   /** ISSUE-51 — a widget published its output. Value-compared so a consumer
    *  re-emitting an identical value is a no-op (no render storms). */
-  const handleWidgetOutput = useCallback((id, value) => {
+  const handleWidgetOutput = useCallback((id, value, channel = null) => {
+    // ISSUE-91: a named channel is stored as `id#channel`; the default output keeps the bare id, so every
+    // pre-existing reference means exactly what it meant before.
+    const key = channel ? `${id}#${channel}` : id;
     setWidgetOutputs((prev) => {
-      if (id in prev && JSON.stringify(prev[id]) === JSON.stringify(value)) return prev;
-      return { ...prev, [id]: value };
+      if (key in prev && JSON.stringify(prev[key]) === JSON.stringify(value)) return prev;
+      return { ...prev, [key]: value };
     });
   }, []);
 
@@ -666,10 +669,17 @@ const handleAutoHeight = useCallback((id, px) => {
   const sourceOptions = useMemo(
     () => widgets
       .filter((w) => WIDGET_TYPES[w.widgetType]?.emit)
-      .map((w) => {
+            .flatMap((w) => {
         const def = WIDGET_TYPES[w.widgetType];
         const label = def.labelFromConfig?.(w.config) || def.name || w.widgetType;
-        return { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}` };
+        const base = { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}` };
+        // Extra named channels (ISSUE-91) are sources in their own right, so the reader's selection can be
+        // picked distinctly from the widget's own data.
+        const extra = Object.keys(def.outputs || {}).filter((k) => k !== 'kind');
+        return [base, ...extra.map((channel) => ({
+          id: `${w.id}#${channel}`,
+          label: `${def.icon} ${def.name} · ${w.id}#${channel} — ${channel}`,
+        }))];
       }),
     [widgets],
   );

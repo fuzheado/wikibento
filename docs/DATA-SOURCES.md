@@ -728,13 +728,20 @@ framed box: the CSS cannot reach the app.
    `style=`/`on*`, refuses `javascript:`/`data:`, and keeps only CSS rules whose selectors start with
    `.mw-parser-output`. Two promises, not one: the wiki's about its output, ours about what we inject.
 
-**Links open in a new tab.** MediaWiki's markup has no `target` — on the wiki, replacing the page *is* the point.
-Here it replaced the reader's board: clicking "Weddell Sea" in a list of seas threw away everything arranged on
-screen. Every box's anchors are now rewritten with `target="_blank" rel="noopener noreferrer"`, which is what the
-other 36 content links in this app already do (audited 2026-09-16: 36 sites with `_blank`, and the app's page
-widget keeps its browsing inside its own frame). The rewrite runs *before* the sanitiser so the attribute is
-allowlisted rather than stripped. A box that asks for a different target is left alone. What is *not* yet possible
-is a click that means something to the board — see ISSUE-91.
+**Links open in a new tab, or mean something to the board.** MediaWiki's markup has no `target` — on the wiki,
+replacing the page *is* the point. Here it replaced the reader's *board*: clicking "Weddell Sea" in a list of seas
+threw away everything arranged on screen. Every box's anchors are now rewritten with `target="_blank"
+rel="noopener noreferrer"` (what the other 36 content links in this app already do), the rewrite runs *before* the
+sanitiser so the attribute is allowlisted rather than stripped, and an anchor asking for another target is left
+alone.
+
+⚙ **Links in the box** then decides what a click *does* (ISSUE-91): **new tab** (default) · **send to the board** ·
+**both**. In the last two the card reads the clicked anchor, turns `/wiki/Weddell_Sea` into the page title
+`Weddell Sea` (`boxLinkSelection`), and publishes it on the widget's `selection` channel — so another widget can act
+on it with no wiring of its own: `{{widget:seas#selection}}` in a page field, or `seas#selection` in a consumer's
+source picker. Measured end to end: a click in `{{List of seas}}` (161 links) loaded the article in the page
+viewer beside it and put the same string in a Value Display card. This is the only emit in the app that is *not* a
+pure function of fetched data; the Emitter Contract in WIDGET-DEVELOPMENT.md covers its shape.
 
 **Caching:** 10 minutes. The Main Page boxes change a few times a day; a stale headline is worse than a refetch.
 The card's footer shows the fetch time like every other widget, and each card links back to its template (CC BY-SA).

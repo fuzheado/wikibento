@@ -109,7 +109,7 @@ export function paramSpecToText(block) {
 
 /** Deep-resolve `{{name}}` board-param placeholders — and, with the
  *  widget-output registry present (ISSUE-51, widget-to-widget dataflow),
- *  `{{widget:id}}` placeholders that interpolate another widget's emitted
+ *  `{{widget:id}}` (or `{{widget:id#channel}}`, ISSUE-91) placeholders that interpolate another widget's emitted
  *  output. Returns a NEW object when anything changed, else the original
  *  reference (so React memo works — identity preserved for untouched configs). */
 export function resolveParams(config, values, widgetOutputs) {
@@ -121,15 +121,18 @@ export function resolveParams(config, values, widgetOutputs) {
   // {{name}} → board param · {{widget:id}} → another widget's emitted output.
   const walk = (v) => {
     if (typeof v === 'string') {
-      const out = v.replace(/\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?\s*\}\}/g, (m, name, sub) => {
+      const out = v.replace(/\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?(?:#([a-zA-Z0-9_-]+))?\s*\}\}/g, (m, name, sub, channel) => {
         if (name === 'widget') {
-          if (hasOutputs && sub != null && sub in widgetOutputs) {
+          // A second channel is stored as `id#channel` (ISSUE-91). No channel means the widget's default
+          // output — which is what every pre-existing reference means, so nothing old changes meaning.
+          const key = channel ? `${sub}#${channel}` : sub;
+          if (hasOutputs && sub != null && key in widgetOutputs) {
             changed = true;
-            return stringifyOutput(widgetOutputs[sub]);
+            return stringifyOutput(widgetOutputs[key]);
           }
-          if (!warned.has(`widget:${sub}`)) {
-            console.warn(`[params] no widget output named "${sub}" — leaving literal (${m})`);
-            warned.add(`widget:${sub}`);
+          if (!warned.has(`widget:${key}`)) {
+            console.warn(`[params] no widget output named "${key}" — leaving literal (${m})`);
+            warned.add(`widget:${key}`);
           }
           return m; // unknown widget → left literal (visible, never breaking)
         }
@@ -176,7 +179,7 @@ export function extractWidgetRefs(config) {
   const refs = new Set();
   const walk = (v) => {
     if (typeof v === 'string') {
-      for (const m of v.matchAll(/\{\{\s*widget\s*:\s*([a-zA-Z0-9_-]+)\s*\}\}/g)) refs.add(m[1]);
+      for (const m of v.matchAll(/\{\{\s*widget\s*:\s*([a-zA-Z0-9_-]+)(?:#([a-zA-Z0-9_-]+))?\s*\}\}/g)) refs.add(m[2] ? `${m[1]}#${m[2]}` : m[1]);
     } else if (Array.isArray(v)) {
       v.forEach(walk);
     } else if (v && typeof v === 'object') {
@@ -188,7 +191,7 @@ export function extractWidgetRefs(config) {
 }
 
 /** Placeholder grammar — the SAME pattern resolveParams substitutes. */
-const REF_RE = /\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?\s*\}\}/g;
+const REF_RE = /\{\{\s*([a-zA-Z0-9_-]+)(?::([a-zA-Z0-9_-]+))?(?:#([a-zA-Z0-9_-]+))?\s*\}\}/g;
 
 /** Find unresolved `{{...}}` placeholders in a RESOLVED config (deep).
  *
@@ -210,7 +213,7 @@ export function findUnresolvedRefs(config) {
         if (seen.has(raw)) continue;
         seen.add(raw);
         out.push(m[1] === 'widget' && m[2] != null
-          ? { raw, kind: 'widget', name: m[2] }
+          ? { raw, kind: 'widget', name: m[2], channel: m[3] || null }
           : { raw, kind: 'param', name: m[1] });
       }
       return;

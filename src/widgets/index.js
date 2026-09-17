@@ -1334,15 +1334,24 @@ export const WIDGET_TYPES = {
     fetch: (config) => fetchWikiBox({ project: config.project, box: config.box }),
     // The fetcher already returns exactly what the card renders (html + its own scoped css + the credit link),
     // so the transform is the identity — the same convention as the other cards that shape in the fetcher.
-    transform: (data) => data,
+    // The card needs to know how to treat a click, and `transform` is where config becomes data.
+    transform: (data, config) => ({ ...data, linkAction: (config && config.linkAction) || 'new tab' }),
     dataSource: 'Action API parse of the transclusion (HTML + TemplateStyles in one call, CORS ✓)',
-    // The box's items as lines: a box stops being a dead end and can feed Filter Lines / Line Count / Speaker.
-    emit: (data) => boxLines(data && data.html),
-    outputs: { kind: 'lines' },   // emitted: one line per item in the box
+    // Two channels (ISSUE-91): `items` is what the box contains — a box stops being a dead end and can feed
+    // Filter Lines / Line Count / Speaker — and `selection` is what the reader clicked, published by the card
+    // when linkAction says so. A widget that names its channels returns `{ channel: value }` from `emit`.
+    emit: (data) => ({ items: boxLines(data && data.html) }),
+    outputs: { items: 'lines', selection: 'value' },
     configFields: [
       { key: 'box', label: 'Template', type: 'text', placeholder: 'In the news',
         hint: 'In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}' },
       { key: 'project', label: 'Wiki', type: 'text', placeholder: 'en.wikipedia', hint: 'A project name (en.wikipedia) or a full host' },
+      { key: 'linkAction', label: 'Links in the box', type: 'select', options: [
+        { value: 'new tab', label: 'Open in a new tab (default)' },
+        { value: 'send to the board', label: 'Send the page to the board' },
+        { value: 'both', label: 'Both' },
+      ], default: 'new tab',
+        hint: '"send to the board" publishes the clicked page title on this box\u2019s selection channel — wire another widget to it with {{widget:' + "this-box" + '#selection}}' },
       { key: 'date', label: 'Date (blank = today)', type: 'text', placeholder: 'today',
         hint: 'For dated boxes. The name may use {date} {year} {month} {monthname} {day} — e.g. POTD/{date}, or Wikipedia:Selected anniversaries/{monthname} {day}' },
     ],

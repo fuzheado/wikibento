@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import {
   BOX_PRESETS, transclusionFor, boxApiUrl, boxPageUrl, parseBoxResponse, splitBoxHtml,
   rewriteBoxUrls, sanitizeBoxHtml, prepareBoxHtml, filterScopedCss, isAllowedBoxAsset, boxLines,
-  expandBoxTokens, boxLooksLikeNotice, openBoxLinksNewTab,
+  expandBoxTokens, boxLooksLikeNotice, openBoxLinksNewTab, boxLinkTarget, boxLinkSelection,
 } from '../src/lib/wikiBox.js';
 
 // ── the transclusion trick ────────────────────────────────────────────────────────────────────────
@@ -254,6 +254,39 @@ test('only Wikimedia hosts count as box assets', () => {
     'https://notwikimedia.org.evil.com/a.jpg']) {
     assert.equal(isAllowedBoxAsset(bad), false, bad);
   }
+});
+
+// ── what a click means (ISSUE-91) ────────────────────────────────────────────────────────────────
+
+test('a clicked link names a page, from the URL not the display text', () => {
+  // The display text of a piped link can be prose; the *title* is what a consumer can act on.
+  const t = boxLinkTarget('https://en.wikipedia.org/wiki/Weddell_Sea', 'the Weddell Sea');
+  assert.equal(t.title, 'Weddell Sea');
+  assert.equal(t.kind, 'article');
+  assert.equal(t.text, 'the Weddell Sea');
+  assert.equal(boxLinkSelection('https://en.wikipedia.org/wiki/Weddell_Sea'), 'Weddell Sea');
+});
+
+test('underscores, percent-encoding and fragments are all handled', () => {
+  assert.equal(boxLinkSelection('https://en.wikipedia.org/wiki/Sea_of_Japan'), 'Sea of Japan');
+  assert.equal(boxLinkSelection('https://en.wikipedia.org/wiki/C%C3%B4te_d%27Ivoire'), "Côte d'Ivoire");
+  assert.equal(boxLinkSelection('https://en.wikipedia.org/wiki/Weddell_Sea#Geography'), 'Weddell Sea');
+  assert.equal(boxLinkSelection('/wiki/Mediterranean_Sea'), 'Mediterranean Sea', 'relative links still name a page');
+});
+
+test('namespaces are reported, not silently treated as articles', () => {
+  assert.equal(boxLinkTarget('https://en.wikipedia.org/wiki/File:X.jpg').kind, 'file');
+  assert.equal(boxLinkTarget('https://en.wikipedia.org/wiki/Category:Seas').kind, 'category');
+  assert.equal(boxLinkTarget('https://en.wikipedia.org/wiki/Template:Seas').kind, 'template');
+  assert.equal(boxLinkTarget('https://example.org/whatever').kind, 'external');
+  assert.equal(boxLinkSelection('https://example.org/whatever', 'Somewhere'), 'Somewhere',
+    'an off-wiki link still has a title worth passing on');
+});
+
+test('nothing to select yields null rather than an empty selection', () => {
+  assert.equal(boxLinkSelection(''), null);
+  assert.equal(boxLinkSelection(null), null);
+  assert.equal(boxLinkSelection('https://en.wikipedia.org/wiki/'), null);
 });
 
 // ── what the widget emits ─────────────────────────────────────────────────────────────────────────

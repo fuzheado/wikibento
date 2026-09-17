@@ -69,7 +69,15 @@ test('the five emitters declare their output kinds', () => {
   for (const [id, kind] of Object.entries(KNOWN_EMITTERS)) {
     const w = byId.get(id);
     assert.ok(w, `emitter ${id} exists`);
-    assert.equal(w.outputs?.kind, kind, `${id} outputs.kind === '${kind}'`);
+    assert.ok(w.outputs, `${id} declares outputs`);
+    // Two shapes, one meaning (ISSUE-91): a single output is `{ kind }`, while a widget with named channels —
+    // a box that publishes both its items and the reader's selection — maps channel → kind.
+    if ('kind' in w.outputs) assert.equal(w.outputs.kind, kind, `${id} outputs.kind === '${kind}'`);
+    else {
+      const kinds = Object.values(w.outputs);
+      assert.ok(kinds.length > 0, `${id} names at least one channel`);
+      assert.ok(kinds.every((k) => typeof k === 'string'), `${id} channel kinds are strings`);
+    }
   }
 });
 
@@ -118,9 +126,10 @@ test('emitter output kinds stay within the documented set (emitter contract)', (
   const DOCUMENTED = ['extract', 'lines', 'count', 'value'];
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
-    assert.ok(
-      DOCUMENTED.includes(w.outputs.kind),
-      `${w.id}: output kind "${w.outputs.kind}" is not in the documented set [${DOCUMENTED.join(', ')}] — `
+    const kinds = 'kind' in w.outputs ? [w.outputs.kind] : Object.values(w.outputs);
+    for (const one of kinds) assert.ok(
+      DOCUMENTED.includes(one),
+      `${w.id}: output kind "${one}" is not in the documented set [${DOCUMENTED.join(', ')}] — `
       + 'see docs/WIDGET-DEVELOPMENT.md "The Emitter Contract" (and docs/MEDIA-DATAFLOW.md for non-text outputs)',
     );
   }

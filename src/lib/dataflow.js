@@ -63,7 +63,7 @@ export function widgetOutputSignature(config, widgetOutputs) {
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The {{widget:oldId}} token with whitespace tolerance. */
-const tokenRe = (oldId) => new RegExp(`\\{\\{\\s*widget\\s*:\\s*${escapeRegExp(oldId)}\\s*\\}\\}`, 'g');
+const tokenRe = (oldId) => new RegExp(`\\{\\{\\s*widget\\s*:\\s*${escapeRegExp(oldId)}(#[a-zA-Z0-9_-]+)?\\s*\\}\\}`, 'g');
 
 /** Deep rewrite: every reference to `oldId` becomes `newId` — the `source`
  *  config field AND every {{widget:oldId}} token in any string (whitespace-

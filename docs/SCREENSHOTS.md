@@ -229,3 +229,13 @@ the `wikibento-<date>-<subject>.png` naming with a section here.
 and the real **Picture of the day**. Nothing about the boxes' layout is re-implemented here — which is the point:
 when an editor changes the box, these cards change with it. Two of them are dated (`POTD/{date}`,
 `…/Selected anniversaries/{monthname} {day}`), so they stay current without anyone editing a board.
+
+### 2026-09-16 — click through: from a box to another widget (ISSUE-91)
+
+![Clicking a sea in a live List of seas box loads the article beside it](screenshots/wikibento-2026-09-16-click-through.png)
+
+👆 **The reader's click is a choice, and the choice travels.** The left card is live Wikipedia content
+(`{{List of seas}}`, 161 article links, rendered with the wiki's own markup and styles); *Links in the box* is set
+to **send to the board**, so clicking **Weddell Sea** publishes the page title on the box's `selection` channel. The
+page viewer on the right loads that article, and the Value Display card underneath shows the exact string that
+travelled. Nothing is hard-wired on the consumer side: `{{widget:click-seas#selection}}` is all it takes.

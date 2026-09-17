@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-16T19:13:35.951Z",
+ "generatedAt": "2026-09-17T15:40:36.990Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -1453,6 +1453,17 @@
      "placeholder": "en.wikipedia"
     },
     {
+     "key": "linkAction",
+     "type": "select",
+     "label": "Links in the box",
+     "hint": "\"send to the board\" publishes the clicked page title on this box\\u2019s selection channel — wire another widget to it with {{widget:",
+     "options": [
+      "new tab",
+      "send to the board",
+      "both"
+     ]
+    },
+    {
      "key": "date",
      "type": "text",
      "label": "Date (blank = today)",
@@ -1464,10 +1475,7 @@
     "box",
     "project",
     "refreshSeconds"
-   ],
-   "outputs": {
-    "kind": "lines"
-   }
+   ]
   },
   {
    "id": "wikiPage",
