@@ -92,14 +92,21 @@ test('a project or language field uses the picker, not a hardcoded list (ISSUE-9
   // The sweep this protects: five widgets once offered 6, 3, 2, 13 and 30 options while the site matrix holds 364
   // wikis and 374 languages. A new widget that types out its own list is how that happened, so the registry is
   // checked rather than trusted — a hand-rolled `select` for `project`, `wiki` or `lang` fails the build.
+  // A field named project/wiki/lang holds one of two DIFFERENT vocabularies, and it must say which:
+  //   · a wiki          → `type: 'project'`, the shared picker (364 wikis, ordered, searchable)
+  //   · a speech tag    → `type: 'text', vocab: 'bcp47'`, matched against the device's voices (the 🔊 Speaker)
+  // The second is only for a value that is *not* a wiki. Note it must be `text`: a `select` of language tags
+  // would be the same hardcoded list this test exists to prevent, kept in code instead of in the registry.
   const offenders = [];
   for (const w of manifest.widgets) {
     for (const f of w.configFields || []) {
       if (!['project', 'wiki', 'lang'].includes(f.key)) continue;
-      if (f.type !== 'project') offenders.push(`${w.id}.${f.key}: type "${f.type}"`);
+      if (f.type === 'project') continue;
+      if (f.vocab === 'bcp47' && f.type === 'text') continue;
+      offenders.push(`${w.id}.${f.key}: type "${f.type}"${f.vocab ? `, vocab "${f.vocab}"` : ''}`);
     }
   }
-  assert.deepEqual(offenders, [], `project fields must use the shared picker:\n  ${offenders.join('\n  ')}`);
+  assert.deepEqual(offenders, [], `a project/language field must use the shared picker (type: 'project'), or declare a non-wiki vocabulary (type: 'text', vocab: 'bcp47'):\n  ${offenders.join('\n  ')}`);
 });
 
 test('the five emitters declare their output kinds', () => {
@@ -163,7 +170,7 @@ test('emitter output kinds stay within the documented set (emitter contract)', (
   // docs/WIDGET-DEVELOPMENT.md -> "The Emitter Contract": a new output kind is a
   // design act (a real consumer, doc entries, an askManual() phrase, a size
   // policy) — this allowlist makes that decision loud instead of accidental.
-  const DOCUMENTED = ['extract', 'lines', 'count', 'value'];
+  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech'];
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
     const kinds = 'kind' in w.outputs ? [w.outputs.kind] : Object.values(w.outputs);

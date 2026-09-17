@@ -6,7 +6,8 @@ WikiBento is a drag-and-drop dashboard for Wikimedia. The things worth keeping a
 places — pageview and stats APIs, wiki pages, recent changes, Commons — and WikiBento brings them onto one
 reactive board you can arrange, point at a subject, and send as a link: article metrics, external link
 counts, category sizes, file usage, GLAM impact stats, listings and feeds you can click through — plus
-output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold.
+output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they chain: a translation
+carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
 
 **Why this exists at all,** now that an agent can generate a dashboard from a sentence:
 [`docs/WHY-WIKIBENTO.md`](docs/WHY-WIKIBENTO.md) — the argument, and the running ledger of measured API
@@ -31,7 +32,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | demo | what it shows |
 |---|---|
 | 👋 [Article switcher](https://wikibento.toolforge.org/?config=/article-switcher-demo.json) | the simplest board: one param, two cards |
-| 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + widget-to-widget dataflow (excerpt → translator) |
+| 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + a three-step dataflow (excerpt → translator → 🔊 speaker), where the translation's language picks the spoken voice |
 | 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
 | 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
 | 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |

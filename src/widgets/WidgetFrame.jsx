@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { boxLinkSelection } from '../lib/wikiBox';
 import {
   orderProjects, filterProjects, labelFor, readRecentProjects, noteRecentProject,
-  readDefaultProject, toFieldValue,
+  readDefaultProject, toFieldValue, LANGUAGE_EN,
 } from '../lib/projects';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
 import { getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue } from '../lib/paramSources';
@@ -12,7 +12,7 @@ import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { qrSvg, qrModuleCount } from '../lib/qr';
-import { createSpeechController } from '../lib/speech';
+import { createSpeechController, pickVoice } from '../lib/speech';
 import { loadPannellum } from '../lib/pannellumLoader';
 import { tilePhase, tileLabel, tileCanRetry, tileMountDelay, formatCount, TILE_TIMEOUT_MS } from '../lib/waybackTiles';
 import { buildTimeline } from '../lib/timeline';
@@ -1164,15 +1164,23 @@ function TranslateCard({ data }) {
   const orig = data?.original || '';
   const tr = data?.translation || '';
   const lang = (c) => String(c || '').toUpperCase();
+  /* What to show is a choice, not a fact about the card (2026-09-16): the source text is what makes the
+     translation legible when you are reading, and is clutter when this card feeds a Speaker or a big screen.
+     'both' is the default and the long-standing look; the arrow only appears when there are two things to
+     point between. */
+  const display = data?.display || 'both';
+  const showSource = display !== 'translation';
+  const showTarget = display !== 'source';
   return (
-    <div className="translate-card">
-      {orig && (
+    <div className={`translate-card translate-${display}`}>
+      {showSource && orig && (
         <div className="translate-block">
           <div className="translate-lang">{lang(data?.from)}</div>
           <div className="translate-original">{orig}</div>
         </div>
       )}
-      <div className="translate-arrow">↓</div>
+      {showSource && showTarget && <div className="translate-arrow">↓</div>}
+      {showTarget && (
       <div className="translate-block">
         <div className="translate-lang">
           {lang(data?.to)}{data?.model ? ` · ${data.model}` : ''}
@@ -1181,6 +1189,7 @@ function TranslateCard({ data }) {
           {tr || <span className="widget-empty">No translation yet.</span>}
         </div>
       </div>
+      )}
       {data?.truncated && <div className="translate-note">Translated the first 8,000 characters.</div>}
     </div>
   );
@@ -1800,6 +1809,15 @@ function pickPlayUrl(row, quality) {
 function SpeakerCard({ data, onSetParam }) {
   const text = String(data?.text ?? '');
   const speakOnChange = data?.speakOnChange === true;
+  /* The language to speak in (ISSUE-97). It arrives one of two ways: a wired source that publishes a typed
+     `speech` value knows what it produced (the 🌐 Translator does), otherwise ⚙ says. With it the voice
+     stops being a lottery — `pickVoice` matches the tag, then the primary subtag, so a `de` board gets a
+     German voice on a device whose default is English. */
+  const lang = String(data?.lang || '').trim();
+  const rate = Number.isFinite(Number(data?.rate)) && Number(data?.rate) > 0 ? Number(data.rate) : 1;
+  const sourceId = String(data?.sourceId || '');
+  const fromSource = data?.fromSource === true && !!sourceId;
+  const langName = LANGUAGE_EN[lang.toLowerCase().split('-')[0]] || lang.toUpperCase();
   const [status, setStatus] = useState('idle'); // idle | speaking | degraded
   const [muted, setMuted] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -1873,7 +1891,8 @@ function SpeakerCard({ data, onSetParam }) {
     };
     const res = ctl.speak(msg, {
       voice: voice || null,
-      rate: 1,
+      lang: lang || null,
+      rate,
       volume: 0.8,
       onstart: () => {
         settledRef.current = true;
@@ -1896,7 +1915,7 @@ function SpeakerCard({ data, onSetParam }) {
       else if (res.reason === 'no-synth') { setStatus('degraded'); setNote('Speech synthesis is not available in this browser.'); }
       else if (res.reason === 'not-supported') { setStatus('degraded'); setNote('Speech synthesis failed to start.'); }
     }
-  }, [voice]);
+  }, [voice, lang, rate]);
 
   const handlePlay = useCallback(() => {
     if (muted) { setNote('🔇 Muted — click the mute button to unmute.'); return; }
@@ -1924,7 +1943,9 @@ function SpeakerCard({ data, onSetParam }) {
     prevTextRef.current = text;
     if (!speakOnChange || text === prev) return undefined;
     if (!armedRef.current) {
-      setNote('Text updated — press ▶ to hear it.');
+      setNote(lang
+        ? `New text arrived in ${langName} — press ▶ once to enable auto-speak.`
+        : 'Text updated — press ▶ to hear it.');
       return undefined;
     }
     clearTimeout(debounceTimer.current);
@@ -1934,6 +1955,8 @@ function SpeakerCard({ data, onSetParam }) {
 
   const noVoice = voices.length === 0;
   const showVoicePicker = voices.length > 1 && !noVoice;
+  // What "Auto" will actually pick, so the label is not a mystery: the same call the controller makes.
+  const autoVoice = noVoice ? null : pickVoice(voices, { voice: null, lang: lang || null });
   return (
     <div className="speaker-card">
       <div className="speaker-controls">
@@ -1960,11 +1983,23 @@ function SpeakerCard({ data, onSetParam }) {
             value={voice}
             onChange={(e) => setVoice(e.target.value)}
           >
-            <option value="">Auto ({voices[0]?.lang || 'device'})</option>
+            <option value="">
+              {autoVoice ? `Auto — ${autoVoice.name} (${autoVoice.lang})` : 'Auto (device)'}
+            </option>
             {voices.map((v) => (
               <option key={`${v.name}-${v.lang}`} value={v.name}>{v.name} — {v.lang}</option>
             ))}
           </select>
+        )}
+        {lang && (
+          <span
+            className="speaker-lang"
+            title={fromSource
+              ? `Language ${lang} came from the widget feeding this speaker (${sourceId})`
+              : `Language set in ⚙ — pickVoice matches a voice to it`}
+          >
+            🔤 {langName}{fromSource ? ` · from ${sourceId}` : ''}
+          </span>
         )}
         <span className={`speaker-status${status === 'speaking' ? ' speaking' : ''}`} aria-live="polite">
           {status === 'speaking' ? '🔊 Speaking…' : noVoice ? '' : muted ? 'Muted' : armed ? 'Ready' : 'Press ▶ once to enable'}
@@ -1972,7 +2007,7 @@ function SpeakerCard({ data, onSetParam }) {
       </div>
       {note && <div className="widget-empty speaker-note" aria-live="polite">{note}</div>}
       <div className="speaker-text">
-        {text ? text : <span className="widget-empty">No text yet — type some in ⚙ or point a board {{param}} at the text field.</span>}
+        {text ? text : <span className="widget-empty">No text yet — type some in ⚙ or point a board {'{{param}}'} at the text field.</span>}
       </div>
     </div>
   );

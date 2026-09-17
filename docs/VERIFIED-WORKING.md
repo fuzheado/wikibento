@@ -11,6 +11,35 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A chain that speaks in the right language, and the crash hiding in an empty text field (ISSUE-97, 2026-09-16)
+
+Andrew asked four things about `?config=/translate-demo.json`: can the translator show only the translation; can the
+language travel with the text; can the voice follow that language; can a speaker speak what it ingests, without
+being a surprise.
+
+- ✅ **Show only the translation** — the Translator gained *Show* → original and translation / translation only /
+  original only, defaulting to both so no existing board changes. Verified in a browser: the translation-only
+  card renders the French text with **no source block and no arrow**.
+- ✅ **The language travels** — the Translator now publishes `{ type: 'speech', text, lang }` on a `#speech` channel
+  *beside* its text, and `primary: 'translation'` keeps `{{widget:translate}}` meaning what it always meant.
+- ✅ **The voice follows the language** — measured with a fake voice roster in the browser: a French translation
+  speaks with `lang: fr-FR` and the French voice (`Amélie`), not the device's English default, and the card says
+  which voice it will use before you press anything.
+- ✅ **It can speak what it ingests, safely** — the speaker's auto-speak was already there; what was missing was the
+  language and the discoverability. One click on ▶ arms it, after which changing the article on a Board Controls
+  card runs the whole chain and speaks the new translation with **no second click** (two utterances measured, only
+  the first click). Off by default, and silent until armed.
+- 🐛 **Found on the way: a wired speaker crashed on first paint.** `{{param}}` written in JSX *children* compiles to
+  an object literal containing an undefined identifier → `ReferenceError: param is not defined` → the error
+  boundary's "widget crashed". It hid for months because the branch only renders when a speaker has **no** text, and
+  no shipped board had a text-less speaker — until a wired one (source set, text field empty) became the normal
+  shape. Fixed, and recorded as gotcha 27.
+- ⚠️ **A gate caught a mis-generalisation of mine.** The project-picker constitution (ISSUE-93) fired on the
+  speaker's new `lang` field, correctly by its own rule — which showed that a language field has **two** possible
+  vocabularies: a wiki (`type: 'project'`, the 364-project picker) and a speech tag (`type: 'text'`,
+  `vocab: 'bcp47'`, matched against the device's voices). The gate now demands a declared vocabulary instead of
+  assuming the wiki one.
+
 ## A compatibility promise, broken and restored (ISSUE-95/96, 2026-09-16)
 
 - 🐛 **Andrew found this in production:** on `?config=/translate-demo.json` the translator sat on *"Waiting for a

@@ -363,7 +363,13 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
         }
         break;
       case 'select':
-        if (!field.options.some(o => o.value === v)) {
+        // An option is a string, because a <select> yields strings — but a hand-written board may write
+        // `"rate": 1` for the option `"1"`, which is the same choice, not an error. Compare numerically when
+        // both sides are numbers, so the rule stays "the value must be one of the options" without punishing
+        // JSON that a human typed. (The panel always writes the string form, so a round-tripped board is exact.)
+        if (!field.options.some(o => o.value === v
+          || (o.value !== '' && v !== '' && Number.isFinite(Number(o.value)) && Number.isFinite(Number(v))
+              && Number(o.value) === Number(v)))) {
           errors.push(`${where}: config "${key}" must be one of ${field.options.map(o => o.value).join(', ')} (got "${v}")`);
         }
         break;

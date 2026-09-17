@@ -11,6 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   clampRate, clampVolume, pickVoice, canSpeak, createSpeechController,
+  speechPayload, readSpeechPayload, SPEECH_TYPE,
   RATE_MIN, RATE_MAX, VOLUME_CAP,
 } from '../src/lib/speech.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
@@ -34,10 +35,12 @@ test('speaker: safety default — speakOnChange is OFF', () => {
   assert.equal(def.defaults.refreshSeconds, 86400);
 });
 
-test('speaker: config fields cover text + the safety toggle only', () => {
+test('speaker: config fields cover text, a wired source, a language, a speed + the safety toggle', () => {
   const keys = def.configFields.map((f) => f.key);
-  assert.ok(keys.includes('text'));
-  assert.ok(keys.includes('speakOnChange'));
+  for (const k of ['text', 'source', 'lang', 'rate', 'speakOnChange']) assert.ok(keys.includes(k), k);
+  // `source` is the one field type that delivers an emitted value unstringified — the typed-payload path.
+  assert.equal(def.configFields.find((f) => f.key === 'source').type, 'source');
+  assert.equal(def.defaults.speakOnChange, false, 'auto-speak stays off by default');
 });
 
 test('speaker: transform passes text through and coerces speakOnChange', () => {
@@ -49,6 +52,80 @@ test('speaker: transform passes text through and coerces speakOnChange', () => {
   assert.equal(t2.speakOnChange, false, 'non-true values coerce to false');
   const t3 = def.transform(null, {});
   assert.equal(t3.text, '');
+});
+
+/* ── the typed speech value (ISSUE-97) ──────────────────────────────────────────────────────────── */
+
+test('speech: a payload carries text + language, and only a typed value counts as speech', () => {
+  const p = speechPayload('Marie Curie war eine Physikerin.', 'de');
+  assert.deepEqual(p, { type: 'speech', text: 'Marie Curie war eine Physikerin.', lang: 'de' });
+  assert.deepEqual(readSpeechPayload(p), { text: 'Marie Curie war eine Physikerin.', lang: 'de' });
+  // No language known → still speech, just unlabelled (the consumer falls back to its own ⚙ setting).
+  assert.deepEqual(speechPayload('text', ''), { type: SPEECH_TYPE, text: 'text' });
+  assert.deepEqual(readSpeechPayload({ type: 'speech', text: 'text' }), { text: 'text', lang: '' });
+  // Strictness is the point: an untyped object is not speech, so a plain string keeps its old meaning.
+  assert.equal(readSpeechPayload('Marie Curie'), null);
+  assert.equal(readSpeechPayload(['a', 'b']), null);
+  assert.equal(readSpeechPayload({ text: 'no type' }), null);
+  assert.equal(readSpeechPayload({ type: 'ranking', rows: [] }), null);
+  assert.equal(readSpeechPayload(null), null);
+});
+
+test('speaker: a wired typed value supplies BOTH the text and the language', () => {
+  const speech = speechPayload('Bonjour, je m’appelle Marie.', 'fr');
+  const t = def.transform(null, { text: 'ignored — the source wins' }, { sourceOutput: speech });
+  assert.equal(t.text, 'Bonjour, je m’appelle Marie.');
+  assert.equal(t.lang, 'fr', 'the language travels with the value');
+  assert.equal(t.fromSource, true);
+});
+
+test('speaker: a plain output is spoken as text, with the language from ⚙', () => {
+  const t = def.transform(null, { text: 'fallback', lang: 'de', source: 'excerpt' }, { sourceOutput: 'Ein Absatz.' });
+  assert.equal(t.text, 'Ein Absatz.');
+  assert.equal(t.lang, 'de');
+  assert.equal(t.sourceId, 'excerpt');
+  // An array from any emitter reads the same way it would in a text field.
+  const lines = def.transform(null, { source: 'list' }, { sourceOutput: ['Ada Lovelace', 'Marie Curie'] });
+  assert.equal(lines.text, 'Ada Lovelace\nMarie Curie');
+  // And an untyped object is JSON, not speech — visible rather than silent.
+  const obj = def.transform(null, { source: 'q' }, { sourceOutput: { rows: 3 } });
+  assert.equal(obj.text, '{"rows":3}');
+  assert.equal(obj.fromSource, true);
+});
+
+test('speaker: nothing wired → its own text field, and the configured speed is clamped', () => {
+  const t = def.transform(null, { text: 'Hello', rate: '1.5' });
+  assert.equal(t.text, 'Hello');
+  assert.equal(t.rate, 1.5);
+  assert.equal(t.fromSource, false);
+  assert.equal(def.transform(null, { rate: '99' }).rate, RATE_MAX, 'Chrome-safe clamp');
+  assert.equal(def.transform(null, { rate: 'nonsense' }).rate, 1);
+  // An empty string from a source (a card that has fetched nothing) must not blank the text field.
+  assert.equal(def.transform(null, { text: 'mine' }, { sourceOutput: '' }).text, 'mine');
+});
+
+test('translate: the translation travels as text AND as typed speech, on separate channels', () => {
+  const def2 = WIDGET_TYPES.translate;
+  const data = { translation: 'Marie Curie war eine Physikerin.', from: 'en', to: 'de' };
+  const emitted = def2.emit(data, { translation: data.translation, to: data.to });
+  assert.equal(emitted.translation, 'Marie Curie war eine Physikerin.');
+  assert.deepEqual(emitted.speech, { type: 'speech', text: data.translation, lang: 'de' });
+  // Compatibility: the bare id still means the translation (the `primary` channel), so every board wired
+  // before channels existed keeps working — the failure this promise cost us once already.
+  assert.equal(def2.outputs.translation, 'value');
+  assert.equal(def2.outputs.speech, 'speech');
+  assert.equal(def2.primary, 'translation');
+});
+
+test('translate: what the card shows is a choice, defaulting to both', () => {
+  const def2 = WIDGET_TYPES.translate;
+  const base = { text: 'Jazz is a music genre.', from: 'en' };
+  const data = { translation: 'Le jazz est un genre musical.', from: 'en', to: 'fr' };
+  assert.equal(def2.transform(data, base).display, 'both');
+  assert.equal(def2.transform(data, { ...base, display: 'translation' }).display, 'translation');
+  assert.equal(def2.transform(data, { ...base, display: 'source' }).display, 'source');
+  assert.equal(def2.transform(data, { ...base, display: 'nonsense' }).display, 'both', 'unknown → the old look');
+  assert.equal(def2.transform(data, base).original, 'Jazz is a music genre.');
 });
 
 test('speaker: a dashboard containing the widget passes the constitution validator', () => {

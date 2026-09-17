@@ -48,9 +48,12 @@ meaning.
 
 ## What a value *is* — and what it is not (measured 2026-09-16)
 
-Every value that travels today is a **primitive or an array of strings**: a number, a paragraph, a URL, or lines.
-Nothing on the wire is an object. That is not a design principle so much as the current truth, and it has two
-consequences worth knowing before you build a chain:
+Almost every value that travels is a **primitive or an array of strings**: a number, a paragraph, a URL, or lines.
+One value is an object — the 🌐 Translator's `speech` channel, because a translation has to carry its language or a
+🔊 Speaker cannot know which voice to use. That exception is the shape of things to come (ISSUE-97), and it is the
+worked example below.
+
+Two consequences worth knowing before you build a chain:
 
 **1. Structure survives one path and not the other.**
 
@@ -74,7 +77,34 @@ Nothing is broken by it — and nothing can *consume* it either, because an anon
 it holds. The fix is a `type` inside the payload (ISSUE-97), which is the difference between a blob and a value.
 
 **The rule to hold on to today:** keep what you publish either text, or lines — and if it has to be structured, say
-what it is.
+what it is, on **its own channel**.
+
+### The worked example: a translation that knows its language
+
+The 🌐 Translator publishes two things, so a chain can take either:
+
+| channel | value | who wants it |
+|---|---|---|
+| `{{widget:translate}}` (the bare id) | the translated text | a Markdown card, a Filter Line, anything text-shaped |
+| `{{widget:translate#speech}}` | `{ type: 'speech', text, lang }` | the 🔊 Speaker, which needs the language to choose a voice |
+
+A `source` **field** is how the second one travels, because a `source` is the only path that hands over a value
+without stringifying it — `{{widget:translate#speech}}` written *inside a text field* arrives as one line of JSON,
+which is correct and useless. So the wiring is:
+
+1. On the translator: pick **Translation only** under *Show* if the original is clutter.
+2. On the speaker: set *Speak another widget's output* to **`translate#speech`** — the `#speech` entry in that
+   picker, not the widget itself.
+3. Press ▶ once on the speaker to arm it, then tick *Auto-speak when new text arrives* in its ⚙.
+
+Now changing the article on a Board Controls card runs excerpt → translator → speaker, and the spoken language
+follows the translation: a French board speaks in a French voice, a German one in German, chosen from the device's
+own voice roster. Nothing speaks before that one click — that is the safety model, not a limitation, and it is what
+makes the chain safe to put in front of an audience.
+
+**This is the pattern for structured values:** the text channel keeps working for text consumers, the typed channel
+is *added beside it*, and `primary` decides which one the bare id means (for the translator, the text — so every
+board wired before channels existed is untouched).
 
 ## Three ways to wire, easiest first
 

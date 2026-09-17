@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-DEicrUCf.js` (+ `index-BWgKdWiq.css`) |
-| deployed | 2026-09-16 — **Settings** + `translate` emitting (ISSUE-95), **one picker for every wiki** (ISSUE-93), **references everywhere** (ISSUE-92), text gravity (ISSUE-94), **click-through from a box** (ISSUE-91), **Wikipedia boxes** (ISSUE-90), **compressed share links** (ISSUE-89) and **borrowed boards** (ISSUE-88); before that, 2026-09-15 seven times |
+| production bundle | `index-7xqRkO3-.js` (+ `index-DGgNKMSYL.css`) |
+| deployed | 2026-09-16 — **a translation that knows its language** (ISSUE-97): the Translator's *Show* option, a typed `speech` channel (`{type,text,lang}`) beside its text, a Speaker whose voice follows the language it hears, and auto-speak armed by one click · before that: **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the translate demo renders its translation, no waiting state) |
+| pending deploy | none — production serves this branch's tip (verified live: the translate chain speaks in French, `fr-FR` voice, after one arm click) |
 | newest capabilities | ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -328,6 +328,15 @@ and a stream pipeline that works in Node is not evidence about a browser.
     behaviour surprises you, print `repr()` of the region first, because indentation guessed from a `sed` dump is
     wrong about half the time (that one recurred all day, on Python, JSX, CSS and Markdown alike).
 
+27. **`{{param}}` in JSX *children* is an object literal containing an undefined identifier.** Every card that
+    wants to *show* a placeholder must write `<code>{'{{param}}'}</code>`, not `<code>{{param}}</code>` — the
+    braces are an expression, so `{{param}}` compiles to `{ {param} }` and throws `ReferenceError: param is not
+    defined`, which the error boundary renders as "widget crashed". It stayed hidden for months because the
+    branch that contained it (the 🔊 Speaker's *no text yet* message) only renders when the widget has **no**
+    text — and no shipped board had a text-less speaker until a wired one arrived (source set, text field
+    empty), which is now the normal way to use it. Worth knowing: the crash text names the *transformed* line
+    number, so a stack trace pointing past the end of the file is this, not a stale bundle.
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -400,10 +409,17 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
      is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The
      consumer side needs nothing: any text field already interpolates `{{widget:id}}`.
-   - **ISSUE-97 — typed payloads, with ISSUE-96's row-shaped emitters.** Measured: every value on the wire today is
-     a primitive or an array of strings, consumers infer from the *shape*, and nothing reads the declared
-     `outputs.kind`. So a ranking with counts has nowhere to put them. Add a `type` inside the payload
-     (`{ type: 'ranking', rows: [{ title, count }] }`) on a channel *beside* the text one.
+   - **ISSUE-97 — typed payloads — first one shipped (2026-09-16), the row-shaped ones remain.** The pattern is
+     now proven end to end on the 🌐 Translator's `#speech` value (`{ type: 'speech', text, lang }`) read through a
+     `source` field: the text channel kept, a typed channel added beside it, `primary` deciding what the bare id
+     means. Next: the same for a ranking with counts (`{ type: 'ranking', rows: [{ title, count }] }`), a file list
+     and an edit list — and copy the speaker's `readSpeechPayload` strictness (a value without a `type` is *not*
+     that type, so plain strings keep their old meaning).
+   - **ISSUE-98 — should a widget's display be a template?** Andrew's question after seeing the Translator show
+     original *and* translation. Today: the *Show* select is the whole answer, and it covers the real need (show
+     less) with no new grammar. Filed with the two design traps (a widget-local namespace colliding with the
+     board's, and a template becoming a contract with a widget's internals — the thing ISSUE-97 says a consumer
+     must never depend on).
    - **ISSUE-91's `class:` field** — the widget taxonomy. It was waiting for the `interactive` class to have
      implementations to describe; it now has three (channels, `selection`, `linkAction`).
    - **ISSUE-83/84/85 — the Document Reader's reading enhancements** (how much room the transcription gets, a copy

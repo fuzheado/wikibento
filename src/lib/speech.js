@@ -45,6 +45,39 @@ export function pickVoice(roster, { voice = null, lang = null } = {}) {
   return roster.find(matches) || roster.find((v) => norm(v.lang).startsWith('en')) || roster[0];
 }
 
+/** A typed value that carries *speech* — the text AND the language to say it in.
+ *
+ *  Why this exists (ISSUE-97, 2026-09-16): a translator emits text, and text alone
+ *  cannot say which language it is. The 🌐 Translator therefore publishes a second,
+ *  typed channel `{{widget:translate#speech}}` — read through a `source` field, which
+ *  passes the value unstringified — and the 🔊 Speaker reads it to choose a voice.
+ *  Rendering is unchanged: this is a plain object, and the text channel beside it
+ *  stays the default so `{{widget:translate}}` means what it always did.
+ *
+ *  The `type` is the point. Without it an object is an anonymous blob that a consumer
+ *  must parse blind; with it, a consumer can ask "is this speech?" and know.
+ *  `lang` is any BCP-47 tag (`de`, `fr`, `pt-BR`); the primary subtag is what matters. */
+export const SPEECH_TYPE = 'speech';
+
+/** Build the payload. `lang` may be '' when the producer does not know it. */
+export function speechPayload(text, lang) {
+  const t = String(text ?? '');
+  const l = String(lang ?? '').trim();
+  return l ? { type: SPEECH_TYPE, text: t, lang: l } : { type: SPEECH_TYPE, text: t };
+}
+
+/** Read a typed speech payload, or null when the value is not one. Deliberately
+ *  strict: a value without `type: 'speech'` is *not* speech, so a plain string
+ *  output keeps its old meaning (the caller falls back to its own text + a
+ *  configured language). Tolerates a `{type, text, lang}` object that arrived
+ *  through JSON, which is exactly how `{{widget:…#speech}}` reads in a text field. */
+export function readSpeechPayload(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.type !== SPEECH_TYPE) return null;
+  if (typeof value.text !== 'string') return null;
+  return { text: value.text, lang: typeof value.lang === 'string' ? value.lang : '' };
+}
+
 /** The widget-level safety predicate: nothing speaks unless the widget was
  *  armed by a real ▶ click, the board isn't muted, there is text, and the
  *  engine actually has voices. */

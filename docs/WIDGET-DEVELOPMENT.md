@@ -52,9 +52,18 @@ A number without its time context is useless.
 | **`project`** | the project picker (ISSUE-93) | every wiki, ordered recency → default → curated → rest, searchable. Add `mode: 'language'` for a field that takes a bare language code, or `extras: [{ value, label }]` for a non-project choice like CIM's "all wikis" |
 | `lookup` | a validated combobox | see `paramSources.js` |
 
-**A project or language field must be `type: 'project'`.** A manifest-constitution test fails the build otherwise,
-because five widgets once offered 6, 3, 2, 13 and 30 options while the site matrix holds 364 wikis and 374
-languages. `options` on such a field is how that happened.
+**A field named `project`, `wiki` or `lang` must declare *which vocabulary its value belongs to.*** Two different
+things share those names, and confusing them is what made the ✨ Ask path invent a wiki:
+
+| the value is… | declare | example value |
+|---|---|---|
+| a **wiki** | `type: 'project'` — the shared picker | `de.wikipedia` |
+| a **speech language tag** — not a wiki at all | `type: 'text', vocab: 'bcp47'` — matched against the device's voices | `de` |
+
+A manifest-constitution test fails the build on anything else, because five widgets once offered 6, 3, 2, 13 and 30
+options while the site matrix holds 364 wikis and 374 languages — `options` on such a field is how that happened.
+The speech case is deliberately `text` and not a `select`: a dropdown of language tags is the same hardcoded list,
+just kept in code instead of in the registry. (The bcp47 rule and the 🌐→🔊 chain it exists for are ISSUE-97.)
 
 # The Emitter Contract (read before wiring a widget to others)
 
@@ -129,6 +138,7 @@ Corollaries:
 | `filterLines` | `lines` | the filtered lines | `articleList`, `lineCount`, `echo` |
 | `lineCount` | `count` | a number | `echo`, `markdown` |
 | `echo` | `value` | pass-through | any text field |
+| `translate` | `translation` · `speech` | the translated text, and the *same text typed as speech* — `{ type: 'speech', text, lang }` — so a 🔊 Speaker can choose a voice for the language (ISSUE-97) | `speaker`, `markdown`, `echo` |
 | `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
 | `wikiBox` | `items` · `selection` | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
 

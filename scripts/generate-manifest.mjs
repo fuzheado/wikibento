@@ -99,7 +99,10 @@ function parseField(slice) {
   if (!key) return null;
   const field = { key, type };
   // `mode` distinguishes a project field from a *language* field (ISSUE-93): a language field takes `de` where
-  for (const p of ['label', 'hint', 'placeholder', 'mode']) {
+  // a project field takes `de.wikipedia`. `vocab` names the vocabulary a field's *value* belongs to, and is how
+  // a field whose value is not a wiki at all (a BCP-47 speech tag for the 🔊 Speaker) opts out of the
+  // project-picker constitution. The gate reads the manifest, so anything it must see has to travel here.
+  for (const p of ['label', 'hint', 'placeholder', 'mode', 'vocab']) {
     const v = prop(slice, p);
     if (v !== undefined) field[p] = v;
   }

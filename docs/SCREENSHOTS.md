@@ -137,6 +137,19 @@ rankings, article text and history — every number live from a Wikimedia API.
 or photographs. The full-colour originals are still in git history (the commit that added
 them, `339a275`), so this is reversible.
 
+## `wikibento-2026-09-16-translate-speaker-chain.png` — a chain that ends in speech (2026-09-16)
+
+`?config=/translate-demo.json` — four steps and no ceremony: a Board Controls card picks the article, the Article
+Excerpt fetches it, the Translator renders it, and the 🔊 Speaker reads it. The speaker's chip says
+**🔤 French · from translate#speech** (the language travelled with the text on the typed channel) and its voice
+picker says **Auto — Amélie (fr-FR)** — chosen by language, not by device default. Press ▶ once and the card is
+armed; after that, changing the article speaks the new translation with no further click.
+
+## `wikibento-2026-09-16-translation-only.png` — the same chain, showing only the translation (2026-09-16)
+
+The Translator's *Show* → **Translation only**: the original text and the arrow are gone, which is what a card
+feeding a speaker or a projector should look like. Compare with the shot above, where both are visible.
+
 ## `wikibento-2026-09-15-internet-archive-demo.png` — the Internet Archive demo board (2026-09-15)
 
 `?config=/internet-archive-demo.json` — every Internet Archive widget this app has, on one board: two

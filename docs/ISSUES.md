@@ -3359,7 +3359,52 @@ found by reading `localStorage` after clicking around the panel, not by a test.
 it is that it is a preference *of the person* with no better home — a board option belongs in the board, and a
 widget option belongs in ⚙ on the card.
 
-## ISSUE-97 · Structured values: a `type` inside the payload, not just a shape — **open**
+## ISSUE-98 · Should a widget's display be a template? — **open, design only**
+
+Andrew asked, looking at the 🌐 Translator showing original *and* translation: can we rearrange what a card shows —
+a variable for the original, a variable for the translation, whatever format we want? "That might be a more advanced
+thing for the future in terms of templating any kind of output."
+
+**Answer for today: right, we don't have that — and there are exactly two levels of "templating" in the app now.**
+
+| level | exists? | example |
+|---|---|---|
+| board-level interpolation in config fields | ✅ | `{{param}}` (a Board Controls value), `{{widget:id}}` / `{{widget:id#channel}}` (another widget's output) |
+| per-widget display **choice** | ✅ since 2026-09-16 | the Translator's *Show* → original and translation / translation only / original only |
+| per-widget display **template** — this issue | ❌ | `{{original}}` … `{{translation}}` with the user's own layout |
+
+**Why the third is not just "more of the second":** it introduces a *second* templating language whose variables
+belong to the widget rather than the board. The moment a card's template can reference its own fields, two questions
+appear: what namespaces them (`{{original}}` vs the board's `{{param}}` — a collision is silent and confusing), and
+what happens when the fields change (a template is now a contract with the widget's *internals*, which is exactly
+what ISSUE-97 says a consumer should never depend on). It is also a UI-building language, and a small one becomes a
+big one the first time someone wants a conditional.
+
+**Recommendation:** keep the per-widget `display` **select** as the answer for a while — it covers the real request
+(show less) with no new grammar, and it is inspectable. Revisit when a **third** widget wants one: the moment two or
+three cards each hand-roll a variant of the same need, a template is cheaper than another select. The intermediate
+step worth taking *first* is making the select's options data-driven per widget (the registry already knows its own
+fields, so a card could offer "any combination of my fields" without inventing a syntax).
+
+## ISSUE-97 · Structured values: a `type` inside the payload, not just a shape — **open, first payload shipped**
+
+**Shipped 2026-09-16:** the 🌐 Translator now publishes `{ type: 'speech', text, lang }` on a `#speech` channel
+beside its text, and the 🔊 Speaker reads it through a `source` field, chooses a voice for the language and can
+speak new text automatically once armed. Measured in a browser with a fake voice roster: one click arms it, then
+changing the article speaks the new translation in French (`fr-FR`, voice `Amélie`) with **no second click**.
+Three things the implementation taught:
+
+- **The channel is the whole point, and the bare id must keep its meaning.** A source field set to `translate` gets
+  text only; `translate#speech` gets the typed value. `primary: 'translation'` keeps `{{widget:translate}}` meaning
+  what it always meant, so the change is additive.
+- **`primary`'s promise needed a test to survive** (it had already been broken once): a manifest-constitution test
+  now fails a channel-mapped widget that declares no `primary`.
+- **A `lang` field is not a wiki.** The project-picker gate (ISSUE-93) fired on the speaker's new language field,
+  correctly by its own rule — which turned out to need two vocabularies: a *wiki* (`type: 'project'`, the picker)
+  and a *speech tag* (`type: 'text', vocab: 'bcp47'`, matched against the device's voices). See
+  `docs/WIDGET-DEVELOPMENT.md`.
+
+**The original analysis follows.**
 
 Andrew asked, after ISSUE-96's audit: we are emitting increasingly complex data — is that scalable? Do we know from
 context whether something is a text block, a list, a category list or an image list? Does this demand a formal

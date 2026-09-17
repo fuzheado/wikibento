@@ -3,6 +3,8 @@
  * Each entry: { id, name, description, icon, defaults, renderer }
  */
 
+import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
+import { stringifyOutput } from '../lib/params';
 import {
   fetchDocumentPages,
   fetchIaBook,
@@ -1253,10 +1255,13 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Speaker (text-to-speech)',
     icon: '🔊',
-    description: 'Output widget — speaks its text aloud with speech synthesis. First of the output/effector family. Safety-first: nothing speaks until ▶ is clicked once on the widget ("armed"); speak-on-change (default off) then announces text changes — e.g. a {{param}} phrase driven by Board Controls.',
+    description: 'Output widget — speaks its text aloud with speech synthesis. Wire it to another widget and it reads whatever arrives; if that widget publishes a `speech` value (the 🌐 Translator does) the language comes with the text and picks the voice. Safety-first: nothing speaks until ▶ is clicked once on the widget ("armed"); auto-speak (default off) then announces new text — so a chain like article → translate → speak only makes a sound after one deliberate click.',
     labelFromConfig: (c) => (c.text || '').trim().slice(0, 28) + ((c.text || '').trim().length > 28 ? '…' : ''),
     defaults: {
       text: 'Hello — I am the WikiBento speaker. Press play to hear me, or point a board param at my text.',
+      source: '',
+      lang: '',
+      rate: 1,
       speakOnChange: false,
       refreshSeconds: 86400,
     },
@@ -1264,14 +1269,38 @@ export const WIDGET_TYPES = {
     dataSource: 'static (no fetch) — Web Speech synthesis (speechSynthesis)',
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
-      { key: 'text', label: 'Text to speak ({{params}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Hello — point a Board Controls {{phrase}} at me, or type anything.' },
-      { key: 'speakOnChange', label: 'Auto-speak when the text changes (only after one ▶ click)', type: 'boolean' },
+      { key: 'text', label: 'Text to speak ({{params}} and {{widget:id}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Hello — point a Board Controls {{phrase}} at me, or type anything.' },
+      { key: 'source', label: 'Speak another widget’s output', type: 'source', hint: 'Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice.' },
+      { key: 'lang', label: 'Language (BCP-47)', type: 'text', vocab: 'bcp47', placeholder: 'en · de · fr · pt-BR', noRefs: true, hint: 'Which language to speak in — a voice is chosen to match. A source that reports its own language overrides this; leave blank to use the device language.' },
+      { key: 'rate', label: 'Speaking speed', type: 'select', options: [
+        { value: '0.75', label: 'Slower (0.75×)' },
+        { value: '1', label: 'Normal (1×)' },
+        { value: '1.25', label: 'Faster (1.25×)' },
+        { value: '1.5', label: 'Fast (1.5×)' },
+      ]},
+      { key: 'speakOnChange', label: 'Auto-speak when new text arrives (after one ▶ click)', type: 'boolean', hint: 'Off by default, and silent until you press ▶ once on this widget. On, it becomes a chain step: article → translate → speak, with one click to arm it.' },
     ],
-    // Static widget — rendered from resolved config; nothing to fetch.
-    transform: (data, config) => ({
-      text: String(config.text || ''),
-      speakOnChange: config.speakOnChange === true,
-    }),
+    // Static widget — rendered from resolved config; nothing to fetch. The consuming side of a typed
+    // `speech` value (ISSUE-97): a `source` field is the one path that delivers an emitted value
+    // *unstringified*, so this is where an object is still an object. Precedence, in order:
+    //   1. a typed speech value  → its text AND its language (the translator knows what it produced)
+    //   2. any other emitted value → as text, with the language from ⚙
+    //   3. nothing wired → the text field, where {{params}} and {{widget:id}} were already resolved
+    // Step 2 goes through the same `stringifyOutput` every text field uses, so an array of lines reads the
+    // same way it would in a Markdown card.
+    transform: (data, config, { sourceOutput } = {}) => {
+      const speech = readSpeechPayload(sourceOutput);
+      const wired = sourceOutput !== undefined && sourceOutput !== null
+        && !(typeof sourceOutput === 'string' && sourceOutput.trim() === '');
+      return {
+        text: speech ? speech.text : wired ? stringifyOutput(sourceOutput) : String(config.text || ''),
+        lang: (speech && speech.lang) || String(config.lang || '').trim(),
+        rate: clampRate(Number(config.rate)),
+        fromSource: !!(speech || wired),
+        sourceId: typeof config.source === 'string' ? config.source.trim() : '',
+        speakOnChange: config.speakOnChange === true,
+      };
+    },
   },
   wikiBox: {
     id: 'wikiBox',
@@ -1397,6 +1426,7 @@ export const WIDGET_TYPES = {
       text: 'Jazz is a music genre that originated in New Orleans.',
       from: 'en',
       to: 'es',
+      display: 'both',
       refreshSeconds: 86400,
     },
     renderer: 'TranslateCard',
@@ -1406,6 +1436,11 @@ export const WIDGET_TYPES = {
       { key: 'text', label: 'Text to translate ({{params}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Jazz is a music genre…' },
       { key: 'from', label: 'Source language (2-letter code)', type: 'text', placeholder: 'en', noRefs: true },
       { key: 'to', label: 'Target language (2-letter code)', type: 'text', placeholder: 'es', noRefs: true },
+      { key: 'display', label: 'Show', type: 'select', options: [
+        { value: 'both', label: 'Original and translation' },
+        { value: 'translation', label: 'Translation only' },
+        { value: 'source', label: 'Original only' },
+      ], hint: 'Translation only is what you want when this card feeds a Speaker or a big screen — the source text is still what gets translated, it is just not shown.' },
     ],
     fetch: (config) => fetchMinTTranslation(config.text, config.from, config.to),
     transform: (data, config) => ({
@@ -1415,12 +1450,23 @@ export const WIDGET_TYPES = {
       to: data?.to || normalizeLangCode(config.to) || 'es',
       model: data?.model || null,
       truncated: !!data?.truncated,
+      display: ['both', 'translation', 'source'].includes(config.display) ? config.display : 'both',
     }),
     // ISSUE-95: the translated text is the whole point of this widget, so it travels — a Markdown card can show
-    // it, a Speaker can read it, a Text List can take it apart. The languages do not travel with it: the value is
-    // text, and anything about *where* it came from belongs to the widget that fetched the source (ISSUE-92).
-    outputs: { kind: 'value' }, // emitted: the translated text
-    emit: (data) => data.translation,
+    // it, a Text List can take it apart. ISSUE-97: and **so does its language**, on a second, typed channel,
+    // because "Marie Curie war eine Physikerin" cannot say whether it is German or Dutch and a 🔊 Speaker has to
+    // know which voice to use. Two channels, so nothing already wired changes meaning:
+    //   {{widget:translate}}         → the translation, as text (the bare id keeps its old meaning — `primary`)
+    //   {{widget:translate#speech}}  → { type: 'speech', text, lang }, read through a `source` field, which is the
+    //                                  only path that delivers a value *unstringified* (a text field would join an
+    //                                  object into one line of JSON)
+    // Where the *source* text came from still belongs to the widget that fetched it (ISSUE-92).
+    outputs: { translation: 'value', speech: 'speech' },
+    primary: 'translation',
+    emit: (data) => ({
+      translation: data.translation,
+      speech: speechPayload(data.translation, data.to),
+    }),
   },
 
   sparql: {

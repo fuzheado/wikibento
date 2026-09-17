@@ -29,9 +29,15 @@ test('translate: registry entry is a fetch widget (network → translation)', ()
   assert.ok(String(def.defaults.text).length > 10, 'has demo text');
 });
 
-test('translate: config fields = text + from/to language codes', () => {
+test('translate: config fields = text + from/to language codes + what to show', () => {
   const keys = def.configFields.map((f) => f.key);
-  assert.deepEqual(keys, ['text', 'from', 'to']);
+  assert.deepEqual(keys, ['text', 'from', 'to', 'display']);
+  // What to show is a choice (2026-09-16): the source text is what makes a translation legible when you are
+  // reading, and is clutter when the card feeds a Speaker or a projector. `both` is the default, so every
+  // board built before the option existed looks exactly as it did.
+  const display = def.configFields.find((f) => f.key === 'display');
+  assert.deepEqual(display.options.map((o) => o.value), ['both', 'translation', 'source']);
+  assert.equal(def.defaults.display, 'both');
 });
 
 test('translate: transform maps data + config onto the card contract', () => {

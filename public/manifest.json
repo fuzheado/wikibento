@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T19:48:16.193Z",
+ "generatedAt": "2026-09-17T20:31:11.298Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -1281,7 +1281,7 @@
    "id": "speaker",
    "name": "Speaker (text-to-speech)",
    "icon": "🔊",
-   "description": "Output widget — speaks its text aloud with speech synthesis. First of the output/effector family. Safety-first: nothing speaks until ▶ is clicked once on the widget (\"armed\"); speak-on-change (default off) then announces text changes — e.g. a {{param}} phrase driven by Board Controls.",
+   "description": "Output widget — speaks its text aloud with speech synthesis. Wire it to another widget and it reads whatever arrives; if that widget publishes a `speech` value (the 🌐 Translator does) the language comes with the text and picks the voice. Safety-first: nothing speaks until ▶ is clicked once on the widget (\"armed\"); auto-speak (default off) then announces new text — so a chain like article → translate → speak only makes a sound after one deliberate click.",
    "dataSource": "static (no fetch) — Web Speech synthesis (speechSynthesis)",
    "category": "Content & Embeds",
    "type": "embed",
@@ -1289,22 +1289,51 @@
    "experimental": false,
    "timeScope": "point",
    "nodeKind": "effector",
-   "consumesSource": false,
+   "consumesSource": true,
    "configFields": [
     {
      "key": "text",
      "type": "textarea",
-     "label": "Text to speak ({{params}} resolve here)",
+     "label": "Text to speak ({{params}} and {{widget:id}} resolve here)",
      "placeholder": "Hello — point a Board Controls {{phrase}} at me, or type anything."
+    },
+    {
+     "key": "source",
+     "type": "source",
+     "label": "Speak another widget’s output",
+     "hint": "Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice."
+    },
+    {
+     "key": "lang",
+     "type": "text",
+     "label": "Language (BCP-47)",
+     "hint": "Which language to speak in — a voice is chosen to match. A source that reports its own language overrides this; leave blank to use the device language.",
+     "placeholder": "en · de · fr · pt-BR",
+     "vocab": "bcp47"
+    },
+    {
+     "key": "rate",
+     "type": "select",
+     "label": "Speaking speed",
+     "options": [
+      "0.75",
+      "1",
+      "1.25",
+      "1.5"
+     ]
     },
     {
      "key": "speakOnChange",
      "type": "boolean",
-     "label": "Auto-speak when the text changes (only after one ▶ click)"
+     "label": "Auto-speak when new text arrives (after one ▶ click)",
+     "hint": "Off by default, and silent until you press ▶ once on this widget. On, it becomes a chain step: article → translate → speak, with one click to arm it."
     }
    ],
    "defaults": [
     "text",
+    "source",
+    "lang",
+    "rate",
     "speakOnChange",
     "refreshSeconds"
    ]
@@ -1451,17 +1480,31 @@
      "type": "text",
      "label": "Target language (2-letter code)",
      "placeholder": "es"
+    },
+    {
+     "key": "display",
+     "type": "select",
+     "label": "Show",
+     "hint": "Translation only is what you want when this card feeds a Speaker or a big screen — the source text is still what gets translated, it is just not shown.",
+     "options": [
+      "both",
+      "translation",
+      "source"
+     ]
     }
    ],
    "defaults": [
     "text",
     "from",
     "to",
+    "display",
     "refreshSeconds"
    ],
    "outputs": {
-    "kind": "value"
-   }
+    "translation": "value",
+    "speech": "speech"
+   },
+   "primary": "translation"
   },
   {
    "id": "sparql",
