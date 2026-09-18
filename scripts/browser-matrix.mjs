@@ -58,12 +58,12 @@ const require = createRequire(import.meta.url);
 
 // Resolve playwright-core: repo node_modules first (devDependency), then the
 // global playwright-cli bundle.
-let chromium, firefox, webkit;
+let chromium, firefox, webkit, devices;
 try {
-  ({ chromium, firefox, webkit } = require('playwright-core'));
+  ({ chromium, firefox, webkit, devices } = require('playwright-core'));
 } catch {
   const cliPath = '/opt/homebrew/lib/node_modules/@playwright/cli/node_modules/playwright-core';
-  ({ chromium, firefox, webkit } = require(cliPath));
+  ({ chromium, firefox, webkit, devices } = require(cliPath));
 }
 
 const args = process.argv.slice(2);
@@ -74,6 +74,33 @@ function arg(name, fallback) {
 const URL_TO_TEST = arg('url', 'https://wikibento.toolforge.org/?config=https://wikibento.toolforge.org/params-demo.json');
 const WAIT_MS = parseInt(arg('wait', '15000'), 10);
 const ENGINES = arg('engines', 'chromium,firefox,webkit').split(',').map((s) => s.trim());
+
+/* ── the demo sweep (ISSUE-100) ───────────────────────────────────────────────────────────────────────────
+ * WHY: this script used to load ONE board — `params-demo.json` — on three engines, so "we test in three
+ * browsers" was true of exactly one demo, at one width, and nothing else. A phone-only failure therefore had
+ * nowhere to show up (`?config=/click-through-demo.json` renders an empty 📰 box on iOS: the phone stack
+ * collapsed every card body to zero height, and Wikipedia strips navboxes for mobile clients).
+ *
+ *   node scripts/browser-matrix.mjs --demos                       # every public/*-demo.json + the hub
+ *   node scripts/browser-matrix.mjs --demos --base http://localhost:5199
+ *   node scripts/browser-matrix.mjs --demos --viewports phone --engines webkit
+ *   node scripts/browser-matrix.mjs --demos --require-relay        # sweeping a host that has /api/proxy
+ *
+ * Each (board × engine × viewport) is checked for: a card per widget in the board, no error frames, no console
+ * errors, and **no collapsed card** — a body whose content renders at zero height (the phone-stack bug).
+ * `--require-relay` additionally fails a card that fell back to the "Wikipedia reduced this for phones" notice,
+ * which is correct behaviour on a host with no relay and a regression on one that has it.
+ */
+const DEMOS = args.includes('--demos');
+const BASE = arg('base', 'https://wikibento.toolforge.org').replace(/\/$/, '');
+const VIEWPORTS = arg('viewports', 'desktop,phone').split(',').map((s) => s.trim());
+const CONCURRENCY = Math.max(1, parseInt(arg('concurrency', '4'), 10));
+const REQUIRE_RELAY = args.includes('--require-relay');
+const ONLY_BOARDS = (arg('boards', '') || '').split(',').map((s2) => s2.trim()).filter(Boolean);
+const DEMO_WAIT = parseInt(arg('wait', String(WAIT_MS)), 10);
+
+const PHONE = { ...(devices['iPhone 14'] || { viewport: { width: 390, height: 844 } }) };
+const VIEWPORT_SETTINGS = { desktop: {}, phone: PHONE }
 
 // Remote-engine support: PW_WS_ENDPOINTS="webkit=ws://host:port/…,chromium=ws://…"
 // When an engine has a ws endpoint here, connect() to it instead of launching
@@ -120,10 +147,149 @@ const BENIGN_CONSOLE = [
   /the server responded with a status of 50[23]/, // transient upstream gateway errors — fetchTextWithRetry retries; widget-level errors gate this suite
   /Refused to connect.*top\.hatnote\.com/,                       // WebKit CSP-report phrasing of the hatnote block
   /is not allowed by Access-Control-Allow-Origin\. Status code: 404/, // WebKit phrasing of a 404 probe
+  // WebKit's own media controls, phone profile only ("invalid-placard" is an internal WebKit resource name):
+  // it is the engine failing to draw its own native controls, not the app.
+  /Button failed to load, iconName =/,
+  // `allow-presentation` IS a valid sandbox token in the HTML spec; WebKit has not implemented it and says so on
+  // every iOS/WebKit load of the 📄 document reader's iframe. Pinned to the app's own sandbox value.
+  /sandbox. attribute: 'allow-presentation' is an invalid sandbox flag/,
+  // Toolforge itself sends `content-security-policy-report-only` listing Wikimedia hosts only (report-uri
+  // csp-report.toolforge.org), while this app deliberately talks to Internet Archive and hatnote. REPORT-ONLY
+  // means nothing is blocked — WebKit logs one line per violation, for connect-src, media-src, img-src, frame-src
+  // alike. The boundary that matters: `[Report Only]` is the platform's advisory, so it is allowed here; a
+  // refusal WITHOUT that marker is an enforced policy and still fails the run.
+  /\[Report Only\] Refused to /,
+  // A 429 from WDQS/Commons, provoked by the sweep's own concurrency (64 page loads against one endpoint). The
+  // app's retry layer is the documented handling, and the OUTCOME stays checked separately: a widget that fails
+  // to load is caught by the error-frame assertion, which does not depend on console counts. Not benign in
+  // general — only as a console line here.
+  /the server responded with a status of 429/,
 ];
+
+/** Upstream 500s (archive.org's media CDN served one during a sweep) are not ours to fix, and the console line
+ *  carries no URL to scope by. So they are demoted AFTER the fact, and only when nothing actually broke: no error
+ *  frame, no collapsed card, and the expected number of cards. A 500 from OUR server that mattered would fail one
+ *  of those three checks — which is how the duplicate-import blank page was caught in the first place. */
+const isUpstream500 = (text) => /status of 500\b/.test(text);
 const isBenignConsole = (text) => BENIGN_CONSOLE.some((re) => re.test(text));
 
 const LAUNCHERS = { chromium, firefox, webkit };
+
+/** One board in one engine at one viewport, with the checks that matter for a *demo*: every card present,
+ *  nothing collapsed, no errors, and (optionally) no relay-degraded box. */
+async function runOne(launch, engine, boardName, viewportName, expectedCards) {
+  const row = { engine, board: boardName, viewport: viewportName, cards: 0, expected: expectedCards,
+    collapsed: [], consoleErrors: 0, benignConsole: 0, errors: [], notes: [] };
+  let browser; let context;
+  try {
+    const exe = EXECUTABLES[engine];
+    if (WS_ENDPOINTS[engine]) browser = await launch.connect(remoteWs(engine));
+    else browser = await launch.launch({ headless: true, ...(exe ? { executablePath: exe } : {}) });
+    context = await browser.newContext(VIEWPORT_SETTINGS[viewportName] || {});
+    const page = await context.newPage();
+    page.on('console', (msg) => {
+      if (msg.type() !== 'error') return;
+      if (isBenignConsole(msg.text())) row.benignConsole += 1;
+      else { row.consoleErrors += 1; if (row.errors.length < 3) row.errors.push(msg.text().slice(0, 120)); }
+    });
+    page.on('pageerror', (e) => {
+      row.consoleErrors += 1;
+      if (row.errors.length < 3) row.errors.push('PAGEERROR: ' + String(e.message).slice(0, 110));
+    });
+    await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForTimeout(DEMO_WAIT);
+    const seen = await page.evaluate(() => {
+      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [] };
+      const frames = [...document.querySelectorAll('.widget-frame')];
+      out.cards = frames.length;
+      for (const f of frames) {
+        const id = f.closest('[data-widget-id]')?.getAttribute('data-widget-id') || '?';
+        const body = f.querySelector('.widget-body');
+        if (!body) continue;
+        // A collapsed card: content exists in the DOM but paints at zero height. The phone-stack bug left the
+        // body at 0px while the data was fully rendered — invisible to a text-only assertion.
+        if (body.scrollHeight < 20 && body.querySelector('*')) out.collapsed.push(`${id}:${body.scrollHeight}px`);
+        if (/reduced version of this box/i.test(body.textContent || '')) out.degraded.push(id);
+        if (/Retry|Load failed|NetworkError|fetch failed/i.test(f.textContent || '')) out.errorFrames.push(id);
+      }
+      return out;
+    });
+    Object.assign(row, seen);
+  } catch (e) {
+    row.errors.push('LAUNCH/NAV: ' + String(e.message).slice(0, 110));
+    row.cards = -1;
+  } finally {
+    await context?.close().catch(() => {});
+    await browser?.close().catch(() => {});
+  }
+  return row;
+}
+
+async function readDemoBoards() {
+  const dir = new URL('../public/', import.meta.url);
+  const { readdirSync, readFileSync } = await import('node:fs');
+  return readdirSync(dir)
+    .filter((f) => /-demo\.json$/.test(f) || f === 'demos.json')
+    .sort()
+    .map((f) => {
+      let count = 0;
+      try { count = (JSON.parse(readFileSync(new URL(f, dir), 'utf8')).widgets || []).length; } catch { /* reported on load */ }
+      return { name: f, count };
+    });
+}
+
+if (DEMOS) {
+  const all = await readDemoBoards();
+  const boards = ONLY_BOARDS.length
+    ? all.filter((b) => ONLY_BOARDS.some((q) => b.name.includes(q)))
+    : all;
+  const jobs = [];
+  for (const { name, count } of boards) {
+    for (const engine of ENGINES) {
+      const launch = LAUNCHERS[engine];
+      if (!launch) continue;
+      for (const viewport of VIEWPORTS) jobs.push({ launch, engine, name, count, viewport });
+    }
+  }
+  console.log(`Demo sweep: ${boards.length} boards × ${ENGINES.length} engines × ${VIEWPORTS.length} viewports = ${jobs.length} runs (${CONCURRENCY} at a time)\n`);
+
+  const rows = [];
+  let next = 0;
+  async function worker() {
+    while (next < jobs.length) {
+      const job = jobs[next++];
+      const row = await runOne(job.launch, job.engine, job.name, job.viewport, job.count);
+      const problems = [];
+      if (row.cards < 0) problems.push('did not load');
+      else if (row.expected && row.cards !== row.expected) problems.push(`cards ${row.cards}≠${row.expected}`);
+      if (row.collapsed.length) problems.push(`collapsed: ${row.collapsed.join(', ')}`);
+      // …see isUpstream500: a console 500 with nothing broken is an upstream CDN hiccup, not a regression.
+      if (row.consoleErrors && row.errors.length && row.errors.every(isUpstream500)
+          && !row.errorFrames.length && !row.collapsed.length && row.cards === row.expected) {
+        row.benignConsole += row.consoleErrors;
+        row.consoleErrors = 0;
+        row.notes.push('upstream 500 (nothing failed)');
+      }
+      if (row.errorFrames.length) problems.push(`error frames: ${row.errorFrames.join(', ')}`);
+      if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
+      if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
+      row.status = problems.length ? '❌' : '✅';
+      row.why = problems.join(' · ');
+      rows.push(row);
+      console.log(`${row.status} ${row.board.padEnd(28)} ${row.engine.padEnd(9)} ${row.viewport.padEnd(8)} cards=${String(row.cards).padStart(2)}${row.why ? '  ' + row.why : ''}${!row.why && row.degraded.length ? '  (relay degraded: ' + row.degraded.join(',') + ')' : ''}`);
+      for (const e of row.errors.slice(0, 2)) console.log(`      └ ${e}`);
+    }
+  }
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+  const failed = rows.filter((r) => r.status === '❌');
+  const degraded = rows.filter((r) => !r.status.startsWith('❌') && r.degraded.length);
+  console.log(`\nDemo sweep summary: ${rows.length - failed.length}/${rows.length} clean · ${failed.length} failing · ${degraded.length} with a relay-degraded box`);
+  if (degraded.length) {
+    console.log('  (a relay-degraded box is correct on a host with no /api/proxy — pass --require-relay when sweeping one that has it)');
+  }
+  process.exit(failed.length ? 1 : 0);
+}
 
 const results = [];
 let hadFailure = false;

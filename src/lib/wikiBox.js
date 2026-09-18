@@ -104,6 +104,36 @@ export function safeCssForStyleTag(css) {
 }
 
 /** The human-facing page a box came from — the credit link, and what the widget emits. */
+/**
+ * Did Wikipedia serve us a *mobile* parse of a box that needs the desktop one? (ISSUE-100)
+ *
+ * MobileFrontend removes the `.navbox` family from the HTML it renders for phones and tablets, so a box like
+ * `{{List of seas}}` comes back as its own stylesheet and nothing else — measured 2026-09-16: the same
+ * `action=parse` request returns **22,820 bytes / 161 links** for a desktop User-Agent and **5,780 bytes / 0
+ * links** for an iPhone one, and no API parameter changes it (`useskin`, `mobileformat`, `wrapoutputclass` were
+ * all tried). A browser cannot set its own `User-Agent`, so the client cannot ask for the desktop parse — but the
+ * deployment's `/api/proxy` relay can, and does.
+ *
+ * The signature is exact rather than heuristic: the navbox **styles** survive the strip while the navbox itself
+ * does not, so `navbox-styles` with no `navbox` element means the content was removed. Only the navbox family is
+ * affected — `POTD`, `In the news`, the selected anniversaries and infoboxes came back identical (measured the
+ * same day), which is why this is a targeted detector and not a general "is the box empty?" guess.
+ */
+const NAVBOX_STYLES_RE = /class="[^"]*\bnavbox-styles\b/;
+const NAVBOX_ELEMENT_RE = /class="[^"]*\bnavbox\b(?!-styles)/;
+
+export function boxWasStrippedForMobile(html) {
+  const s = String(html || '');
+  return NAVBOX_STYLES_RE.test(s) && !NAVBOX_ELEMENT_RE.test(s);
+}
+
+/** The deployment relay's URL for an API URL — how a phone gets the desktop parse (ISSUE-100). Pure, so the
+ *  caller can hand the same string to fetch() or to a test. */
+export function boxRelayUrl(apiUrl) {
+  const u = String(apiUrl || '');
+  return u ? `/api/proxy?url=${encodeURIComponent(u)}` : '';
+}
+
 export function boxPageUrl({ project = 'en.wikipedia', box } = {}) {
   return `https://${hostFor(project)}/wiki/Template:${encodeURIComponent(String(box ?? '').trim().replace(/ /g, '_'))}`;
 }

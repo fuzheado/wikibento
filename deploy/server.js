@@ -562,6 +562,9 @@ const server = createServer(async (req, res) => {
     }
 
     // ── /api/proxy: CORS-enabled fetch proxy (https GET only) ──
+    // Two jobs now: sources that send no CORS headers (top.hatnote.com, the CIM allow list TSV), and asking
+    // Wikimedia for a DESKTOP parse when a phone would be served a reduced one (ISSUE-100) — a browser cannot set
+    // its own User-Agent, this relay can, and its UA comes from the environment.
     // Some data sources send no CORS headers (e.g. top.hatnote.com), so the
     // browser can't fetch them directly. This endpoint fetches server-side and
     // returns { status, body } wrapped in JSON with ACAO: * so the app (or any
@@ -581,7 +584,8 @@ const server = createServer(async (req, res) => {
       try {
         const r = await fetch(target, {
           redirect: 'follow',
-          headers: { 'User-Agent': 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) proxy' },
+          headers: { 'User-Agent': process.env.WIKIMEDIA_USER_AGENT
+            || 'WikiBento/0.1 (https://wikibento.toolforge.org/; User:Fuzheado) proxy' },
         });
         const body = await r.text();
         res.writeHead(200, {

@@ -143,6 +143,20 @@ body {
  min-height: 0;
 }
 
+/* …which is exactly why the body must NOT be a stretching flex item here.
+   `.widget-body` is `flex: 1` so that a FIXED-height grid cell gives the card a
+   scrolling body; in a stack whose height is `auto`, `flex: 1` + `min-height: 0`
+   has no line to grow into and collapses the body to **zero pixels** — the card
+   keeps its 58px header and looks empty. Measured 2026-09-16 on an iPhone profile:
+   `?config=/click-through-demo.json`'s 📰 box rendered 1 child and 0 links at 0px
+   tall in BOTH engines, so this was never iOS-specific — the phone stack was simply
+   the only place it showed, and the browser matrix never loaded a demo (ISSUE-100). */
+.mobile-stack .widget-body {
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: visible;
+}
+
 
 /* ── Widget Frame ───────────────────────────────────────── */
 

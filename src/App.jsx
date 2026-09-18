@@ -835,9 +835,12 @@ const handleAutoHeight = useCallback((id, px) => {
           </button>
           <button className="btn btn-primary" onClick={() => setShowAddPanel(true)}>
             + Add Widget
+          </button>
+          {/* A sibling, not a child: ✨ Ask used to live INSIDE this button, which is invalid HTML — browsers
+              auto-split the tags, React logged a hydration warning on every load, and it took "1 console error"
+              off every row of the demo sweep (fixed 2026-09-16, ISSUE-100). */}
           <button className="btn btn-ask" onClick={() => setShowAskPanel(true)} title="Describe what you want - get widget suggestions (ML advisor)">
             ✨ Ask
-          </button>
           </button>
           <button className="btn" onClick={() => setShowImportPanel(true)} title="Import dashboard config from JSON">
             ⬆ Import

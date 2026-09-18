@@ -249,9 +249,11 @@ WikiBento is smoke-tested per widget in a real browser, against named live asset
 the failures each check was written for, is [docs/VERIFIED-WORKING.md](docs/VERIFIED-WORKING.md). The claims
 are checked rather than asserted: `npm test` regenerates the widget manifest and enforces the cross-document
 consistency gates, `npm run smoke` enforces grid geometry and that every ⚙/ⓘ action is reachable at any panel
-size, `npm run test:browsers` loads a real board in all three engines, and the feature E2Es drive the reading
-and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url` — what each of them caught
-is in [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md)). The same suite holds the dataflow contract honest: an
+size, and `npm run test:browsers` loads a real board in all three engines. **`npm run
+test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at desktop *and* phone widths**,
+asserting that each card renders and that none collapses — it is what found an empty box on iPhone (ISSUE-100). The
+feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url` —
+what each of them caught is in [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md)). The same suite holds the dataflow contract honest: an
 emitter that publishes prose must declare where it came from, a widget with named channels must say what its bare
 id means, a channel a board references must exist, and no widget may hard-code a language list.
 

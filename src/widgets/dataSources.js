@@ -15,6 +15,7 @@ import {
 import {
   boxApiUrl, parseBoxResponse, splitBoxHtml, prepareBoxHtml, filterScopedCss, boxWikiBase,
   boxPageUrl, safeCssForStyleTag, boxLooksLikeNotice, expandBoxTokens,
+  boxWasStrippedForMobile, boxRelayUrl,
 } from '../lib/wikiBox.js';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
@@ -2345,20 +2346,54 @@ const projectListCache = createTtlCache(7 * 24 * 60 * 60 * 1000);
 
 const wikiBoxCache = createTtlCache(10 * 60 * 1000);
 
+/** Remembered for the session: once a phone has been served a stripped box, every later box asks the relay
+ *  first (ISSUE-100) — one wasted round trip per page load instead of one per card. */
+let relayFirstForBoxes = false;
+
+/** Fetch the same parse through the deployment's `/api/proxy`, which sends the tool's own (non-mobile) UA and so
+ *  receives the desktop HTML. Returns the parsed box HTML, or null when there is no relay to use — a local
+ *  preview or a third-party host simply keeps the direct result. */
+async function fetchBoxThroughRelay(apiUrl) {
+  try {
+    const wrapped = await fetchJSON(boxRelayUrl(apiUrl));
+    if (!wrapped || typeof wrapped.body !== 'string') return null;
+    if (wrapped.status && wrapped.status !== 200) return null;
+    return parseBoxResponse(JSON.parse(wrapped.body));
+  } catch {
+    return null;
+  }
+}
+
 export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', date } = {}) {
   // `{date}`-style tokens are expanded before the name becomes a transclusion, so a dated box (POTD, the
   // selected anniversaries page) stays current without anyone editing the board — see expandBoxTokens.
   const name = expandBoxTokens(String(box || '').trim(), date ? new Date(date) : new Date()).trim();
   if (!name) return Promise.reject(new Error('Name a template to render, e.g. "In the news"'));
   return wikiBoxCache.get(`wiki-box:${project}:${name}`, async () => {
+    const apiUrl = boxApiUrl({ project, box: name });
     let html;
     try {
-      const json = await fetchJSON(boxApiUrl({ project, box: name }));
-      html = parseBoxResponse(json);
+      html = parseBoxResponse(await fetchJSON(apiUrl));
     } catch (e) {
       // The API's own wording ("There is no template with this name") is more useful than ours, so it is kept;
       // only the transport case gets a message of our own.
       throw new Error(e && e.message ? e.message : `Could not render ${name} from ${project}`);
+    }
+    // ISSUE-100: on a phone or tablet Wikipedia strips the `.navbox` family from what it renders (and a browser
+    // cannot ask for the desktop parse, because it cannot set its own User-Agent). The deployment relay can: it
+    // sends the tool's own UA, so the same URL through `/api/proxy` returns the full box. Only the navbox family
+    // is affected, so this is a targeted retry — and once a strip has been seen, later boxes go to the relay
+    // first, so a phone pays for it once rather than twice per card.
+    let stripped = boxWasStrippedForMobile(html);
+    let relayUsed = false;
+    if (stripped || relayFirstForBoxes) {
+      const relayed = await fetchBoxThroughRelay(apiUrl);
+      if (relayed) {
+        html = relayed;
+        relayFirstForBoxes = true;
+        relayUsed = true;
+        stripped = boxWasStrippedForMobile(html);
+      }
     }
     const { styles, body } = splitBoxHtml(html);
     return {
@@ -2371,6 +2406,9 @@ export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', da
       // A wrapper template that was called outside its own context returns a notice; the card says so rather
       // than leaving a yellow box unexplained.
       notice: boxLooksLikeNotice(body),
+      // Still stripped *after* the relay tried (a host with no relay, a network refusal) — the card says so
+      // instead of showing an empty box, because an empty box looks like a bug in the widget.
+      mobileStripped: stripped && !relayUsed ? true : false,
     };
   });
 }

@@ -26,7 +26,8 @@
     "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check",
     "smoke:iabook": "node scripts/ia-book-e2e.mjs",
     "smoke:document": "node scripts/document-reader-e2e.mjs",
-    "smoke:url": "node scripts/url-state-audit.mjs"
+    "smoke:url": "node scripts/url-state-audit.mjs",
+    "test:browsers:demos": "node scripts/browser-matrix.mjs --demos --wait 9000"
   },
   "dependencies": {
     "pannellum": "^2.5.7",

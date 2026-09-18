@@ -22,6 +22,32 @@ in the preflight allow-list (the CIM service 405s `OPTIONS` outright), so about 
 forbidden header pre-preflight, per spec, masking the bug. See
 [BUG-REPORT-ios-safari-fetch.md](BUG-REPORT-ios-safari-fetch.md).
 
+## The demo sweep (ISSUE-100) — every board, every engine, desktop *and* phone
+
+`browser-matrix.mjs` loads **one** board by default (the fast PR-time check). `--demos` turns it into the sweep that
+would have caught the empty-box-on-iPhone report:
+
+```bash
+npm run test:browsers:demos                                  # 15 boards × 3 engines × desktop+phone
+node scripts/browser-matrix.mjs --demos --base http://localhost:5199 --engines webkit,chromium --wait 9000
+node scripts/browser-matrix.mjs --demos --require-relay      # fails if a box needed the no-relay fallback
+node scripts/browser-matrix.mjs --demos --boards click-through --viewports phone   # one board, focused
+```
+
+Per run it asserts: **a card per widget in the board** (counted from the board JSON), **no error frames**, **no
+console errors**, and **no collapsed card** — a `.widget-body` whose content renders at zero height. That last check
+is the one that matters for phones: the mobile stack collapsed every card body to 0px, which no text-based
+assertion would have noticed.
+
+Two flags exist because the *host* changes what correct looks like: `--require-relay` (a host with `/api/proxy`
+should never need the "Wikipedia reduced this for phones" fallback), and the documented benign-console list, which
+explains each allowance rather than muting a category — including Toolforge's own `content-security-policy-report-only`
+header, which lists Wikimedia hosts while this app deliberately talks to Internet Archive. A refusal *without* the
+`[Report Only]` marker still fails the run.
+
+Read the whole story in ISSUE-100: the sweep found a collapsed body, a User-Agent-gated navbox strip, and a static
+widget sending a literal `{{widget:…}}` to Wikipedia in an iframe.
+
 ## Installing the engines
 
 Install them **with the repo's own copy**, once:

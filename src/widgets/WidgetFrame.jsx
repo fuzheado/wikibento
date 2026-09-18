@@ -400,6 +400,17 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
       // Static widget (no fetch): render straight from config — the
       // transform also sees its `source` output (dataflow, ISSUE-51).
+      //
+      // ISSUE-58's guard belongs HERE too, and it took a demo sweep to notice (ISSUE-100): a static widget makes
+      // no API call, so nothing was checking — but it can still make a *request*. The 📄 Wiki Page embeds its
+      // page in an iframe, so with an unresolved reference it built
+      // `https://en.wikipedia.org/wiki/{{widget:click-seas#selection}}` — a literal placeholder sent to
+      // Wikipedia, answered with a 404 and an X-Frame-Options refusal, on every load of the click-through demo.
+      const unresolvedStatic = findUnresolvedRefs(resolvedConfig);
+      if (unresolvedStatic.length) {
+        setState({ loading: false, error: null, data: null, waiting: unresolvedStatic });
+        return;
+      }
       const transformed = WIDGET_TYPES[widget.widgetType]?.transform
         ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig, { sourceOutput: sourceOutputValue })
         : null;
@@ -2131,9 +2142,10 @@ function MediaPlayerCard({ data }) {
 
   const playUrl = pickPlayUrl(current, quality);
   const fmtDur = (s) => (s ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '–');
+  // `key` is React's, not the element's: spreading it into <audio>/<video> made React warn on every render
+  // ("key is not a prop") and put an invalid attribute in the DOM. It belongs on the element itself.
   const mediaProps = {
     ref: mediaRef,
-    key: playUrl,
     controls: true,
     preload: 'metadata',
     src: playUrl,
@@ -2149,8 +2161,8 @@ function MediaPlayerCard({ data }) {
       <div className="ranking-subtitle">{data.subtitle}</div>
       <div className="media-stage">
         {isAudio
-          ? <audio {...mediaProps} className="media-audio" />
-          : <video {...mediaProps} className="media-video" />}
+          ? <audio key={playUrl} {...mediaProps} className="media-audio" />
+          : <video key={playUrl} {...mediaProps} className="media-video" />}
         {showStart && (
           <button
             className="media-start"
@@ -2458,6 +2470,19 @@ function WikiBoxCard({ data, onSelect }) {
     if (linkAction === 'send to the board') event.preventDefault();   // `both` also opens the tab
     onSelect(value);
   };
+  /* ISSUE-100: a box Wikipedia stripped for mobile devices, with no relay to re-fetch it through. Saying so beats
+     an empty box, which reads as a broken widget — and it tells the reader how to see the real thing. */
+  if (data && data.mobileStripped) {
+    return (
+      <div className="wikibox-empty wikibox-mobile-stripped">
+        <div>⚠ Wikipedia serves a reduced version of this box to phones — its links are left out.</div>
+        <div className="wikibox-note">Open the box on the wiki to see it in full, or read the board on a desktop.</div>
+        {data.link ? (
+          <a className="widget-btn" href={data.link} target="_blank" rel="noopener noreferrer">Open it on the wiki ↗</a>
+        ) : null}
+      </div>
+    );
+  }
   if (!html) return <div className="wikibox-empty">That box is empty right now.</div>;
   return (
     <div className="wikibox">

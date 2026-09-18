@@ -137,6 +137,14 @@ rankings, article text and history — every number live from a Wikimedia API.
 or photographs. The full-colour originals are still in git history (the commit that added
 them, `339a275`), so this is reversible.
 
+## `wikibento-2026-09-16-click-through-phone.png` — the click-through board on an iPhone profile (ISSUE-100)
+
+An iPhone 14 profile, WebKit, against production: the 📰 *List of seas* box renders **161 links in a 1644px body**
+where it used to be a 58px card with an empty body. Three things had to line up for this shot — a CSS fix (the
+phone stack collapsed every card body to zero height), the deployment relay (Wikipedia strips navboxes for mobile
+User-Agents, and the relay asks with the tool's own UA), and a static-widget guard (the reference-consuming card was
+embedding a literal `{{widget:…}}` in an iframe).
+
 ## `wikibento-2026-09-16-page-picker.png` — one validated box, three cards, no project field (2026-09-16)
 
 `?config=/page-picker-demo.json` — the page picker ISSUE-99. At the top: a wiki picker (`en.wikipedia`), a page

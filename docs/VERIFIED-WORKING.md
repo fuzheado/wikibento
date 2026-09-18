@@ -11,6 +11,29 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Every demo, every engine, both widths — and the three bugs that were hiding there (ISSUE-100, 2026-09-16)
+
+Andrew reported from an iPhone that `?config=/click-through-demo.json`'s 📰 box was empty, and asked whether the
+three-browser tests covered the demos. They did not — one board, one width — so a phone-only failure had nowhere to
+show up. The sweep that now runs found three bugs, and two of them were not phone-specific at all:
+
+- 🐛 **Every card body collapsed to 0px in the phone stack.** `.widget-body` is `flex: 1; min-height: 0` for
+  fixed-height grid cells; with `.grid-item { height: auto }` there is no line to grow into, so the card kept its
+  58px header and nothing else. Measured identically on an iPhone profile in Chromium **and** WebKit, which is the
+  proof it was never iOS-specific: the stack was just the only place it showed.
+- 🐛 **Wikipedia strips navboxes for phones and only the User-Agent changes it.** Same request, same 200:
+  **22,820 bytes / 161 links** for a desktop UA vs **5,780 bytes / 0 links** for an iPhone UA. `useskin`,
+  `mobileformat` and `wrapoutputclass` change nothing, and `User-Agent` is a forbidden header for `fetch` — so the
+  fix is the deployment's `/api/proxy` relay, which asks with the tool's own UA and returns the full box. Detected
+  by exact signature (`navbox-styles` with no `navbox` element), retried through the relay, relay-first thereafter.
+- 🐛 **A static widget sent a literal placeholder to Wikipedia.** The reference-consuming 📄 Wiki Page built
+  `https://en.wikipedia.org/wiki/{{widget:click-seas#selection}}` and embedded it in an iframe on every load —
+  ISSUE-58's "never send an unresolved `{{…}}`" guard existed only on the fetch path. Static widgets now wait too.
+- ✅ **Verified against production:** with `--require-relay`, **64/64 runs clean** (15 boards × 2 engines ×
+  desktop+phone), and on an iPhone profile the click-through box renders **161 links in a 1644px body, 0 errors**.
+- ✅ Two filed-as-cosmetic bugs also went: ✨ Ask nested inside + Add Widget (invalid HTML, a warning on every load,
+  and one console error on every sweep row) and React's `key` spread into `<audio>`/`<video>`.
+
 ## The page box learns its wiki — and the badge that lied for a day (ISSUE-99, 2026-09-16)
 
 Andrew asked for a box where you type a page name, have it validated, and get the project/language back out — with an

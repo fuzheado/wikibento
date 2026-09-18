@@ -3045,6 +3045,60 @@ URL. Leaving a lean link: ✕ Exit / Esc (already strips the param).
 `src/App.jsx`, `src/App.css`, `tests/share-lean.test.mjs`,
 `scripts/share-lean-e2e.mjs`).
 
+## ISSUE-100 · "It's empty on my iPhone" — the demo sweep, and three bugs it found — **done + verified 2026-09-16**
+
+Andrew, from an iPhone: `?config=/click-through-demo.json` — *"the click-seas box is empty"*, and the question that
+mattered more: *"are you checking all demos against the three browser tests?"*
+
+**The honest answer was no.** `scripts/browser-matrix.mjs` loaded **one** board (`params-demo.json`) at **one**
+width (desktop). "We test in three browsers" was true of a single demo, so a phone-only failure had nowhere to
+appear. That is now a **sweep**: every `public/*-demo.json` + the hub × every engine × desktop **and** an iPhone 14
+profile, each run checked for a card per widget, no error frames, no console errors, and **no collapsed card**.
+
+```
+npm run test:browsers:demos                                  # all boards × engines × viewports
+node scripts/browser-matrix.mjs --demos --base http://localhost:5199 --engines webkit,chromium
+node scripts/browser-matrix.mjs --demos --require-relay      # sweeping a host that has /api/proxy
+   --boards click-through --viewports phone --concurrency 4
+```
+
+It found **three** bugs, none of which the old check could see:
+
+1. **The phone stack collapsed every card body to zero height.** `.widget-body` is `flex: 1; min-height: 0` so a
+   *fixed-height* grid cell gets a scrolling body — but in the stack, where `.grid-item { height: auto }`, `flex: 1`
+   has no line to grow into and the body renders at **0px**: the card keeps its 58px header and looks empty. The
+   📰 box measured `1 child · 0 links · 0px` in **both** engines on an iPhone profile, which is the reported
+   symptom — and it was never iOS-specific, the phone stack was simply the only place it showed.
+   Fix: `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }`.
+
+2. **Wikipedia strips navboxes for phones, and a browser cannot ask for the desktop parse.** The same
+   `action=parse` request returns **22,820 bytes / 161 links** for a desktop User-Agent and **5,780 bytes / 0 links**
+   for an iPhone one (mobile UA → MobileFrontend removes the `.navbox` family and leaves its stylesheet behind).
+   `useskin`, `mobileformat` and `wrapoutputclass` change nothing; only the UA matters, and `User-Agent` is a
+   forbidden header for `fetch`. So the client cannot fix it — but the deployment's **`/api/proxy` relay** can,
+   because it sends the tool's own UA: the same URL through it returns the full box. The widget now detects the
+   exact signature (`navbox-styles` present, no `navbox` element — only the navbox family is affected; POTD, In the
+   news, the selected anniversaries and infoboxes came back byte-identical), retries through the relay, and going
+   forward asks the relay first on a phone. Where there is no relay it says so instead of showing an empty box.
+
+3. **A static widget was making a request with an unresolved reference.** ISSUE-58's guard — never send a `{{…}}`
+   placeholder to an API as content — was only applied on the fetch path, and the 📄 Wiki Page is *static*: it
+   embedded `https://en.wikipedia.org/wiki/{{widget:click-seas#selection}}` in an iframe on every load of the
+   click-through demo (a 404 plus an X-Frame-Options refusal). Now static widgets wait for their references too.
+
+**Two cosmetic bugs fixed on the way,** both previously filed in HANDOFF as "2-line fixes": ✨ Ask was nested
+*inside* + Add Widget (invalid HTML, a React hydration warning on every load, and one console error on every row of
+the sweep), and the media player spread React's `key` into `<audio>`/`<video>`.
+
+**Verified against production** (with `--require-relay`): **64/64 clean** — every board, both engines, both
+viewports — and the click-through box on an iPhone profile renders **161 links in a 1644px body, no reduced-notice,
+0 errors**. A local sweep is 61–64/64 with the two phone runs correctly reporting the relay-degraded fallback,
+because a dev server has no `/api/proxy`.
+
+**The lesson worth keeping:** a test that loads one board in three engines is a test of one board. The sweep costs
+about eight minutes at `--concurrency 3`, which is a release-time check rather than a per-commit one — and it is
+now in the deploy loop below.
+
 ## ISSUE-99 · The page box: a validated page name that knows its wiki — **done + verified 2026-09-16** (ISSUE-68's deferred slice)
 
 **Shipped.** A `lookup` param of `source: 'article'` or the new `source: 'page'` now takes a `project`, grows a wiki

@@ -16,7 +16,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
-  BOX_PRESETS, transclusionFor, boxApiUrl, boxPageUrl, parseBoxResponse, splitBoxHtml,
+  BOX_PRESETS, transclusionFor, boxApiUrl, boxPageUrl, boxWasStrippedForMobile, boxRelayUrl, parseBoxResponse, splitBoxHtml,
   rewriteBoxUrls, sanitizeBoxHtml, prepareBoxHtml, filterScopedCss, isAllowedBoxAsset, boxLines,
   expandBoxTokens, boxLooksLikeNotice, openBoxLinksNewTab, boxLinkTarget, boxLinkSelection,
 } from '../src/lib/wikiBox.js';
@@ -340,4 +340,32 @@ test('the real In-the-news response survives the whole path', { skip: !realRespo
   const css = filterScopedCss(styles.join('\n'));
   assert.ok(css.includes('.mw-parser-output'), 'scoped selectors survive');
   assert.ok(!/(^|\n)\s*(html|body|:root)\s*\{/.test(css), 'and nothing page-level gets through');
+});
+
+/* ── ISSUE-100: the mobile strip, and the relay that undoes it ─────────────────────────────────── */
+
+test('wikiBox: the mobile strip has an exact signature, not a guess', () => {
+  // Measured 2026-09-16: the same action=parse request returns 22,820 bytes / 161 links for a desktop
+  // User-Agent and 5,780 bytes / 0 links for an iPhone one. MobileFrontend removes `.navbox` and leaves its
+  // stylesheet behind — which is the tell.
+  const stripped = '<div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr"><div class="navbox-styles"></div>\n\n\n</div>';
+  const full = '<div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr"><div class="navbox-styles">.navbox{}</div><div class="navbox"><table class="nowraplinks hlist navbox-inner"><tr><th class="navbox-title">x</th></tr></table></div></div>';
+  assert.equal(boxWasStrippedForMobile(stripped), true);
+  assert.equal(boxWasStrippedForMobile(full), false);
+  // the navbox stylesheet's own CSS text must not be mistaken for the element (it lives in a <style>, not a class)
+  assert.equal(boxWasStrippedForMobile('<style>.navbox-styles{display:none}</style><div class="navbox">x</div>'), false);
+  // a box that simply has no navbox at all is NOT stripped — every other box in the corpus (POTD, In the news,
+  // the selected anniversaries, infoboxes) came back byte-identical on a phone UA, so this stays targeted
+  assert.equal(boxWasStrippedForMobile('<div class="thumb"><img src="x"></div>'), false);
+  assert.equal(boxWasStrippedForMobile(''), false);
+  assert.equal(boxWasStrippedForMobile(null), false);
+});
+
+test('wikiBox: the relay URL is a pure function of the API URL', () => {
+  const api = boxApiUrl({ project: 'en.wikipedia', box: 'List of seas' });
+  const relay = boxRelayUrl(api);
+  assert.match(relay, /^\/api\/proxy\?url=/);
+  assert.equal(decodeURIComponent(relay.split('url=')[1]), api, 'round trip');
+  assert.equal(boxRelayUrl(''), '');
+  assert.equal(boxRelayUrl(null), '');
 });

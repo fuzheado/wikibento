@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CCKrq_yr.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-16 — **the page box knows its wiki** (ISSUE-99): a validated page name with a wiki picker beside it, committed as a reference so consumers name no project · before that: **a translation that knows its language** (ISSUE-97) · **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
+| production bundle | `index-Dv5Kc4UO.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-16 — **the demos are swept in every engine at desktop and phone widths** (ISSUE-100): the phone-stack body collapse, Wikipedia's User-Agent-gated navbox strip and a static widget's literal `{{widget:…}}` iframe, all found and fixed · before that: **the page box knows its wiki** (ISSUE-99) · **a translation that knows its language** (ISSUE-97) · **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (verified live: the page picker re-aims three cards to German Wikipedia from `de:Weddellmeer`) |
+| pending deploy | none — production serves this branch's tip; the demo sweep is 64/64 clean against it (`--require-relay`), and the click-through box renders 161 links on an iPhone profile |
 | newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -54,7 +54,8 @@ Gallery).
 | `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
-| `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
+| `node scripts/docs-facts.mjs --live`, and — before announcing a release — `npm run test:browsers:demos`
+(the full sweep: it is what found the empty-box-on-iPhone, ISSUE-100) | the bundle HANDOFF claims is deployed is what production serves |
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
 (the showcase) are both **derived artifacts** kept honest by tests, so they
@@ -342,6 +343,13 @@ and a stream pipeline that works in Node is not evidence about a browser.
     not fail loudly: the dev server answers **500 for the whole module**, the app never boots, the page is empty,
     and the symptom looks exactly like a bad board config. Ten minutes went into checking JSON that was fine. The
     one-second check, which belongs in the loop after every module edit: `npx esbuild --bundle <file> --loader:.jsx=jsx --outfile=/dev/null` (or just `npm test`, which bundles everything). Related and worth knowing: a stack trace naming a line past the end of the file is the *transformed* file — see gotcha 27.
+
+29. **A body that stretches is a body that collapses when the height is `auto`.** `.widget-body` is `flex: 1;
+    min-height: 0` so a fixed-height grid cell gives a card a scrolling body — but the phone stack sets
+    `.grid-item { height: auto }`, where `flex: 1` has no line to grow into, so the body rendered at **0px** and
+    every stacked card showed only its 58px header. Reproduce it in one line of Playwright (an iPhone 14 context)
+    and check `.widget-body`'s `scrollHeight`, not its text: the data was all there, invisible. Fixed with
+    `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }` — and by making the demo sweep assert it.
 
 ## Open issues & known bugs
 
