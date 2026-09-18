@@ -4834,3 +4834,37 @@ layouts, GLAM displays, and lean/kiosk mode without forcing authors to use a wor
   multi-image "photo wall" here. The latter remains a separate `WIDGET-IDEAS.md` concept.
 
 **Status:** open; planning note recorded 2026-09-15 from Andrew's request. No implementation yet.
+
+## ISSUE-91 · Quiz / trivia mode: image widget + multiple choice + running score (GitHub issue #95) — **open**
+
+**What:** requested by Andrew 2026-09-18 for a week-long event. One widget shows an image, another shows a
+four-answer multiple-choice question, a click says right/wrong, a running tally covers five questions, and
+the end shows a complete score.
+
+**Half of it works today — probe-verified 2026-09-18** on the built app (Chromium, `playwright-core`):
+clicking **C** in a Board Controls `answer | buttons | Answer | A, B, C, D` param re-aimed a Markdown
+widget from `Chosen answer: A` to `Chosen answer: C`; and the tally chain `listSource` (3 lines) →
+`lineCount` ("Score 3 elements **3**") → `echo` (readout **3**) already computes and displays a score.
+Any widget config field resolves `{param}` and `{widget:id}` (`params.js:115`, unknown refs left
+literal and warned), and 8 widget types already emit `outputs` — so a score has a display path.
+
+**The missing half is not UI:** (1) nothing knows which answer is *correct* — a `buttons` param is a value,
+not a judgement; (2) nothing accumulates — `lineCount` counts the lines of an output *now*, and **no widget
+in the registry emits from user interaction**; (3) the five-question sequence, feedback and end state do
+not exist; (4) **booth semantics will bite**: board params travel with the saved board in `localStorage`,
+so on a shared tablet the previous visitor's last click is what the next visitor inherits, while a board
+opened from `?config=` is deliberately not persisted (`App.jsx:131-136`, verified: a reload with
+`?config=` falls back to the saved board).
+
+**Proposed:** one new `quiz` **effector** widget (the family the Speaker opened) that owns the question
+bank, judging, sequence and score and **emits its state** the way `lineCount`/`echo` already do — so the
+image pane stays a separate widget driven by `{widget:quiz1}` and the room-visible score can be an
+`echo` readout. Question bank as a loadable JSON (`?config=`) so an organiser can write questions without
+code. Booth extras: kiosk mode, iPad-size touch targets, idle auto-reset between visitors, visible Start
+over, optional Speaker announcement (armed). Quiz session state becomes a declared **SESSION tier**
+(sessionStorage — survives an accidental refresh, dies with the tab, never in the URL), with the contract
+and `url-state.test.mjs` updated rather than bypassed.
+
+**Non-goals v1:** no server/leaderboard/multiplayer (needs the Toolforge relay plus a privacy decision),
+client-side grading only (the answer key is visible in the JSON — fine for a booth, said plainly), no
+free-text answers.
