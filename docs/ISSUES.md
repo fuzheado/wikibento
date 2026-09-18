@@ -2,7 +2,11 @@
 
 Tracked issues and needed fixes, as noted during development. Format:
 `ISSUE-NN · title` → what/why, reproduction, proposed fix, status.
-Status: `open` · `in progress` · `done (commit)`. New issues: append, bump NN.
+Status: `open` · `in progress` · `done (commit)`. New issues: append, and take the next number
+as **the largest `ISSUE-NN` anywhere in the repo + 1** — enumerate with a *sorted* grep
+(`grep -o "^## ISSUE-[0-9]*" docs/ISSUES.md | grep -o "[0-9]*" | sort -n | tail -1`), never the
+file's last entry: this file is append-ordered, so the tail is not the maximum. Check for
+duplicates after pushing (`sort | uniq -d`), because parallel sessions bump concurrently.
 
 ## ISSUE-01 · CIM Global Leaderboard: double rank numerals — **done (163c46f)**
 
@@ -4864,7 +4868,12 @@ list with small namespaces collapsed into "Other"; namespace labels from the wik
 and distinct pages as a subtitle; and say "≥5,000" when the code's documented result cap bites instead
 of presenting a capped number as a total.
 
-## ISSUE-78 · Single Commons image tile: full-bleed decorative image — **open**
+## ISSUE-101 · Single Commons image tile: full-bleed decorative image — **open**
+
+> **Renumbered 2026-09-18:** registered as ISSUE-78, which collided with *Lifeline*. The older
+> entry keeps 78 (it is referenced from `src/lib/timeline.js`, `src/widgets/WidgetFrame.jsx`,
+> `public/demos.json`, `SCREENSHOTS.md`, `WIDGET-IDEAS.md` and `LIFELINE-WIDGET.md`); this one
+> had no inbound references, so it moves.
 
 **What:** add a standalone `imageTile` widget that accepts one Commons file and fills its entire widget box
 from edge to edge, making the image a decorative tile rather than a gallery or statistics card.
@@ -4889,7 +4898,11 @@ layouts, GLAM displays, and lean/kiosk mode without forcing authors to use a wor
 
 **Status:** open; planning note recorded 2026-09-15 from Andrew's request. No implementation yet.
 
-## ISSUE-91 · Quiz / trivia mode: image widget + multiple choice + running score (GitHub issue #95) — **open**
+## ISSUE-102 · Quiz / trivia mode: image widget + multiple choice + running score (GitHub issue #95) — **open**
+
+> **Renumbered 2026-09-18:** registered as ISSUE-91, which was already taken by *Clicks on
+> rendered Wikimedia content* (shipped 2026-09-16; referenced in `DEPLOYMENTS.md`,
+> `VERIFIED-WORKING.md` and `DATA-SOURCES.md`). The GitHub issue number (#95) is unaffected.
 
 **What:** requested by Andrew 2026-09-18 for a week-long event. One widget shows an image, another shows a
 four-answer multiple-choice question, a click says right/wrong, a running tally covers five questions, and
