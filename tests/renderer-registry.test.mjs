@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 /**
  * Every renderer the registry names must exist as a component.
@@ -33,4 +34,33 @@ test('every renderer the content dispatcher switches on is defined too', () => {
   assert.ok(cases.length > 10, `expected the dispatcher to switch on many cards, found ${cases.length}`);
   const missing = cases.filter((name) => !new RegExp(`function\\s+${name}\\s*\\(`).test(frame));
   assert.deepEqual(missing, [], `dispatcher renders cards that do not exist: ${missing.join(', ')}`);
+});
+
+test('a widget\'s renderer and its transform agree on what an ABSENT display mode means', () => {
+  // A real bug, found only because a demo relied on the registry default (2026-09-18): `getRenderer` read
+  // "not 'trend' ⇒ StatCard" while `transform` read "not 'stat' ⇒ the trend payload". A board that omitted
+  // `displayMode` got a trend payload drawn by the StatCard — title, date range, and "—" where the count
+  // belongs. Every shipped board set the field, so nothing caught it.
+  const def = WIDGET_TYPES.pageviews;
+  const fetched = {
+    article: 'Marie Curie', total: 12345, avg: 411,
+    latest: 380, trend: [{ date: '20260819', views: 400 }, { date: '20260820', views: 420 }],
+  };
+  // no config at all → the renderer says StatCard, so the transform must produce a StatCard payload
+  assert.equal(def.getRenderer({}), 'StatCard');
+  const stat = def.transform(fetched, {});
+  assert.equal(stat.value, '12,345');
+  assert.equal(stat.detail, '~411/day');
+  assert.ok(Array.isArray(stat.trend) && stat.trend.length === 2, 'a stat card still carries its sparkline');
+  // and the explicit trend mode still works, with the payload the TrendCard needs
+  assert.equal(def.getRenderer({ displayMode: 'trend' }), 'TrendCard');
+  const trend = def.transform(fetched, { displayMode: 'trend' });
+  assert.deepEqual(trend.chartData, fetched.trend);
+  assert.equal(trend.chartKey, 'views');
+  assert.equal(trend.value, undefined, 'the trend payload is not the stat payload');
+  // an unknown value is the default, in both — never a third state
+  assert.equal(def.getRenderer({ displayMode: 'nonsense' }), 'StatCard');
+  assert.equal(def.transform(fetched, { displayMode: 'nonsense' }).value, '12,345');
+  // the registry default and the two functions must name the same mode
+  assert.equal(def.getRenderer({ displayMode: def.defaults.displayMode }), 'StatCard');
 });

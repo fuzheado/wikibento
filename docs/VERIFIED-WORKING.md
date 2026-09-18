@@ -11,6 +11,28 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A card that showed "—" instead of a number, and why only a new demo could find it (2026-09-18)
+
+Andrew: *the "views" metrics box does not seem to be working* on `?config=/page-picker-demo.json`.
+
+- 🐛 **The renderer and the transform disagreed about an absent config field.** `getRenderer` read *"anything that
+  is not `trend` is a StatCard"*, while `transform` read *"anything that is not `stat` is the trend payload"* — so a
+  board that omitted `displayMode` got a trend payload drawn by a StatCard: a title, a date range, and **—** where
+  the count belongs. Both now resolve the mode through one function, and a test asserts they agree for absent,
+  explicit and nonsense values (the ISSUE-94 lesson exactly: a registry default is only honoured if something reads
+  it — here, two somethings that have to read it the same way).
+- 🔎 **Why every shipped board looked fine:** they all set `displayMode` explicitly. Only the new `page-picker-demo`
+  relied on the default — which is why the bug was invisible for as long as it was, and why it is worth keeping that
+  board as it is: it is now the one demo that exercises the default.
+- ✅ **Verified live:** the card reads **166,558** views, **~5,552/day**, with **30 spark bars**.
+- ❌ **And the checks that could not see it:** nothing errored, nothing 404ed (the request was 200 with 30 items —
+  the *transform* was at fault, not the fetch), no card was collapsed, and the console was clean. A card quietly
+  rendering its empty state is invisible to every check the sweep had, so the sweep gained one: **a `.stat-value`
+  of `—` is now a failure** ("shows no value: views"). Verified both ways — with the old condition restored it fails
+  with exactly the reported symptom, and with the fix it passes.
+- ✅ Checked rather than assumed: a non-OK response was *not* being swallowed — `fetchTextWithRetry` already throws on
+  any `!resp.ok`, which is also why the 200-with-data measurement above was conclusive.
+
 ## Every demo, every engine, both widths — and the three bugs that were hiding there (ISSUE-100, 2026-09-16)
 
 Andrew reported from an iPhone that `?config=/click-through-demo.json`'s 📰 box was empty, and asked whether the

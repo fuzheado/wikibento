@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-Dv5Kc4UO.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-16 — **the demos are swept in every engine at desktop and phone widths** (ISSUE-100): the phone-stack body collapse, Wikipedia's User-Agent-gated navbox strip and a static widget's literal `{{widget:…}}` iframe, all found and fixed · before that: **the page box knows its wiki** (ISSUE-99) · **a translation that knows its language** (ISSUE-97) · **Settings** + `translate` emitting (ISSUE-95) · **one picker for every wiki** (ISSUE-93) · **references everywhere** (ISSUE-92) · **click-through** (ISSUE-91) · **Wikipedia boxes** (ISSUE-90) · **compressed share links** (ISSUE-89) · **borrowed boards** (ISSUE-88) · the **URL contract** (ISSUE-87) |
+| production bundle | `index-CLCoetYx.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-18 — **the pageviews card works again** (`getRenderer` and `transform` disagreed about an absent `displayMode`, so a board using the registry default drew a trend payload as a stat card: title, date range, "—") · before that: **the demos are swept in every engine at desktop and phone widths** (ISSUE-100) · the **page box that knows its wiki** (ISSUE-99) · a **translation that knows its language** (ISSUE-97) |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; the demo sweep is 64/64 clean against it (`--require-relay`), and the click-through box renders 161 links on an iPhone profile |
+| pending deploy | none — production serves this branch's tip; the demo sweep is 64/64 clean against it (`--require-relay`, now including a "shows no value" check), the click-through box renders 161 links on an iPhone profile, and the page-picker's pageviews card reads 166,558 |
 | newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and

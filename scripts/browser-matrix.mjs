@@ -199,7 +199,7 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(DEMO_WAIT);
     const seen = await page.evaluate(() => {
-      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [] };
+      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [] };
       const frames = [...document.querySelectorAll('.widget-frame')];
       out.cards = frames.length;
       for (const f of frames) {
@@ -210,6 +210,11 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
         // body at 0px while the data was fully rendered — invisible to a text-only assertion.
         if (body.scrollHeight < 20 && body.querySelector('*')) out.collapsed.push(`${id}:${body.scrollHeight}px`);
         if (/reduced version of this box/i.test(body.textContent || '')) out.degraded.push(id);
+        // A card that renders its EMPTY state instead of data: no error, no collapse, nothing in the console —
+        // just "—" where a number belongs. This is how the pageviews default-mode bug survived (2026-09-18): the
+        // renderer drew a trend payload as a stat card, so the demos looked fine to every other check here.
+        const statValue = body.querySelector('.stat-value');
+        if (statValue && /^[—–-]+$/.test((statValue.textContent || '').trim())) out.placeholders.push(id);
         if (/Retry|Load failed|NetworkError|fetch failed/i.test(f.textContent || '')) out.errorFrames.push(id);
       }
       return out;
@@ -271,6 +276,7 @@ if (DEMOS) {
         row.notes.push('upstream 500 (nothing failed)');
       }
       if (row.errorFrames.length) problems.push(`error frames: ${row.errorFrames.join(', ')}`);
+      if (row.placeholders.length) problems.push(`shows no value: ${row.placeholders.join(', ')}`);
       if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
       if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
       row.status = problems.length ? '❌' : '✅';

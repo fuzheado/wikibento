@@ -45,6 +45,19 @@ import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveR
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { buildTimeline } from '../lib/timeline';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
+
+/**
+ * The Article Pageviews display mode, resolved in ONE place (2026-09-18).
+ *
+ * `getRenderer` and `transform` both branch on `displayMode`, and they treated an ABSENT value differently: the
+ * renderer read "anything that is not 'trend' is StatCard" while the transform read "anything that is not 'stat'
+ * is the trend payload". A board that omitted the field therefore got a trend payload drawn by the StatCard — a
+ * title, a date range and **—** where the count should be. Every shipped board set `displayMode` explicitly, so it
+ * went unnoticed until a demo relied on the default. Registry defaults are only honoured if something reads them
+ * (the ISSUE-94 lesson); this is that, for a value two functions have to agree on.
+ */
+const PAGEVIEWS_MODE_DEFAULT = 'stat';
+const pageviewsMode = (config) => (config && config.displayMode === 'trend' ? 'trend' : PAGEVIEWS_MODE_DEFAULT);
 import { toLines, countOf } from '../lib/dataflow';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
@@ -134,11 +147,11 @@ export const WIDGET_TYPES = {
     defaults: {
       article: 'Main_Page',
       project: 'en.wikipedia',
-      displayMode: 'stat', // 'stat' | 'trend'
+      displayMode: PAGEVIEWS_MODE_DEFAULT, // 'stat' | 'trend' — see pageviewsMode()
       refreshSeconds: 3600,
     },
     renderer: 'StatCard',
-    getRenderer: (config) => config.displayMode === 'trend' ? 'TrendCard' : 'StatCard',
+    getRenderer: (config) => (pageviewsMode(config) === 'trend' ? 'TrendCard' : 'StatCard'),
     dataSource: 'pageviews',
     configFields: [
       { key: 'article', label: 'Article', type: 'text', placeholder: 'Main_Page' },
@@ -151,7 +164,7 @@ export const WIDGET_TYPES = {
     ],
     fetch: (config) => { const p = pageRef(config, 'article'); return fetchPageviews(p.title, p.projectConfig); },
     transform: (data, config) => {
-      if (config.displayMode === 'stat') {
+      if (pageviewsMode(config) === 'stat') {
         return {
           title: `${data.article.replace(/_/g, ' ')}`,
           subtitle: `${(() => { const w = dayWindow(30); return fmtDayRange(w.start.year, w.start.month, w.start.day, w.end.year, w.end.month, w.end.day); })()} · 30-day pageviews`,
