@@ -32,3 +32,8 @@ dist-ssr
 
 # Local cache of fetched API responses (cache-first fetching: never commit payloads)
 cache/
+
+# Throwaway probes written while debugging (a hypothesis, a fixed URL, a screenshot). They belong in the session,
+# not the repo — four of them landed in a commit on 2026-09-16 and were removed the same day. Durable versions go in
+# scripts/ (see scripts/browser-matrix.mjs, whose --demos sweep grew out of exactly such a probe).
+tmp-*

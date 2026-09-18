@@ -288,6 +288,27 @@ const VOLATILE_RULES = [
   },
 ];
 
+check('every ISSUE heading has a unique number', () => {
+  // Two sessions filed the same numbers on the same day and did it twice (ISSUE-78 and ISSUE-91), and the header
+  // rule — "bump from the largest number, then grep for duplicates" — did not stop it, because a rule in prose is
+  // not a check. A duplicate in the canonical tracker silently breaks every reference to either entry, so it is a
+  // build failure now, with the fix spelled out: the LATER, self-contained filing takes the next free number and
+  // says in a note which number it used. (Both collisions were renumbered 2026-09-18 in PR #97; this is the gate
+  // that keeps the next one from landing.)
+  const text = read('docs/ISSUES.md');
+  const seen = new Map();
+  for (const m of text.matchAll(/^## (ISSUE-\d+)/gm)) {
+    const id = m[1];
+    seen.set(id, (seen.get(id) || 0) + 1);
+  }
+  const dupes = [...seen].filter(([, n]) => n > 1).map(([id, n]) => `${id} (×${n})`);
+  if (dupes.length) {
+    fail(`docs/ISSUES.md has duplicate issue numbers: ${dupes.join(', ')} — renumber the later, self-contained filing`
+      + ' to the next free number and leave a note saying which one it was');
+  }
+  return `${seen.size} issues, all unique`;
+});
+
 check('present-tense docs carry no volatile facts', () => {
   const bad = [];
   for (const [doc, text] of Object.entries(prose)) {
