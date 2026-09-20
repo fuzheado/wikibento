@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-17T20:31:11.298Z",
+ "generatedAt": "2026-09-19T14:38:18.756Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -140,7 +140,7 @@
    "id": "wikistats",
    "name": "Wiki Stats",
    "icon": "🌐",
-   "description": "Aggregate stats for a Wikipedia language edition",
+   "description": "Articles, edits, editors and admins for one language edition — read live from that wiki’s own API (MediaWiki siteinfo)",
    "dataSource": "wikistats",
    "category": "Rankings & Platforms",
    "type": "stat",

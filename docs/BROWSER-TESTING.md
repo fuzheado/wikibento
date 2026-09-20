@@ -35,9 +35,16 @@ node scripts/browser-matrix.mjs --demos --boards click-through --viewports phone
 ```
 
 Per run it asserts: **a card per widget in the board** (counted from the board JSON), **no error frames**, **no
-console errors**, and **no collapsed card** — a `.widget-body` whose content renders at zero height. That last check
-is the one that matters for phones: the mobile stack collapsed every card body to 0px, which no text-based
-assertion would have noticed.
+console errors**, **no collapsed card** (a `.widget-body` rendering at zero height — the phone-stack bug), **no
+card showing a placeholder instead of data** (a `.stat-value` of `—`, which is how the pageviews default-mode bug
+hid), and **no empty ranking** (a `.ranking-rows` with no rows, which is how "Largest Wikipedias" sat blank once its
+upstream CSV stopped answering).
+
+The last two exist because a card can render *nothing* while every other check passes: no error, no 4xx, no
+collapse, a clean console. They skip cards that are still loading or waiting or saying "No rows" — a card that
+announces its state is not empty, and an uncalibrated version of this check flagged every card on a cold page load.
+Both boards carrying one of every widget type are in the sweep for exactly this reason: `dashboard.json` (the
+full-catalog board) is the single best target in the repo.
 
 Two flags exist because the *host* changes what correct looks like: `--require-relay` (a host with `/api/proxy`
 should never need the "Wikipedia reduced this for phones" fallback), and the documented benign-console list, which

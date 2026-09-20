@@ -5,7 +5,6 @@
 
 const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const PAGEVIEWS_API = 'https://wikimedia.org/api/rest_v1/metrics/pageviews';
-const WIKISTATS_API = 'https://wikistats.wmcloud.org/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
@@ -18,6 +17,7 @@ import {
   boxWasStrippedForMobile, boxRelayUrl,
 } from '../lib/wikiBox.js';
 import { fetchTextWithRetry } from '../lib/httpRetry';
+import { projectSite } from '../lib/reference';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
 import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits, iiifImageTemplate } from '../lib/iaBook';
@@ -33,11 +33,7 @@ import {
 
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
-const wikistatsCache = createTtlCache(5 * 60 * 1000);
 
-function fetchWikistatsText(url) {
-  return wikistatsCache.get(url, () => fetchTextWithRetry(url));
-}
 
 // ── GLAM Category Usage (GLAMorgan-style) ────────────────
 // Bounded, browser-native replication of GLAMorgan: a client-side category
@@ -741,29 +737,121 @@ export async function fetchCategorySize(category, wiki = 'commons.wikimedia', sa
   }
 }
 
-/** 4. Wikistats — per-wiki aggregate stats. Uses CSV format (dump action doesn't support JSON). */
-/** 4. Wikistats — per-wiki aggregate stats. Uses CSV format (dump action doesn't support JSON). */
-export async function fetchWikistats(table = 'wikipedias', lang = null) {
- const params = new URLSearchParams({ action: 'dump', table, format: 'csv', });
- try {
-  const csv = await fetchWikistatsText(`${WIKISTATS_API}?${params}`);
-  const lines = csv.trim().split('\n');
+/**
+ * 4. Wiki Stats — a language edition's own statistics (ISSUE: the legacy CSV service broke).
+ *
+ * Until 2026-09-18 this read `wikistats.wmcloud.org/api.php?action=dump&table=wikipedias&format=csv`, which now
+ * answers **HTTP 500 with an empty body** — reproducibly, for every User-Agent, and only for the `wikipedias`
+ * table (`wiktionaries`, `wikisources`, `wikidata` and `commons` still return CSV). The API refuses every other
+ * format for that table ("dump format not set or unknown… f.e. &format=csv"), so there is no way to ask the legacy
+ * service for it. A live 🎛️ Board Controls card built on that call simply errored.
+ *
+ * The replacement is better than the thing it replaces, and not just because it works:
+ *
+ *   · it is the **wiki's own** number — `action=query&meta=siteinfo&siprop=statistics` on `en.wikipedia.org`
+ *     returns articles, pages, edits, users, active users, admins and images directly;
+ *   · it is **live** rather than a periodic dump, and one request per card instead of a whole CSV (69 KB for
+ *     wiktionaries, and the wikipedias table is far larger);
+ *   · it is **CORS-enabled** with `origin=*`, and every family the widget offers is a host away.
+ *
+ * The only column the CSV had that siteinfo does not is `views`, which this card never showed — so nothing is lost.
+ * Field names are the API's own (`articles`, not Wikistats' `good`), and `siteinfo.statistics.articles` is the
+ * "good articles" number the card has always displayed.
+ */
+export const WIKISTATS_FAMILIES = {
+  wikipedias: 'wikipedia',
+  wiktionaries: 'wiktionary',
+  wikisources: 'wikisource',
+};
+
+/** `wikipedias` + `en` → `en.wikipedia.org`. Accepts a bare code, a dotted project (`de.wikipedia`) or a dbname
+ *  (`dewiki`), because the ⚙ Language field is the shared project picker and can hand over any of them. */
+export function wikistatsHost(table, lang) {
+  const family = WIKISTATS_FAMILIES[table] || 'wikipedia';
+  const raw = String(lang || '').trim();
+  // `projectSite` reads every form the app writes a wiki in and gives back the language subtag.
+  const site = raw ? projectSite(raw) : null;
+  const code = (site && site.lang) || raw.replace(/\.(wikipedia|wiktionary|wikisource)$/i, '') || 'en';
+  return `${code.toLowerCase()}.${family}.org`;
+}
+
+/** The `siteinfo` payload → the flat shape the card renders. Pure, so the shape is testable without a network. */
+export function parseWikistatsStatistics(data, { table = 'wikipedias', lang = 'en', host } = {}) {
+  const s = data && data.query && data.query.statistics;
+  if (!s || typeof s !== 'object') return null;
+  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  return {
+    table,
+    lang,
+    host: host || wikistatsHost(table, lang),
+    articles: num(s.articles),
+    pages: num(s.pages),
+    edits: num(s.edits),
+    users: num(s.users),
+    activeusers: num(s.activeusers),
+    admins: num(s.admins),
+    images: num(s.images),
+  };
+}
+
+/**
+ * The legacy CSV dump — the ONLY source that lists every language edition with its counts, and still flaky.
+ *
+ * Measured 2026-09-18: `table=wikipedias&format=csv` answered **HTTP 500 with an empty body** three times over
+ * several minutes, then answered 200 with 195 KB. So it is intermittent, not dead — which is why the ranking still
+ * depends on it and the single-edition card does not. `fetchTextWithRetry` retries 5xx; a *persistent* failure
+ * surfaces as an error (an honest empty state) rather than an empty ranking.
+ *
+ * The parse is deliberately naive — split on `,`, no quoted-field handling — and that is safe for this widget
+ * because it reads only the first five columns (`id,lang,prefix,total,good`): a comma inside a later field (every
+ * `si_sitename` contains one: "Wikipedia, the free encyclopedia") shifts columns to its RIGHT, never to its left.
+ * The limitation is filed as an open issue in HANDOFF; it is not this widget's problem to fix.
+ */
+const WIKISTATS_DUMP_API = 'https://wikistats.wmcloud.org/api.php';
+
+async function fetchWikistatsTable(table = 'wikipedias') {
+  const csv = await fetchTextWithRetry(`${WIKISTATS_DUMP_API}?${new URLSearchParams({ action: 'dump', table, format: 'csv' })}`);
+  const lines = String(csv || '').trim().split('\n');
+  if (lines.length < 2) throw new Error('the dump returned no rows');
   const headers = lines[0].split(',');
-  const rows = lines.slice(1).map(line => {
-   const vals = line.split(',');
-   const obj = {};
-   headers.forEach((h, i2) => { obj[h.trim()] = vals[i2]?.trim(); });
-   return obj;
+  const rows = lines.slice(1).map((line) => {
+    const vals = line.split(',');
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || '').trim(); });
+    return obj;
   });
-  if (lang) {
-   return rows.find(r => r.lang === lang) || rows[0];
-  }
-  // Return top 10 by 'good' articles
-  const sorted = [...rows].filter(r => r.good).sort((a, b) => (parseInt(b.good) || 0) - (parseInt(a.good) || 0));
+  const sorted = rows.filter((r) => r.good).sort((a, b) => (parseInt(b.good) || 0) - (parseInt(a.good) || 0));
   return { rows: sorted.slice(0, 10), table };
- } catch (e) {
-  throw new Error(`Wikistats fetch failed: ${e.message}`);
- }
+}
+
+/** Which source a call uses, decided in one place: an edition is read from that wiki (live, small, authoritative);
+ *  a ranking needs every edition, which only the legacy dump has. */
+export const wikistatsSource = (lang) => (lang ? 'siteinfo' : 'dump');
+
+export async function fetchWikistats(table = 'wikipedias', lang = 'en') {
+  if (wikistatsSource(lang) === 'dump') {
+    try {
+      return await fetchWikistatsTable(table);
+    } catch (e) {
+      throw new Error(`Wiki stats table fetch failed (${table}): ${e.message}`);
+    }
+  }
+  const host = wikistatsHost(table, lang);
+  const params = new URLSearchParams({
+    action: 'query',
+    meta: 'siteinfo',
+    siprop: 'statistics',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  try {
+    const stats = parseWikistatsStatistics(await fetchJSON(`https://${host}/w/api.php?${params}`), { table, lang, host });
+    if (!stats) throw new Error('the API returned no statistics');
+    return stats;
+  } catch (e) {
+    throw new Error(`Wiki stats fetch failed for ${host}: ${e.message}`);
+  }
 }
 export async function fetchFileUsage(filename, topN = 10) {
   const params = new URLSearchParams({

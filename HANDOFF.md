@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CLCoetYx.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-18 — **the pageviews card works again** (`getRenderer` and `transform` disagreed about an absent `displayMode`, so a board using the registry default drew a trend payload as a stat card: title, date range, "—") · before that: **the demos are swept in every engine at desktop and phone widths** (ISSUE-100) · the **page box that knows its wiki** (ISSUE-99) · a **translation that knows its language** (ISSUE-97) |
+| production bundle | `index-DqGL5NOH.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-18 — **Wiki Stats reads the wiki itself, and the 360° panorama renders for the first time** (it had a component, a registry entry and no route, so every card fell through to an empty StatCard) · before that: **pageviews** (`getRenderer` and `transform` disagreed about an absent `displayMode`) · **the demo sweep** (ISSUE-100) · the **page box that knows its wiki** (ISSUE-99) |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; the demo sweep is 64/64 clean against it (`--require-relay`, now including a "shows no value" check), the click-through box renders 161 links on an iPhone profile, and the page-picker's pageviews card reads 166,558 |
+| pending deploy | none — production serves this branch's tip (rebuild hash identical); the demo sweep is 67/68 against it with the one failure passing twice on re-run (WDQS throttling under the sweep's own load) |
 | newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -396,6 +396,11 @@ actually broken or unfinished today:
 - **`handleLayoutChange` persists to `localStorage` on every drag tick** (only *during* a real gesture now — a
   mount-time auto-placement no longer persists, see gotcha 21) — fine at the current payload size, wasteful as
   boards grow.
+- **The legacy Wikistats CSV is flaky, and the ranking depends on it.** `wikistats.wmcloud.org/api.php?action=dump&table=wikipedias&format=csv`
+  answered 500-with-an-empty-body for a stretch on 2026-09-18 and then recovered. The single-edition Wiki Stats card
+  no longer uses it (siteinfo), but `topWikipedias` needs a list of every edition and **no replacement exists** — the
+  site matrix carries no article counts. A persistent failure shows an error rather than an empty ranking, and
+  finding a better source for "largest Wikipedias" is an open question rather than a task.
 - **The Ask path can name a wiki that does not exist.** The project picker constrains the UI (ISSUE-93), but the
   Ask path reads the *manifest* and passes an unfamiliar project through: 364 wikis cannot be enumerated in a
   validator, so the widget's own error state is the guard. Aliases and shapes are normalised (`Commons` →

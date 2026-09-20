@@ -850,6 +850,11 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'DocumentReaderCard': return <DocumentReaderCard data={data} />;
 
     case 'WikiBoxCard': return <WikiBoxCard data={data} onSelect={onSelect} />;
+    // The 360° panorama had a component and a registry entry but NO case here, so every panorama card fell
+    // through to `default: StatCard` and rendered an empty "—" (found 2026-09-18 by the demo sweep's
+    // "shows no value" check, on the full-catalog board). A renderer that is defined but unreachable is invisible
+    // to a gate that only checks definitions — see the routing assertion in tests/renderer-registry.test.mjs.
+    case 'PanoramaCard': return <PanoramaCard data={data} />;
     default: return <StatCard data={data} />;
   }
 }

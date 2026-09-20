@@ -39,6 +39,7 @@ import {
  fetchCimFileTraffic,
  fetchWaybackGallery,
  fetchIaItem,
+  wikistatsHost,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
 import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
@@ -259,8 +260,10 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Wiki Stats',
     icon: '🌐',
-    description: 'Aggregate stats for a Wikipedia language edition',
-    labelFromConfig: (c) => c.lang ? `${c.lang}.wikipedia.org` : null,
+    description: 'Articles, edits, editors and admins for one language edition — read live from that wiki’s own API (MediaWiki siteinfo)',
+    // The card names the wiki it read, family and all — `de.wiktionary.org` for the Wiktionary table, not always
+    // `.wikipedia.org` (which the hardcoded version said even for a Wiktionary card, 2026-09-18).
+    labelFromConfig: (c) => (c.lang ? wikistatsHost(c.table, c.lang) : null),
     defaults: {
       table: 'wikipedias',
       lang: 'en',
@@ -277,11 +280,16 @@ export const WIDGET_TYPES = {
       ]},
     ],
     fetch: (config) => fetchWikistats(config.table, config.lang),
+    // The source changed from a CSV dump to the wiki's own siteinfo (2026-09-18 — the legacy CSV endpoint answers
+    // 500 for the main table). Field names are the API's own now; `articles` is the number this card always showed.
     transform: (data) => ({
-      title: `${data.lang || data.rows?.[0]?.lang}.wikipedia.org`,
-      subtitle: 'Aggregate statistics',
-      value: (parseInt(data.good) || parseInt(data.total) || 0).toLocaleString(),
-      detail: data.good ? `Articles: ${parseInt(data.good).toLocaleString()} · Edits: ${parseInt(data.edits).toLocaleString()} · Users: ${parseInt(data.users).toLocaleString()}` : '',
+      title: data.host || wikistatsHost(data.table, data.lang),
+      subtitle: 'Live from the wiki’s own API',
+      value: (data.articles || data.pages || 0).toLocaleString(),
+      detail: data.articles
+        ? `Articles: ${data.articles.toLocaleString()} · Edits: ${data.edits.toLocaleString()}`
+          + ` · Editors: ${data.users.toLocaleString()} · Active: ${data.activeusers.toLocaleString()}`
+        : '',
     }),
   },
 

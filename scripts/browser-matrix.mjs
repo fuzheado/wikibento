@@ -164,6 +164,9 @@ const BENIGN_CONSOLE = [
   // to load is caught by the error-frame assertion, which does not depend on console counts. Not benign in
   // general — only as a console line here.
   /the server responded with a status of 429/,
+  // The machine went to sleep mid-sweep (a 68-run pass outlives a laptop's screen timeout). Chromium reports every
+  // in-flight request as ERR_NETWORK_IO_SUSPENDED on wake; nothing about the app is at fault.
+  /ERR_NETWORK_IO_SUSPENDED/,
 ];
 
 /** Upstream 500s (archive.org's media CDN served one during a sweep) are not ours to fix, and the console line
@@ -178,8 +181,12 @@ const LAUNCHERS = { chromium, firefox, webkit };
 /** One board in one engine at one viewport, with the checks that matter for a *demo*: every card present,
  *  nothing collapsed, no errors, and (optionally) no relay-degraded box. */
 async function runOne(launch, engine, boardName, viewportName, expectedCards) {
+  // Every field the reporter reads must exist BEFORE anything can throw: a launch failure used to leave
+  // `errorFrames` undefined, and the worker crashed on it — killing a 68-run sweep after 30 minutes of work and
+  // printing no summary at all (2026-09-18). The arrays are created here, not by the evaluate() that may never run.
   const row = { engine, board: boardName, viewport: viewportName, cards: 0, expected: expectedCards,
-    collapsed: [], consoleErrors: 0, benignConsole: 0, errors: [], notes: [] };
+    collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
+    consoleErrors: 0, benignConsole: 0, errors: [], notes: [] };
   let browser; let context;
   try {
     const exe = EXECUTABLES[engine];
@@ -199,7 +206,7 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(DEMO_WAIT);
     const seen = await page.evaluate(() => {
-      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [] };
+      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [] };
       const frames = [...document.querySelectorAll('.widget-frame')];
       out.cards = frames.length;
       for (const f of frames) {
@@ -215,6 +222,20 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
         // renderer drew a trend payload as a stat card, so the demos looked fine to every other check here.
         const statValue = body.querySelector('.stat-value');
         if (statValue && /^[—–-]+$/.test((statValue.textContent || '').trim())) out.placeholders.push(id);
+        // A RANKING with no rows, or a body with essentially nothing in it — no error, no placeholder, just a
+        // title and a subtitle and nothing under them. The error-frame check cannot see this; that is how the
+        // "Largest Wikipedias" card sat empty once its upstream CSV stopped answering (2026-09-18).
+        //
+        // A card that SAYS what it is doing is not empty: `.widget-loading`. `.widget-waiting` (an unresolved
+        // reference), `.widget-error` and `.widget-empty` ("No rows", "No traffic data") are all answers. Skipping
+        // them is what keeps this honest — an uncalibrated version flagged every card on a cold page load.
+        const settled = !body.querySelector('.widget-loading, .widget-waiting, .widget-error, .widget-empty');
+        if (settled) {
+          const rows = body.querySelector('.ranking-rows');
+          if (rows && rows.children.length === 0) out.emptyRows.push(id);
+          const text = (body.innerText || '').trim();
+          if (text.length < 12 && !body.querySelector('img, canvas, svg, iframe, input, button')) out.emptyRows.push(id);
+        }
         if (/Retry|Load failed|NetworkError|fetch failed/i.test(f.textContent || '')) out.errorFrames.push(id);
       }
       return out;
@@ -234,7 +255,9 @@ async function readDemoBoards() {
   const dir = new URL('../public/', import.meta.url);
   const { readdirSync, readFileSync } = await import('node:fs');
   return readdirSync(dir)
-    .filter((f) => /-demo\.json$/.test(f) || f === 'demos.json')
+    // `dashboard.json` is the full-catalog board — one of every widget type, so it is the best single sweep
+    // target in the repo, and it was missing from this list until 2026-09-18.
+    .filter((f) => /-demo\.json$/.test(f) || f === 'demos.json' || f === 'dashboard.json')
     .sort()
     .map((f) => {
       let count = 0;
@@ -263,7 +286,15 @@ if (DEMOS) {
   async function worker() {
     while (next < jobs.length) {
       const job = jobs[next++];
-      const row = await runOne(job.launch, job.engine, job.name, job.viewport, job.count);
+      let row;
+      try {
+        row = await runOne(job.launch, job.engine, job.name, job.viewport, job.count);
+      } catch (e) {
+        // Belt and braces: one pathological board must not take the other 67 runs down with it.
+        row = { engine: job.engine, board: job.name, viewport: job.viewport, cards: -1, expected: job.count,
+          collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
+          consoleErrors: 0, benignConsole: 0, errors: ['HARNESS: ' + String(e.message).slice(0, 110)], notes: [] };
+      }
       const problems = [];
       if (row.cards < 0) problems.push('did not load');
       else if (row.expected && row.cards !== row.expected) problems.push(`cards ${row.cards}≠${row.expected}`);
@@ -277,6 +308,7 @@ if (DEMOS) {
       }
       if (row.errorFrames.length) problems.push(`error frames: ${row.errorFrames.join(', ')}`);
       if (row.placeholders.length) problems.push(`shows no value: ${row.placeholders.join(', ')}`);
+      if (row.emptyRows.length) problems.push(`empty body: ${[...new Set(row.emptyRows)].join(', ')}`);
       if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
       if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
       row.status = problems.length ? '❌' : '✅';

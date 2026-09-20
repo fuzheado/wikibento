@@ -12,7 +12,7 @@ Base URLs:
 | MediaWiki Action API (enwiki) | `https://en.wikipedia.org/w/api.php` |
 | MediaWiki Action API (Commons) | `https://commons.wikimedia.org/w/api.php` |
 | RESTBase Pageviews | `https://wikimedia.org/api/rest_v1/` |
-| Wikistats (s23) | `https://wikistats.wmcloud.org/api.php` |
+| Wikistats (s23) | `https://wikistats.wmcloud.org/api.php` (rankings) · `{lang}.wikipedia.org/w/api.php` `siteinfo` (one edition) |
 
 ---
 
@@ -130,31 +130,49 @@ GET https://{wiki}.org/w/api.php?action=query&prop=categoryinfo&titles=Category:
 
 ---
 
-## 4. Wiki Stats — Wikistats (s23) CSV API
+## 4. Wiki Stats — the wiki's own `siteinfo`, and a dump for rankings
 
-**Widgets:** Wiki Stats · Top 10 Wikipedias · **Fetcher:** `fetchWikistats(table, lang)`
+**Widgets:** Wiki Stats (per edition) · Top 10 Wikipedias (ranking) · **Fetcher:** `fetchWikistats(table, lang)`
+
+**Two sources, chosen in one tested place (`wikistatsSource(lang)`), because the two widgets ask different questions.**
+
+### A language edition → that wiki's own API (since 2026-09-18)
+
+```
+GET https://{lang}.{family}.org/w/api.php?action=query&meta=siteinfo&siprop=statistics&format=json&formatversion=2&origin=*
+```
+
+`wikipedias`/`wiktionaries`/`wikisources` → `wikipedia`/`wiktionary`/`wikisource`; the ⚙ Language field is the shared
+project picker, so `en`, `en.wikipedia` and `enwiki` all resolve to the same host (`wikistatsHost`).
+
+Returns `{ articles, pages, edits, users, activeusers, admins, images }` — **everything the card shows**, live,
+one request, CORS ✓. `siteinfo.statistics.articles` is the "good articles" number the card has always displayed.
+
+**Why it changed:** the card used to read a CSV dump of all 333 Wikipedias to pick one row, and on 2026-09-18 that
+endpoint answered **HTTP 500 with an empty body** — reproducibly, for every User-Agent, three times over several
+minutes, for `table=wikipedias&format=csv` only. (`wiktionaries`, `wikisources`, `wikidata` and `commons` kept
+returning CSV, and the API refuses every other format for the broken table: "dump format not set or unknown…
+f.e. &format=csv".) The wiki's own statistics are immune to that, and cheaper: ~1 KB instead of 195 KB.
+
+### A ranking → the legacy dump (still, and it is flaky)
 
 ```
 GET https://wikistats.wmcloud.org/api.php?action=dump&table=wikipedias&format=csv
 ```
 
-- `action=dump&format=csv` returns a full CSV of the table (the dump action doesn't
-  support JSON — hence the CSV parsing).
-- Tables: `wikipedias`, `wiktionaries`, `wikisources` (selectable); the full dump is
-  **333 rows** for Wikipedias.
-- `lang` filter: returns the single matching row (e.g. `en`).
-- No `lang`: returns `{ rows: top10byGood, table }` — sorted by the `good` column
-  (article count) and sliced to 10.
-- Row fields include `lang`, `good` (articles), `total`, `edits`, `users`, `date`, etc.
+- The **only** source that lists every edition with counts — the site matrix carries no `count`
+  (`smsiteprop=count` is ignored; sites have `url`/`dbname`/`code`/`closed`), so `topWikipedias` has no alternative.
+- Sorted by the `good` column (articles) and sliced to 10, returned as `{ rows, table }`.
+- It is **intermittent, not dead**: the same URL that 500'd three times answered 200 with 195 KB minutes later.
+  `fetchTextWithRetry` retries 5xx, and a persistent failure now surfaces as an error rather than an empty ranking.
 - **Gotchas:**
-  - **Naive CSV parse:** splits on `,` with no quoted-field handling (ARCHITECTURE #5).
-    Works for the current s23 format — verify if the upstream format changes.
-  - The full dump is ~50 KB and is re-fetched on every refresh of either widget; with
-    both Wiki Stats and Top 10 on the dashboard, it's fetched twice per refresh cycle.
-    A shared cache is the v2 fix.
-  - `lang` column values are 2-letter codes (`en`), not `en.wikipedia`.
+  - **Naive CSV parse** (splits on `,`, no quoted-field handling — ARCHITECTURE #5, open in HANDOFF). Safe for this
+    widget specifically: it reads only the first five columns (`id,lang,prefix,total,good`), and a comma inside a
+    later field — every `si_sitename` has one, "Wikipedia, the free encyclopedia" — shifts columns to its *right*.
+  - The dump is ~195 KB and is re-fetched on every ranking refresh.
 
-**Verified:** 333 Wikipedias parsed; English #1 at 7,223,053 articles — 2026-08-12.
+**Verified:** `en.wikipedia.org` = 7,241,853 articles / 1,371,008,143 edits / 263,530 active editors (siteinfo,
+2026-09-18); the ranking's top three were English 7,241,032 · Cebuano 6,115,710 · German 3,152,097 (dump, same day).
 
 ---
 

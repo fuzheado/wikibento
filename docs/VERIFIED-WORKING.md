@@ -11,6 +11,34 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A broken upstream, a widget that never rendered, and two checks that can see "nothing" (2026-09-18, second pass)
+
+Andrew reported a Wiki Stats card in an error state: `Wikistats fetch failed: HTTP 500 (…table=wikipedias&format=csv)`.
+
+- ✅ **The 500 was real and it was upstream's** — reproduced three times over several minutes, for every User-Agent,
+  and only for the `wikipedias` table (wiktionaries, wikisources, wikidata and commons kept returning CSV). The API
+  refuses every other format for that table, so it could not be asked differently. **And it came back**: the same URL
+  answered 200 with 195 KB minutes later, so the service is *flaky*, not dead — which decided the fix.
+- ✅ **The single-edition card now reads the wiki itself** (`siteinfo.statistics`): live rather than a periodic dump,
+  one request instead of 195 KB, CORS ✓ — and it returns everything the card shows. Verified live: **7,241,853
+  articles, 1,371,008,143 edits, 263,530 active editors**. `en`, `en.wikipedia` and `enwiki` all resolve to the same
+  host, because the ⚙ Language field is the shared picker.
+- 🐛 **The ranking genuinely needs the dump** (nothing else lists every edition with counts — the site matrix carries
+  no `count`), so it keeps it — and I nearly broke it: routing both widgets through siteinfo left "Largest
+  Wikipedias" rendering **zero rows, silently**. Verified after the fix: English 7,241,032 · Cebuano 6,115,710 ·
+  German 3,152,097.
+- 🐛 **A widget that had never rendered at all.** `PanoramaCard` was defined, named by the `panorama360` widget and
+  **never given a `case` in the content dispatcher** — so every 360° card fell through to `default: StatCard` and
+  showed an empty "—". It shipped that way. Found by the new "shows no value" check on the full-catalog board, and
+  the gate that should have caught it only asserted that a renderer *exists*, not that it is *reachable*: it does now.
+- ✅ **Two checks the sweep earned, and one crash it had**: a `.stat-value` of `—` and a `.ranking-rows` with no rows
+  are both failures now, and each was verified by restoring the bug (the first reports exactly `shows no value:
+  views`, the second `empty body: topwikis`). The harness itself had a bug — a launch failure left fields undefined
+  and killed a 68-run sweep with no summary — fixed with initialised fields and a per-job guard.
+- ✅ **Verified against production:** 67/68 clean, and the single failure (a SPARQL card on WebKit-phone) passed
+  twice on re-run — WDQS throttling under the sweep's own concurrency, not the app. The full-catalog board's 43
+  cards all pass, and on an iPhone profile too.
+
 ## A card that showed "—" instead of a number, and why only a new demo could find it (2026-09-18)
 
 Andrew: *the "views" metrics box does not seem to be working* on `?config=/page-picker-demo.json`.

@@ -64,3 +64,17 @@ test('a widget\'s renderer and its transform agree on what an ABSENT display mod
   // the registry default and the two functions must name the same mode
   assert.equal(def.getRenderer({ displayMode: def.defaults.displayMode }), 'StatCard');
 });
+
+test('every renderer named in the registry is REACHABLE from the content dispatcher', () => {
+  // Existence was not enough. `PanoramaCard` was defined, named by the `panorama360` widget and never given a
+  // `case` in `WidgetContent`, so every 360° card fell through to `default: StatCard` and rendered an empty "—".
+  // It shipped that way until a demo sweep noticed the placeholder (2026-09-18). This asserts routing, which is
+  // the thing that actually decides what a user sees.
+  const registry = read('src/widgets/index.js');
+  const frame = read('src/widgets/WidgetFrame.jsx');
+  const named = [...new Set([...registry.matchAll(/renderer:\s*'([A-Za-z0-9_]+)'/g)].map((m) => m[1]))]
+    .filter((name) => !MODE_VALUES.has(name));
+  const routed = new Set([...frame.matchAll(/case '([A-Za-z0-9_]+)':/g)].map((m) => m[1]));
+  const unrouted = named.filter((name) => !routed.has(name));
+  assert.deepEqual(unrouted, [], `renderers with no case in WidgetContent (they fall through to StatCard): ${unrouted.join(', ')}`);
+});
