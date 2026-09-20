@@ -224,6 +224,8 @@ wikibento/
     │   ├── reference.js       # a page plus its wiki (enwiki:Weddell Sea), and the one project→host mapping
     │   ├── projects.js        # every wiki (364), ordered recency → default → curated → rest
     │   ├── wikiBox.js         # rendering a wiki template: sanitise, scope, rewrite, what a click means
+    │   ├── speech.js          # the typed speech value ({type,text,lang}) + voice choice by language
+    │   ├── paramSources.js    # validated lookup sources (categories, galleries, articles, QIDs)
     │   ├── markdown.js        # tiny zero-dep Markdown renderer (Text/Markdown widget)
     │   ├── share.js           # URL loading/sharing (?config=, #/d/<base64>)
     │   └── qr.js              # URL → inline SVG QR code (qrcode-generator)
@@ -258,8 +260,10 @@ the failures each check was written for, is [docs/VERIFIED-WORKING.md](docs/VERI
 are checked rather than asserted: `npm test` regenerates the widget manifest and enforces the cross-document
 consistency gates, `npm run smoke` enforces grid geometry and that every ⚙/ⓘ action is reachable at any panel
 size, and `npm run test:browsers` loads a real board in all three engines. **`npm run
-test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at desktop *and* phone widths**,
-asserting that each card renders and that none collapses — it is what found an empty box on iPhone (ISSUE-100). The
+test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at desktop *and* phone widths**, asserting
+that each card renders, that none collapses, that no card shows a bare `—` in place of data and that no ranking is
+empty — checks written for the bugs they then found (an empty box on iPhone, a pageviews card with no count, a 360°
+widget that had never rendered; ISSUE-100). The
 feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url` —
 what each of them caught is in [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md)). The same suite holds the dataflow contract honest: an
 emitter that publishes prose must declare where it came from, a widget with named channels must say what its bare

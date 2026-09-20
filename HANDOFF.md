@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; the gallery widget is verified live in Chromium and iPhone WebKit (Venetian Macao's captions, London capped at "542 images · showing 24", a click driving the reader) |
-| newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
+| newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -53,9 +53,9 @@ Gallery).
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
 | `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
+| `npm run test:browsers:demos` | **every demo board** (17 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
-| `node scripts/docs-facts.mjs --live`, and — before announcing a release — `npm run test:browsers:demos`
-(the full sweep: it is what found the empty-box-on-iPhone, ISSUE-100) | the bundle HANDOFF claims is deployed is what production serves |
+| `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
 (the showcase) are both **derived artifacts** kept honest by tests, so they
@@ -123,7 +123,7 @@ integrity) · `src/lib/borrowedBoard.js` (borrowed boards, the recovery stash, t
 notice's rule) · `src/lib/reference.js` (a page plus its wiki: `enwiki:Weddell Sea`,
 and the one project→host mapping) · `src/lib/projects.js` (every wiki, ordered
 recency → default → curated → rest) · `src/lib/wikiBox.js` (rendering a wiki template:
-sanitise, scope, rewrite, and what a click means) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+sanitise, scope, rewrite, and what a click means) · `src/lib/speech.js` (the typed speech value — text + language — and choosing a voice by language) · `src/lib/paramSources.js` (the validated lookup sources: Commons categories, galleries, files, articles, QIDs) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
 (fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
 renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
 example board) · `src/lib/params.js` (board params, reference resolution) ·
@@ -351,6 +351,13 @@ and a stream pipeline that works in Node is not evidence about a browser.
     and check `.widget-body`'s `scrollHeight`, not its text: the data was all there, invisible. Fixed with
     `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }` — and by making the demo sweep assert it.
 
+30. **A component can exist, be named by the registry, and never render.** `PanoramaCard` was defined in
+    `WidgetFrame.jsx`, named by the `panorama360` widget, and had **no `case` in the content dispatcher** — so every
+    360° card fell through to `default: StatCard` and showed an empty "—" for as long as the widget shipped. The gate
+    that should have caught it asserted that a renderer *exists* (it did), not that it is *reachable*; there are two
+    assertions now, and the second one is the one that decides what a user sees. The general lesson is worth
+    keeping: **existence is not reachability**, in code, in docs, and in tests.
+
 ## Open issues & known bugs
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
@@ -366,11 +373,14 @@ actually broken or unfinished today:
   is now *borrowed*: shown, never written, until the visitor edits; the board an adoption displaces stays
   recoverable for a day, and a notice offers [Save this as mine] / [Back to my board]. One signal does both
   jobs — the fingerprint divergence that drops the URL's claim is the moment of adoption.
-- **`public/dashboard.json`'s authored layout overlaps itself.** `fileusage`
-  (x9 y14 w3 h5 → occupies through row 18) and `topwikis` (x9 y18 w4 h4) collide;
-  react-grid-layout pushes items apart so the *rendered* board is fine, but the
-  authored file contradicts itself and nothing checks. Worth a no-overlap
-  assertion in the demos constitution, plus a one-line fix.
+- **Three demo boards' *authored* layouts overlap themselves** (measured 2026-09-18: `dashboard.json` 7 pairs,
+  `glam-demo.json` 2, `front-page-demo.json` 1). Example: `fileusage` (x9 y14 w3 h5) and `topwikis` (x7 y18 w5 h4)
+  collide; `quality`/`assessments` collide with `edithistory`. Nothing breaks: react-grid-layout **compacts
+  vertically** (closing gaps) and **pushes** overlapping items apart, so the rendered board is fine and the demo sweep
+  passes in every engine. The authored files simply contradict themselves, and nothing checks — the same sloppiness
+  that put the new gallery tile into a collision the moment it was added. The clean fix is a one-off repack of those
+  three layouts, after which a no-overlap assertion belongs in the demos constitution; the measurement is ten lines
+  of Python (pairwise rectangle intersection).
 - **Don't diagnose an artifact diff without pinning the commit.** A rebuild of the
   working tree did not match the deployed bundle, which invited a "toolchain drift"
   explanation — but `HEAD` had moved past the **deployed commit**, and the 🔳 QR
@@ -410,11 +420,11 @@ actually broken or unfinished today:
   feature, not a fix (ISSUE-92's known limit).
 - **Settings has no home for anything else yet, on purpose.** The panel holds three preferences (your wiki, the
   recents, present-mode fullscreen). The bar for a fourth: a preference *of the person* with no better home.
-- **Two pre-existing dev-only React warnings** (cosmetic, 2-line fixes, no
-  production impact): the toolbar's ✨ Ask button is nested inside the + Add Widget
-  button (`App.jsx:489` — invalid HTML; browsers auto-split them), and the media
-  player spreads a `key` inside `mediaProps` into `<audio>`/`<video>`
-  (`WidgetFrame.jsx:1604`).
+- ~~**Two pre-existing dev-only React warnings**~~ **Fixed 2026-09-18** — both, while making the demo sweep's
+  console signal usable: ✨ Ask is now a *sibling* of + Add Widget (it was nested inside it — invalid HTML that made
+  browsers auto-split the tags) and the media player puts React's `key` on `<audio>`/`<video>` instead of spreading it
+  out of `mediaProps`. Each was a one-console-error-per-load tax on every sweep row, which is why they finally got
+  done: a check nobody can read is a check nobody runs.
 
 ## Next steps
 
@@ -425,7 +435,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
    - **ISSUE-96 — finish the emitter audit.** 11 of 43 widget types publish anything (the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
-     obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the galleries, `edithistory`, every
+     obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
      is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The
      consumer side needs nothing: any text field already interpolates `{{widget:id}}`.
@@ -453,6 +463,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      millisecond.
    - **Then the Internet Archive media family** — `iaPlaylist` → `iaVideo` + keyframe filmstrip → `iaAudio`, all
      measured and specced in `docs/INTERNET-ARCHIVE.md`.
+     - **ISSUE-103's known limit** — the 🎞️ Commons Gallery reads literal `<gallery>` blocks from the wikitext, so a
+       gallery generated *by a template* reads as empty (the rendered HTML would catch those, at 10× the bytes: 654 KB
+       against 56 KB for London). Worth deciding per case rather than assuming; everything else about galleries shipped.
+     - **Also filed, not queued** — ISSUE-101 (a full-bleed single Commons image tile) and ISSUE-102 (quiz / trivia
+       mode for an event, GitHub #95) came in from a parallel session. Both are self-contained and neither blocks
+       anything here.
 2. **Tier-A wiring view** — a derived, read-only map of who drives whom on a board.
    Fully specced in `docs/MODULARITY-AND-DATAFLOW.md` §Part 6, not started. This is
    the biggest remaining UX gap now that params and dataflow both ship.
