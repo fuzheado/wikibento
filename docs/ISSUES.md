@@ -4935,3 +4935,79 @@ and `url-state.test.mjs` updated rather than bypassed.
 **Non-goals v1:** no server/leaderboard/multiplayer (needs the Toolforge relay plus a privacy decision),
 client-side grading only (the answer key is visible in the JSON — fine for a booth, said plainly), no
 free-text answers.
+
+## ISSUE-103 · Gallery pages: Commons' curated layer, as data — **open** (explored 2026-09-18)
+
+Andrew, with `https://commons.wikimedia.org/wiki/The_Venetian_Macao`: *"By name, they are not specially named with a
+`Gallery:` prefix nor do they seem like they are in a special namespace. What makes a gallery a gallery, and what
+might we do special in WikiBento to do something useful with it?"*
+
+### What makes a gallery a gallery — measured
+
+Nothing in the title, and nothing in the namespace. Every signal is **content and convention**:
+
+| signal | measured on the example |
+|---|---|
+| a **main-namespace (ns-0)** page | `The Venetian Macao` → `ns=0`, pageid 149083378 |
+| — and **`Gallery:` is NOT a namespace alias** | `Gallery:The Venetian Macao` → **missing**; that is just a page with that literal title |
+| the **`{{Gallery page}}`** template | transcluded, with `/i18n/en` and `/layout` subpages |
+| a literal **`<gallery>`** tag | one block, and 542 bytes of wikitext in total |
+| a **tracking category tree** | `Category:Gallery pages of Macao`, `…of buildings in China`, `…of hospitality buildings` (root: `Category:Commons galleries`) |
+
+Scale: **87,315** pages carry `{{Gallery page}}`, **140,220** contain a `<gallery>` tag (Commons, ns-0, 2026-09-18).
+
+The consequence that shapes everything below: **you cannot find or fetch a gallery by title.** Discovery is search
+(`hastemplate:"Gallery page"`, `insource:"<gallery"`), and the content lives in the page source.
+
+### What WikiBento does today, and the gap
+
+The gallery-family widgets (`small`, `contain`, the category gallery) read a **category**; `fileGallery` reads an
+**explicit list of files**. Neither reads a gallery page — so the only way to show one today is the 📄 Wiki Page
+widget, which embeds the *entire page* in a frame (its own header, infobox, sidebar) and yields no data.
+
+That is a real gap, because galleries are Commons' **curated** layer: hand-written captions, hand-chosen order and
+sections — where a category is an unordered, caption-less set. Galleries are also *paired* with a same-named
+category (`The Venetian Macao` ↔ `Category:The Venetian Macao`), so curation and completeness become two views of
+one subject.
+
+### The access route — three options, measured
+
+| route | data | bytes (London, 542 items) | verdict |
+|---|---|---|---|
+| `prop=revisions` **wikitext** + parse the `<gallery>` blocks | files, captions, order, **section structure** | **56 KB** | ✅ recommended |
+| `action=parse&prop=text` rendered HTML, extract `li.gallerybox` | the same items, plus the template's chrome | **654 KB** | ✗ 10× the bytes for the same data — kept only as a fallback |
+| `prop=images` | file titles only; no captions, no order | ~2 KB | ✗ insufficient |
+
+Identical item counts on every page sampled (Venetian Macao 5/5, London 542/542, New York City 246/246, Berlin
+0/0), so the wikitext route is not a compromise — it is the same answer, cheaper.
+
+Two traps the same sample surfaced, both of which a widget must handle:
+
+- **Berlin: a gallery-named page with zero gallery items.** 107 KB of page, no `<gallery>` — a hub or a redirect.
+  "It is a Commons page" ≠ "it is a gallery". The card needs an honest empty state, not a spinner or a blank.
+- **London: 542 items in one page**, in **62 separate `<gallery>` blocks** (one per section). A cap is not an
+  optimisation but a requirement — and the section structure is data worth offering (grouping, or a section filter).
+
+Captions come in three shapes, all present in the example: `File.jpg` (none), `File.jpg|Caption`, and
+`File.jpg|[[:Category:Marco Polo Canal|Marco Polo Canal]]` (a **linked** caption). Thumbnails come from the existing
+`imageinfo` batch — the same call the category gallery already makes.
+
+### Proposed v1 (small, and every piece already exists)
+
+1. **A `commonsGallery` widget** — one field, a gallery page title; fetch `prop=revisions`, parse the `<gallery>`
+   blocks, batch `imageinfo`, and render through the **existing** `GalleryGrid`/`GalleryList` renderers with the
+   existing `displayMode` / `iconSize` / `imageFit` / `maxItems` vocabulary, so it behaves like its siblings.
+2. **A `commons-gallery` lookup source** — the ⚙ field becomes a validated typeahead over the 87k galleries
+   (CirrusSearch `hastemplate:"Gallery page"` in ns-0): ISSUE-68/99 machinery, already built and tested.
+3. **Emit channels**, following the wikiBox precedent (ISSUE-91): `lines` = the captions in order (a curated list
+   that can feed a Filter, a Translator or a Speaker) and `selection` = the file the reader clicked, as `File:…`, so
+   one click can drive the Document Reader, a pageviews card, or anything else.
+4. **An honest empty state** for the Berlin case, naming the trap rather than showing nothing.
+
+**Known limits, stated rather than hidden:** a gallery generated *by a template* has no literal `<gallery>` in its
+wikitext and would read as empty (the rendered-HTML fallback exists for exactly that, at 10× the bytes — decide per
+case); captions are in whatever language they were written in (the `{{Gallery page}}` i18n covers the template's own
+chrome, not the captions); section grouping is a v2 question.
+
+**Effort:** about a day — a fetcher, one pure parser (highly testable: `<gallery>` blocks and pipe-separated lines),
+a registry entry, a lookup source, a demo, docs. No new format, no migration.
