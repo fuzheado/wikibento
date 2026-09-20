@@ -828,8 +828,8 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'TranslateCard': return <TranslateCard data={data} />;
     case 'QualityCard': return <QualityCard data={data} />;
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
-    case 'GalleryGridCard': return <GalleryGridCard data={data} />;
-    case 'GalleryListCard': return <GalleryListCard data={data} />;
+    case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} />;
+    case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} />;
 
@@ -1709,7 +1709,23 @@ function AssessmentsCard({ data }) {
  *  Grouped mode (rows carry `group: { key, label }`) inserts a full-width
  *  group header at each group boundary; caption-less tiles show their file
  *  name when the transform sets `showFileName`. */
-function GalleryGridCard({ data }) {
+/**
+ * A gallery tile's click (ISSUE-103). The same three-way contract the wiki box uses (ISSUE-91): the link's own
+ * behaviour, publishing the clicked file on the widget's `selection` channel, or both. A card that does not set
+ * `selectable` behaves exactly as it did before — this is additive, so the category and article galleries are
+ * untouched.
+ */
+function galleryTileClick(data, img, onSelect) {
+  if (!data?.selectable || !onSelect) return undefined;
+  const action = data.linkAction || 'new tab';
+  return (event) => {
+    event.preventDefault();                 // both modes move the reader somewhere deliberate
+    onSelect(`File:${img.title}`);          // the reference form the page widgets already resolve
+    if (action === 'both' || action === 'new tab') window.open(img.fileUrl, '_blank', 'noopener,noreferrer');
+  };
+}
+
+function GalleryGridCard({ data, onSelect }) {
   const size = data.size || 'medium';
   const fit = data.fit || 'contain';
   const rows = data.rows || [];
@@ -1721,7 +1737,8 @@ function GalleryGridCard({ data }) {
       tiles.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
     }
     tiles.push(
-      <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer" title={img.caption || img.title}>
+      <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
+        onClick={galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
         <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
         {(img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}
       </a>
@@ -1820,7 +1837,7 @@ function EchoCard({ data }) {
 
 /** Article Gallery — list rows: thumb left, caption right.
  *  Grouped mode inserts a group header at each group boundary. */
-function GalleryListCard({ data }) {
+function GalleryListCard({ data, onSelect }) {
   const rows = data.rows || [];
   const items = [];
   for (let i = 0; i < rows.length; i++) {
@@ -1830,7 +1847,8 @@ function GalleryListCard({ data }) {
       items.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
     }
     items.push(
-      <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer">
+      <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
+        onClick={galleryTileClick(data, img, onSelect)}>
         <img className="gallery-list-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
         <div className="gallery-list-body">
           <span className="gallery-list-caption">{img.caption || img.title}</span>

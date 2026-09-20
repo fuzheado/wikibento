@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "params": {
+    "gallery": {
+      "label": "Gallery page",
+      "type": "lookup",
+      "source": "commons-gallery",
+      "options": [
+        "The Venetian Macao",
+        "London",
+        "New York City"
+      ],
+      "value": "The Venetian Macao"
+    }
+  },
+  "widgets": [
+    {
+      "id": "gal-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## 🎞️ A Commons gallery, as data\n\nA gallery page is a **main-namespace page containing a `<gallery>` tag** — no prefix, no namespace (`Gallery:` is not an alias; that title is simply missing). What makes one a gallery is content: 87,315 pages carry `{{Gallery page}}`.\n\nUnlike a category, a gallery has **hand-written captions in a hand-chosen order**. This board reads those captions and hands them to other cards — the ⬇ translator reads the *first caption*, and clicking any tile publishes that file for the 📄 reader beside it.",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "gal-pick",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "Pick a gallery",
+        "show": "gallery",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "gal",
+      "widgetType": "commonsGallery",
+      "config": {
+        "page": "{{gallery}}",
+        "project": "commons.wikimedia",
+        "displayMode": "grid",
+        "iconSize": "medium",
+        "imageFit": "cover",
+        "maxItems": 24,
+        "groupBy": "none",
+        "linkAction": "send to the board",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "gal-page",
+      "widgetType": "wikiPage",
+      "config": {
+        "page": "{{widget:gal#selection}}",
+        "project": "commons.wikimedia",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "gal-caption",
+      "widgetType": "translate",
+      "config": {
+        "text": "{{widget:gal}}",
+        "from": "en",
+        "to": "de",
+        "display": "translation",
+        "refreshSeconds": 86400
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "gal-note",
+      "x": 0,
+      "y": 0,
+      "w": 8,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "gal-pick",
+      "x": 8,
+      "y": 0,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "gal",
+      "x": 0,
+      "y": 3,
+      "w": 8,
+      "h": 6,
+      "minW": 4,
+      "minH": 3
+    },
+    {
+      "i": "gal-page",
+      "x": 8,
+      "y": 3,
+      "w": 4,
+      "h": 6,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "gal-caption",
+      "x": 0,
+      "y": 9,
+      "w": 8,
+      "h": 4,
+      "minW": 3,
+      "minH": 3
+    }
+  ]
+}

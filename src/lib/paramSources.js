@@ -216,6 +216,9 @@ export function normalizeLookupValue(sourceId, raw) {
     v = v.replace(/^Category\s*:\s*/i, '');
   } else if (sourceId === 'commons-file') {
     v = v.replace(/^(File|Image)\s*:\s*/i, '');
+  } else if (sourceId === 'commons-gallery') {
+    // The mistake everyone makes first: `Gallery:` is not a prefix, it is just a page title that does not exist.
+    v = v.replace(/^Gallery\s*:\s*/i, '');
   }
   return v.replace(/\s+/g, ' ').trim();
 }
@@ -414,6 +417,24 @@ async function searchPages(query, limit, project) {
   return prefixSearch(query, limit, project, PAGE_NAMESPACES);
 }
 
+/**
+ * Commons gallery pages (ISSUE-103) — found by CONTENT, because there is nothing else to find them by:
+ * `Gallery:Foo` is not a namespace alias (it is a missing page), so a gallery is a main-namespace page carrying
+ * `{{Gallery page}}` or a `<gallery>` tag. CirrusSearch can express that; a prefix search cannot.
+ */
+async function searchCommonsGalleries(query, limit) {
+  const q = String(query || '').trim();
+  const params = new URLSearchParams({
+    // `hastemplate:` needs a real search, not a prefix match; paired with the typed words it ranks by relevance.
+    action: 'query', list: 'search',
+    srsearch: q ? `${q} hastemplate:"Gallery page"` : 'hastemplate:"Gallery page"',
+    srnamespace: '0', srlimit: String(limit),
+    format: 'json', formatversion: '2', origin: '*',
+  });
+  const json = JSON.parse(await fetchTextWithRetry(`${COMMONS_API}?${params}`, { timeoutMs: 15000 }));
+  return parseActionSearch(json);
+}
+
 async function searchWikidataItems(query, limit) {
   const params = new URLSearchParams({
     action: 'wbsearchentities', search: query, language: 'en', uselang: 'en',
@@ -476,6 +497,15 @@ export const PARAM_SOURCES = {
     placeholder: 'Marie Curie · Wikipedia:Featured articles · Template:Infobox person',
     hint: 'Any page: articles, project/meta pages, templates, files. Type a wiki prefix (`en:`, `dewiki:`) to switch wikis.',
     search: searchPages,
+  },
+  'commons-gallery': {
+    id: 'commons-gallery',
+    label: 'Commons gallery page',
+    noun: 'Commons gallery',
+    kind: 'search',
+    placeholder: 'The Venetian Macao',
+    hint: 'A gallery page title exactly as it appears — galleries have NO prefix and live in the main namespace. Suggestions are Commons pages that carry {{Gallery page}}.',
+    search: searchCommonsGalleries,
   },
   'wikidata-item': {
     id: 'wikidata-item',

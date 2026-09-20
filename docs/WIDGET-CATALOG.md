@@ -33,10 +33,11 @@ Back to the [README](../README.md).
 | **CIM File Spotlight** | 🔦 | CIM `media-file-metrics-snapshot` + `pageviews-per-media-file-monthly` | One file: wikis/pages using it + monthly view trend |
 | **CIM File Traffic** | 📉 | CIM `pageviews-per-media-file-monthly` | Interactive monthly traffic chart for one file — labeled axes, −/+ zoom (3/6/12/24 months), self-heals CIM's intermittent 500s on specific ranges |
 
-## Files & Media (5)
+## Files & Media (6)
 
 | Widget | Icon | Data Source | Shows |
 |---|---|---|---|
+| **Commons Gallery** | 🎞️ | Commons Action API `prop=revisions` (wikitext → `<gallery>` blocks) + batched `imageinfo` | A **gallery page**'s own images, captions and order — Commons' curated layer (87,315 pages carry `{{Gallery page}}`). No prefix and no namespace: it is a main-namespace page with a `<gallery>` tag |
 | **File Usage Map** | 🖼️ | Commons API `globalusage` + `imageinfo` | Per-wiki breakdown of where a file is used, with optional **image preview + summary caption** |
 | **Commons File Gallery** | 🗂️ | Commons API `imageinfo` (batched) | Gallery of any Commons files you list (one per line) — grid or list; order as-listed / random / alphabetical / largest-first; missing files counted |
 | **360° Panorama Viewer** | 🌐 | Commons `imageinfo` + [Pannellum](https://pannellum.org) (WebGL) | Interactive 360° panorama from any Commons equirectangular file — drag to look around, auto-rotate option, 2:1/GPano detection, per-widget min-size constraint |

@@ -40,6 +40,7 @@ import {
  fetchWaybackGallery,
  fetchIaItem,
   wikistatsHost,
+  fetchGalleryPage,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
 import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
@@ -291,6 +292,91 @@ export const WIDGET_TYPES = {
           + ` · Editors: ${data.users.toLocaleString()} · Active: ${data.activeusers.toLocaleString()}`
         : '',
     }),
+  },
+
+  commonsGallery: {
+    id: 'commonsGallery',
+    nodeKind: 'display',
+    category: 'Files & Media', intensity: 'low',
+
+    timeScope: 'point',    name: 'Commons Gallery',
+    icon: '🎞️',
+    description: 'A Commons gallery page — the CURATED layer: hand-written captions in hand-chosen order, read from the page’s own <gallery> blocks (not a category, which has neither). 87k pages carry {{Gallery page}}.',
+    labelFromConfig: (c) => (c.page || '').trim() || null,
+    defaults: {
+      page: 'The Venetian Macao',
+      project: 'commons.wikimedia',
+      displayMode: 'grid', // 'grid' | 'list'
+      iconSize: 'medium',
+      imageFit: 'contain',
+      maxItems: 48,        // London has 542 images in 62 blocks: a cap is a requirement, not a nicety
+      groupBy: 'none',     // 'none' | 'section' — the headings between <gallery> blocks
+      linkAction: 'new tab',
+      refreshSeconds: 3600,
+    },
+    renderer: 'GalleryGridCard',
+    getRenderer: (config) => (config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard'),
+    dataSource: 'Commons Action API revision (wikitext) + batched imageinfo',
+    defaultLayout: { w: 4, h: 4, minW: 3, minH: 2 },
+    configFields: [
+      { key: 'page', label: 'Commons gallery page', type: 'text', placeholder: 'The Venetian Macao',
+        hint: 'The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so "The Venetian Macao", not "Gallery:…". Find one by searching Commons for hastemplate:"Gallery page".' },
+      { key: 'displayMode', label: 'Display', type: 'select', options: [
+        { value: 'grid', label: 'Grid' },
+        { value: 'list', label: 'List' },
+      ]},
+      { key: 'iconSize', label: 'Grid size', type: 'select', options: [
+        { value: 'small', label: 'Small' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'large', label: 'Large' },
+      ]},
+      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
+        { value: 'contain', label: 'Contain (whole image)' },
+        { value: 'cover', label: 'Cover (fill the tile)' },
+      ]},
+      { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500, hint: 'Galleries can be very large — London has 542 images in 62 blocks. The cap is applied before thumbnails are fetched.' },
+      { key: 'groupBy', label: 'Group by', type: 'select', options: [
+        { value: 'none', label: 'Nothing (page order)' },
+        { value: 'section', label: 'Section headings' },
+      ]},
+      { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
+        { value: 'new tab', label: 'Open the file page in a new tab' },
+        { value: 'send to the board', label: 'Send it to the board' },
+        { value: 'both', label: 'Both' },
+      ], hint: 'Send to the board publishes the clicked image on this widget’s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.' },
+    ],
+    fetch: (config) => fetchGalleryPage(config.page, {
+      maxItems: config.maxItems, project: config.project || 'commons.wikimedia', groupBy: config.groupBy,
+    }),
+    // Two channels (ISSUE-91): the captions in gallery order — a curated, human-written list — and the file the
+    // reader clicked. `primary` keeps the bare id meaning the captions, per the compatibility rule.
+    outputs: { lines: 'lines', selection: 'value' },
+    primary: 'lines',
+    emit: (data) => ({
+      lines: (data && data.rows ? data.rows : []).map((r) => r.caption || r.title),
+      selection: undefined, // published by the card on click, like the wiki box
+    }),
+    transform: (data, config) => {
+      const shown = (data && data.rows ? data.rows : []).length;
+      const total = (data && data.total) || 0;
+      const emptyText = data && data.galleryless
+        ? (data.hasTemplate
+          ? 'This page declares itself a gallery ({{Gallery page}}) but has no <gallery> blocks — it may be a hub or a redirect. Try a page whose source contains <gallery>.'
+          : 'No <gallery> blocks on this page. A Commons gallery is a main-namespace page containing one — try "The Venetian Macao".')
+        : undefined;
+      return {
+        title: data ? data.page : '',
+        subtitle: total
+          ? `${total} image${total === 1 ? '' : 's'} · ${shown < total ? `showing ${shown} · ` : ''}Commons Gallery page`
+          : (data && data.galleryless ? 'Gallery page with no images' : 'Commons Gallery page'),
+        rows: data ? data.rows : [],
+        size: config.iconSize || 'medium',
+        fit: config.imageFit || 'contain',
+        emptyText,
+        selectable: (config.linkAction || 'new tab') !== 'new tab',
+        linkAction: config.linkAction || 'new tab',
+      };
+    },
   },
 
   fileUsage: {

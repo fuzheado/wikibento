@@ -11,6 +11,30 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Commons galleries, as data (ISSUE-103, 2026-09-18, third pass)
+
+Andrew asked what makes a Commons page a gallery, and whether it deserved a widget. It does — and the answer to the
+first question is the reason why.
+
+- ✅ **A gallery is a convention, not a type.** No namespace, no prefix, and `Gallery:The Venetian Macao` is simply a
+  *missing page* (the API says `missing: true, ns: 0` — the prefix is not an alias). What marks one is content: a
+  main-namespace page with a `<gallery>` tag, usually `{{Gallery page}}`, tracked in `Category:Gallery pages of …`.
+  87,315 pages carry the template; 140,220 contain the tag. So a gallery is found by **search** and read from its
+  **source** — never by title.
+- ✅ **Read the wikitext, not the rendered HTML** — measured at **56 KB against 654 KB** for London's 542 images, for
+  byte-identical item counts (London 542/542, New York City 246/246, The Venetian Macao 5/5, Berlin 0/0), with the
+  section structure included.
+- ✅ **Shipped and verified live** (desktop Chromium + iPhone WebKit, 0 errors): the widget renders the gallery's own
+  captions in its own order; a click publishes the file and the reader beside it loads it; the Board Controls box is
+  a validated picker over the galleries with the `Gallery:` typo guard; and London shows **"542 images · showing 24"**
+  with the cap applied before thumbnails.
+- ⚠️ **Two traps the parser had to handle, both real**: a caption part that is only an option (`|alt=Just an option`
+  is not a caption) and options after a caption (`Caption|link=File:Y`) — which is why the line splits on the
+  **first** pipe only, keeping a linked caption like `[[:Category:X|X]]` intact.
+- ⚠️ **A third trap in the docs themselves**: adding a demo board to disk without a README row is invisible, and the
+  page-picker demo had lost its row in a merge. There is a gate for it now (README + hub), and it caught the gap on
+  its first run.
+
 ## A broken upstream, a widget that never rendered, and two checks that can see "nothing" (2026-09-18, second pass)
 
 Andrew reported a Wiki Stats card in an error state: `Wikistats fetch failed: HTTP 500 (…table=wikipedias&format=csv)`.

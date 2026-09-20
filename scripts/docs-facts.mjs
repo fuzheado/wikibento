@@ -309,6 +309,26 @@ check('every ISSUE heading has a unique number', () => {
   return `${seen.size} issues, all unique`;
 });
 
+check('every demo board on disk is linked from the README and the hub', () => {
+  // A board can exist, work, be listed in the hub — and be missing from the README, which is exactly what happened
+  // to the page-picker demo (added one day, gone the next after a merge). Nothing watched this, so it drifted.
+  const boards = readdirSync(join(ROOT, 'public'))
+    .filter((f) => /-demo\.json$/.test(f) || f === 'dashboard.json')
+    .sort();
+  const readme = read('README.md');
+  const hub = read('public/demos.json');
+  const missing = [];
+  for (const b of boards) {
+    if (!readme.includes(`/${b}`)) missing.push(`${b} (README)`);
+    if (b !== 'dashboard.json' && !hub.includes(b)) missing.push(`${b} (hub)`);
+  }
+  if (missing.length) {
+    fail(`demo boards exist but are not linked: ${missing.join(', ')}`
+      + ' — add a row to the README demo table (and the hub text in public/demos.json)');
+  }
+  return `${boards.length} boards linked from the README${boards.length > 1 ? ' and the hub' : ''}`;
+});
+
 check('present-tense docs carry no volatile facts', () => {
   const bad = [];
   for (const [doc, text] of Object.entries(prose)) {

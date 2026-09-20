@@ -3610,7 +3610,11 @@ what makes it a type rather than a blob.
 about a day, and it is best done *with* ISSUE-96's row-shaped work rather than before it — the first structured
 producer is what tells us whether the type list is right.
 
-## ISSUE-96 · Emitter/consumer audit: 10 of 42 widgets publish anything — **open**
+## ISSUE-96 · Emitter/consumer audit: 11 of 43 widgets publish anything — **open**
+
+> **Updated 2026-09-18:** the 🎞️ Commons Gallery (ISSUE-103) joined the emitters when it shipped — the gallery's
+> captions as `lines` (a curated, human-written list, the best thing to feed a Filter, a Translator or a Speaker)
+> and the clicked file as `selection`, on the ISSUE-91 channel pattern. 11 of 43.
 
 Andrew asked for an audit of "the obvious emitter/consumer functions". Measured from the registry 2026-09-16:
 
@@ -4936,7 +4940,34 @@ and `url-state.test.mjs` updated rather than bypassed.
 client-side grading only (the answer key is visible in the JSON — fine for a booth, said plainly), no
 free-text answers.
 
-## ISSUE-103 · Gallery pages: Commons' curated layer, as data — **open** (explored 2026-09-18)
+## ISSUE-103 · Gallery pages: Commons' curated layer, as data — **done + verified 2026-09-18**
+
+**Shipped.** A `commonsGallery` widget renders a gallery page's own images, captions and order — the 44th card on the
+full-catalog board — and the 🎞️ demo board chains its captions into a Translator and its clicks into a reader.
+
+**Measured live on production** (desktop Chromium and iPhone WebKit, 0 errors): `The Venetian Macao` → 5 images
+with their captions (`Macao bridge 2019`, `Marco Polo Canal`, `The Great Hall`); switching the box to *London* →
+**"542 images · showing 24"** (the cap is applied before thumbnails, so the other 518 cost nothing); clicking the
+third tile → the reader beside it loaded `File:The Venetian_05.jpg`, i.e. the `selection` channel drove another
+widget. Demo: `?config=/gallery-demo.json`.
+
+**What implementing it added beyond the plan:**
+
+- **The wikitext route was the right call, confirmed twice over** — the item counts match the rendered HTML exactly,
+  at 56 KB instead of 654 KB for London, and the section headings come free (the parser tracks them, so
+  `groupBy: section` was nearly no extra work).
+- **A `commons-gallery` lookup source** so a Board Controls box is a validated typeahead over the 87k galleries
+  (CirrusSearch `hastemplate:"Gallery page"`, which a prefix search cannot express), including a guard for the
+  mistake everyone makes first: a typed `Gallery:` prefix is stripped, because that prefix does not exist.
+- **Click-to-publish on the shared gallery renderers**, additively: a card that does not set `selectable` behaves
+  exactly as before, so the category and article galleries are untouched.
+- **Two traps the parser now handles, both found in the real pages**: a gallery line whose whole caption part is an
+  option (`|alt=Just an option` → no caption), and options that follow a caption (`Caption|link=File:Y`). Splitting on
+  the first pipe only is what keeps a linked caption intact.
+- **A new docs gate**: every demo board on disk must be linked from the README *and* the hub. It fired immediately,
+  proving its worth — the page-picker demo had lost its README row in a merge, and nothing had been watching.
+
+**The original exploration follows.**
 
 Andrew, with `https://commons.wikimedia.org/wiki/The_Venetian_Macao`: *"By name, they are not specially named with a
 `Gallery:` prefix nor do they seem like they are in a special namespace. What makes a gallery a gallery, and what

@@ -1430,6 +1430,169 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
 }
 
 /**
+ * Commons gallery pages (ISSUE-103).
+ *
+ * A "gallery" on Commons is not a namespace and has no prefix — `Gallery:The Venetian Macao` is simply a missing
+ * page. What marks one is content and convention: a main-namespace page carrying `{{Gallery page}}`, containing a
+ * literal `<gallery>` tag, tracked in `Category:Gallery pages of …` (measured 2026-09-18: 87,315 pages have the
+ * template, 140,220 have the tag). So a gallery is found by search and read from its source, never by title.
+ *
+ * Why the WIKITEXT and not the rendered HTML: on London (542 images in 62 sectioned blocks) the wikitext is 56 KB
+ * and the `action=parse` HTML is 654 KB, for byte-identical item counts (London 542/542, New York City 246/246,
+ * The Venetian Macao 5/5, Berlin 0/0). The wikitext also hands over the section structure for free.
+ *
+ * The parser is deliberately small and pure, because the format is regular: `<gallery>` blocks, one file per line,
+ * an optional caption after the first pipe. Captions can be linked (`File:X.jpg|[[:Category:Y|Y]]`) or absent.
+ */
+
+/** Gallery lines may carry trailing key=value options (`|link=File:Y`, `|alt=…`); they are not the caption. */
+const GALLERY_LINE_PARAMS = new Set([
+  'link', 'alt', 'lang', 'page', 'class', 'thumb', 'upright', 'width', 'height', 'lossy', 'caption',
+]);
+
+/**
+ * Gallery-line options are not captions. Two shapes, because the split already consumed the first pipe:
+ * `Caption|link=File:Y` (a trailing option) and `alt=Just an option` (the caption part IS the option).
+ */
+function stripGalleryLineParams(text) {
+  let out = String(text ?? '').trim();
+  for (;;) {
+    const trailing = out.match(/\|\s*([a-zA-Z]+)\s*=\s*[^|]*$/);
+    if (trailing && GALLERY_LINE_PARAMS.has(trailing[1].toLowerCase())) {
+      out = out.slice(0, trailing.index).trimEnd();
+      continue;
+    }
+    const leading = out.match(/^([a-zA-Z]+)\s*=\s*[^|]*$/);
+    if (leading && GALLERY_LINE_PARAMS.has(leading[1].toLowerCase())) return '';
+    return out;
+  }
+}
+
+/** A caption as a reader sees it: wiki links become their label, markup and HTML go away. */
+export function galleryCaptionText(raw) {
+  let out = String(raw ?? '');
+  // [[target|label]] → label · [[target]] → the part after the last colon (`[[:Category:X]]` → `X`)
+  out = out.replace(/\[\[([^\]]*?)\|([^\]]*?)\]\]/g, (_, _t, label) => label);
+  out = out.replace(/\[\[([^\]]*?)\]\]/g, (_, target) => String(target).split(':').pop());
+  out = out.replace(/'{2,5}/g, '');                    // bold/italic apostrophes
+  out = out.replace(/<br\s*\/?>/gi, ' ');              // a line break inside a caption is a space
+  return stripHtml(out).replace(/\s+/g, ' ').trim();
+}
+
+/** One canonical File title: `File:The_Venetian_05.jpg` → `File:The Venetian 05.jpg`. */
+const canonicalGalleryFile = (name) => `File:${String(name).replace(/^\s*(File|Image)\s*:\s*/i, '').replace(/_/g, ' ').trim()}`;
+
+const GALLERY_FILE_RE = /^(File|Image)\s*:/i;
+const GALLERY_MEDIA_RE = /\.(jpe?g|png|gif|svg|tiff?|webp|pdf|djvu|ogv|ogg|webm|mp3|wav|flac|stl)$/i;
+const GALLERY_HEADING_RE = /^\s*(={2,6})\s*(.+?)\s*\1\s*$/;
+
+/**
+ * Wikitext → `[{ file, caption, section }]` in page order. Pure, so the whole format contract is testable with
+ * no network: the item counts above were produced by this function against the live pages.
+ */
+export function parseGalleryBlocks(wikitext) {
+  const text = String(wikitext ?? '');
+  const out = [];
+  const re = /<gallery\b[^>]*>([\s\S]*?)<\/gallery>/gi;
+  let section = '';
+  let last = 0;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    // Headings between the previous block and this one set the section for what follows.
+    for (const line of text.slice(last, m.index).split('\n')) {
+      const h = line.match(GALLERY_HEADING_RE);
+      if (h) section = galleryCaptionText(h[2]);
+    }
+    last = m.index + m[0].length;
+    for (const raw of m[1].split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      const pipe = line.indexOf('|');
+      const head = (pipe < 0 ? line : line.slice(0, pipe)).trim();
+      // A gallery line is a file. Anything else (a stray template, a caption continuation) is not one.
+      if (!GALLERY_FILE_RE.test(head) && !GALLERY_MEDIA_RE.test(head)) continue;
+      const captionRaw = pipe < 0 ? '' : stripGalleryLineParams(line.slice(pipe + 1));
+      out.push({ file: canonicalGalleryFile(head), caption: galleryCaptionText(captionRaw), section });
+    }
+  }
+  return out;
+}
+
+/**
+ * Fetch a Commons gallery page and resolve its files to thumbnails, keeping the gallery's own order and captions.
+ * `maxItems` is applied BEFORE the imageinfo batch, because London's 542 images are 11 API calls that nobody asked
+ * to wait for. A page with no `<gallery>` at all (`galleryless`) is a normal answer, not an error: Berlin is a
+ * 107 KB page with zero gallery items.
+ */
+export async function fetchGalleryPage(page, { maxItems = 48, project = 'commons.wikimedia', groupBy = 'none' } = {}) {
+  const title = String(page || '').trim();
+  if (!title) throw new Error('Name a Commons gallery page, e.g. "The Venetian Macao"');
+  const host = `https://${project}.org`;
+  const params = new URLSearchParams({
+    action: 'query', prop: 'revisions', titles: title.replace(/ /g, '_'),
+    rvslots: 'main', rvprop: 'content', format: 'json', formatversion: '2', origin: '*',
+  });
+  let wikitext;
+  try {
+    const d = await fetchJSON(`${host}/w/api.php?${params}`);
+    const p = d && d.query && d.query.pages && d.query.pages[0];
+    if (!p || p.missing) throw new Error(`no page called "${title}" on ${project}`);
+    wikitext = (p.revisions && p.revisions[0] && p.revisions[0].slots && p.revisions[0].slots.main.content) || '';
+  } catch (e) {
+    throw new Error(`Commons gallery fetch failed: ${e.message}`);
+  }
+
+  const all = parseGalleryBlocks(wikitext);
+  const cap = Math.max(parseInt(maxItems) || 0, 0);
+  const items = cap ? all.slice(0, cap) : all;
+  if (!items.length) {
+    return { page: title, host, rows: [], total: 0, galleryless: true, hasTemplate: /\{\{\s*Gallery page/i.test(wikitext) };
+  }
+
+  // Batched imageinfo (50 titles per call) for the thumbnail, dimensions and canonical URL.
+  const info = {};
+  for (let i = 0; i < items.length; i += 50) {
+    const ip = new URLSearchParams({
+      action: 'query', prop: 'imageinfo',
+      titles: items.slice(i, i + 50).map((it) => it.file).join('|'),
+      iiprop: 'url|size|mime', iiurlwidth: '480',
+      format: 'json', formatversion: '2', origin: '*',
+    });
+    try {
+      const d = await fetchJSON(`${host}/w/api.php?${ip}`);
+      for (const p of (d && d.query && d.query.pages) || []) {
+        const ii = p.imageinfo && p.imageinfo[0];
+        if (ii) info[p.title] = ii;
+      }
+    } catch { /* a missing thumbnail drops one tile, it does not fail the gallery */ }
+  }
+
+  const groupBySection = groupBy === 'section';
+  let dropped = 0;
+  const rows = [];
+  for (const it of items) {
+    const ii = info[it.file] || info[it.file.replace(/ /g, '_')];
+    const thumbUrl = ii ? cleanThumbUrl(ii.thumburl || ii.url) : null;
+    if (!thumbUrl) { dropped += 1; continue; }
+    const row = {
+      title: it.file.replace(/^File:/, ''),
+      fileUrl: `${host}/wiki/${it.file.replace(/ /g, '_')}`,
+      caption: it.caption,
+      showFileName: !it.caption,   // a caption-less tile shows its file name instead of nothing
+      thumbUrl,
+      width: ii.width,
+      height: ii.height,
+    };
+    if (groupBySection && it.section) {
+      row.group = { key: it.section.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label: it.section };
+    }
+    rows.push(row);
+  }
+  return { page: title, host, rows, total: all.length, shown: rows.length, dropped, galleryless: false,
+    hasTemplate: /\{\{\s*Gallery page/i.test(wikitext), truncated: cap > 0 && all.length > cap };
+}
+
+/**
  * Panorama source — resolve a Commons file to a displayable equirectangular
  * URL for the 360° viewer. Uses the iiurlwidth=4096 thumb (aspect preserved)
  * instead of the 10–20 MB original. `equirectangular` = aspect ratio ≈ 2:1

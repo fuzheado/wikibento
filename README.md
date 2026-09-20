@@ -32,6 +32,8 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | demo | what it shows |
 |---|---|
 | 👋 [Article switcher](https://wikibento.toolforge.org/?config=/article-switcher-demo.json) | the simplest board: one param, two cards |
+| 🎞️ [Commons gallery](https://wikibento.toolforge.org/?config=/gallery-demo.json) | Commons' **curated** layer as data — a gallery page's own captions and order, and a click on a tile drives the reader beside it |
+| 🔎 [Page picker](https://wikibento.toolforge.org/?config=/page-picker-demo.json) | one validated page-name box with a wiki beside it — three cards follow, and none of them names a project |
 | 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + a three-step dataflow (excerpt → translator → 🔊 speaker), where the translation's language picks the spoken voice |
 | 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
 | 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
@@ -45,7 +47,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
 | 👆 [Click through](https://wikibento.toolforge.org/?config=/click-through-demo.json) | Click a sea in a live Wikipedia box and **another widget uses it**: the page viewer loads the article and the value card shows the string that travelled. ⚙ *Links in the box* decides whether a click opens a tab, sends to the board, or both |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 42 widget types on one board — its article switcher drives five cards |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 43 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see
 [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
@@ -57,21 +59,21 @@ works the same way.
 
 ## Widgets
 
-**42 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
+**43 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
 what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](docs/WIDGET-CATALOG.md).
 
 | category | widgets |
 |---|---|
 | **Articles (6)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment · 🖼️ Article Gallery |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (5)** | 🖼️ File Usage Map · 🗂️ Commons File Gallery · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
+| **Files & Media (6)** | 🎞️ Commons Gallery · 🖼️ File Usage Map · 🗂️ Commons File Gallery · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (8)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page · 📰 Wikipedia Box |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
 | **Web & History (3)** | 📦 Internet Archive Item · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
-All 33 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
+All 34 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 
 ## Features
 
@@ -118,6 +120,12 @@ All 33 data-driven widget types render live data in the browser; the 9 static on
 - **Add, configure, inspect** — a searchable catalog; a ⚙ panel per widget with **Apply & Reload** pinned at
   the bottom so every setting stays reachable in a short card (the ⓘ panel likewise); asset-aware titles that
   say what each widget is analyzing.
+- **🎞️ Commons galleries** — a *gallery page* (a main-namespace page with a `<gallery>` tag: hand-picked images
+  and hand-written captions, unlike a category, which has neither) rendered as a grid or a list. The captions travel
+  as data — they can feed a Translator or a Speaker — and clicking a tile publishes that file for another card.
+- **🔎 One box, any wiki, validated** — type a page name and the board follows: suggestions as you type, a ✓/✗
+  verdict against the wiki you chose, and `en:`/`de:`/`commons:` typed as a shortcut that moves the wiki picker.
+  What the box stores is a **reference**, so the wiki travels with the page.
 - **Example board** — ✨ loads a showcase with every widget type; the guided demos are at `?config=/demos.json`.
 
 ### Sharing & persistence

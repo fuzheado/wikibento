@@ -82,6 +82,21 @@
       }
     },
     {
+      "id": "commons-gallery",
+      "widgetType": "commonsGallery",
+      "config": {
+        "page": "The Venetian Macao",
+        "project": "commons.wikimedia",
+        "displayMode": "grid",
+        "iconSize": "medium",
+        "imageFit": "contain",
+        "maxItems": 12,
+        "groupBy": "none",
+        "linkAction": "new tab",
+        "refreshSeconds": 3600
+      }
+    },
+    {
       "id": "topwikis",
       "widgetType": "topWikipedias",
       "config": {
@@ -849,6 +864,15 @@
       "h": 9,
       "moved": false,
       "static": false
+    },
+    {
+      "i": "commons-gallery",
+      "x": 9,
+      "y": 19,
+      "w": 3,
+      "h": 4,
+      "minW": 3,
+      "minH": 2
     }
   ]
 }

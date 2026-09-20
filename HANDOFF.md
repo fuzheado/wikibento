@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-DqGL5NOH.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-18 — **Wiki Stats reads the wiki itself, and the 360° panorama renders for the first time** (it had a component, a registry entry and no route, so every card fell through to an empty StatCard) · before that: **pageviews** (`getRenderer` and `transform` disagreed about an absent `displayMode`) · **the demo sweep** (ISSUE-100) · the **page box that knows its wiki** (ISSUE-99) |
-| registry | 42 widget types — 33 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
+| production bundle | `index-Dp64H275.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-18 — **a Commons-gallery widget** (ISSUE-103): a gallery page's own captions and order as data, clickable into a reader, with a validated picker over the 87k galleries · before that: **Wiki Stats reads the wiki itself**, and the 360° panorama renders for the first time · **pageviews** · **the demo sweep** (ISSUE-100) |
+| registry | 43 widget types — 34 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip (rebuild hash identical); the demo sweep is 67/68 against it with the one failure passing twice on re-run (WDQS throttling under the sweep's own load) |
+| pending deploy | none — production serves this branch's tip; the gallery widget is verified live in Chromium and iPhone WebKit (Venetian Macao's captions, London capped at "542 images · showing 24", a click driving the reader) |
 | newest capabilities | 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -423,7 +423,8 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
-   - **ISSUE-96 — finish the emitter audit.** 10 of 42 widget types publish anything, and the audit ranks the
+   - **ISSUE-96 — finish the emitter audit.** 11 of 43 widget types publish anything (the 🎞️ Commons Gallery joined on
+     2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the galleries, `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
      is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The

@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-19T14:38:18.756Z",
- "widgetCount": 42,
+ "generatedAt": "2026-09-20T18:48:03.181Z",
+ "widgetCount": 43,
  "widgets": [
   {
    "id": "pageviews",
@@ -172,6 +172,99 @@
     "lang",
     "refreshSeconds"
    ]
+  },
+  {
+   "id": "commonsGallery",
+   "name": "Commons Gallery",
+   "icon": "🎞️",
+   "description": "A Commons gallery page — the CURATED layer: hand-written captions in hand-chosen order, read from the page’s own <gallery> blocks (not a category, which has neither). 87k pages carry {{Gallery page}}.",
+   "dataSource": "Commons Action API revision (wikitext) + batched imageinfo",
+   "category": "Files & Media",
+   "type": "media",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "page",
+     "type": "text",
+     "label": "Commons gallery page",
+     "hint": "The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so \"The Venetian Macao\", not \"Gallery:…\". Find one by searching Commons for hastemplate:\"Gallery page\".",
+     "placeholder": "The Venetian Macao"
+    },
+    {
+     "key": "displayMode",
+     "type": "select",
+     "label": "Display",
+     "options": [
+      "grid",
+      "list"
+     ]
+    },
+    {
+     "key": "iconSize",
+     "type": "select",
+     "label": "Grid size",
+     "options": [
+      "small",
+      "medium",
+      "large"
+     ]
+    },
+    {
+     "key": "imageFit",
+     "type": "select",
+     "label": "Grid image fit",
+     "options": [
+      "contain",
+      "cover"
+     ]
+    },
+    {
+     "key": "maxItems",
+     "type": "number",
+     "label": "Max images (0 = all)",
+     "hint": "Galleries can be very large — London has 542 images in 62 blocks. The cap is applied before thumbnails are fetched."
+    },
+    {
+     "key": "groupBy",
+     "type": "select",
+     "label": "Group by",
+     "options": [
+      "none",
+      "section"
+     ]
+    },
+    {
+     "key": "linkAction",
+     "type": "select",
+     "label": "Clicking an image",
+     "hint": "Send to the board publishes the clicked image on this widget’s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.",
+     "options": [
+      "new tab",
+      "send to the board",
+      "both"
+     ]
+    }
+   ],
+   "defaults": [
+    "page",
+    "project",
+    "displayMode",
+    "iconSize",
+    "imageFit",
+    "maxItems",
+    "groupBy",
+    "linkAction",
+    "refreshSeconds"
+   ],
+   "outputs": {
+    "lines": "lines",
+    "selection": "value"
+   },
+   "primary": "lines"
   },
   {
    "id": "fileUsage",
