@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-Dp64H275.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-18 — **a Commons-gallery widget** (ISSUE-103): a gallery page's own captions and order as data, clickable into a reader, with a validated picker over the 87k galleries · before that: **Wiki Stats reads the wiki itself**, and the 360° panorama renders for the first time · **pageviews** · **the demo sweep** (ISSUE-100) |
+| production bundle | `index-CKfG8oL8.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-18 — **the printed board matches the board** (ISSUE-77): the print sheet reproduces the on-screen grid — same columns, same rows, same reading order — for the 🖨 button and ⌘P alike, with the racing disarm timer removed · before that: **a Commons-gallery widget** (ISSUE-103) · **Wiki Stats reads the wiki itself**, and the 360° panorama renders for the first time |
 | registry | 43 widget types — 34 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; the gallery widget is verified live in Chromium and iPhone WebKit (Venetian Macao's captions, London capped at "542 images · showing 24", a click driving the reader) |
+| pending deploy | none — production serves this branch's tip; the print flow is verified live against it (clicking 🖨 gives `note → excerpt │ views │ views │ excerpt → timeline → gallery │ gallery`, exactly the screen's order) |
 | newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -350,6 +350,14 @@ and a stream pipeline that works in Node is not evidence about a browser.
     every stacked card showed only its 58px header. Reproduce it in one line of Playwright (an iPhone 14 context)
     and check `.widget-body`'s `scrollHeight`, not its text: the data was all there, invisible. Fixed with
     `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }` — and by making the demo sweep assert it.
+
+31. **A safety timeout that fires mid-operation is worse than no timeout.** The print sheet disarmed itself three
+    seconds after arming, because `afterprint` is unreliable (Safari, a cancelled dialogue) — and three seconds is
+    not enough for a real print job. Generating the Anne Frank board's PDF took longer, the timer cleared the layout
+    slots mid-print, and the PDF came out with the disarmed layout: the bug the sheet exists to fix, now intermittent
+    and much harder to see. The disarm is now driven by `afterprint` **plus a `beforeprint` that re-arms**, so a
+    stale armed state is harmless and no timer is needed. When you reach for "clean up eventually", ask what happens
+    if the cleanup wins the race — and prefer an operation that re-establishes the state over one that expires it.
 
 30. **A component can exist, be named by the registry, and never render.** `PanoramaCard` was defined in
     `WidgetFrame.jsx`, named by the `panorama360` widget, and had **no `case` in the content dispatcher** — so every

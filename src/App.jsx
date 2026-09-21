@@ -13,7 +13,7 @@ import { fetchProjectList } from './widgets/dataSources';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES } from './widgets';
-import { printTarget } from './lib/print';
+import { printTarget, armBoardPrint, disarmPrint } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
 import { applyUrl, boardFingerprint, claimIsFresh, dropBoardClaimOnScreen, parseUrlState, setParams } from './lib/urlState.js';
@@ -749,6 +749,19 @@ const handleAutoHeight = useCallback((id, px) => {
     setPendingRename(null);
   }, [pendingRename, applyRename]);
 
+  /* Every print attempt gets the board sheet, not just the 🖨 button: `beforeprint` fires for ⌘P and the browser's
+     own Print… menu too, where `data-print` would otherwise never be set and the reader would get
+     react-grid-layout's transforms as a clipped stack. Re-registered on every layout change, so it always stamps
+     the geometry the board is currently using (ISSUE-77 → 2026-09-18). */
+  useEffect(() => {
+    const onBefore = () => { if (!document.body.getAttribute('data-print')) armBoardPrint(layout); };
+    window.addEventListener('beforeprint', onBefore);
+    return () => {
+      window.removeEventListener('beforeprint', onBefore);
+      disarmPrint();
+    };
+  }, [layout]);
+
   const handleLoadExample = useCallback(() => {
     applyDashboard(EXAMPLE_DASHBOARD);
   }, [applyDashboard]);
@@ -848,7 +861,7 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn" onClick={openShare} title="Share via QR code or link (config embedded in the URL)">
             🔗 Share
           </button>
-<button className="btn" onClick={() => printTarget()} title="Print or save the whole board as PDF (one page per widget)">
+<button className="btn" onClick={() => printTarget(null, { layout })} title="Print or save the whole board as PDF — the same grid, the same order, one row per screen row">
   🖨 Print
 </button>
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">

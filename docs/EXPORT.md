@@ -52,7 +52,22 @@ The browser's print engine is the highest-fidelity PDF path that exists, and it 
 selectable and searchable, correct page geometry. Two print modes, both driven by `data-print` on `<body>`:
 
 - **`data-print="widget"`** — every other card and all editing chrome is hidden; the card fills the page.
-- **`data-print="board"`** — the whole board laid out as a document, one card per page where it fits.
+- **`data-print="board"`** — the whole board, reproducing the on-screen grid: the same columns, the same rows
+  side by side, in reading order.
+
+**The board sheet reproduces the grid (revised 2026-09-18).** It used to make every card full width and stack it in
+DOM order, which is neither the board's arrangement nor its reading order. Measured on `anne-frank-mlk-demo`, that
+turned a symmetric row (`excerpt w4 · views w2 · views w2 · excerpt w4`) into four stacked pages, split two
+side-by-side galleries across pages, and printed the note that *opens* the board fifth. Now `boardPrintGeometry`
+(`src/lib/print.js`) derives a slot per card from the live layout — column, span, and a **shelf** row, where items
+whose vertical spans overlap share a line — and the sheet lays out the same 12-column grid on paper. The same board
+prints in the same order, as two pages instead of seven, and a card authored outside the grid is trimmed to fit
+rather than pushed off the paper.
+
+Two related fixes came with it: the sheet is armed for **any** print, not just the 🖨 button (a `beforeprint`
+listener, so ⌘P and the browser's own Print… menu get the board instead of react-grid-layout's clipped transforms),
+and the three-second disarm timer is **gone** — it fired mid-print on a slow job, clearing the slots and producing
+a PDF with the layout this all exists to fix. `afterprint` plus a re-arming `beforeprint` needs no timer.
 
 What is deliberately kept on paper: the widget's own header (it names the card), and the ⏱ freshness
 footer — a printed chart with no "as of" line is a claim without a date. What is hidden: the toolbar,

@@ -11,6 +11,29 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## The printed board now looks like the board (ISSUE-77, 2026-09-18, fourth pass)
+
+Andrew, printing `?config=/anne-frank-mlk-demo.json`: *"the layout of the PDF … doesn't seem close to what the
+configuration looks like on screen, like the widgets don't seem to follow the same flow."*
+
+- 🐛 **They didn't.** The board sheet made every card **full width and stacked it in DOM order**: the symmetric row
+  (`excerpt w4 · views w2 · views w2 · excerpt w4`) became four stacked pages, the two side-by-side galleries were
+  split across pages, and the note that *opens* the board printed **fifth** (its position in the widgets array).
+  Measured rather than eyeballed, in print emulation: eight cards, all at `w1360`, in array order.
+- ✅ **Fixed by deriving the sheet from the grid the board is actually using** (`boardPrintGeometry`): column and span
+  from the layout, rows as *shelves* — items whose vertical spans overlap share a line — so DOM order stops
+  mattering (which is also what makes it work for a board loaded from a URL). Verified against production after
+  deploying: `comparison-note` first, then `excerpt │ views │ views │ excerpt`, then the full-width timeline, then
+  `gallery │ gallery` — the same flow as the screen, and **2 pages / 274 KB instead of 7**.
+- 🐛 **And the fix exposed two more.** The sheet was armed only by the 🖨 button, so ⌘P and the browser's own Print…
+  menu got react-grid-layout's clipped transforms — there is a `beforeprint` listener now, so every print path gets
+  the board. Worse, the **three-second disarm timer** (added in ISSUE-77 because `afterprint` is unreliable) fired
+  *during* a slow print job, cleared every slot and produced a PDF with the disarmed layout — the exact bug the sheet
+  exists to prevent, reproduced by generating the PDF in a test. The timer is gone: `beforeprint` re-arms, so a
+  stale armed state cannot do any harm (the sheet only affects print media).
+- The unit test covers the geometry contract — shelves, spans, reading order, and the *guarantee* that a card is
+  always on the paper (`col + span - 1 <= 12`) however nonsense the authored values are.
+
 ## Commons galleries, as data (ISSUE-103, 2026-09-18, third pass)
 
 Andrew asked what makes a Commons page a gallery, and whether it deserved a widget. It does — and the answer to the

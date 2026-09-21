@@ -3456,7 +3456,15 @@ have no coordinates at all; pages can be huge (Aarhus: 237 KB wikitext, 469 `<im
 never ship a map without its attribution line; OSM/Overpass/Nominatim politeness applies
 to anything we add.
 
-## ISSUE-77 · Export: save a widget's data, or a widget/board as a document — **done + DEPLOYED 2026-09-14**
+## ISSUE-77 · Export: save a widget's data, or a widget/board as a document
+
+> **Revised 2026-09-18 (print layout).** The board's print sheet used to make every card full width in DOM order;
+> it now reproduces the on-screen grid — columns, spans and shelf rows derived from the live layout — so a row of
+> cards stays a row and the PDF reads in the same order as the board (the Anne Frank / MLK demo: seven pages of
+> stacked cards became the board's own flow). Two bugs came out with it: the sheet was only armed by the 🖨 button
+> (⌘P printed react-grid-layout's clipped transforms), and a three-second disarm timer could fire **mid-print**,
+> clearing the slots and producing a PDF with the very layout problem the sheet exists to fix. See
+> `docs/EXPORT.md` and `boardPrintGeometry` in `src/lib/print.js`. — **done + DEPLOYED 2026-09-14**
 
 **What:** a **⤓ export menu** on every widget — **PDF, CSV, PNG, SVG** — plus **🖨 Print / save as PDF**
 on the board toolbar. Shipped with the Lifeline deploy (`index-CSKC-SIk.js`).

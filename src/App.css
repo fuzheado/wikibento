@@ -2611,7 +2611,7 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
    overlapping mess, so printing neutralises the grid entirely. The chrome goes too: nobody wants a
    toolbar and a row of ⚙ buttons in their PDF. */
 @media print {
-  @page { size: landscape; margin: 10mm; }
+  @page { margin: 10mm; }
 
   body { background: #fff !important; }
   .app, .dashboard-container { height: auto !important; }
@@ -2637,12 +2637,42 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   .react-grid-item {
     position: static !important;
     transform: none !important;
-    width: 100% !important;
+    width: auto !important;
     height: auto !important;
-    margin: 0 0 6mm !important;
+    min-height: 0 !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* ── board mode: reproduce the board, not a list of cards (2026-09-18) ──────────────────────────────
+     The sheet used to make every card full width and stack it in DOM order, which is neither the board's
+     arrangement nor its reading order: measured on the Anne Frank / MLK demo, a symmetric on-screen row
+     (excerpt w4 · views w2 · views w2 · excerpt w4) became four stacked pages, two side-by-side galleries
+     became two more, and the note that opens the board printed fifth. Now each card carries its own
+     `--print-col` / `--print-span` / `--print-row` (stamped by boardPrintGeometry from the live layout), and
+     the same 12-column grid is laid out on paper — cards in a row stay in a row, in the order they are read.
+     The paper's orientation is the reader's choice: no `@page size`, because a portrait page should get a
+     portrait board (narrower columns), not a landscape layout cropped into it. */
+  body[data-print='board'] .react-grid-layout {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 6mm;
+  }
+  body[data-print='board'] .react-grid-item {
+    grid-column: var(--print-col, auto) / span var(--print-span, 12);
+    grid-row: var(--print-row, auto);
+    align-self: start;
+    margin: 0 !important;
+  }
+  /* Paper has no scrollbars and no hover: show everything the screen scrolls or truncates, or the PDF is a
+     document with holes in it. 33 selectors scroll internally on screen (galleries, rankings, excerpts,
+     timelines, the info panels) — un-clipping them all is the only honest way to print a board whole. */
+  body[data-print='board'] .grid-item * {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  /* the borrowed-board notice is a UI affordance, not board content */
+  .board-notice, .boot-banner { display: none !important; }
   .grid-item {
     height: auto !important;
     overflow: visible !important;
