@@ -4992,6 +4992,30 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-107 · Gallery tiles rendered as thin bands — **done + verified 2026-09-18**
+
+Andrew, with a screenshot of a category gallery: tiles ~600px wide and ~65px tall, each showing a horizontal sliver of
+its picture — *"can we have smarter scrolling or fitting option so we never have this set of super thin images?"*
+
+**Not a column-count problem, and not a "too many images" problem: the row was shorter than the tile.** Measured on a
+real card: a 193px-wide tile whose 191px thumbnail sat in a **125px** grid row, with `.gallery-item`'s
+`overflow: hidden` silently cutting each image to a band.
+
+**Cause.** `width: 100%` + `aspect-ratio: 1/1` on an `<img>` inside a grid row sized `auto` is a **cyclic dependency**:
+the row asks the image how tall it is, the image's height depends on a column width the row has not decided, and the
+browser falls back to the image's *intrinsic* size — which for a `loading="lazy"` image is nothing yet. The row then
+stays short and never re-expands once the image arrives. That is why it appeared in some cards and not others: it
+depended on whether the thumbnails had loaded when the row was sized.
+
+- **Fixed with a definite height per size class** (`small 96px · medium 150px · large 220px`) plus
+  `grid-auto-rows: min-content`, so the grid's geometry decides instead of the image's. Columns stay fluid
+  (`auto-fill minmax(...)`): a wider card gets **more** tiles, never thinner ones — which is the "smart fitting" that
+  was asked for, with the body scrolling as it always did. An attempt in the same round to add `min-height: 0` to the
+  tile made it worse (on a grid item that permits a row shorter than its content) and was reverted.
+- **A gate, because no text assertion can see a clipped image:** the demos pass now measures every `.gallery-item`
+  against its `.gallery-thumb` and fails the run when a tile is shorter than the image it holds. Verified by injecting
+  the old CSS back — ❌ *"cat-alpha: tile 92px holding a 215px image"* — then ✅ with the fix.
+
 ## ISSUE-106 · The Add-widget panel listed the Gallery three times — **done + verified 2026-09-18**
 
 Andrew, minutes after the gallery merge shipped, with a screenshot: the panel's **Recent** list showed "Gallery"

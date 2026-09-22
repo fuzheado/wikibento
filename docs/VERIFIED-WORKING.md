@@ -42,6 +42,26 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### Thin bands instead of gallery tiles (ISSUE-107, 2026-09-18)
+
+A screenshot from Andrew: a category gallery whose tiles were ~600px wide and ~65px tall, each showing a horizontal
+sliver of its picture. **The grid looked right in the CSS** — `aspect-ratio: 1/1` on the thumbnail, `auto-fill
+minmax(170px, 1fr)` columns — so the measurement came first, and it said something else entirely: a 193px tile whose
+**191px** thumbnail sat in a **125px** grid row, clipped by `.gallery-item`'s `overflow: hidden`.
+
+`width: 100%` + `aspect-ratio` inside a grid row sized `auto` is a cyclic dependency. The row asks the image for its
+height; the image's height depends on a column width the row has not decided; the browser falls back to the image's
+**intrinsic** size, which for a lazy-loaded image is nothing yet — and the row never re-expands when it arrives. That
+is why it came and went between cards: it depended on load timing.
+
+- ✅ **A definite height per size class** (96 / 150 / 220px) plus `grid-auto-rows: min-content`. Columns stay fluid, so
+  a wider card gets *more* tiles rather than thinner ones, and the body scrolls — the "smart fitting" that was asked
+  for. A wrong turn in the same round (`min-height: 0` on the tile) made it worse and was reverted: on a grid item,
+  that is precisely what allows a row to be shorter than its content.
+- ✅ **The gate**: the demos pass measures every `.gallery-item` against its `.gallery-thumb` and fails when a tile is
+  shorter than the image it holds — a class of failure no text assertion can see. Verified by injecting the old CSS
+  back (❌ *"cat-alpha: tile 92px holding a 215px image"*) and then restoring it (✅).
+
 ### The merge's own footprint: the panel showed the Gallery three times (ISSUE-106)
 
 Minutes after the merge shipped, Andrew's Add-widget panel listed "Gallery" **three times**, each with a `+`. His

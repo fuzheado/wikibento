@@ -360,6 +360,20 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
 
     const seen = await page.evaluate(() => {
       const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [] };
+      // A gallery tile CLIPPED by its own row: `width: 100%` + `aspect-ratio` on an image in a grid row sized `auto`
+      // is a cyclic dependency. The row resolves against the image's INTRINSIC size before it loads and never
+      // re-expands, so the row stays short while the thumbnail renders square, and `.gallery-item`'s
+      // `overflow: hidden` cuts every image to a thin band — the "set of super thin images" reported 2026-09-18,
+      // measured as 191px thumbnails sitting in 125px rows. No text-based check here can see it.
+      out.clippedTiles = [];
+      for (const item of document.querySelectorAll('.gallery-item')) {
+        const th = item.querySelector('.gallery-thumb')?.getBoundingClientRect().height || 0;
+        const ih = item.getBoundingClientRect().height;
+        if (th > 2 && ih + 1 < th) {
+          const id = item.closest('[data-widget-id]')?.getAttribute('data-widget-id') || '?';
+          out.clippedTiles.push(`${id}: tile ${Math.round(ih)}px holding a ${Math.round(th)}px image`);
+        }
+      }
       const frames = [...document.querySelectorAll('.widget-frame')];
       out.cards = frames.length;
       for (const f of frames) {
@@ -464,6 +478,7 @@ if (DEMOS) {
       if (row.emptyRows.length) problems.push(`empty body: ${[...new Set(row.emptyRows)].join(', ')}`);
       if ((row.printOverlaps || []).length) problems.push(`print overlap: ${row.printOverlaps.slice(0, 4).join(', ')}`);
       if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
+      if ((row.clippedTiles || []).length) problems.push(...[...new Set(row.clippedTiles)].slice(0, 2));
       if ((row.panelErrors || []).length) problems.push(...row.panelErrors.map((e) => e.slice(0, 80)));
       if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
       row.status = problems.length ? '❌' : '✅';

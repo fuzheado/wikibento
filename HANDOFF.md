@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-iy9GZzH5.js` (+ `index-B6skfVtC.css`) |
-| deployed | 2026-09-18 — **the Add-widget panel showed the Gallery three times** (ISSUE-106): retired ids in a browser's recents each resolved to the same widget and nothing collapsed them, so `recentWidgetDefs()` de-duplicates where ids become definitions. The demos sweep now renders the panel with retired ids seeded and fails if a section repeats a widget — the second fault in a day that only existed in a browser · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-CqQiCSEs.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **gallery tiles were rendering as thin bands** (ISSUE-107): a definite thumbnail height per size class and `min-content` rows, so a tile is never shorter than the image it holds and a wider card gets more tiles rather than thinner ones — with a demos check that measures the two against each other · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -158,6 +158,12 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
 
 ## Hard-won gotchas (don't rediscover these)
 
+34. **`width: 100%` + `aspect-ratio` on an image inside a grid row sized `auto` is a cyclic dependency.**
+   The row asks the image its height, the height depends on a column width the row has not decided, and the
+   browser falls back to the image's INTRINSIC size — nothing, for a lazy-loaded image — and never re-expands
+   when it arrives. A gallery grid did this, and `overflow: hidden` on the tile turned every image into a
+   thin band (ISSUE-107). Give the image a **definite** height and the rows `min-content`; do not reach for
+   `min-height: 0` on the tile, which is what *permits* a row shorter than its content.
 1. **`exturlusage` clamps `eulimit` to 500** for non-bot users (verified:
    `eulimit=5000` returns 500 + a warning). The fetcher paginates 10 pages =
    5,000, matching Special:LinkSearch. `eunamespace=0` gives article-space-only counts.

@@ -31,6 +31,13 @@ would have caught the empty-box-on-iPhone report:
 npm run test:browsers:demos                                  # 15 boards × 3 engines × desktop+phone
 node scripts/browser-matrix.mjs --demos --base http://localhost:5199 --engines webkit,chromium --wait 9000
 
+### A tile must not be shorter than the image it holds
+
+The demos pass measures every `.gallery-item` against its `.gallery-thumb` and fails when a tile is shorter than the
+image inside it. A clipped image is invisible to every text assertion — a gallery of thin bands looked like a
+successful render — and it appears intermittently, because it depends on whether the thumbnails had loaded when the
+grid sized its rows. That is exactly the class of bug this pass exists for. Verified by injecting the old CSS back.
+
 ### The Add-widget panel is rendered, not assumed
 
 The demos pass opens **Add Widget** on desktop, with `wikibento-recent-widgets` seeded with retired type ids — the
