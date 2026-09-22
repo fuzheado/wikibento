@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-C1tSoMlV.js` (+ `index-D34qWrSa.css`) |
-| deployed | 2026-09-18 — **a print of a live board, done properly** (ISSUE-77): the sheet waits for the board to settle (images and cards) instead of racing it, Board and Document **scale** to the paper rather than reflowing it (no more content painting over its neighbour), Document flows instead of jumping (21 → 8 pages), and the print check waits like a real print does · before that: **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-ulLucS9W.js` (+ `index-B6skfVtC.css`) |
+| deployed | 2026-09-18 — **Document mode stopped re-inventing the board** (ISSUE-77): cards keep the width their grid span gives them, so a trend chart no longer stretches across the page and a file-spotlight image no longer overflows its card (21 → 7 pages), with a new sweep invariant that a card must keep its share of the board width in print · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 43 widget types — 34 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; the print shapes are verified live and by looking at the generated PDFs (Met demo: Board 5 pages, Poster **1 page**, Document 8; every image loaded, no overlap after settling) |
+| pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
 | newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -357,6 +357,12 @@ and a stream pipeline that works in Node is not evidence about a browser.
     check for it has to measure a settled one: wait for every image to decode and for no card to be loading, then
     measure. The same lesson in the other direction is what makes the export work at all now: the app holds the sheet
     (`preparePrint`) until the board has settled, instead of printing whatever happened to be on screen.
+
+32b. **…and the same mistake one level down: a card sized by its content instead of its cell.** Making Document-mode
+    cards full width reflowed their insides (a chart at four times its width, an image overflowing its card); the fix
+    was to give each card its grid proportion — and the first attempt at *that* left the width to the flex item's
+    content, which measured 19% of the page for one card and 100% for another. Two levels, one lesson: a card's
+    width comes from the grid, never from what is inside it.
 
 32. **Two cards can be in the same *row* and still not be in the same *cell*.** Grouping a board's cards into
     "shelves" by overlapping vertical spans is a plausible way to paginate it, and it is wrong the moment a layout is

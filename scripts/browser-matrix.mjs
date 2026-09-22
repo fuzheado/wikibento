@@ -216,6 +216,18 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     let printOverlaps = [];
     let printCards = 0;
     try {
+      // …and record what each card's width is RELATIVE to the board before switching media: a print mode that
+      // reflows a card (full-width it, or squash it) changes that ratio, and that is the failure this catches.
+      const screenRatios = await page.evaluate(() => {
+        const grid = document.querySelector('.react-grid-layout') || document.querySelector('.dashboard-container');
+        const boardW = grid ? grid.getBoundingClientRect().width : 0;
+        const out = {};
+        for (const el of document.querySelectorAll('.react-grid-item')) {
+          const id = el.getAttribute('data-widget-id') || el.querySelector('[data-widget-id]')?.getAttribute('data-widget-id');
+          if (id && boardW) out[id] = el.getBoundingClientRect().width / boardW;
+        }
+        return out;
+      });
       await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
       await page.emulateMedia({ media: 'print' });
       /* WAIT FOR THE BOARD TO SETTLE. The first version of this pass measured 300ms after arming and reported
@@ -228,6 +240,7 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
         return loading === 0 && imgs.every((i) => i.complete);
       }, null, { timeout: 20000 }).catch(() => { /* a slow API is reported through the overlap check, not here */ });
       await page.waitForTimeout(400);
+      await page.evaluate((ratios) => { window.__screenRatios = ratios; }, screenRatios);
       const print = await page.evaluate(() => {
         const boxes = [...document.querySelectorAll('.react-grid-item')].map((el) => {
           const r = el.getBoundingClientRect();
@@ -257,10 +270,25 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
             }
           }
         }
-        return { hits, spill, count: boxes.length, armed: document.body.getAttribute('data-print') };
+        // …and the reflow check: every card must keep its share of the board's width, in whatever mode.
+        const grid = document.querySelector('.react-grid-layout') || document.querySelector('.dashboard-container');
+        const boardW = grid ? grid.getBoundingClientRect().width : 0;
+        const reflowed = [];
+        if (boardW) {
+          for (const el of document.querySelectorAll('.react-grid-item')) {
+            const id = el.getAttribute('data-widget-id') || el.querySelector('[data-widget-id]')?.getAttribute('data-widget-id');
+            const before = window.__screenRatios?.[id];
+            if (!before) continue;
+            const after = el.getBoundingClientRect().width / boardW;
+            if (Math.abs(after - before) > 0.02) reflowed.push(`${id} ${(before * 100).toFixed(0)}%→${(after * 100).toFixed(0)}%`);
+          }
+        }
+        return { hits, spill, reflowed, count: boxes.length, armed: document.body.getAttribute('data-print') };
       });
       printOverlaps = print.armed === 'board'
-        ? [...print.hits, ...(print.spill || []).map((s) => `spills: ${s}`)]
+        ? [...print.hits,
+           ...(print.spill || []).map((s) => `spills: ${s}`),
+           ...(print.reflowed || []).map((s) => `reflowed: ${s}`)]
         : ['print sheet did not arm'];
       printCards = print.count;
     } catch (e) {

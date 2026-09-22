@@ -2708,10 +2708,20 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
     .board-print-menu { min-width: 20rem; }
   .board-print-menu .widget-menu-item { display: block; text-align: left; }
 
-body[data-print-mode='document'] .react-grid-item {
+body[data-print-mode='document'] .react-grid-layout {
+    /* Cards keep the width they are drawn at. Making them full width — the obvious way to build a "document" —
+       reflows every card's insides: a trend chart stretches to four times its width, and an image sized for a
+       narrow card becomes enormous and overflows its card entirely (both reported, 2026-09-18). One card per row,
+       at its own size, is still a document; it is just a document that shows the board rather than re-inventing it. */
+    align-items: flex-start;
+  }
+  body[data-print-mode='document'] .react-grid-item {
     order: var(--print-order, 0);
-    width: 100% !important;
     margin: 0 !important;
+    /* …at the width the board gives it, not the width its content asks for. A flex item sized by its content
+       gave one card 19% of the page and another 100% (measured) — the grid span is the width that makes the
+       inside of a card look like the card. */
+    width: calc((var(--print-span, 12) / 12) * 100%) !important;
     /* A DOCUMENT FLOWS. `break-inside: avoid` (right for the board, where a card is a picture) pushed a card taller
        than the remaining space onto a fresh page and left the rest of the previous one empty — measured on the Met
        board, where a page held a card header, one line of text and nothing else. Letting a tall card split is what a

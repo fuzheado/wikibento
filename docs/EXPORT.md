@@ -110,6 +110,14 @@ wrong for a document: a tall card jumped to a fresh page and left the rest of th
 page holding a card header, one line of text and nothing else. Cards may split there now, which took the Met board
 from 21 pages to 11 to **8**. The trade-off, stated plainly: a tall chart can be cut by a page boundary.
 
+**4. Document mode keeps every card's own width** (2026-09-18, fourth pass). Making cards full width — the obvious
+way to build a "document" — reflows the inside of every card: a trend chart stretches to four times its width, and a
+CIM file-spotlight image sized for a narrow card becomes enormous and overflows it entirely (both reported, with
+screenshots). Cards now take the width their **grid span** gives them (`calc((var(--print-span) / 12) * 100%)`), so
+the inside of a card looks like the card, one per row, in reading order. The first attempt at this made the mistake
+one level down — a flex item with no width takes its *content* width, which gave one card 19% of the page and another
+100% (measured); the span is the width that works. Met board: 21 → 11 → 8 → **7 pages**.
+
 **And the check that let this through is fixed too.** The sweep's print pass measured 300ms after arming, when every
 card was short and nothing collided; it now waits for the same settled state a real print gets, and it checks two
 things — that no two cards touch, and that nothing inside a card (`.gallery-grid`, `.ranking-rows`, `table`,

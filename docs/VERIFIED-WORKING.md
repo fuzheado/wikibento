@@ -11,6 +11,24 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Document mode stopped re-inventing the board (ISSUE-77, 2026-09-18, seventh pass)
+
+Andrew, with two screenshots from Document mode: a **trend chart stretched across the page**, and the **pendant-mask
+image enormous**, overflowing its card into its neighbours.
+
+- 🐛 **One cause, and it was my own earlier fix applied everywhere but here.** Document mode made every card **full
+  width** — the obvious way to build a "document" — which reflows the insides of a card that was drawn for a narrow
+  column: a chart with `width: 100%` became four times as wide, and a file-spotlight image sized for a 356px card
+  became a monster. Cards now take the width their **grid span** gives them, so one card per row at its own size.
+- 🐛 **And the first attempt at that made the same mistake one level down**: a flex item with no width takes its
+  *content* width, which measured 19% of the page for one card and 100% for another. `calc((var(--print-span) / 12) *
+  100%)` is the width that makes the inside of a card look like the card. Verified: welcome 25% · edithistory 33% ·
+  gallery 100% · fileparse 25% — the board's own grid, to the point.
+- ✅ **A new invariant in the sweep's print pass**: every card must keep **its share of the board's width** between
+  screen and print. That is the mode-agnostic form of this bug (any reflow, in any mode, is caught), and it is the
+  check that would have caught the stretched chart and the giant mask before anybody printed them.
+- Met board, after: **Document 7 pages** (21 → 11 → 8 → 7), no stretched content.
+
 ## A print of a live board, done properly (ISSUE-77, 2026-09-18, sixth pass)
 
 The follow-up from Andrew, with three of his own PDFs: images missing from the poster, overlaps in Board and
