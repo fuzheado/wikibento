@@ -11,6 +11,41 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## Images from a Commons category, as a source of the file gallery (ISSUE-104, 2026-09-18)
+
+Andrew asked for the simplest possible widget — *"just show images from a Commons category, in alpha
+order, or random, or filterable"* — and asked whether it should be a new widget or a variant.
+
+**Measured first, and the measurement changed the design.** The three gallery widgets already in the
+registry (`commonsGallery`, `gallery`, `fileGallery`) share `displayMode`/`iconSize`/`imageFit`/`maxItems`
+and differ by **exactly one source field each** — so a fourth type would have been a fourth copy. And
+of the two candidates, the host is `fileGallery`: the Article Gallery's extras (`minSize`, `hideDecorative`,
+`includeAll`) are *article-extraction* semantics, while `fileGallery` is literally "a list of files, and
+an order" — which is what a category is a way of obtaining.
+
+- ✅ **`from: 'list' | 'category'`** on the Commons File Gallery, defaulting to `list` — so every existing
+  board, saved board and shared link renders exactly as before. New fields: `category`, `wiki` (the shared
+  364-wiki picker), and `newest` as a fourth order.
+- ✅ **`showIf` in the config UI**, extracted as a tested `fieldVisible()` predicate rather than left inline:
+  choosing "a wiki category" shows Category + Wiki and hides the paste box; choosing "a list I paste" does
+  the reverse. Verified by driving the real ⚙ panel: `["…","Files come from","Category","Wiki","Order",…]`
+  switching to `["…","Files come from","Commons files (one per line)","Order",…]`.
+- ✅ **Verified live** on `?config=/category-images-demo.json` in Chromium, Firefox and WebKit: 24 images
+  alphabetical, 12 at random, from `Images from XBio` (518 files).
+- ✅ **The cap is disclosed, and so is the pool.** The subtitle counts what the *card* shows, then the slice
+  (`12 files · of 518 in the category · random order · from the first 500`). Alpha and newest need no pool
+  caveat because the API's own order survives truncation — which is also why those orders fetch only what
+  they need, while random/largest fetch a pool to sort or shuffle.
+- ✅ **The honest limits**: subcategories are not walked (a category-tree walk, deliberately not built);
+  random is a client-side shuffle of a pool, not a sample of the whole category.
+
+**One test had to be changed on purpose**, and it is worth recording: `ask-validation` locked in a
+user-reported bug where the model emitted `fileGallery` + a `category` key and the validator *dropped the
+key as unknown*. That combination is now the feature, so the expectation moved — and a genuinely unknown
+key still gets dropped, so the invariant the test exists for is intact.
+
+**Filed, not built:** ISSUE-105 — consolidate the four gallery entries behind one type with legacy aliases.
+
 ## Document mode stopped re-inventing the board (ISSUE-77, 2026-09-18, seventh pass)
 
 Andrew, with two screenshots from Document mode: a **trend chart stretched across the page**, and the **pendant-mask

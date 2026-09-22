@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { configFieldValue } from '../src/lib/configFields.js';
+import { configFieldValue, fieldVisible } from '../src/lib/configFields.js';
 
 /**
  * What the ⚙ panel shows for a field.
@@ -43,4 +43,28 @@ test('a fallback that returns nothing does not invent a value', () => {
 test('a field with no key or no config is safe', () => {
   assert.equal(configFieldValue({}, undefined), '');
   assert.equal(configFieldValue(undefined, {}), '');
+});
+
+test('showIf: a source-specific field appears only for its source', () => {
+  const files = { key: 'files', showIf: { from: 'list' } };
+  const category = { key: 'category', showIf: { from: 'category' } };
+  const plain = { key: 'order' };
+  const defaults = { from: 'list' };
+
+  // the registry default decides when the config says nothing (a widget added with its defaults)
+  assert.equal(fieldVisible(plain, {}, defaults), true);
+  assert.equal(fieldVisible(files, {}, defaults), true);
+  assert.equal(fieldVisible(category, {}, defaults), false);
+
+  // a stored value wins over the default
+  assert.equal(fieldVisible(category, { from: 'category' }, defaults), true);
+  assert.equal(fieldVisible(files, { from: 'category' }, defaults), false);
+
+  // an empty string counts as unset, not as a value
+  assert.equal(fieldVisible(files, { from: '' }, defaults), true);
+
+  // every condition in showIf must hold
+  const both = { key: 'x', showIf: { from: 'category', wiki: 'commons.wikimedia' } };
+  assert.equal(fieldVisible(both, { from: 'category', wiki: 'commons.wikimedia' }, defaults), true);
+  assert.equal(fieldVisible(both, { from: 'category', wiki: 'en.wikipedia' }, defaults), false);
 });

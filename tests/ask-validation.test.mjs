@@ -98,8 +98,16 @@ test('mode validated against the widget displayMode options', () => {
 test('full pipeline: the user-reported failure cases', () => {
   // Model output as observed in the bug report: fileGallery with a category key
   const out = validateOptions({ options: [{ widgetType: 'fileGallery', config: { category: 'Category:Featured pictures on Wikimedia Commons' } }] }, defs);
-  // the category key is unknown for fileGallery → dropped; widget still offered
-  assert.deepEqual(out[0].config, {});
+  // 2026-09-18: `category` USED to be unknown for fileGallery, and dropping it WAS the fix for this exact
+  // model output. fileGallery can now take its file list from a category, so the key is real — the model's
+  // instinct to pair a gallery with a category turned out to be the feature. (The Category: prefix is fine:
+  // cleanCategoryName strips it in the fetcher.)
+  // The Category: prefix is normalised away by key name (the same rule categorySize's `category` gets),
+  // so a model that says either form lands on the same config.
+  assert.deepEqual(out[0].config, { category: 'Featured pictures on Wikimedia Commons' });
+  // …and a genuinely unknown key is still dropped, so the invariant this test exists for is intact.
+  const junk = validateOptions({ options: [{ widgetType: 'fileGallery', config: { nonsense: 'x', category: 'Foo' } }] }, defs);
+  assert.deepEqual(junk[0].config, { category: 'Foo' });
   // categorySize with prefixed category + commons.org wiki → both fixed
   const out2 = validateOptions({ options: [{ widgetType: 'categorySize', config: { category: 'Category:Featured pictures on Wikimedia Commons', wiki: 'commons.org' } }] }, defs);
   assert.deepEqual(out2[0].config, { category: 'Featured pictures on Wikimedia Commons', wiki: 'commons.wikimedia' });

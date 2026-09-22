@@ -25,6 +25,7 @@ import {
   fetchMinTTranslation,
   normalizeLangCode,
   fetchPanoramaFile,
+ fetchCategoryFiles,
  fetchCommonsGallery,
  fetchArticleList,
  fetchSparql,
@@ -933,7 +934,7 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Commons File Gallery',
     icon: '🗂️',
-    description: 'Gallery of any Commons files you list — grid or list, ordered or random',
+    description: 'Gallery of Commons files — paste a list, or take them from a category (grid or list; alphabetical, random, largest or newest)',
   // Content-based auto-fit: tall enough to show the fetched images.
   // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
   autoHeight: (view, config) => {
@@ -948,10 +949,15 @@ export const WIDGET_TYPES = {
     return 64 + rows * (tilePx + 46);
   },
   defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
-    labelFromConfig: (c) => `${(c.files || '').split('\n').filter(Boolean).length} files`,
+    labelFromConfig: (c) => (c.from === 'category'
+      ? `Category:${(c.category || '').replace(/^Category:\s*/i, '')}`
+      : `${(c.files || '').split('\n').filter(Boolean).length} files`),
     defaults: {
+      from: 'list',         // 'list' | 'category' — where the file list comes from
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
-      order: 'listed',      // 'listed' | 'random' | 'alpha' | 'largest'
+      category: 'Featured pictures',
+      wiki: 'commons.wikimedia',
+      order: 'listed',      // 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
       displayMode: 'grid',  // 'grid' | 'list'
       iconSize: 'medium',
       imageFit: 'contain',
@@ -962,12 +968,19 @@ export const WIDGET_TYPES = {
     getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
     dataSource: 'Commons API imageinfo (batched)',
     configFields: [
-      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 8, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
+      { key: 'from', label: 'Files come from', type: 'select', options: [
+        { value: 'list', label: 'A list I paste' },
+        { value: 'category', label: 'A wiki category' },
+      ]},
+      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 8, showIf: { from: 'list' }, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
+      { key: 'category', label: 'Category', type: 'text', showIf: { from: 'category' }, placeholder: 'Images from XBio', hint: 'Bare name, or with the Category: prefix. Subcategories are not walked.' },
+      { key: 'wiki', label: 'Wiki', type: 'project', showIf: { from: 'category' } },
       { key: 'order', label: 'Order', type: 'select', options: [
         { value: 'listed', label: 'As listed' },
         { value: 'random', label: 'Random (reshuffles each refresh)' },
         { value: 'alpha', label: 'Alphabetical' },
         { value: 'largest', label: 'Largest first (by dimensions)' },
+        { value: 'newest', label: 'Newest first (by upload date)' },
       ]},
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'grid', label: 'Grid (captions below)' },
@@ -984,9 +997,28 @@ export const WIDGET_TYPES = {
       ]},
       { key: 'maxItems', label: 'Max files (0 = all)', type: 'number', placeholder: '0' },
     ],
-    fetch: (config) => fetchCommonsGallery(config.files),
+    fetch: (config) => {
+      const order = config.order || 'listed';
+      if (config.from !== 'category') return fetchCommonsGallery(config.files);
+      // How big a pool to fetch depends on the order, because the API decides the order:
+      //  · listed/alpha/newest — truncating the API's own order shows the true first N, so a small pool is
+      //    faithful AND cheap (a 24-image card should not read 500 files in ten imageinfo calls);
+      //  · random/largest — the pool has to be big to be meaningful, and when the category is bigger than
+      //    the pool the card says "of N in the category" rather than pretending it saw them all.
+      const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
+      const faithful = order !== 'random' && order !== 'largest';
+      const limit = faithful ? Math.max(maxItems || 60, 24) : 500;
+      return fetchCategoryFiles(config.category, { wiki: config.wiki, order, limit });
+    },
+    // A gallery is worth wiring: the same channels its siblings publish (ISSUE-103).
+    outputs: { lines: 'lines', selection: 'value' },
+    primary: 'lines',
+    emit: (data) => ({
+      lines: (data && data.rows ? data.rows : []).map((r) => r.caption || r.title),
+      selection: undefined, // published by the card on click
+    }),
     transform: (data, config) => {
-      const ORDER_LABELS = { listed: 'as listed', random: 'random order', alpha: 'alphabetical', largest: 'largest first' };
+      const ORDER_LABELS = { listed: 'as listed', random: 'random order', alpha: 'alphabetical', largest: 'largest first', newest: 'newest first' };
       const order = config.order || 'listed';
       const rows = [...data.rows];
       if (order === 'random') {
@@ -1001,13 +1033,24 @@ export const WIDGET_TYPES = {
         rows.sort((a, b) => ((b.width || 0) * (b.height || 0)) - ((a.width || 0) * (a.height || 0)));
       }
       const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
+      const maxItemsN = Math.max(parseInt(config.maxItems) || 0, 0);
+      const shown = maxItemsN ? Math.min(maxItemsN, rows.length) : rows.length;
+      const fetched = data.listed || rows.length;
+      // The subtitle describes what the CARD shows, then says what it is a slice of. Random and largest are
+      // applied here rather than by the API, so they are only as representative as the pool that was read —
+      // when the category is bigger than that pool, the card says so instead of implying it saw everything.
+      const pooled = (order === 'random' || order === 'largest') && data.total && fetched < data.total;
+      const capped = data.category && data.total && data.total !== shown;
       const subtitleBits = [
-        `${rows.length} file${rows.length === 1 ? '' : 's'}`,
+        `${shown} file${shown === 1 ? '' : 's'}`,
+        capped ? `of ${data.total} in the category` : null,
         order !== 'listed' ? ORDER_LABELS[order] : null,
+        pooled ? `from the first ${fetched}` : null,
+        data.category && order === 'listed' ? 'as returned (alphabetical)' : null,
         data.missing ? `${data.missing} not found` : null,
       ].filter(Boolean);
       return {
-        title: 'Commons files',
+        title: data.category || 'Commons files',
         subtitle: subtitleBits.join(' · '),
         rows: maxItems ? rows.slice(0, maxItems) : rows,
         size: config.iconSize || 'medium',

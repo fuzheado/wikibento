@@ -192,7 +192,12 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     const exe = EXECUTABLES[engine];
     if (WS_ENDPOINTS[engine]) browser = await launch.connect(remoteWs(engine));
     else browser = await launch.launch({ headless: true, ...(exe ? { executablePath: exe } : {}) });
-    context = await browser.newContext(VIEWPORT_SETTINGS[viewportName] || {});
+    // Playwright cannot emulate `isMobile` in Firefox ("options.isMobile is not supported in Firefox"), so the
+    // phone profile is desktop-flagged there. Without this, every phone×Firefox run failed as a LAUNCH/NAV error —
+    // 1 of 6 jobs, on every demo, forever, which is how a summary line stops being read.
+    const viewportSettings = VIEWPORT_SETTINGS[viewportName] || {};
+    const contextSettings = engine === 'firefox' ? { ...viewportSettings, isMobile: false } : viewportSettings;
+    context = await browser.newContext(contextSettings);
     const page = await context.newPage();
     page.on('console', (msg) => {
       if (msg.type() !== 'error') return;

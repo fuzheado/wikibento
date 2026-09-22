@@ -1,5 +1,25 @@
 # Data Sources Reference
 
+## MediaWiki categories as a file list (2026-09-18, ISSUE-104)
+
+`list=categorymembers` with `cmtype=file`, then the same batched `imageinfo` call a pasted file list uses —
+which is the point: **a category is a way to obtain a file list**, so it is a *source* of the Commons File
+Gallery widget rather than a widget of its own.
+
+| what | how | measured 2026-09-18 |
+|---|---|---|
+| the files | `list=categorymembers&cmtitle=Category:X&cmtype=file&cmlimit=500` | default order is alphabetical; `cmsort` accepts `sortkey` or `timestamp` only |
+| the total | the **same call**, via `prop=categoryinfo&titles=Category:X` | 500 members **and** `files=518` in one response |
+| a typo | `pages[0].missing` | `categorymembers` returns an empty list for a category that does not exist |
+| random | **not available** — `cmsort=random` is a `badvalue` error | shuffled client-side, as the gallery already did |
+| thumbnails | one `imageinfo` call per 50 titles, chunked by encoded length (HTTP 414) | 50/50 hits at 320–400px |
+
+Traps: `cmsort=timestamp` appears to ignore `cmtype` (a `Category:` title came back for a `cmtype=file`
+query), so file membership is checked on the title as well as on `ns`; subcategories are **not** walked (one
+level, by design); and `random`/`largest` are applied to a fetched pool, which is why the card's subtitle
+names the pool when the category is bigger than it.
+
+
 All fetchers live in `src/widgets/dataSources.js`. Every endpoint used is
 **CORS-enabled** — that's why the app needs no proxy. All requests run from the browser,
 so Wikimedia API etiquette is enforced by the browser's own User-Agent (the

@@ -18,3 +18,19 @@ export function configFieldValue(field, config) {
   }
   return stored ?? '';
 }
+
+  /**
+   * Should the ⚙ panel show this field, given a field may declare `showIf: { otherKey: 'value' }`?
+   *
+   * The value is read the way the field itself reads it — the stored config first, then the registry default —
+   * so a widget added with defaults shows the fields its defaults imply (fileGallery arrives as from:'list', so
+   * its category fields stay hidden until you ask for them).
+   */
+  export function fieldVisible(field, config, defaults) {
+    if (!field?.showIf) return true;
+    return Object.entries(field.showIf).every(([key, want]) => {
+      const raw = config?.[key];
+      const val = raw === undefined || raw === '' ? (defaults?.[key] ?? '') : raw;
+      return String(val) === String(want);
+    });
+  }

@@ -8,6 +8,7 @@ const PAGEVIEWS_API = 'https://wikimedia.org/api/rest_v1/metrics/pageviews';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 
 import { createTtlCache } from '../lib/fetchCache';
+import { wikiApiUrl } from '../lib/paramSources';
 import {
   parseSiteMatrix, packProjects, readPackedProjects, PROJECTS_CACHE_KEY, SITEMATRIX_URL,
 } from '../lib/projects';
@@ -540,8 +541,10 @@ export async function fetchExternalLinks(domain, wiki = 'en.wikipedia', namespac
 /** 3. Category Size — uses MediaWiki API categoryinfo.
  *  Optional random image sample (Commons only): CirrusSearch with
  *  incategory: + srsort=random — the same mechanism as catprobe. */
-function cleanCategoryName(category) {
-  return category.replace(/^Category:\s*/i, '').replace(/"/g, '');
+/** Category: / quotes / stray whitespace all mean the same category — one cleaner for the module.
+ *  (A fourth copy was written for the category-gallery source and deleted on sight.) */
+export function cleanCategoryName(category) {
+  return String(category == null ? '' : category).replace(/^Category:\s*/i, '').replace(/"/g, '').trim();
 }
 
 async function fetchRandomCategoryImages(category, limit) {
@@ -1639,12 +1642,12 @@ function parseTitleList(text) {
  *  caption). Ordering is applied client-side in the widget transform, so
  *  re-sorting never re-fetches. Missing files are counted, not fatal.
  */
-export async function fetchCommonsGallery(filesText) {
-  const titles = parseTitleList(filesText).map((t) => t.replace(/^File:\s*/i, '').replace(/ /g, '_'));
-  if (!titles.length) throw new Error('Enter at least one Commons file (one per line)');
+/** Batched imageinfo rows for bare file titles (spaces fine) — one call per 50.
+ *  Adaptive batching: long filenames (WLM etc.) blow GET URLs (HTTP 414) — chunk by
+ *  encoded length, not by count (the same rule as fetchBatchedUsage).
+ *  Shape: { title, fileUrl, thumbUrl, caption, width, height } — what the gallery renderers expect. */
+async function fetchFileRows(titles, { apiBase = 'https://commons.wikimedia.org/w/api.php', width = 400 } = {}) {
   const rows = [];
-  // Adaptive batching: long filenames (WLM etc.) blow GET URLs (HTTP 414) —
-  // chunk by encoded length, not by count (same rule as fetchBatchedUsage).
   const MAX_ENCODED = 4500;
   let chunk = [];
   let chunkLen = 0;
@@ -1655,13 +1658,13 @@ export async function fetchCommonsGallery(filesText) {
       prop: 'imageinfo',
       titles: chunk.map((t) => `File:${t}`).join('|'),
       iiprop: 'url|size|extmetadata',
-      iiurlwidth: '400',
+      iiurlwidth: String(width),
       iiextmetadatafilter: 'ImageDescription',
       format: 'json',
       formatversion: '2',
       origin: '*',
     });
-    const d = await fetchJSON(`https://commons.wikimedia.org/w/api.php?${params}`);
+    const d = await fetchJSON(`${apiBase}?${params}`);
     for (const p of d?.query?.pages || []) {
       if (p.missing) continue;
       const ii = p.imageinfo?.[0];
@@ -1686,7 +1689,88 @@ export async function fetchCommonsGallery(filesText) {
     chunkLen += len;
   }
   await flush();
+  return rows;
+}
+
+export async function fetchCommonsGallery(filesText) {
+  const titles = parseTitleList(filesText).map((t) => t.replace(/^File:\s*/i, '').replace(/ /g, '_'));
+  if (!titles.length) throw new Error('Enter at least one Commons file (one per line)');
+  const rows = await fetchFileRows(titles);
   return { rows, total: titles.length, missing: titles.length - rows.length };
+}
+
+/** "Category:Foo", `"Foo"` and "Foo" all mean Foo. */
+/** File titles from a categorymembers response. ns 6 is File; `cmsort=timestamp` appears to ignore
+ *  cmtype (Category: titles came back for a cmtype=file query, observed 2026-09-18), so a File: title
+ *  is accepted on its name as well as on its namespace. */
+export function categoryMemberTitles(d) {
+  const out = [];
+  for (const m of d?.query?.categorymembers || []) {
+    const t = String(m?.title || '');
+    if (!t) continue;
+    if (m.ns === 6 || /^File:/.test(t)) out.push(t.replace(/^File:\s*/i, ''));
+  }
+  return out;
+}
+
+/** Files in a wiki category, as the same imageinfo rows fetchCommonsGallery returns — a category is
+ *  just another way to obtain a file list, which is why it lives here rather than in a widget of its own.
+ *
+ *  Measured on Commons (2026-09-18):
+ *   · one call returns the page of members AND the category's total — list=categorymembers +
+ *     prop=categoryinfo + titles=<cat> gave 500 members and files=518 together, so a capped view can say
+ *     "500 of 518" honestly instead of pretending the category is 500 files long;
+ *   · a typo is NOT an error: categorymembers simply returns an empty list, so the `missing` flag from
+ *     categoryinfo is the only way to tell "no such category" from "empty category";
+ *   · there is no random order in the API (cmsort accepts sortkey|timestamp only — `random` is a badvalue
+ *     error), and the widget shuffles client-side already, so nothing is lost;
+ *   · cmsort=timestamp appears to ignore cmtype (Category: titles came back for a cmtype=file query), so
+ *     File: membership is checked by hand as well as by ns. */
+export async function fetchCategoryFiles(categoryText, { wiki = 'commons.wikimedia', order = 'listed', limit = 500 } = {}) {
+  const name = cleanCategoryName(categoryText || '');
+  if (!name) throw new Error('Enter a category — e.g. "Images from XBio" (the Category: prefix is optional)');
+  const apiBase = wikiApiUrl(wiki);
+  const catTitle = `Category:${name}`;
+  const hardLimit = Math.max(1, Math.min(parseInt(limit, 10) || 500, 2000));
+  const titles = [];
+  let total = null;
+  let cmcontinue = null;
+  let exists = true;
+  do {
+    const params = new URLSearchParams({
+      action: 'query',
+      list: 'categorymembers',
+      cmtitle: catTitle,
+      cmtype: 'file',
+      cmlimit: '500',
+      cmprop: 'title|sortkey|timestamp',
+      prop: 'categoryinfo',
+      titles: catTitle,
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    if (order === 'newest') { params.set('cmsort', 'timestamp'); params.set('cmdir', 'descending'); }
+    else if (order === 'alpha') { params.set('cmsort', 'sortkey'); params.set('cmdir', 'ascending'); }
+    if (cmcontinue) params.set('cmcontinue', cmcontinue);
+    const d = await fetchJSON(`${apiBase}?${params}`);
+    const page = (d?.query?.pages || [])[0];
+    if (page?.missing) { exists = false; break; }
+    if (total === null) total = page?.categoryinfo?.files ?? null;
+    for (const t of categoryMemberTitles(d)) titles.push(t);
+    cmcontinue = d?.continue?.cmcontinue;
+  } while (cmcontinue && titles.length < hardLimit);
+
+  if (!exists) throw new Error(`No such category on ${wiki}: ${catTitle}`);
+  const unique = [...new Set(titles)].slice(0, hardLimit);
+  const rows = await fetchFileRows(unique, { apiBase });
+  return {
+    rows,
+    total: total ?? unique.length,
+    listed: unique.length,
+    category: catTitle,
+    missing: unique.length - rows.length,
+  };
 }
 
 /**

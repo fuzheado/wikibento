@@ -23,7 +23,7 @@ import { serviceImageUrl, searchHits } from '../lib/iaBook';
 import { fetchProjectList, fetchIaBookSearch, fetchIaBookPageText, fetchWikisourcePageText } from './dataSources';
 import ProjectField, { FALLBACK_PROJECTS } from '../components/ProjectField';
 import PagedViewer from './PagedViewer';
-import { configFieldValue } from '../lib/configFields';
+import { configFieldValue, fieldVisible } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
@@ -604,7 +604,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
               placeholder="auto — e.g. the item being analyzed"
             />
           </div>
-          {(def?.configFields || []).map(field => (
+          {/* A field may declare showIf — { otherKey: 'value' } — so source-specific inputs never sit in
+              the dialog at once. The value is read the way the field is: stored config, then registry default. */}
+          {(def?.configFields || [])
+            .filter((f) => fieldVisible(f, widget.config, def?.defaults))
+            .map(field => (
             <div key={field.key} className="config-field">
               <label>{field.label}</label>
               {(() => null)()}

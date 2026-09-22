@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "params": {
+    "category": {
+      "label": "Category",
+      "type": "buttons",
+      "options": [
+        "Images from XBio",
+        "Featured pictures",
+        "London"
+      ],
+      "value": "Images from XBio"
+    }
+  },
+  "widgets": [
+    {
+      "id": "cat-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## \ud83d\uddc2\ufe0f A Commons category, as a gallery\n\nA category is just another way to obtain a **file list** \u2014 so it lives inside the Commons File Gallery rather than in a widget of its own. Point it at a category and the same card that shows a pasted list shows this: *newest* and *alphabetical* come from the API, *random* and *largest* are applied here.\n\n**Subcategories are not walked** \u2014 one level only, on purpose. When a category holds more files than the card asked for, the subtitle says so \u2014 *N files \u00b7 of the category's total* \u2014 instead of quietly showing a slice. Click any image to publish it to the board.",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "cat-pick",
+      "widgetType": "boardControls",
+      "config": {
+        "title": "Pick a category",
+        "show": "category",
+        "refreshSeconds": 86400
+      }
+    },
+    {
+      "id": "cat-alpha",
+      "widgetType": "fileGallery",
+      "config": {
+        "from": "category",
+        "category": "{{category}}",
+        "wiki": "commons.wikimedia",
+        "order": "alpha",
+        "displayMode": "grid",
+        "iconSize": "medium",
+        "imageFit": "cover",
+        "maxItems": 24,
+        "_title": "{{category}} \u2014 alphabetical (from the API)",
+        "refreshSeconds": 3600
+      }
+    },
+    {
+      "id": "cat-random",
+      "widgetType": "fileGallery",
+      "config": {
+        "from": "category",
+        "category": "{{category}}",
+        "wiki": "commons.wikimedia",
+        "order": "random",
+        "displayMode": "grid",
+        "iconSize": "small",
+        "imageFit": "cover",
+        "maxItems": 12,
+        "_title": "{{category}} \u2014 random picks",
+        "refreshSeconds": 1800
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "cat-note",
+      "x": 0,
+      "y": 0,
+      "w": 8,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "cat-pick",
+      "x": 8,
+      "y": 0,
+      "w": 4,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "cat-alpha",
+      "x": 0,
+      "y": 3,
+      "w": 7,
+      "h": 10,
+      "minW": 4,
+      "minH": 3
+    },
+    {
+      "i": "cat-random",
+      "x": 7,
+      "y": 3,
+      "w": 5,
+      "h": 8,
+      "minW": 3,
+      "minH": 3
+    }
+  ]
+}

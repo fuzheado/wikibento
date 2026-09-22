@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-ulLucS9W.js` (+ `index-B6skfVtC.css`) |
-| deployed | 2026-09-18 — **Document mode stopped re-inventing the board** (ISSUE-77): cards keep the width their grid span gives them, so a trend chart no longer stretches across the page and a file-spotlight image no longer overflows its card (21 → 7 pages), with a new sweep invariant that a card must keep its share of the board width in print · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-me6J9Mg-.js` (+ `index-B6skfVtC.css`) |
+| deployed | 2026-09-18 — **a Commons category as a gallery source** (ISSUE-104): `from: list | category` on the 🗂️ Commons File Gallery, with `showIf` so a source's fields appear only for that source, `newest` as a fourth order, and a subtitle that counts what the card shows and names the pool when random/largest only read part of a big category — verified live 6/6 across engines and viewports · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 43 widget types — 34 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -462,7 +462,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
-   - **ISSUE-96 — finish the emitter audit.** 11 of 43 widget types publish anything (the 🎞️ Commons Gallery joined on
+   - **ISSUE-96 — finish the emitter audit.** 12 of 43 widget types publish anything (the 🗂️ Commons File Gallery joined on 2026-09-18 when it became the category source; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
@@ -495,6 +495,16 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      - **ISSUE-103's known limit** — the 🎞️ Commons Gallery reads literal `<gallery>` blocks from the wikitext, so a
        gallery generated *by a template* reads as empty (the rendered HTML would catch those, at 10× the bytes: 654 KB
        against 56 KB for London). Worth deciding per case rather than assuming; everything else about galleries shipped.
+     - **ISSUE-105 — consolidate the gallery family** (filed 2026-09-18): one `gallery` type with
+       `from: list | article | page | category`, behind alias shims for the existing type ids. Four entries share the
+       same renderer and differ by one source field each; the pay-off is one place for shared features, the cost is a
+       migration that must keep saved boards and shared `#/z/` links rendering. Do it when a third gallery feature is
+       wanted, not before.
+     - **A sweep-environment note** (2026-09-18, recorded, not fixed): a full `test:browsers:demos` run reported 19
+       failures that are *not* about this repo's code — `web.archive.org` framing (error frames: wayback) and
+       report-only CSP console spam from Wikimedia hosts. Running a control board I had not touched, alone, was 6/6
+       clean, and the failing boards failed on the *same* external causes. Judge a sweep by a control board before
+       believing its total.
      - **The print's known tweaks** (Andrew, 2026-09-18: *"all much better but could use some tweaking"*). Three
        small, well-understood follow-ups, in the order I would take them:
        (1) **a scale chooser in the 🖨 menu** — *fit* (today's behaviour) or *100%* — because Board and Document mode

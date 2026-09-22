@@ -3626,11 +3626,15 @@ what makes it a type rather than a blob.
 about a day, and it is best done *with* ISSUE-96's row-shaped work rather than before it — the first structured
 producer is what tells us whether the type list is right.
 
-## ISSUE-96 · Emitter/consumer audit: 11 of 43 widgets publish anything — **open**
+## ISSUE-96 · Emitter/consumer audit: 12 of 43 widgets publish anything — **open**
 
 > **Updated 2026-09-18:** the 🎞️ Commons Gallery (ISSUE-103) joined the emitters when it shipped — the gallery's
 > captions as `lines` (a curated, human-written list, the best thing to feed a Filter, a Translator or a Speaker)
 > and the clicked file as `selection`, on the ISSUE-91 channel pattern. 11 of 43.
+>
+> **2026-09-18:** 12 of 43 — the 🗂️ Commons File Gallery gained `lines` + `selection` when it became the
+> category source (ISSUE-104). Adding a channel to a widget that already existed is exactly the kind of
+> progress this audit is for.
 
 Andrew asked for an audit of "the obvious emitter/consumer functions". Measured from the registry 2026-09-16:
 
@@ -4957,6 +4961,52 @@ client-side grading only (the answer key is visible in the JSON — fine for a b
 free-text answers.
 
 ## ISSUE-103 · Gallery pages: Commons' curated layer, as data — **done + verified 2026-09-18**
+
+## ISSUE-104 · Images from a Commons category — **done + verified 2026-09-18**
+
+Andrew, 2026-09-18: *"just show images from a Commons category, in alpha order, or random, or filterable …
+how hard or easy is it to do so?"*
+
+**Easy — and it needed no new widget.** Measured before building: the three gallery entries already in the
+registry (`commonsGallery`, `gallery`, `fileGallery`) share `displayMode`/`iconSize`/`imageFit`/`maxItems` and
+differ by **exactly one source field each**, and `fileGallery` already offers `order: listed | random | alpha |
+largest`. A category is a *way of obtaining a file list*, so it belongs there:
+
+```json
+{ "widgetType": "fileGallery",
+  "config": { "from": "category", "category": "Images from XBio", "wiki": "commons.wikimedia", "order": "random" } }
+```
+
+- **`from: 'list' | 'category'`** — `list` is the default, so no existing board, saved board or shared link
+  changes behaviour. New: `category`, `wiki` (the shared 364-wiki picker) and a fourth order, `newest`.
+- **`showIf` in the ⚙ panel** (a tested `fieldVisible()` predicate): a source's fields appear only for that
+  source. Verified by driving the real panel.
+- **The fetch reads only what the order needs** — `alpha`/`newest` come from the API, so truncating its order is
+  faithful and cheap; `random`/`largest` fetch a pool, and the subtitle names it
+  (`12 files · of 518 in the category · random order · from the first 500`).
+- **Not built, deliberately:** subcategory walking (a category-tree walk), and a *sample* of a huge category
+  (random shuffles a fetched pool). Both are stated in the card rather than hidden.
+- Demo: `?config=/category-images-demo.json`. Verified live in Chromium, Firefox and WebKit.
+
+**A test changed on purpose.** `ask-validation` locked in a bug report where the model emitted `fileGallery` +
+a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
+and a genuinely unknown key is still dropped, so the invariant survives.
+
+## ISSUE-105 · One gallery widget, four sources — **filed, not built 2026-09-18**
+
+The gallery family is now four sources behind the same renderer: a pasted list (ISSUE-104 made it `from:
+'list'`), an article (`gallery`), a `<gallery>` page (`commonsGallery`), and a category (`fileGallery.from:
+'category'`). They share four display fields and differ by one source field each.
+
+**The tidier end state is one `gallery` type with `from: list | article | page | category`.** Not done now
+because it is a migration, not a feature: saved boards and shared `#/z/` links carry `gallery`,
+`commonsGallery` and `fileGallery` as *type ids*, and this repo's own rules say those must keep rendering — so
+it needs an alias shim (`commonsGallery` → `gallery` + `from: 'page'`) plus doc and count churn. The pay-off is
+one place for shared features (a filter box, a lightbox, a click-to-publish action) instead of four.
+
+**Revisit when** a third gallery feature is wanted, or when the consolidation can be done behind aliases and
+verified by the demos sweep.
+
 
 **Shipped.** A `commonsGallery` widget renders a gallery page's own images, captions and order — the 44th card on the
 full-catalog board — and the 🎞️ demo board chains its captions into a Translator and its clicks into a reader.

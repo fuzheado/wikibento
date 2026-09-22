@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-20T18:48:03.181Z",
+ "generatedAt": "2026-09-22T16:44:12.841Z",
  "widgetCount": 43,
  "widgets": [
   {
@@ -840,7 +840,7 @@
    "id": "fileGallery",
    "name": "Commons File Gallery",
    "icon": "🗂️",
-   "description": "Gallery of any Commons files you list — grid or list, ordered or random",
+   "description": "Gallery of Commons files — paste a list, or take them from a category (grid or list; alphabetical, random, largest or newest)",
    "dataSource": "Commons API imageinfo (batched)",
    "category": "Files & Media",
    "type": "media",
@@ -851,10 +851,31 @@
    "consumesSource": false,
    "configFields": [
     {
+     "key": "from",
+     "type": "select",
+     "label": "Files come from",
+     "options": [
+      "list",
+      "category"
+     ]
+    },
+    {
      "key": "files",
      "type": "textarea",
      "label": "Commons files (one per line)",
      "placeholder": "File:Example.jpg\\nFile:Another photo.png"
+    },
+    {
+     "key": "category",
+     "type": "text",
+     "label": "Category",
+     "hint": "Bare name, or with the Category: prefix. Subcategories are not walked.",
+     "placeholder": "Images from XBio"
+    },
+    {
+     "key": "wiki",
+     "type": "project",
+     "label": "Wiki"
     },
     {
      "key": "order",
@@ -864,7 +885,8 @@
       "listed",
       "random",
       "alpha",
-      "largest"
+      "largest",
+      "newest"
      ]
     },
     {
@@ -903,14 +925,22 @@
     }
    ],
    "defaults": [
+    "from",
     "files",
+    "category",
+    "wiki",
     "order",
     "displayMode",
     "iconSize",
     "imageFit",
     "maxItems",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "lines": "lines",
+    "selection": "value"
+   },
+   "primary": "lines"
   },
   {
    "id": "articleList",

@@ -33,6 +33,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 |---|---|
 | 👋 [Article switcher](https://wikibento.toolforge.org/?config=/article-switcher-demo.json) | the simplest board: one param, two cards |
 | 🎞️ [Commons gallery](https://wikibento.toolforge.org/?config=/gallery-demo.json) | Commons' **curated** layer as data — a gallery page's own captions and order, and a click on a tile drives the reader beside it |
+| 🗂️ [Category gallery](https://wikibento.toolforge.org/?config=/category-images-demo.json) | Images from a **Commons category** — alphabetical, newest, random or largest — with the category's total in the subtitle when a card shows only part of it |
 | 🔎 [Page picker](https://wikibento.toolforge.org/?config=/page-picker-demo.json) | one validated page-name box with a wiki beside it — three cards follow, and none of them names a project |
 | 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + a three-step dataflow (excerpt → translator → 🔊 speaker), where the translation's language picks the spoken voice |
 | 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
@@ -66,7 +67,7 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 |---|---|
 | **Articles (6)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment · 🖼️ Article Gallery |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (6)** | 🎞️ Commons Gallery · 🖼️ File Usage Map · 🗂️ Commons File Gallery · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
+| **Files & Media (6)** | 🎞️ Commons Gallery · 🖼️ File Usage Map · 🗂️ Commons File Gallery (a pasted list **or a category**) · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (8)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page · 📰 Wikipedia Box |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
