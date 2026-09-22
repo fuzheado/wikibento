@@ -78,3 +78,11 @@ test('every renderer named in the registry is REACHABLE from the content dispatc
   const unrouted = named.filter((name) => !routed.has(name));
   assert.deepEqual(unrouted, [], `renderers with no case in WidgetContent (they fall through to StatCard): ${unrouted.join(', ')}`);
 });
+
+test('every registry key is its own id (a mis-keyed entry is invisible until something looks)', () => {
+  // 2026-09-18: merging the gallery family was done by deleting from `id: '…'` to the next `id: '…'`, which is the
+  // wrong unit — the registry is an OBJECT keyed by id, so the key survived and the next entry lost its own. The
+  // module still parsed, the tests mostly passed, and one widget silently became another. Two lines of check.
+  const bad = Object.entries(WIDGET_TYPES).filter(([key, def]) => def.id !== key).map(([key, def]) => `${key} → ${def.id}`);
+  assert.deepEqual(bad, []);
+});

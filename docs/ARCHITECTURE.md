@@ -26,7 +26,7 @@ App  (state: widgets[], layout[], panel visibility)
 │               ├── StatCard        ← big number + detail + sparkline
 │               ├── RankingCard     ← header + numbered rows
 │               ├── TrendCard       ← SVG polyline chart
-│               └── GalleryGridCard ← shared by gallery + fileGallery (same card)
+│               └── GalleryGridCard ← shared by all four gallery sources (same card)
 ├── AddWidgetPanel  (modal catalog, search filter)
 ├── SharePanel  (QR code + copyable link modal)
 └── .empty-state
@@ -89,7 +89,7 @@ The **transform contract** is the only thing renderers understand:
 | `RankingCard` | `{ title, subtitle?, columns: [h1, h2], rows: [[c1, c2], ...], image?: {url, description}, caption?, fileTitle? }` |
 | `TrendCard` | `{ chartData: [{date, views}], chartKey, chartLabel }` |
 | `GlamCard` | `{ title, subtitle?, stats: [{label, value, sub?}] ×4, filmstrip?: [{title, views, thumbUrl}], detail?: {title, rows: [{wiki, page, views}]} }` |
-| `GalleryGridCard` / `GalleryListCard` | `{ title, subtitle, rows: [{title, thumbUrl, fileUrl, caption}], size?, fit? }` — the **canonical image-row contract**; shared by `gallery` + `fileGallery` (see Shared Renderers) |
+| `GalleryGridCard` / `GalleryListCard` | `{ title, subtitle, rows: [{title, thumbUrl, fileUrl, caption}], size?, fit? }` — the **canonical image-row contract**; shared by `gallery` + `gallery` (see Shared Renderers) |
 
 Optional media fields: `sample` renders a thumbnail strip (links to Commons file pages);
 `image` renders a preview above the table (link to the Commons page via `fileTitle`);
@@ -106,7 +106,7 @@ Cards are **named components** (the `WidgetContent` switch in
 entries can dispatch to the SAME card. The entry contributes its own
 `fetch` + `transform`; the card renders whatever contract it receives.
 
-- `gallery` and `fileGallery` already share `GalleryGridCard` /
+- the four gallery sources (article · page · category · list) share `GalleryGridCard` /
   `GalleryListCard` — both transforms emit the same image-row contract.
 - Mode switching WITHIN one widget uses `getRenderer(config)` (pageviews
   stat ↔ trend; gallery grid ↔ list).
@@ -115,7 +115,7 @@ entries can dispatch to the SAME card. The entry contributes its own
   A new source (category random sample, PagePile list, SPARQL results)
   just produces conforming rows and reuses the cards.
 - Planned (ISSUE-33/34/37/38): `GallerySlideshowCard` + `GalleryTickerCard`
-  written once, shared by `gallery`, `fileGallery`, and `categorySize`
+  written once, shared by `gallery`, `gallery`, and `categorySize`
   (random-sample visual modes). Fetchers stay per-widget — only their
   output converges.
 

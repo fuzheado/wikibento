@@ -20,10 +20,11 @@ export function configFieldValue(field, config) {
 }
 
   /**
-   * Should the ⚙ panel show this field, given a field may declare `showIf: { otherKey: 'value' }`?
+   * Should the ⚙ panel show this field, given a field may declare `showIf: { otherKey: 'value' }`
+   * (or `{ otherKey: ['a', 'b'] }` for a field that belongs to several sources)?
    *
    * The value is read the way the field itself reads it — the stored config first, then the registry default —
-   * so a widget added with defaults shows the fields its defaults imply (fileGallery arrives as from:'list', so
+   * so a widget added with defaults shows the fields its defaults imply (a gallery arrives as from:'list', so
    * its category fields stay hidden until you ask for them).
    */
   export function fieldVisible(field, config, defaults) {
@@ -31,6 +32,7 @@ export function configFieldValue(field, config) {
     return Object.entries(field.showIf).every(([key, want]) => {
       const raw = config?.[key];
       const val = raw === undefined || raw === '' ? (defaults?.[key] ?? '') : raw;
-      return String(val) === String(want);
+      // `want` may be a value or a list of values — a field shared by several sources, like `project`.
+      return (Array.isArray(want) ? want : [want]).some((w) => String(val) === String(w));
     });
   }

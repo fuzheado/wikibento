@@ -5,6 +5,7 @@
 
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput } from '../lib/params';
+import { inferGallerySource, galleryProject } from '../lib/gallerySource';
 import {
   fetchDocumentPages,
   fetchIaBook,
@@ -25,6 +26,7 @@ import {
   fetchMinTTranslation,
   normalizeLangCode,
   fetchPanoramaFile,
+ cleanCategoryName,
  fetchCategoryFiles,
  fetchCommonsGallery,
  fetchArticleList,
@@ -293,91 +295,6 @@ export const WIDGET_TYPES = {
           + ` · Editors: ${data.users.toLocaleString()} · Active: ${data.activeusers.toLocaleString()}`
         : '',
     }),
-  },
-
-  commonsGallery: {
-    id: 'commonsGallery',
-    nodeKind: 'display',
-    category: 'Files & Media', intensity: 'low',
-
-    timeScope: 'point',    name: 'Commons Gallery',
-    icon: '🎞️',
-    description: 'A Commons gallery page — the CURATED layer: hand-written captions in hand-chosen order, read from the page’s own <gallery> blocks (not a category, which has neither). 87k pages carry {{Gallery page}}.',
-    labelFromConfig: (c) => (c.page || '').trim() || null,
-    defaults: {
-      page: 'The Venetian Macao',
-      project: 'commons.wikimedia',
-      displayMode: 'grid', // 'grid' | 'list'
-      iconSize: 'medium',
-      imageFit: 'contain',
-      maxItems: 48,        // London has 542 images in 62 blocks: a cap is a requirement, not a nicety
-      groupBy: 'none',     // 'none' | 'section' — the headings between <gallery> blocks
-      linkAction: 'new tab',
-      refreshSeconds: 3600,
-    },
-    renderer: 'GalleryGridCard',
-    getRenderer: (config) => (config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard'),
-    dataSource: 'Commons Action API revision (wikitext) + batched imageinfo',
-    defaultLayout: { w: 4, h: 4, minW: 3, minH: 2 },
-    configFields: [
-      { key: 'page', label: 'Commons gallery page', type: 'text', placeholder: 'The Venetian Macao',
-        hint: 'The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so "The Venetian Macao", not "Gallery:…". Find one by searching Commons for hastemplate:"Gallery page".' },
-      { key: 'displayMode', label: 'Display', type: 'select', options: [
-        { value: 'grid', label: 'Grid' },
-        { value: 'list', label: 'List' },
-      ]},
-      { key: 'iconSize', label: 'Grid size', type: 'select', options: [
-        { value: 'small', label: 'Small' },
-        { value: 'medium', label: 'Medium' },
-        { value: 'large', label: 'Large' },
-      ]},
-      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
-        { value: 'contain', label: 'Contain (whole image)' },
-        { value: 'cover', label: 'Cover (fill the tile)' },
-      ]},
-      { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500, hint: 'Galleries can be very large — London has 542 images in 62 blocks. The cap is applied before thumbnails are fetched.' },
-      { key: 'groupBy', label: 'Group by', type: 'select', options: [
-        { value: 'none', label: 'Nothing (page order)' },
-        { value: 'section', label: 'Section headings' },
-      ]},
-      { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
-        { value: 'new tab', label: 'Open the file page in a new tab' },
-        { value: 'send to the board', label: 'Send it to the board' },
-        { value: 'both', label: 'Both' },
-      ], hint: 'Send to the board publishes the clicked image on this widget’s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.' },
-    ],
-    fetch: (config) => fetchGalleryPage(config.page, {
-      maxItems: config.maxItems, project: config.project || 'commons.wikimedia', groupBy: config.groupBy,
-    }),
-    // Two channels (ISSUE-91): the captions in gallery order — a curated, human-written list — and the file the
-    // reader clicked. `primary` keeps the bare id meaning the captions, per the compatibility rule.
-    outputs: { lines: 'lines', selection: 'value' },
-    primary: 'lines',
-    emit: (data) => ({
-      lines: (data && data.rows ? data.rows : []).map((r) => r.caption || r.title),
-      selection: undefined, // published by the card on click, like the wiki box
-    }),
-    transform: (data, config) => {
-      const shown = (data && data.rows ? data.rows : []).length;
-      const total = (data && data.total) || 0;
-      const emptyText = data && data.galleryless
-        ? (data.hasTemplate
-          ? 'This page declares itself a gallery ({{Gallery page}}) but has no <gallery> blocks — it may be a hub or a redirect. Try a page whose source contains <gallery>.'
-          : 'No <gallery> blocks on this page. A Commons gallery is a main-namespace page containing one — try "The Venetian Macao".')
-        : undefined;
-      return {
-        title: data ? data.page : '',
-        subtitle: total
-          ? `${total} image${total === 1 ? '' : 's'} · ${shown < total ? `showing ${shown} · ` : ''}Commons Gallery page`
-          : (data && data.galleryless ? 'Gallery page with no images' : 'Commons Gallery page'),
-        rows: data ? data.rows : [],
-        size: config.iconSize || 'medium',
-        fit: config.imageFit || 'contain',
-        emptyText,
-        selectable: (config.linkAction || 'new tab') !== 'new tab',
-        linkAction: config.linkAction || 'new tab',
-      };
-    },
   },
 
   fileUsage: {
@@ -833,155 +750,89 @@ export const WIDGET_TYPES = {
 
   gallery: {
     id: 'gallery',
-    category: 'Articles', intensity: 'medium',
-
-    timeScope: 'point',    name: 'Article Gallery',
-    icon: '🖼️',
-    description: 'Images used in an article — captioned by default; optional all-images mode (gallery/table images, decorative filter) and section/gallery grouping (grid or list)',
-  // Content-based auto-fit: tall enough to show the fetched images.
-  // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
-  autoHeight: (view, config) => {
-    const n = view?.rows?.length;
-    if (!n) return null;
-    // Grouped modes insert a header per group (~20px each).
-    const groups = view.rows.reduce((acc, r, i, a) => acc + (r.group && (i === 0 || a[i - 1].group?.key !== r.group.key) ? 1 : 0), 0);
-    const mode = config?.displayMode || 'grid';
-    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66) + groups * 20;
-    const size = config?.iconSize || 'medium';
-    const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
-    const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
-    const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
-    return 64 + rows * (tilePx + 46) + groups * 20;
-  },
-  defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
-    labelFromConfig: (c) => c.article?.replace(/_/g, ' '),
-    defaults: {
-      article: 'Albert Einstein',
-      project: 'en.wikipedia',
-      displayMode: 'grid',   // 'grid' | 'list'
-      iconSize: 'medium',    // grid: 'small' | 'medium' | 'large'
-      imageFit: 'contain',   // grid: 'contain' (letterbox) | 'cover' (fill-crop)
-      minSize: 200,          // drop images smaller than this (px)
-      maxItems: 0,           // 0 = all
-      includeAll: false,     // also include caption-less images (gallery blocks, table lists)
-      hideDecorative: true,  // (with includeAll) hide flags/coats of arms/logos/locator maps …
-      groupBy: 'none',       // 'none' | 'section' | 'gallery' — render group headers
-      refreshSeconds: 3600,
-    },
-    renderer: 'GalleryGridCard',
-    getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
-    dataSource: 'REST /page/media-list + imageinfo',
-    configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
-      { key: 'project', label: 'Project', type: 'project' },
-      { key: 'displayMode', label: 'Display', type: 'select', options: [
-        { value: 'grid', label: 'Grid (captions below)' },
-        { value: 'list', label: 'List (thumb left, caption right)' },
-      ]},
-      { key: 'iconSize', label: 'Grid size', type: 'select', options: [
-        { value: 'small', label: 'Small' },
-        { value: 'medium', label: 'Medium' },
-        { value: 'large', label: 'Large' },
-      ]},
-      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
-        { value: 'contain', label: 'Letterbox (always show whole image)' },
-        { value: 'cover', label: 'Fill crop (square crop)' },
-      ]},
-      { key: 'minSize', label: 'Min image size (px)', type: 'number', placeholder: '200' },
-      { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', placeholder: '0' },
-      { key: 'includeAll', label: 'All images (also caption-less gallery/table images)', type: 'boolean' },
-      { key: 'hideDecorative', label: 'Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)', type: 'boolean' },
-      { key: 'groupBy', label: 'Group by', type: 'select', options: [
-        { value: 'none', label: 'None (one grid/list)' },
-        { value: 'section', label: 'Article section (headings as group headers)' },
-        { value: 'gallery', label: 'Gallery blocks set off as their own groups' },
-      ]},
-    ],
-    fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleGallery(p.title, p.projectConfig, config.minSize, config.maxItems, {
-      includeAll: config.includeAll,
-      hideDecorative: config.hideDecorative,
-      groupBy: config.groupBy,
-    }); },
-    transform: (data, config) => {
-      const includeAll = !!config.includeAll;
-      const groupBy = config.groupBy === 'section' || config.groupBy === 'gallery' ? config.groupBy : 'none';
-      const n = data.rows.length;
-      const parts = [`${n} image${n === 1 ? '' : 's'}`];
-      if (includeAll) {
-        if (data.dropped) parts.push(`· ${data.dropped} filtered (tiny)`);
-        if (data.decorative) parts.push(`· ${data.decorative} decorative hidden`);
-      } else if (data.dropped) {
-        parts.push(`· ${data.dropped} filtered (tiny/uncaptioned)`);
-      }
-      if (groupBy === 'section') parts.push('· section groups');
-      if (groupBy === 'gallery') parts.push('· gallery groups');
-      let emptyText = includeAll ? 'No images found' : 'No captioned images found';
-      if (includeAll && n === 0 && (data.dropped || data.decorative)) emptyText = 'All images filtered (tiny/decorative)';
-      return {
-        title: data.article.replace(/_/g, ' '),
-        subtitle: parts.join(' '),
-        rows: data.rows,
-        size: config.iconSize || 'medium',
-        fit: config.imageFit || 'contain',
-        emptyText,
-      };
-    },
-  },
-
-  fileGallery: {
-    id: 'fileGallery',
+    nodeKind: 'display',
     category: 'Files & Media', intensity: 'medium',
 
-    timeScope: 'point',    name: 'Commons File Gallery',
-    icon: '🗂️',
-    description: 'Gallery of Commons files — paste a list, or take them from a category (grid or list; alphabetical, random, largest or newest)',
-  // Content-based auto-fit: tall enough to show the fetched images.
-  // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
-  autoHeight: (view, config) => {
-    const n = view?.rows?.length;
-    if (!n) return null;
-    const mode = config?.displayMode || 'grid';
-    if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66);
-    const size = config?.iconSize || 'medium';
-    const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
-    const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
-    const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
-    return 64 + rows * (tilePx + 46);
-  },
+    timeScope: 'point',    name: 'Gallery',
+    icon: '🖼️',
+    description: 'Images from one source — an article, a Commons gallery page, a wiki category, or a list of files. Grid or list, grouped, ordered, clickable into a new tab or out to another widget. Four sources, one widget, because they all become the same list of files.',
+    // Content-based auto-fit: tall enough to show the fetched images.
+    // Grid: cols by iconSize, tile ≈ tilePx + caption; List: ~66px/row.
+    autoHeight: (view, config) => {
+      const n = view?.rows?.length;
+      if (!n) return null;
+      // Grouped modes insert a header per group (~20px each).
+      const groups = view.rows.reduce((acc, r, i, a) => acc + (r.group && (i === 0 || a[i - 1].group?.key !== r.group.key) ? 1 : 0), 0);
+      const mode = config?.displayMode || 'grid';
+      if (mode === 'list') return Math.min(64 + n * 66, 64 + 14 * 66) + groups * 20;
+      const size = config?.iconSize || 'medium';
+      const tilePx = { small: 110, medium: 170, large: 250 }[size] || 170;
+      const cols = { small: 6, medium: 4, large: 3 }[size] || 4;
+      const rows = Math.min(Math.max(1, Math.ceil(n / cols)), 14);
+      return 64 + rows * (tilePx + 46) + groups * 20;
+    },
   defaultLayout: { w: 12, h: 9, minW: 4, minH: 3 },
-    labelFromConfig: (c) => (c.from === 'category'
-      ? `Category:${(c.category || '').replace(/^Category:\s*/i, '')}`
-      : `${(c.files || '').split('\n').filter(Boolean).length} files`),
+    labelFromConfig: (c) => {
+      const source = inferGallerySource(c);
+      if (source === 'list') {
+        const n = (c.files || '').split('\n').filter(Boolean).length;
+        return `${n} file${n === 1 ? '' : 's'}`;
+      }
+      if (source === 'category') return c.category ? `Category:${cleanCategoryName(c.category)}` : null;
+      const v = source === 'page' ? c.page : c.article;
+      return v ? String(v).replace(/_/g, ' ') : null;
+    },
     defaults: {
-      from: 'list',         // 'list' | 'category' — where the file list comes from
-      files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
+      from: 'article',       // 'article' | 'page' | 'list' | 'category'
+      article: 'Albert Einstein',
+      page: 'The Venetian Macao',
       category: 'Featured pictures',
-      wiki: 'commons.wikimedia',
-      order: 'listed',      // 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
-      displayMode: 'grid',  // 'grid' | 'list'
+      files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
+      displayMode: 'grid',   // 'grid' | 'list'
       iconSize: 'medium',
       imageFit: 'contain',
-      maxItems: 0,          // 0 = all
+      order: 'listed',       // list/category: 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
+      minSize: 200,          // article: drop images smaller than this (px)
+      maxItems: 0,           // 0 = all (a Commons gallery page treats 0 as 48 — see fetch)
+      includeAll: false,     // article: also caption-less images (gallery blocks, table lists)
+      hideDecorative: true,  // article: (with includeAll) hide flags/coats of arms/logos/locator maps …
+      groupBy: 'none',       // 'none' | 'section' | 'gallery'
+      linkAction: 'new tab', // 'new tab' | 'send to the board' | 'both'
       refreshSeconds: 3600,
     },
     renderer: 'GalleryGridCard',
     getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
-    dataSource: 'Commons API imageinfo (batched)',
+    dataSource: 'four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)',
     configFields: [
-      { key: 'from', label: 'Files come from', type: 'select', options: [
-        { value: 'list', label: 'A list I paste' },
+      { key: 'from', label: 'Images come from', type: 'select', options: [
+        { value: 'article', label: 'An article' },
+        { value: 'page', label: 'A Commons gallery page (a page with <gallery> blocks)' },
         { value: 'category', label: 'A wiki category' },
+        { value: 'list', label: 'A list of files I paste' },
       ]},
+      { key: 'article', label: 'Article', type: 'text', showIf: { from: 'article' }, placeholder: 'Albert Einstein' },
+      { key: 'page', label: 'Commons gallery page', type: 'text', showIf: { from: 'page' }, placeholder: 'The Venetian Macao',
+        hint: 'The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so "The Venetian Macao", not "Gallery:…". Find one by searching Commons for hastemplate:"Gallery page".' },
+      { key: 'category', label: 'Category', type: 'text', showIf: { from: 'category' }, placeholder: 'Images from XBio',
+        hint: 'Bare name, or with the Category: prefix. Subcategories are not walked.' },
       { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 8, showIf: { from: 'list' }, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
-      { key: 'category', label: 'Category', type: 'text', showIf: { from: 'category' }, placeholder: 'Images from XBio', hint: 'Bare name, or with the Category: prefix. Subcategories are not walked.' },
-      { key: 'wiki', label: 'Wiki', type: 'project', showIf: { from: 'category' } },
-      { key: 'order', label: 'Order', type: 'select', options: [
-        { value: 'listed', label: 'As listed' },
+      { key: 'project', label: 'Wiki', type: 'project', showIf: { from: ['article', 'page', 'category'] },
+        hint: 'Defaults to the source\'s own wiki: en.wikipedia for an article, commons.wikimedia for a gallery page or a category.' },
+      { key: 'order', label: 'Order', type: 'select', showIf: { from: ['list', 'category'] }, options: [
+        { value: 'listed', label: 'As listed (a category comes back alphabetical)' },
         { value: 'random', label: 'Random (reshuffles each refresh)' },
         { value: 'alpha', label: 'Alphabetical' },
         { value: 'largest', label: 'Largest first (by dimensions)' },
         { value: 'newest', label: 'Newest first (by upload date)' },
       ]},
+      { key: 'minSize', label: 'Min image size (px)', type: 'number', showIf: { from: 'article' }, placeholder: '200' },
+      { key: 'includeAll', label: 'All images (also caption-less gallery/table images)', type: 'boolean', showIf: { from: 'article' } },
+      { key: 'hideDecorative', label: 'Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)', type: 'boolean', showIf: { from: 'article' } },
+      { key: 'groupBy', label: 'Group by', type: 'select', showIf: { from: ['article', 'page'] }, options: [
+        { value: 'none', label: 'Nothing (source order)' },
+        { value: 'section', label: 'Section headings' },
+        { value: 'gallery', label: 'Gallery blocks set off as their own groups (article)' },
+      ]},
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'grid', label: 'Grid (captions below)' },
         { value: 'list', label: 'List (thumb left, caption right)' },
@@ -995,22 +846,47 @@ export const WIDGET_TYPES = {
         { value: 'contain', label: 'Letterbox (always show whole image)' },
         { value: 'cover', label: 'Fill crop (square crop)' },
       ]},
-      { key: 'maxItems', label: 'Max files (0 = all)', type: 'number', placeholder: '0' },
+      { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500,
+        hint: 'A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs.' },
+      { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
+        { value: 'new tab', label: 'Open the file page in a new tab' },
+        { value: 'send to the board', label: 'Send it to the board' },
+        { value: 'both', label: 'Both' },
+      ], hint: 'Send to the board publishes the clicked image on this widget\'s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.' },
     ],
     fetch: (config) => {
-      const order = config.order || 'listed';
-      if (config.from !== 'category') return fetchCommonsGallery(config.files);
-      // How big a pool to fetch depends on the order, because the API decides the order:
-      //  · listed/alpha/newest — truncating the API's own order shows the true first N, so a small pool is
-      //    faithful AND cheap (a 24-image card should not read 500 files in ten imageinfo calls);
-      //  · random/largest — the pool has to be big to be meaningful, and when the category is bigger than
-      //    the pool the card says "of N in the category" rather than pretending it saw them all.
-      const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
-      const faithful = order !== 'random' && order !== 'largest';
-      const limit = faithful ? Math.max(maxItems || 60, 24) : 500;
-      return fetchCategoryFiles(config.category, { wiki: config.wiki, order, limit });
+      const source = inferGallerySource(config);
+      if (source === 'page') {
+        return fetchGalleryPage(config.page, {
+          maxItems: config.maxItems || 48,
+          project: galleryProject(config, 'page'),
+          groupBy: config.groupBy,
+        });
+      }
+      if (source === 'category') {
+        const order = config.order || 'listed';
+        // How big a pool to fetch depends on the order, because the API decides the order:
+        //  · listed/alpha/newest — truncating the API's own order shows the true first N, so a small pool is
+        //    faithful AND cheap (a 24-image card should not read 500 files in ten imageinfo calls);
+        //  · random/largest — the pool has to be big to be meaningful, and when the category is bigger than
+        //    the pool the card says "of N in the category" rather than pretending it saw them all.
+        const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
+        const faithful = order !== 'random' && order !== 'largest';
+        const limit = faithful ? Math.max(maxItems || 60, 24) : 500;
+        return fetchCategoryFiles(config.category, { wiki: galleryProject(config, 'category'), order, limit });
+      }
+      if (source === 'list') return fetchCommonsGallery(config.files);
+      // An article: `project` is resolved here rather than in the registry defaults, because a static default
+      // cannot depend on the source (and en.wikipedia is the wrong default for a Commons gallery page).
+      const p = pageRef({ ...config, project: galleryProject(config, 'article') }, 'article');
+      return fetchArticleGallery(p.title, p.projectConfig, config.minSize, config.maxItems, {
+        includeAll: config.includeAll,
+        hideDecorative: config.hideDecorative,
+        groupBy: config.groupBy,
+      });
     },
-    // A gallery is worth wiring: the same channels its siblings publish (ISSUE-103).
+    // Two channels (ISSUE-91): the captions in source order — for a gallery page that is a curated, human-written
+    // list — and the file the reader clicked. `primary` keeps the bare id meaning the captions.
     outputs: { lines: 'lines', selection: 'value' },
     primary: 'lines',
     emit: (data) => ({
@@ -1018,24 +894,70 @@ export const WIDGET_TYPES = {
       selection: undefined, // published by the card on click
     }),
     transform: (data, config) => {
+      const source = inferGallerySource(config);
+      const rows = (data && data.rows) || [];
+      const common = {
+        size: config.iconSize || 'medium',
+        fit: config.imageFit || 'contain',
+        selectable: (config.linkAction || 'new tab') !== 'new tab',
+        linkAction: config.linkAction || 'new tab',
+      };
+
+      if (source === 'article') {
+        const includeAll = !!config.includeAll;
+        const groupBy = config.groupBy === 'section' || config.groupBy === 'gallery' ? config.groupBy : 'none';
+        const n = rows.length;
+        const parts = [`${n} image${n === 1 ? '' : 's'}`];
+        if (includeAll) {
+          if (data.dropped) parts.push(`· ${data.dropped} filtered (tiny)`);
+          if (data.decorative) parts.push(`· ${data.decorative} decorative hidden`);
+        } else if (data.dropped) {
+          parts.push(`· ${data.dropped} filtered (tiny/uncaptioned)`);
+        }
+        if (groupBy === 'section') parts.push('· section groups');
+        if (groupBy === 'gallery') parts.push('· gallery groups');
+        let emptyText = includeAll ? 'No images found' : 'No captioned images found';
+        if (includeAll && n === 0 && (data.dropped || data.decorative)) emptyText = 'All images filtered (tiny/decorative)';
+        return { title: String(data.article || '').replace(/_/g, ' '), subtitle: parts.join(' '), rows, ...common, emptyText };
+      }
+
+      if (source === 'page') {
+        const shown = rows.length;
+        const total = (data && data.total) || 0;
+        const emptyText = data && data.galleryless
+          ? (data.hasTemplate
+            ? 'This page declares itself a gallery ({{Gallery page}}) but has no <gallery> blocks — it may be a hub or a redirect. Try a page whose source contains <gallery>.'
+            : 'No <gallery> blocks on this page. A Commons gallery is a main-namespace page containing one — try "The Venetian Macao".')
+          : undefined;
+        return {
+          title: String((data && data.page) || ''),
+          subtitle: total
+            ? `${total} image${total === 1 ? '' : 's'} · ${shown < total ? `showing ${shown} · ` : ''}Commons Gallery page`
+            : (data && data.galleryless ? 'Gallery page with no images' : 'Commons Gallery page'),
+          rows,
+          ...common,
+          emptyText,
+        };
+      }
+
+      // list and category: the same ordering rules, and a category additionally knows its own total.
       const ORDER_LABELS = { listed: 'as listed', random: 'random order', alpha: 'alphabetical', largest: 'largest first', newest: 'newest first' };
       const order = config.order || 'listed';
-      const rows = [...data.rows];
+      const ordered = [...rows];
       if (order === 'random') {
         // Fisher–Yates shuffle — fresh order every refresh (transform re-runs on load).
-        for (let i = rows.length - 1; i > 0; i--) {
+        for (let i = ordered.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [rows[i], rows[j]] = [rows[j], rows[i]];
+          [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
         }
       } else if (order === 'alpha') {
-        rows.sort((a, b) => a.title.localeCompare(b.title));
+        ordered.sort((a, b) => a.title.localeCompare(b.title));
       } else if (order === 'largest') {
-        rows.sort((a, b) => ((b.width || 0) * (b.height || 0)) - ((a.width || 0) * (a.height || 0)));
+        ordered.sort((a, b) => ((b.width || 0) * (b.height || 0)) - ((a.width || 0) * (a.height || 0)));
       }
       const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
-      const maxItemsN = Math.max(parseInt(config.maxItems) || 0, 0);
-      const shown = maxItemsN ? Math.min(maxItemsN, rows.length) : rows.length;
-      const fetched = data.listed || rows.length;
+      const shown = maxItems ? Math.min(maxItems, ordered.length) : ordered.length;
+      const fetched = data.listed || ordered.length;
       // The subtitle describes what the CARD shows, then says what it is a slice of. Random and largest are
       // applied here rather than by the API, so they are only as representative as the pool that was read —
       // when the category is bigger than that pool, the card says so instead of implying it saw everything.
@@ -1052,9 +974,9 @@ export const WIDGET_TYPES = {
       return {
         title: data.category || 'Commons files',
         subtitle: subtitleBits.join(' · '),
-        rows: maxItems ? rows.slice(0, maxItems) : rows,
-        size: config.iconSize || 'medium',
-        fit: config.imageFit || 'contain',
+        rows: maxItems ? ordered.slice(0, maxItems) : ordered,
+        ...common,
+        emptyText: data.category ? 'No files in this category' : undefined,
       };
     },
   },
@@ -2180,3 +2102,22 @@ export const WIDGET_TYPES = {
     emit: (data) => (data.value === undefined ? undefined : data.value),
   },
 };
+
+
+/**
+ * Resolve a widget type id to its definition, including the ids that used to be widgets of their own.
+ *
+ * The gallery family was three widgets that shared a renderer and differed by one field — the source — so they are
+ * one widget now. The old ids are resolved here rather than registered as aliases, because the ⚙ Add-widget list is
+ * built from `Object.values(WIDGET_TYPES)`, and an alias key would appear in the picker as a second, identical entry.
+ */
+const LEGACY_WIDGET_IDS = { commonsGallery: 'gallery', fileGallery: 'gallery' };
+
+export function widgetDef(widgetType) {
+  return WIDGET_TYPES[widgetType] || WIDGET_TYPES[LEGACY_WIDGET_IDS[widgetType]] || null;
+}
+
+/** Every id an old board might carry for a widget that still exists. */
+export function isKnownWidgetType(widgetType) {
+  return Boolean(widgetDef(widgetType));
+}

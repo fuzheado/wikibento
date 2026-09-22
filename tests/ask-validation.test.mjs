@@ -19,7 +19,7 @@ import { join } from 'node:path';
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const defs = new Map(manifest.widgets.map((w) => [w.id, w]));
 const categorySize = defs.get('categorySize');
-const fileGallery = defs.get('fileGallery');
+const gallery = defs.get('gallery');
 const topPages = defs.get('topPages');
 const linkcount = defs.get('linkcount');
 
@@ -62,10 +62,10 @@ test('a language field takes a language, not a wiki', () => {
 
 test('file values: File: prefix added, per line for lists', () => {
   assert.equal(normalizeConfig({ filename: 'Example.jpg' }, defs.get('fileUsage')).filename, 'File:Example.jpg');
-  const files = normalizeConfig({ files: 'Example1.webm\nExample2.webm' }, fileGallery).files;
+  const files = normalizeConfig({ files: 'Example1.webm\nExample2.webm' }, gallery).files;
   assert.equal(files, 'File:Example1.webm\nFile:Example2.webm');
   // already-prefixed lines untouched
-  assert.equal(normalizeConfig({ files: 'File:Example1.webm\nExample2.webm' }, fileGallery).files, 'File:Example1.webm\nFile:Example2.webm');
+  assert.equal(normalizeConfig({ files: 'File:Example1.webm\nExample2.webm' }, gallery).files, 'File:Example1.webm\nFile:Example2.webm');
 });
 
 test('domain values: protocol + www stripped', () => {
@@ -88,25 +88,25 @@ test('boolean fields coerced from strings', () => {
 });
 
 test('mode validated against the widget displayMode options', () => {
-  // fileGallery displayMode options: grid | list
-  const good = validateOptions({ options: [{ widgetType: 'fileGallery', config: { files: 'File:A.jpg' }, mode: 'grid' }] }, defs);
+  // the gallery widget's displayMode options: grid | list
+  const good = validateOptions({ options: [{ widgetType: 'gallery', config: { files: 'File:A.jpg' }, mode: 'grid' }] }, defs);
   assert.equal(good[0].mode, 'grid');
-  const bad = validateOptions({ options: [{ widgetType: 'fileGallery', config: { files: 'File:A.jpg' }, mode: 'slideshow' }] }, defs);
+  const bad = validateOptions({ options: [{ widgetType: 'gallery', config: { files: 'File:A.jpg' }, mode: 'slideshow' }] }, defs);
   assert.equal(bad[0].mode, undefined);
 });
 
 test('full pipeline: the user-reported failure cases', () => {
-  // Model output as observed in the bug report: fileGallery with a category key
-  const out = validateOptions({ options: [{ widgetType: 'fileGallery', config: { category: 'Category:Featured pictures on Wikimedia Commons' } }] }, defs);
-  // 2026-09-18: `category` USED to be unknown for fileGallery, and dropping it WAS the fix for this exact
-  // model output. fileGallery can now take its file list from a category, so the key is real — the model's
+  // Model output as observed in the bug report: a gallery with a category key
+  const out = validateOptions({ options: [{ widgetType: 'gallery', config: { category: 'Category:Featured pictures on Wikimedia Commons' } }] }, defs);
+  // 2026-09-18: `category` USED to be unknown for the file gallery, and dropping it WAS the fix for this exact
+  // model output. A gallery can now take its file list from a category, so the key is real — the model's
   // instinct to pair a gallery with a category turned out to be the feature. (The Category: prefix is fine:
   // cleanCategoryName strips it in the fetcher.)
   // The Category: prefix is normalised away by key name (the same rule categorySize's `category` gets),
   // so a model that says either form lands on the same config.
   assert.deepEqual(out[0].config, { category: 'Featured pictures on Wikimedia Commons' });
   // …and a genuinely unknown key is still dropped, so the invariant this test exists for is intact.
-  const junk = validateOptions({ options: [{ widgetType: 'fileGallery', config: { nonsense: 'x', category: 'Foo' } }] }, defs);
+  const junk = validateOptions({ options: [{ widgetType: 'gallery', config: { nonsense: 'x', category: 'Foo' } }] }, defs);
   assert.deepEqual(junk[0].config, { category: 'Foo' });
   // categorySize with prefixed category + commons.org wiki → both fixed
   const out2 = validateOptions({ options: [{ widgetType: 'categorySize', config: { category: 'Category:Featured pictures on Wikimedia Commons', wiki: 'commons.org' } }] }, defs);

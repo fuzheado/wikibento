@@ -261,7 +261,7 @@ number) config field, the **consumer side needs zero code**. A full registry aud
 | `filename` | fileUsage, cimFileSpotlight, cimFileTraffic, panorama360, mediaPlayer (single) |
 | `month` | all 8 CIM widgets + topPages (fetchers already `parseInt` the month) |
 | `domain` / `url` / `page` | linkcount / waybackGallery / wikiPage |
-| a LIST (multi-line) | fileGallery, articleList, mediaPlayer playlists (textarea fields are strings — interpolation already works) |
+| a LIST (multi-line) | gallery, articleList, mediaPlayer playlists (textarea fields are strings — interpolation already works) |
 | `query` | sparql (placeholders inside SPARQL text: `FILTER … {{category}}` — power-user escape hatch) |
 
 So an "article spotlight" board (pageviews + excerpt + quality + edit history +
@@ -291,7 +291,7 @@ set (incl. data_editor = editable table), Tableau parameters + actions.
 |---|---|---|---|---|
 | 6 | **Dynamic query select** (Grafana's killer variable) | M | High | options FETCHED at load: institutions from a SPARQL query, subcategories via categorymembers, languages from Wikistats. Reuses the fetch layer; options = any query's first column. The "pick any GLAM institution" board. |
 | 7 | **Search-as-input** | M | High | Action API `opensearch`/autocomplete → sets `article`/`filename`/`category` param. The most natural Wikimedia input; no board authoring needed (viewers just search). |
-| 8 | **List param** (paste/upload a list) | M | High | textarea producer → `{{list}}` lands in fileGallery/articleList/mediaPlayer textareas. Pairs with the list-source handle (PagePile PSID) for the stable-reference version. GLAM batch workflows. |
+| 8 | **List param** (paste/upload a list) | M | High | textarea producer → `{{list}}` lands in gallery/articleList/mediaPlayer textareas. Pairs with the list-source handle (PagePile PSID) for the stable-reference version. GLAM batch workflows. |
 | 9 | **Click actions on existing widgets** (Path B) | M | High | category titles, leaderboard rows, top-pages rows, gallery items → "set param". The HyperCard moment; Tableau filter-action analogue. Cap the vocabulary to click→set-param. |
 
 **Quadrant 3 — deeper (L effort; do only when Level 2 is justified):**

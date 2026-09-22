@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { WIDGET_TYPES } from '../widgets';
+import { widgetDef } from '../widgets';
 
 /** Catalog organization (ISSUE-32): two discovery views (flat list /
  *  categorized two-pane) + search that overrides both + type filter +
@@ -86,7 +87,7 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
     (def.category || '').toLowerCase().includes(q);
 
   const filtered = types.filter((def) => matches(def) && (typeFilter === 'all' || typeOf(def) === typeFilter));
-  const recentTypes = recent.map((id) => WIDGET_TYPES[id]).filter(Boolean);
+  const recentTypes = recent.map((id) => widgetDef(id)).filter(Boolean);
   const countIn = (cat) => (cat.recent ? recentTypes.length : types.filter((d) => d.category === cat.id).length);
 
   const handleHeaderPointerDown = (e) => {

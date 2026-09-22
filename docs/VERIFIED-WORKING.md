@@ -11,6 +11,37 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## The gallery family became one widget (ISSUE-105, 2026-09-18)
+
+Andrew, looking at the Add-widget panel: *"commonsGallery and fileGallery are confusingly named, and I wonder whether
+they should be consolidated."* The screenshot showed two adjacent entries, "Commons File Gallery" and "Commons
+Gallery", where the distinguishing word was **File** — and whose descriptions had to deny each other ("not a category,
+which has neither"). **A description that has to deny its sibling is a naming failure**, and it happened because
+three widgets were named after their *source* rather than what they are: a gallery of files.
+
+- ✅ **One widget: `gallery`, `from: article | page | list | category`.** Measured before deciding — the three entries
+  shared `displayMode`/`iconSize`/`imageFit`/`maxItems` and differed by exactly one source field each; a fourth type
+  would have been a fourth copy. The picker now shows one entry; the registry went 43 → **41 types**.
+- ✅ **The old ids still resolve**: `commonsGallery`/`fileGallery` map to `gallery` at *lookup* (`widgetDef`), because
+  the picker is built from `Object.values(WIDGET_TYPES)` — an alias key would have shown as a duplicate entry. The
+  config infers the source from the fields an old board carries, so nothing is rewritten on load and no reader of a
+  widget has to agree about when a migration ran.
+- ✅ **That this was cheap is last week's work paying off**: `showIf` (so you see 6–10 fields, never the union of 17)
+  and the row contract (all four fetchers already produced the same row, so the renderer never knew its source).
+  Per-source behaviour is preserved verbatim, including each source's own empty-state message.
+- ✅ **Verified 18/18 live** on production across the page, category and article sources, in three engines at desktop
+  and phone. All four sources are also covered by existing demos, so the migration was verified by boards I did not
+  write for it.
+- 🐛 **Two mistakes, both mine, both worth keeping.** (1) Deleting registry entries from `id: 'x',` to the next
+  `id: 'y',` assumes the registry is an *array*; it is an object keyed by id, so the key survived, one entry's body
+  wrapped another's, and `commonsGallery` silently became `fileUsage` — with 588/609 tests passing. There is now a
+  two-line invariant test (every key is its own `id`) and it is in the gotcha list.
+  (2) **A local sweep without `--base` tests production.** A run reported 22/24 clean for the merged widget while
+  production served the *previous* bundle — so it was measuring the last release, not my working tree. The first
+  honest run, after deploying, found the real bug in seconds: `labelFromConfig` called `cleanCategoryName`, exported by
+  `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
+  The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
+
 ## Images from a Commons category, as a source of the file gallery (ISSUE-104, 2026-09-18)
 
 Andrew asked for the simplest possible widget — *"just show images from a Commons category, in alpha

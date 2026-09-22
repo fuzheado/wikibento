@@ -63,7 +63,7 @@ const IDENTITY = {
   panorama360: { key: 'filename', kind: 'file' },
   cimFileSpotlight: { key: 'filename', kind: 'file' },
   cimFileTraffic: { key: 'filename', kind: 'file' },
-  fileGallery: { key: 'files', kind: 'files' },
+  gallery: { key: 'files', kind: 'files' },
   mediaPlayer: { key: 'files', kind: 'files' },
   waybackGallery: { key: 'url', kind: 'url' },
   wikiPage: { key: 'page', kind: 'page' },

@@ -97,7 +97,7 @@ The dashboard configuration format used by **Export**, **Import**, and
 | `panorama360` | `filename` | string, Commons file (2:1 / GPano) |
 | | `project` | `commons.wikimedia` |
 | | `autoRotate` | boolean |
-| `fileGallery` | `files` | string, one Commons file per line (textarea) |
+| `gallery` | `files` | string, one Commons file per line (textarea) |
 | | `order` | `listed` \| `random` \| `alpha` \| `largest` |
 | | `displayMode` | `grid` \| `list` |
 | | `iconSize` / `imageFit` | as `gallery` |

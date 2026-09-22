@@ -27,10 +27,10 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-me6J9Mg-.js` (+ `index-B6skfVtC.css`) |
-| deployed | 2026-09-18 — **a Commons category as a gallery source** (ISSUE-104): `from: list | category` on the 🗂️ Commons File Gallery, with `showIf` so a source's fields appear only for that source, `newest` as a fourth order, and a subtitle that counts what the card shows and names the pool when random/largest only read part of a big category — verified live 6/6 across engines and viewports · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
-| registry | 43 widget types — 34 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
+| production bundle | `index-CHEYTt5v.js` (+ `index-B6skfVtC.css`) |
+| deployed | 2026-09-18 — **the gallery family is one widget** (ISSUE-105): `commonsGallery` and `fileGallery` are gone, `gallery` takes `from: article | page | list | category` with per-source fields via `showIf`, and the old type ids still resolve (aliases at lookup, source inferred from the config) so saved boards and shared `#/z/` links keep rendering — 18/18 live across all three sources · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| registry | 41 widget types — 32 data-driven, 9 static |
+| showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
@@ -462,7 +462,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
-   - **ISSUE-96 — finish the emitter audit.** 12 of 43 widget types publish anything (the 🗂️ Commons File Gallery joined on 2026-09-18 when it became the category source; the 🎞️ Commons Gallery joined on
+   - **ISSUE-96 — finish the emitter audit.** 12 of 41 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
@@ -495,11 +495,17 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      - **ISSUE-103's known limit** — the 🎞️ Commons Gallery reads literal `<gallery>` blocks from the wikitext, so a
        gallery generated *by a template* reads as empty (the rendered HTML would catch those, at 10× the bytes: 654 KB
        against 56 KB for London). Worth deciding per case rather than assuming; everything else about galleries shipped.
-     - **ISSUE-105 — consolidate the gallery family** (filed 2026-09-18): one `gallery` type with
-       `from: list | article | page | category`, behind alias shims for the existing type ids. Four entries share the
-       same renderer and differ by one source field each; the pay-off is one place for shared features, the cost is a
-       migration that must keep saved boards and shared `#/z/` links rendering. Do it when a third gallery feature is
-       wanted, not before.
+     - **What the gallery merge taught, twice** (2026-09-18):
+       (1) **`id:`-based block surgery on the registry is wrong** — it is an OBJECT keyed by id, so deleting from
+       `id: 'x',` to the next `id: 'y',` left `x: {` wrapping `y`'s body and ate the *next* entry's key. The module
+       still parsed, 588/609 tests passed, and one widget silently became another (`commonsGallery` → fileUsage). The
+       fix is two lines in `tests/renderer-registry.test.mjs`: every key must be its own `id`.
+       (2) **A sweep without `--base` tests PRODUCTION, not your tree.** A local run reported 22/24 clean for the
+       merged widget while production was serving the *old* bundle — so it was measuring the previous release. The
+       first honest run (after deploy) found the real bug in seconds: `labelFromConfig` called `cleanCategoryName`,
+       which was exported by `dataSources.js` and never imported, so **every render of the widget threw**. Tests passed
+       because none of them had ever *called* `labelFromConfig`; there is now one that does, for every source.
+       Rule: pass `--base` explicitly, and prefer a base URL over an implicit default.
      - **A sweep-environment note** (2026-09-18, recorded, not fixed): a full `test:browsers:demos` run reported 19
        failures that are *not* about this repo's code — `web.archive.org` framing (error frames: wayback) and
        report-only CSP console spam from Wikimedia hosts. Running a control board I had not touched, alone, was 6/6

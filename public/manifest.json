@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-22T16:44:12.841Z",
- "widgetCount": 43,
+ "generatedAt": "2026-09-22T20:33:44.902Z",
+ "widgetCount": 41,
  "widgets": [
   {
    "id": "pageviews",
@@ -172,99 +172,6 @@
     "lang",
     "refreshSeconds"
    ]
-  },
-  {
-   "id": "commonsGallery",
-   "name": "Commons Gallery",
-   "icon": "🎞️",
-   "description": "A Commons gallery page — the CURATED layer: hand-written captions in hand-chosen order, read from the page’s own <gallery> blocks (not a category, which has neither). 87k pages carry {{Gallery page}}.",
-   "dataSource": "Commons Action API revision (wikitext) + batched imageinfo",
-   "category": "Files & Media",
-   "type": "media",
-   "intensity": "low",
-   "experimental": false,
-   "timeScope": "point",
-   "nodeKind": "display",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "page",
-     "type": "text",
-     "label": "Commons gallery page",
-     "hint": "The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so \"The Venetian Macao\", not \"Gallery:…\". Find one by searching Commons for hastemplate:\"Gallery page\".",
-     "placeholder": "The Venetian Macao"
-    },
-    {
-     "key": "displayMode",
-     "type": "select",
-     "label": "Display",
-     "options": [
-      "grid",
-      "list"
-     ]
-    },
-    {
-     "key": "iconSize",
-     "type": "select",
-     "label": "Grid size",
-     "options": [
-      "small",
-      "medium",
-      "large"
-     ]
-    },
-    {
-     "key": "imageFit",
-     "type": "select",
-     "label": "Grid image fit",
-     "options": [
-      "contain",
-      "cover"
-     ]
-    },
-    {
-     "key": "maxItems",
-     "type": "number",
-     "label": "Max images (0 = all)",
-     "hint": "Galleries can be very large — London has 542 images in 62 blocks. The cap is applied before thumbnails are fetched."
-    },
-    {
-     "key": "groupBy",
-     "type": "select",
-     "label": "Group by",
-     "options": [
-      "none",
-      "section"
-     ]
-    },
-    {
-     "key": "linkAction",
-     "type": "select",
-     "label": "Clicking an image",
-     "hint": "Send to the board publishes the clicked image on this widget’s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.",
-     "options": [
-      "new tab",
-      "send to the board",
-      "both"
-     ]
-    }
-   ],
-   "defaults": [
-    "page",
-    "project",
-    "displayMode",
-    "iconSize",
-    "imageFit",
-    "maxItems",
-    "groupBy",
-    "linkAction",
-    "refreshSeconds"
-   ],
-   "outputs": {
-    "lines": "lines",
-    "selection": "value"
-   },
-   "primary": "lines"
   },
   {
    "id": "fileUsage",
@@ -738,18 +645,29 @@
   },
   {
    "id": "gallery",
-   "name": "Article Gallery",
+   "name": "Gallery",
    "icon": "🖼️",
-   "description": "Images used in an article — captioned by default; optional all-images mode (gallery/table images, decorative filter) and section/gallery grouping (grid or list)",
-   "dataSource": "REST /page/media-list + imageinfo",
-   "category": "Articles",
+   "description": "Images from one source — an article, a Commons gallery page, a wiki category, or a list of files. Grid or list, grouped, ordered, clickable into a new tab or out to another widget. Four sources, one widget, because they all become the same list of files.",
+   "dataSource": "four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)",
+   "category": "Files & Media",
    "type": "media",
    "intensity": "medium",
    "experimental": false,
    "timeScope": "point",
-   "nodeKind": "source",
+   "nodeKind": "display",
    "consumesSource": false,
    "configFields": [
+    {
+     "key": "from",
+     "type": "select",
+     "label": "Images come from",
+     "options": [
+      "article",
+      "page",
+      "category",
+      "list"
+     ]
+    },
     {
      "key": "article",
      "type": "text",
@@ -757,36 +675,41 @@
      "placeholder": "Albert Einstein"
     },
     {
+     "key": "page",
+     "type": "text",
+     "label": "Commons gallery page",
+     "hint": "The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so \"The Venetian Macao\", not \"Gallery:…\". Find one by searching Commons for hastemplate:\"Gallery page\".",
+     "placeholder": "The Venetian Macao"
+    },
+    {
+     "key": "category",
+     "type": "text",
+     "label": "Category",
+     "hint": "Bare name, or with the Category: prefix. Subcategories are not walked.",
+     "placeholder": "Images from XBio"
+    },
+    {
+     "key": "files",
+     "type": "textarea",
+     "label": "Commons files (one per line)",
+     "placeholder": "File:Example.jpg\\nFile:Another photo.png"
+    },
+    {
      "key": "project",
      "type": "project",
-     "label": "Project"
+     "label": "Wiki",
+     "hint": "Defaults to the source's own wiki: en.wikipedia for an article, commons.wikimedia for a gallery page or a category."
     },
     {
-     "key": "displayMode",
+     "key": "order",
      "type": "select",
-     "label": "Display",
+     "label": "Order",
      "options": [
-      "grid",
-      "list"
-     ]
-    },
-    {
-     "key": "iconSize",
-     "type": "select",
-     "label": "Grid size",
-     "options": [
-      "small",
-      "medium",
-      "large"
-     ]
-    },
-    {
-     "key": "imageFit",
-     "type": "select",
-     "label": "Grid image fit",
-     "options": [
-      "contain",
-      "cover"
+      "listed",
+      "random",
+      "alpha",
+      "largest",
+      "newest"
      ]
     },
     {
@@ -794,12 +717,6 @@
      "type": "number",
      "label": "Min image size (px)",
      "placeholder": "200"
-    },
-    {
-     "key": "maxItems",
-     "type": "number",
-     "label": "Max images (0 = all)",
-     "placeholder": "0"
     },
     {
      "key": "includeAll",
@@ -820,74 +737,6 @@
       "section",
       "gallery"
      ]
-    }
-   ],
-   "defaults": [
-    "article",
-    "project",
-    "displayMode",
-    "iconSize",
-    "imageFit",
-    "minSize",
-    "maxItems",
-    "includeAll",
-    "hideDecorative",
-    "groupBy",
-    "refreshSeconds"
-   ]
-  },
-  {
-   "id": "fileGallery",
-   "name": "Commons File Gallery",
-   "icon": "🗂️",
-   "description": "Gallery of Commons files — paste a list, or take them from a category (grid or list; alphabetical, random, largest or newest)",
-   "dataSource": "Commons API imageinfo (batched)",
-   "category": "Files & Media",
-   "type": "media",
-   "intensity": "medium",
-   "experimental": false,
-   "timeScope": "point",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "from",
-     "type": "select",
-     "label": "Files come from",
-     "options": [
-      "list",
-      "category"
-     ]
-    },
-    {
-     "key": "files",
-     "type": "textarea",
-     "label": "Commons files (one per line)",
-     "placeholder": "File:Example.jpg\\nFile:Another photo.png"
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Category",
-     "hint": "Bare name, or with the Category: prefix. Subcategories are not walked.",
-     "placeholder": "Images from XBio"
-    },
-    {
-     "key": "wiki",
-     "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "order",
-     "type": "select",
-     "label": "Order",
-     "options": [
-      "listed",
-      "random",
-      "alpha",
-      "largest",
-      "newest"
-     ]
     },
     {
      "key": "displayMode",
@@ -920,20 +769,37 @@
     {
      "key": "maxItems",
      "type": "number",
-     "label": "Max files (0 = all)",
-     "placeholder": "0"
+     "label": "Max images (0 = all)",
+     "hint": "A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs."
+    },
+    {
+     "key": "linkAction",
+     "type": "select",
+     "label": "Clicking an image",
+     "hint": "Send to the board publishes the clicked image on this widget's `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.",
+     "options": [
+      "new tab",
+      "send to the board",
+      "both"
+     ]
     }
    ],
    "defaults": [
     "from",
-    "files",
+    "article",
+    "page",
     "category",
-    "wiki",
-    "order",
+    "files",
     "displayMode",
     "iconSize",
     "imageFit",
+    "order",
+    "minSize",
     "maxItems",
+    "includeAll",
+    "hideDecorative",
+    "groupBy",
+    "linkAction",
     "refreshSeconds"
    ],
    "outputs": {

@@ -102,10 +102,10 @@ test('galleries: nothing, or a page that is not a gallery, parses to nothing', (
 });
 
 test('galleries: the widget declares the gallery contract (channels, cap, honest empty state)', () => {
-  const def = WIDGET_TYPES.commonsGallery;
+  const def = WIDGET_TYPES.gallery;
   assert.ok(def, 'the widget exists');
   const keys = def.configFields.map((f) => f.key);
-  for (const k of ['page', 'displayMode', 'iconSize', 'imageFit', 'maxItems', 'groupBy', 'linkAction']) {
+  for (const k of ['from', 'page', 'category', 'files', 'displayMode', 'iconSize', 'imageFit', 'maxItems', 'groupBy', 'linkAction']) {
     assert.ok(keys.includes(k), k);
   }
   // Two channels on the ISSUE-91 pattern: the captions travel as lines, the clicked file as a selection.
@@ -118,10 +118,10 @@ test('galleries: the widget declares the gallery contract (channels, cap, honest
     page: 'A gallery',
   });
   assert.deepEqual(emitted.lines, ['A caption', 'B.jpg'], 'a caption-less tile contributes its file name');
-  const card = def.transform({ page: 'A gallery', rows: [], total: 0, galleryless: true, hasTemplate: true }, {});
+  const card = def.transform({ page: 'A gallery', rows: [], total: 0, galleryless: true, hasTemplate: true }, { page: 'A gallery' });
   assert.match(card.emptyText, /no <gallery>/i, 'the Berlin case says what is wrong');
   assert.match(card.subtitle, /Gallery page/i, 'and explains that the page declares itself a gallery');
-  const normal = def.transform({ page: 'A gallery', rows: [{ title: 'A.jpg' }], total: 5, shown: 1, dropped: 0 }, {});
+  const normal = def.transform({ page: 'A gallery', rows: [{ title: 'A.jpg' }], total: 5, shown: 1, dropped: 0 }, { page: 'A gallery' });
   assert.match(normal.subtitle, /5 images/);
   assert.match(normal.subtitle, /showing 1/i);
 });

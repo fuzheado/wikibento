@@ -32,11 +32,12 @@
     },
     {
       "id": "cat-alpha",
-      "widgetType": "fileGallery",
+      "widgetType": "gallery",
       "config": {
+      "from": "category",
         "from": "category",
         "category": "{{category}}",
-        "wiki": "commons.wikimedia",
+        "project": "commons.wikimedia",
         "order": "alpha",
         "displayMode": "grid",
         "iconSize": "medium",
@@ -48,7 +49,7 @@
     },
     {
       "id": "cat-random",
-      "widgetType": "fileGallery",
+      "widgetType": "gallery",
       "config": {
         "from": "category",
         "category": "{{category}}",

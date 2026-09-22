@@ -48,7 +48,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
 | 👆 [Click through](https://wikibento.toolforge.org/?config=/click-through-demo.json) | Click a sea in a live Wikipedia box and **another widget uses it**: the page viewer loads the article and the value card shows the string that travelled. ⚙ *Links in the box* decides whether a click opens a tab, sends to the board, or both |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 43 widget types on one board — its article switcher drives five cards |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 41 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see
 [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
@@ -60,21 +60,21 @@ works the same way.
 
 ## Widgets
 
-**43 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
+**41 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
 what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](docs/WIDGET-CATALOG.md).
 
 | category | widgets |
 |---|---|
-| **Articles (6)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment · 🖼️ Article Gallery |
+| **Articles (5)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (6)** | 🎞️ Commons Gallery · 🖼️ File Usage Map · 🗂️ Commons File Gallery (a pasted list **or a category**) · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
+| **Files & Media (5)** | 🖼️ Gallery (an article, a Commons gallery page, a wiki category, or a pasted list) · 🖼️ File Usage Map · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (8)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page · 📰 Wikipedia Box |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
 | **Web & History (3)** | 📦 Internet Archive Item · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
-All 34 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
+All 32 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 
 ## Features
 

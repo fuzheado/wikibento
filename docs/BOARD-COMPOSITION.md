@@ -105,7 +105,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `AssessmentsCard`
 
-#### `gallery` — Article Gallery
+#### `gallery` — Gallery
 - **dataSource:** REST `/page/media-list` + `imageinfo`
 - **configFields:**
   - `article` (text), `project` (select)
@@ -258,7 +258,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `FileUsageCard`
 
-#### `fileGallery` — Commons File Gallery
+#### `gallery` — Gallery
 - **dataSource:** Commons API `imageinfo` (batched)
 - **configFields:**
   - `files` (textarea, one Commons file per line)
@@ -669,7 +669,7 @@ Every widget has a visible, editable instance name (the `id` field). The ⚙ pan
 - Article Excerpt as the anchor (emits first paragraph)
 - Translator consumes excerpt via `{{widget:excerpt-id}}`
 - Speaker consumes excerpt via `{{widget:excerpt-id}}`
-- Article Gallery shows stills/frames
+- Gallery shows stills/frames
 - Edit History shows editorial activity
 - Quality + Assessments show encyclopedic standing
 - Board Controls for language/era selection
@@ -741,8 +741,8 @@ When wiring dataflow chains, reference the emitter's `id`:
 | Emitter widget | Emits | Consumed by |
 |---|---|---|
 | `excerpt` | `data.extract` (first paragraph string) | `translate`, `speaker`, `markdown`, `echo` |
-| `listSource` | `data.items` (array of lines) | `filterLines`, `articleList`, `fileGallery`, `mediaPlayer`, `echo` |
-| `filterLines` | `data.filtered` (array of filtered lines) | `articleList`, `fileGallery`, `lineCount`, `echo` |
+| `listSource` | `data.items` (array of lines) | `filterLines`, `articleList`, `gallery`, `mediaPlayer`, `echo` |
+| `filterLines` | `data.filtered` (array of filtered lines) | `articleList`, `gallery`, `lineCount`, `echo` |
 | `lineCount` | `data.count` (number) | `echo`, `markdown` |
 | `echo` | `data.value` (pass-through) | Any text field |
 | `qrCode` | `data.text` (the encoded string) | `echo`, `markdown`, or any text field (rare — a QR is usually a leaf) |

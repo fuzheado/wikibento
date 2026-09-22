@@ -6,6 +6,7 @@
  */
 
 import { WIDGET_TYPES } from '../widgets';
+import { widgetDef } from '../widgets';
 
 export const CONFIG_VERSION = 1;
 
@@ -114,8 +115,8 @@ export const EXAMPLE_DASHBOARD = {
     },
     {
       id: 'example-filegallery',
-      widgetType: 'fileGallery',
-      config: { files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg', order: 'listed', displayMode: 'grid', iconSize: 'medium', imageFit: 'contain', maxItems: 0, refreshSeconds: 3600 },
+      widgetType: 'gallery',
+      config: { from: 'list', files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg', order: 'listed', displayMode: 'grid', iconSize: 'medium', imageFit: 'contain', maxItems: 0, refreshSeconds: 3600 },
     },
     {
       id: 'example-articlelist',
@@ -263,10 +264,10 @@ export function validateDashboard(input) {
     }
     if (typeof w.widgetType !== 'string') {
       errors.push(`${where}: "widgetType" must be a string`);
-    } else if (!WIDGET_TYPES[w.widgetType]) {
+    } else if (!widgetDef(w.widgetType)) {
       errors.push(`${where}: unknown widgetType "${w.widgetType}" (known: ${Object.keys(WIDGET_TYPES).join(', ')})`);
     } else {
-      validateWidgetConfig(w, WIDGET_TYPES[w.widgetType], where, errors, warnings);
+      validateWidgetConfig(w, widgetDef(w.widgetType), where, errors, warnings);
     }
   });
 
@@ -313,7 +314,7 @@ export function validateDashboard(input) {
   // ISSUE-51: a widget's `source` should reference a widget actually on the
   // board. Non-fatal warning — a link to a missing id shows the empty state.
   widgets.forEach(w => {
-    const def = WIDGET_TYPES[w.widgetType];
+    const def = widgetDef(w.widgetType);
     const field = (def?.configFields || []).find((f) => f.type === 'source');
     const src = field && w.config && typeof w.config[field.key] === 'string' ? w.config[field.key] : '';
     if (src && !ids.has(src)) {

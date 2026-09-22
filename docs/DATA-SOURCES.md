@@ -371,9 +371,9 @@ back to this live fetcher on 404 (ROADMAP Phase 1.5).
 - **Verified:** Albert Einstein → 18 projects; Germany/History of Science/
   Physics/… all GA with Top/High/Mid/Low badges — 2026-08-13.
 
-## 13. Article Gallery — REST `/page/media-list` + `imageinfo`
+## 13. Gallery — REST `/page/media-list` + `imageinfo`
 
-**Widget:** Article Gallery · **Fetcher:** `fetchArticleGallery(article, project, minSize, maxItems, options)`
+**Widget:** Gallery · **Fetcher:** `fetchArticleGallery(article, project, minSize, maxItems, options)`
 — the positional args are legacy; new options travel in the optional 5th
 argument: `{ includeAll = false, hideDecorative = true, groupBy = 'none' }`
 (signature is backward compatible — old 4-arg callers unchanged).
@@ -493,13 +493,13 @@ See [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md) — the pattern is: write an
 async fetcher returning `{ data }` or throwing, register it in `WIDGET_TYPES`,
 describe it in the docs above, done.
 
-## 15. Commons File Gallery — Commons API `imageinfo` (batched) **Widget:** Commons File Gallery · **Fetcher:** `fetchCommonsGallery(filesText)`
+## 15. Gallery — Commons API `imageinfo` (batched) **Widget:** Gallery · **Fetcher:** `fetchCommonsGallery(filesText)`
 - **Input:** a textarea list of Commons files, one per line (`File:` prefix optional). Ordering is client-side in the transform — re-sorting never re-fetches.
 - **Endpoint:** Action API `prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=400&iiextmetadatafilter=ImageDescription` (`origin=*`) — 400px thumbs + dimensions + description caption. **Adaptive batching by min(count 50, ~4,500 encoded chars/chunk)** — the anonymous `titles` cap is 50 (toomanyvalues), long filenames (WLM) blow GET URLs (HTTP 414).
 - **Missing files:** counted (`missing` in the fetch result), surfaced in the subtitle ("3 files · 1 not found") — never fatal.
 - **Order modes:** `listed` (input order) · `random` (Fisher–Yates shuffle, fresh each refresh) · `alpha` (title) · `largest` (width×height). `maxItems` clamps rows.
 - **Gotcha (fixed 2026-08-13):** strip the `File:` prefix for normalization but **re-add it in the API `titles`** — without the prefix every title resolves as a missing main-namespace page.
-- **Renderer:** reuses `GalleryGridCard` / `GalleryListCard` (same `{title, caption, thumbUrl, fileUrl}` row contract as the Article Gallery) — no new renderer code.
+- **Renderer:** reuses `GalleryGridCard` / `GalleryListCard` (same `{title, caption, thumbUrl, fileUrl}` row contract as the Gallery) — no new renderer code.
 
 ## 16. Article List — MediaWiki API `pageimages|extracts` (batched, optional) **Widget:** Article List · **Fetcher:** `fetchArticleList(articlesText, project, opts)`
 - **Input:** a textarea list of article titles, one per line; `project` select (en/de/fr like the other article widgets).

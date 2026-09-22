@@ -33,8 +33,9 @@
     },
     {
       "id": "gal",
-      "widgetType": "commonsGallery",
+      "widgetType": "gallery",
       "config": {
+      "from": "page",
         "page": "{{gallery}}",
         "project": "commons.wikimedia",
         "displayMode": "grid",

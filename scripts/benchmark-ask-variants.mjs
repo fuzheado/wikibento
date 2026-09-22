@@ -162,7 +162,7 @@ WIRING PATTERNS (how widgets connect):
 
 3. COMMON CHAINS:
    - Article deep-dive: excerpt → translate + speaker + gallery + quality + edithistory
-   - Curated list: listSource → filterLines → articleList/fileGallery → excerpt → translate + speaker
+   - Curated list: listSource → filterLines → articleList/gallery → excerpt → translate + speaker
    - Templated collection: boardControls (params) → CIM family + GLAM + gallery
    - Annotated listening: excerpt → translate + speaker + mediaPlayer + gallery
 

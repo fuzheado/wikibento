@@ -56,7 +56,7 @@ export const INTENT_FIXTURES = [
     prompt: 'Show me a random sampling of images from the category Featured pictures on Wikimedia Commons',
     expected: { widgetType: 'categorySize', config: { category: 'Featured pictures on Wikimedia Commons' } },
     requireSubject: true,
-    note: 'the canonical few-shot example; category input — NOT fileGallery',
+    note: 'the canonical few-shot example; category input — NOT the wrong gallery source',
   },
   {
     id: 'wikistats-language',
@@ -119,7 +119,7 @@ export const INTENT_FIXTURES = [
     prompt: 'Show me the significant images with captions from the article Mona Lisa',
     expected: { widgetType: 'gallery', config: { article: 'Mona Lisa' } },
     requireSubject: true,
-    note: 'article media, NOT categorySize (input is an ARTICLE) and NOT fileGallery (input is files)',
+    note: 'article media, NOT categorySize (input is an ARTICLE) and NOT the wrong gallery source (input is files)',
   },
   {
     id: 'sparql-count',

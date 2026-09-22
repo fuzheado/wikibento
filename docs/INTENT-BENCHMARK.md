@@ -71,7 +71,7 @@ Coverage: 15/30 · 15 uncovered
 Uncovered widgets (interview these first):
   1. 📝 markdown         5. 🎯 cimSnapshot    9. 📄 cimTopPages   13. 📉 cimFileTraffic
   2. 🧭 assessments      6. 📈 cimTrend      10. ✍️ cimTopEditors 14. 📄 wikiPage
-  3. 🗂️ fileGallery      7. 🖼️ cimTopFiles   11. 🏆 cimLeaderboard 15. 🎬 mediaPlayer
+  3. 🗂️ gallery      7. 🖼️ cimTopFiles   11. 🏆 cimLeaderboard 15. 🎬 mediaPlayer
   4. 📋 articleList      8. 🌍 cimTopWikis   12. 🔦 cimFileSpotlight
 
 Enter a number or widget id (blank to quit): 15
@@ -243,7 +243,7 @@ Findings (2026-09-09, llm-qwen36-27b, `bench/results/2026-09-09-boards-v1.json`)
 ## Coverage
 
 Current: **15/30 widgets covered** (15 fixtures). Uncovered — interview
-these first: `markdown`, `assessments`, `fileGallery`, `articleList`,
+these first: `markdown`, `assessments`, `gallery`, `articleList`,
 `cimSnapshot`, `cimTrend`, `cimTopFiles`, `cimTopWikis`, `cimTopPages`,
 `cimTopEditors`, `cimLeaderboard`, `cimFileSpotlight`, `cimFileTraffic`,
 `wikiPage`, `mediaPlayer`. The CIM family (8 widgets) is the highest-value

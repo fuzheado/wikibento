@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanCategoryName, categoryMemberTitles } from '../src/widgets/dataSources.js';
-import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { inferGallerySource, galleryProject, GALLERY_SOURCES } from '../src/lib/gallerySource.js';
+import { WIDGET_TYPES, widgetDef } from '../src/widgets/index.js';
 
 /**
  * A Commons category as a gallery source (2026-09-18).
@@ -10,7 +11,7 @@ import { WIDGET_TYPES } from '../src/widgets/index.js';
  * widget should behave exactly like the pasted-list gallery in every way except where the list came from.
  */
 
-const def = WIDGET_TYPES.fileGallery;
+const def = WIDGET_TYPES.gallery;
 
 const row = (n) => ({ title: `File ${n}`, thumbUrl: `https://upload.test/${n}.jpg`, width: 100, height: 100 });
 const categoryData = (n = 500, total = 518) => ({
@@ -72,12 +73,12 @@ test('order: newest is labelled, random keeps the set, largest sorts by area', (
   assert.match(newest.subtitle, /newest first/);
 
   const rowsIn = [row(1), row(2), row(3), row(4)];
-  const random = def.transform({ rows: rowsIn, total: 4, missing: 0 }, { ...def.defaults, order: 'random' });
+  const random = def.transform({ rows: rowsIn, total: 4, missing: 0 }, { ...def.defaults, from: 'list', order: 'random' });
   assert.deepEqual([...random.rows.map((r) => r.title)].sort(), [...rowsIn.map((r) => r.title)].sort());
 
   const big = { title: 'big', width: 900, height: 900 };
   const small = { title: 'small', width: 10, height: 10 };
-  const largest = def.transform({ rows: [small, big], total: 2, missing: 0 }, { ...def.defaults, order: 'largest' });
+  const largest = def.transform({ rows: [small, big], total: 2, missing: 0 }, { ...def.defaults, from: 'list', order: 'largest' });
   assert.deepEqual(largest.rows.map((r) => r.title), ['big', 'small']);
 });
 
@@ -110,8 +111,61 @@ test('the source fields are mutually exclusive in the config UI', () => {
   const field = (k) => def.configFields.find((f) => f.key === k);
   assert.deepEqual(field('files').showIf, { from: 'list' });
   assert.deepEqual(field('category').showIf, { from: 'category' });
-  assert.deepEqual(field('wiki').showIf, { from: 'category' });
-  assert.deepEqual(field('from').options.map((o) => o.value), ['list', 'category']);
+  assert.deepEqual(field('project').showIf, { from: ['article', 'page', 'category'] });
+  assert.deepEqual(field('from').options.map((o) => o.value), ['article', 'page', 'category', 'list']);
   // the default is the old behaviour, so existing boards and links are untouched
-  assert.equal(def.defaults.from, 'list');
+  assert.equal(def.defaults.from, 'article');   // a legacy `gallery` board had no `from` and meant an article
+});
+
+/* ── the merge itself: old boards and links must keep rendering (ISSUE-105) ───────────────────────────────── */
+
+test('the two retired type ids resolve to the merged widget', () => {
+  assert.equal(widgetDef('commonsGallery'), WIDGET_TYPES.gallery);
+  assert.equal(widgetDef('fileGallery'), WIDGET_TYPES.gallery);
+  assert.equal(widgetDef('gallery'), WIDGET_TYPES.gallery);
+  assert.equal(widgetDef('nonsense'), null);
+  // …and the picker must NOT list them: resolving an alias is not adding a second entry
+  assert.deepEqual(Object.keys(WIDGET_TYPES).filter((k) => /commonsGallery|fileGallery/.test(k)), []);
+});
+
+test("a legacy board's source is inferred from the fields it carries", () => {
+  assert.equal(inferGallerySource({ page: 'The Venetian Macao' }, 'commonsGallery'), 'page');
+  assert.equal(inferGallerySource({ files: 'File:A.jpg' }, 'fileGallery'), 'list');
+  assert.equal(inferGallerySource({ category: 'Images from XBio' }, 'fileGallery'), 'category');
+  assert.equal(inferGallerySource({ article: 'Albert Einstein' }, 'gallery'), 'article');
+  assert.equal(inferGallerySource({}, 'gallery'), 'article');                      // an old board had no `from`
+  assert.equal(inferGallerySource({ from: 'category', page: 'Something Else' }), 'category');  // explicit wins
+  assert.equal(inferGallerySource({ files: 'File:A.jpg', order: 'random' }, 'fileGallery'), 'list');
+  for (const src of GALLERY_SOURCES) assert.equal(inferGallerySource({ from: src }), src);
+});
+
+test('the project default belongs to the source, not the widget', () => {
+  // one static default cannot serve both: en.wikipedia is right for an article and a missing page on Commons
+  assert.equal(galleryProject({}, 'article'), 'en.wikipedia');
+  assert.equal(galleryProject({}, 'page'), 'commons.wikimedia');
+  assert.equal(galleryProject({}, 'category'), 'commons.wikimedia');
+  // an explicit project wins, under either name — `wiki` is what the category source shipped with for a day
+  assert.equal(galleryProject({ project: 'de.wikipedia' }, 'page'), 'de.wikipedia');
+  assert.equal(galleryProject({ wiki: 'commons.wikimedia' }, 'category'), 'commons.wikimedia');
+});
+
+test('every source reaches its own branch, and none crashes on a payload it did not expect', () => {
+  for (const src of GALLERY_SOURCES) {
+    const card = def.transform({ rows: [], total: 0 }, { ...def.defaults, from: src });
+    assert.ok(card && typeof card.title === 'string', `${src} produced a card`);
+    assert.deepEqual(card.rows, []);
+  }
+});
+
+test('every source can name its own card (labelFromConfig is called on every render)', () => {
+  // The live failure this catches (2026-09-18): the merged entry called a helper that was not imported, so every
+  // render of the widget threw — and the tests passed, because none of them had ever CALLED labelFromConfig.
+  for (const src of GALLERY_SOURCES) {
+    const label = def.labelFromConfig({ ...def.defaults, from: src });
+    assert.ok(label === null || typeof label === 'string', `${src} named its card`);
+  }
+  assert.equal(def.labelFromConfig({ ...def.defaults, from: 'category', category: 'Images from XBio' }), 'Category:Images from XBio');
+  assert.equal(def.labelFromConfig({ ...def.defaults, from: 'category', category: 'Category:Images from XBio' }), 'Category:Images from XBio');
+  assert.equal(def.labelFromConfig({ ...def.defaults, from: 'list', files: 'File:A.jpg\nFile:B.jpg' }), '2 files');
+  assert.equal(def.labelFromConfig({ ...def.defaults, from: 'article', article: 'Ada_Lovelace' }), 'Ada Lovelace');
 });

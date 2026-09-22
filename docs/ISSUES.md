@@ -3626,14 +3626,14 @@ what makes it a type rather than a blob.
 about a day, and it is best done *with* ISSUE-96's row-shaped work rather than before it — the first structured
 producer is what tells us whether the type list is right.
 
-## ISSUE-96 · Emitter/consumer audit: 12 of 43 widgets publish anything — **open**
+## ISSUE-96 · Emitter/consumer audit: 12 of 41 widgets publish anything — **open**
 
 > **Updated 2026-09-18:** the 🎞️ Commons Gallery (ISSUE-103) joined the emitters when it shipped — the gallery's
 > captions as `lines` (a curated, human-written list, the best thing to feed a Filter, a Translator or a Speaker)
 > and the clicked file as `selection`, on the ISSUE-91 channel pattern. 11 of 43.
 >
-> **2026-09-18:** 12 of 43 — the 🗂️ Commons File Gallery gained `lines` + `selection` when it became the
-> category source (ISSUE-104). Adding a channel to a widget that already existed is exactly the kind of
+> **2026-09-18:** 12 of 41 — the gallery gained `lines` + `selection` when it became the category source
+> (ISSUE-104), and the family merged into one widget (ISSUE-105). Adding a channel to a widget that already existed is exactly the kind of
 > progress this audit is for.
 
 Andrew asked for an audit of "the obvious emitter/consumer functions". Measured from the registry 2026-09-16:
@@ -4992,7 +4992,7 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
-## ISSUE-105 · One gallery widget, four sources — **filed, not built 2026-09-18**
+## ISSUE-105 · One gallery widget, four sources — **done + verified 2026-09-18**
 
 The gallery family is now four sources behind the same renderer: a pasted list (ISSUE-104 made it `from:
 'list'`), an article (`gallery`), a `<gallery>` page (`commonsGallery`), and a category (`fileGallery.from:
@@ -5006,6 +5006,25 @@ one place for shared features (a filter box, a lightbox, a click-to-publish acti
 
 **Revisit when** a third gallery feature is wanted, or when the consolidation can be done behind aliases and
 verified by the demos sweep.
+
+**Done the next day** — Andrew's own reaction to the Add-widget panel (*"commonsGallery and fileGallery are confusingly
+named"*, with a screenshot of two adjacent entries whose descriptions had to deny each other) settled it: the naming
+problem *was* the architecture problem. What made it cheap was the work of the previous day — `showIf` (so the merged
+dialog shows 6–10 fields, never 17) and the row contract (all four fetchers already produced `title · caption ·
+thumbUrl · fileUrl · group`, so `GalleryGridCard` never knew which source it was drawing).
+
+- `gallery` with `from: article | page | list | category`; the picker shows **one** entry; 41 registry types.
+- **The old ids still resolve** — at lookup (`widgetDef`), not by registering alias keys, because the picker is built
+  from `Object.values(WIDGET_TYPES)` and an alias key would appear as a second identical entry. The *config* infers the
+  source from the fields an old board carries, so nothing is rewritten on load.
+- **Per-source behaviour preserved verbatim**: the article's `minSize`/`hideDecorative`/`includeAll`, the gallery
+  page's curated captions, sections and `linkAction`, the category's cap/pool disclosure, the list's ordering — and
+  each source keeps its own empty-state message, which a generic one would have destroyed.
+- `project` replaces the category source's day-old `wiki` (one field, legacy name still read); the *default* project
+  now belongs to the source (`en.wikipedia` for an article, `commons.wikimedia` for a page or category), because a
+  static default cannot depend on the source and the wrong one is a page that does not exist.
+- Verified **18/18 live** (page, category and article sources on production, three engines × two viewports), with
+  `npm run test:browsers:demos` covering the legacy ids for free — `dashboard.json` alone carried three of them.
 
 
 **Shipped.** A `commonsGallery` widget renders a gallery page's own images, captions and order — the 44th card on the

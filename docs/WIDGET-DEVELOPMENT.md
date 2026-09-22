@@ -158,7 +158,7 @@ would be a lie. A source may also declare a `noun` for its verdict copy (`no suc
 | id | kind | emits | typical consumers |
 |---|---|---|---|
 | `excerpt` | `extract` | the article's first paragraph | `translate`, `speaker`, `markdown`, `echo` |
-| `listSource` | `lines` | the pasted lines | `filterLines`, `articleList`, `fileGallery`, `mediaPlayer`, `echo` |
+| `listSource` | `lines` | the pasted lines | `filterLines`, `articleList`, `gallery`, `mediaPlayer`, `echo` |
 | `filterLines` | `lines` | the filtered lines | `articleList`, `lineCount`, `echo` |
 | `lineCount` | `count` | a number | `echo`, `markdown` |
 | `echo` | `value` | pass-through | any text field |
@@ -222,7 +222,7 @@ Every widget is defined by 5 things:
 | `transform(data, config)` | registry entry | Shapes API data into a renderer contract |
 | `renderer` | registry entry | `StatCard` \| `RankingCard` \| `TrendCard` \| `GlamCard` \| `MarkdownCard` \| `BoardControlsCard` \| `SpeakerCard` \| `TranslateCard` \| `TopPagesExpandedCard` \| `ExcerptCard` \| `EditHistoryCard` \| `QualityCard` \| `AssessmentsCard` \| `GalleryGridCard` \| `GalleryListCard` \| `MediaPlayerCard` \| `PanoramaCard` \| `WaybackGalleryCard` \| `ArticleListCard` \| `ListSourceCard` \| `EchoCard` \| `SparqlCard` \| `WikiPageCard` \| `CimSnapshotCard` \| `CimTopFilesCard` \| `QrCard` \| `FileTrafficCard` |
 | `defaultLayout` | registry entry (optional) | Grid size when added from the catalog: `{ w, h, minW, minH, maxW?, maxH? }` — `w: 12` = full width. Gallery-family widgets default to full-width; the 360° viewer constrains its minimum |
-| `autoHeight(view, config)` | registry entry (optional) | Content-based auto-fit: return a pixel height for the loaded content (e.g. rows × tile height); WidgetFrame calls `onAutoHeight` after a successful load, App fits the grid row count (clamp 3–14) — and stops once the user resizes manually. See the `gallery`/`fileGallery` entries |
+| `autoHeight(view, config)` | registry entry (optional) | Content-based auto-fit: return a pixel height for the loaded content (e.g. rows × tile height); WidgetFrame calls `onAutoHeight` after a successful load, App fits the grid row count (clamp 3–14) — and stops once the user resizes manually. See the `gallery`/`gallery` entries |
 | `emit(data, config)` | registry entry (optional) | **Read *The Emitter Contract* (below) first.** Publishes this widget's output to the board so other widgets can consume it via a `source` field or `{{widget:<id>}}` interpolation (ISSUE-52/58). Return the widget's primary payload — a string/number/array of lines (e.g. `excerpt` → `data.extract`). Consumers re-fetch when the value changes (content-based signature). Omit to stay a pure sink; do NOT emit ambiguously-interpretable data without labeling it in the card (see ISSUE-58 on article titles) |
 
 ## Step-by-Step
@@ -300,8 +300,8 @@ myWidget: {
 - **EditHistoryCard** (Edit History) — `{ title, project, rows: [{revid, timestamp, user, comment, delta}] }`
 - **QualityCard** (Article Quality) — `{ title, grade?, probabilities?, score?, revid, model }`
 - **AssessmentsCard** (WikiProject Assessment) — `{ title, rows: [{project, class, importance}], total }`
-- **GalleryGridCard** (Article Gallery, grid) — `{ title, subtitle, rows: [{title, caption, thumbUrl, fileUrl}], size }` — **shared with `fileGallery`** (same card, different fetcher)
-- **GalleryListCard** (Article Gallery, list) — same contract, rows render thumb-left/caption-right — also shared with `fileGallery`
+- **GalleryGridCard** (Gallery, grid) — `{ title, subtitle, rows: [{title, caption, thumbUrl, fileUrl}], size }` — **shared with `gallery`** (same card, different fetcher)
+- **GalleryListCard** (Gallery, list) — same contract, rows render thumb-left/caption-right — also shared with `gallery`
 - **MediaPlayerCard** (Video / Media Player) — `{ title, subtitle, rows: [{title, fileUrl, mediaType, derivatives: [{type, width, height, src}], originalUrl, duration}], mediaType, quality, loopPlaylist, shuffle, autoplay }` — native `<video>`/`<audio>` per track; the renderer picks the best transcoded VP9 WebM for the requested (height-based) quality, falling back to the original; jukebox controls (next/prev, loop wrap, shuffle, ▶ Start pill for autoplay policy)
 - **ArticleListCard** (Article List) — `{ title, subtitle, rows: [{title, pageUrl, thumbUrl?, extract?}] }` — clickable rows, optional thumb + 3-line intro. The same row contract works for any pasted-list widget.
 - **CimSnapshotCard** (CIM Snapshot / File Spotlight) — `{ title, subtitle?, stats: [{label, value, sub}], trend?: [{date, views}] }` — reuses the GlamCard stat-tile markup, optional monthly-view sparkline.
@@ -316,7 +316,7 @@ Need a new shape? Add a renderer component to `WidgetFrame.jsx` and extend the
 
 Cards are shared **by name** — several registry entries can dispatch to the
 same card, each with its own `fetch`/`transform`. Precedent: `gallery` and
-`fileGallery` both render `GalleryGridCard`/`GalleryListCard` via their
+`gallery` both render `GalleryGridCard`/`GalleryListCard` via their
 `getRenderer`. If your widget's data is a set of media, emit the canonical
 image-row contract (`rows: [{ title, thumbUrl, fileUrl, caption }]`) and you
 get the grid/list for free. For a new display mode (slideshow / ticker —

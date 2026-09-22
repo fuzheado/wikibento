@@ -17,7 +17,7 @@
       "id": "markdown",
       "widgetType": "markdown",
       "config": {
-        "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** — add widgets, drag them around, and share your board with a link.\n\n- 📊 **Article Pageviews** — 30-day traffic\n- 🏆 **Top 10 Wikipedias** — biggest language editions\n- 🖼️ **File Usage Map** — where a Commons file is used\n\n> Edit any widget with ⚙. Export/import your board as JSON, or share it via 🔗.",
+        "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** \u2014 add widgets, drag them around, and share your board with a link.\n\n- \ud83d\udcca **Article Pageviews** \u2014 30-day traffic\n- \ud83c\udfc6 **Top 10 Wikipedias** \u2014 biggest language editions\n- \ud83d\uddbc\ufe0f **File Usage Map** \u2014 where a Commons file is used\n\n> Edit any widget with \u2699. Export/import your board as JSON, or share it via \ud83d\udd17.",
         "refreshSeconds": 86400
       }
     },
@@ -83,8 +83,9 @@
     },
     {
       "id": "commons-gallery",
-      "widgetType": "commonsGallery",
+      "widgetType": "gallery",
       "config": {
+        "from": "page",
         "page": "The Venetian Macao",
         "project": "commons.wikimedia",
         "displayMode": "grid",
@@ -123,7 +124,7 @@
       "id": "controls",
       "widgetType": "boardControls",
       "config": {
-        "title": "Article — one param, five cards follow",
+        "title": "Article \u2014 one param, five cards follow",
         "refreshSeconds": 86400
       }
     },
@@ -166,38 +167,12 @@
       }
     },
     {
-      "id": "gallery",
-      "widgetType": "gallery",
-      "config": {
-        "article": "{{article}}",
-        "project": "en.wikipedia",
-        "displayMode": "grid",
-        "iconSize": "medium",
-        "minSize": 200,
-        "maxItems": 0,
-        "refreshSeconds": 3600
-      }
-    },
-    {
       "id": "panorama",
       "widgetType": "panorama360",
       "config": {
         "filename": "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
         "project": "commons.wikimedia",
         "autoRotate": false,
-        "refreshSeconds": 3600
-      }
-    },
-    {
-      "id": "filegallery",
-      "widgetType": "fileGallery",
-      "config": {
-        "files": "File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg",
-        "order": "listed",
-        "displayMode": "grid",
-        "iconSize": "medium",
-        "imageFit": "contain",
-        "maxItems": 0,
         "refreshSeconds": 3600
       }
     },
@@ -412,7 +387,7 @@
       "id": "speaker",
       "widgetType": "speaker",
       "config": {
-        "text": "Welcome to WikiBento — a composable dashboard for Wikimedia. Press play to hear me.",
+        "text": "Welcome to WikiBento \u2014 a composable dashboard for Wikimedia. Press play to hear me.",
         "speakOnChange": false,
         "refreshSeconds": 86400
       }
@@ -601,15 +576,6 @@
       "minH": 3
     },
     {
-      "i": "gallery",
-      "x": 0,
-      "y": 42,
-      "w": 12,
-      "h": 7,
-      "minW": 3,
-      "minH": 4
-    },
-    {
       "i": "panorama",
       "x": 0,
       "y": 49,
@@ -617,15 +583,6 @@
       "h": 4,
       "minW": 3,
       "minH": 2
-    },
-    {
-      "i": "filegallery",
-      "x": 6,
-      "y": 49,
-      "w": 6,
-      "h": 5,
-      "minW": 3,
-      "minH": 3
     },
     {
       "i": "articlelist",
