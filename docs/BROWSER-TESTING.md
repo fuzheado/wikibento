@@ -30,6 +30,31 @@ would have caught the empty-box-on-iPhone report:
 ```bash
 npm run test:browsers:demos                                  # 15 boards × 3 engines × desktop+phone
 node scripts/browser-matrix.mjs --demos --base http://localhost:5199 --engines webkit,chromium --wait 9000
+
+### Which build are you testing?
+
+`--base` **defaults to production** (`https://wikibento.toolforge.org`). That is the right default for checking a
+deploy and the wrong one for everything else, and the failure is silent: the sweep goes green while measuring the
+release that is *deployed* rather than the one you just built. It reported a change as 22/24 clean that way, and the
+first honest run found a bug which threw on every render of a widget.
+
+The script announces its base on every run, and warns when that is the implicit default:
+
+```
+⚠  no --base given → testing PRODUCTION (https://wikibento.toolforge.org). Pass --base http://localhost:4173 …
+```
+
+So for local verification, build and serve your own copy:
+
+```bash
+npm run build
+npx vite preview --port 4173 &
+node scripts/browser-matrix.mjs --demos --base http://localhost:4173 --boards gallery-demo.json
+```
+
+`--base` therefore has two legitimate uses, and they are different questions: point it at `localhost` to ask *does my
+change work?*, and leave it at the default to ask *is the deployment healthy?*
+
 node scripts/browser-matrix.mjs --demos --require-relay      # fails if a box needed the no-relay fallback
 node scripts/browser-matrix.mjs --demos --boards click-through --viewports phone   # one board, focused
 ```

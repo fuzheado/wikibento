@@ -495,22 +495,11 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      - **ISSUE-103's known limit** — the 🎞️ Commons Gallery reads literal `<gallery>` blocks from the wikitext, so a
        gallery generated *by a template* reads as empty (the rendered HTML would catch those, at 10× the bytes: 654 KB
        against 56 KB for London). Worth deciding per case rather than assuming; everything else about galleries shipped.
-     - **What the gallery merge taught, twice** (2026-09-18):
-       (1) **`id:`-based block surgery on the registry is wrong** — it is an OBJECT keyed by id, so deleting from
-       `id: 'x',` to the next `id: 'y',` left `x: {` wrapping `y`'s body and ate the *next* entry's key. The module
-       still parsed, 588/609 tests passed, and one widget silently became another (`commonsGallery` → fileUsage). The
-       fix is two lines in `tests/renderer-registry.test.mjs`: every key must be its own `id`.
-       (2) **A sweep without `--base` tests PRODUCTION, not your tree.** A local run reported 22/24 clean for the
-       merged widget while production was serving the *old* bundle — so it was measuring the previous release. The
-       first honest run (after deploy) found the real bug in seconds: `labelFromConfig` called `cleanCategoryName`,
-       which was exported by `dataSources.js` and never imported, so **every render of the widget threw**. Tests passed
-       because none of them had ever *called* `labelFromConfig`; there is now one that does, for every source.
-       Rule: pass `--base` explicitly, and prefer a base URL over an implicit default.
-     - **A sweep-environment note** (2026-09-18, recorded, not fixed): a full `test:browsers:demos` run reported 19
-       failures that are *not* about this repo's code — `web.archive.org` framing (error frames: wayback) and
-       report-only CSP console spam from Wikimedia hosts. Running a control board I had not touched, alone, was 6/6
-       clean, and the failing boards failed on the *same* external causes. Judge a sweep by a control board before
-       believing its total.
+     - **The gallery merge's two lessons** (2026-09-18) — now written where they are read: **`AGENTS.md`** (loaded
+       automatically in this directory) for the operating rules, and `docs/BROWSER-TESTING.md` for the sweep. In one
+       line each: the registry is an object keyed by id, so `id:`-based deletions corrupt it silently
+       (`commonsGallery` → `fileUsage`, with 588/609 tests passing); and **a sweep without `--base` tests production,
+       not your working tree** — the script now prints its base and warns when it is the implicit default.
      - **The print's known tweaks** (Andrew, 2026-09-18: *"all much better but could use some tweaking"*). Three
        small, well-understood follow-ups, in the order I would take them:
        (1) **a scale chooser in the 🖨 menu** — *fit* (today's behaviour) or *100%* — because Board and Document mode

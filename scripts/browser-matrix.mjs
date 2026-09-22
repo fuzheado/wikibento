@@ -93,6 +93,16 @@ const ENGINES = arg('engines', 'chromium,firefox,webkit').split(',').map((s) => 
  */
 const DEMOS = args.includes('--demos');
 const BASE = arg('base', 'https://wikibento.toolforge.org').replace(/\/$/, '');
+
+// Where this points decides what you are measuring. The default is PRODUCTION — correct for checking a deploy,
+// wrong for everything else: a run without --base reported a change as 22/24 clean while production was still
+// serving the previous bundle, so it was measuring the last release, not the working tree. So say it out loud.
+const BASE_FROM_FLAG = process.argv.some((a) => a === '--base' || a.startsWith('--base='));
+if (!BASE_FROM_FLAG && BASE === 'https://wikibento.toolforge.org') {
+  console.log(`  ⚠  no --base given → testing PRODUCTION (${BASE}). Pass --base http://localhost:4173 to test a local build.`);
+} else {
+  console.log(`  base: ${BASE}`);
+}
 const VIEWPORTS = arg('viewports', 'desktop,phone').split(',').map((s) => s.trim());
 const CONCURRENCY = Math.max(1, parseInt(arg('concurrency', '4'), 10));
 const REQUIRE_RELAY = args.includes('--require-relay');
