@@ -24,6 +24,10 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 - **A retired widget type id must keep resolving** (`widgetDef`), and its config must keep meaning what it meant.
   Prefer inferring from the fields a board already carries over rewriting boards on load: a link in the wild is not
   yours to migrate.
+- **…and de-duplicate wherever ids become definitions** (`recentWidgetDefs`). A browser that used the old ids holds
+  all of them in its recents list, and each resolves to the same definition: the Add-widget panel showed the Gallery
+  three times, with three identical `+` buttons. Resolving aliases and collapsing duplicates are the same job, and
+  the place to do it is the point where ids stop being ids.
 - **A config field that only applies to one source declares `showIf`.** Otherwise the ⚙ panel shows every source's
   fields at once, which is what made three near-identical gallery widgets look reasonable for a week.
 

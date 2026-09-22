@@ -42,6 +42,20 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### The merge's own footprint: the panel showed the Gallery three times (ISSUE-106)
+
+Minutes after the merge shipped, Andrew's Add-widget panel listed "Gallery" **three times**, each with a `+`. His
+browser had `gallery`, `commonsGallery` and `fileGallery` in its recents list; `widgetDef` correctly resolved all
+three to one definition, and nothing collapsed them. `recentWidgetDefs()` now resolves *and* de-duplicates (and the
+list is stored canonically, so an old list converges as it is used).
+
+It was the second fault that day which only existed in a browser — the first being a helper called but never
+imported, which threw on every render. Both were invisible to the unit tests because **nothing renders the panel**.
+The demos sweep now does, with the recents seeded with retired ids, and fails the run if a section lists a widget
+twice — verified by injecting the bug back (❌ with the message, then ✅). That is the general lesson: when a
+regression is only reachable through a surface nothing tests, add the surface to the gate rather than the assertion
+to the unit tests.
+
 ## Images from a Commons category, as a source of the file gallery (ISSUE-104, 2026-09-18)
 
 Andrew asked for the simplest possible widget — *"just show images from a Commons category, in alpha

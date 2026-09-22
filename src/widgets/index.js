@@ -2121,3 +2121,23 @@ export function widgetDef(widgetType) {
 export function isKnownWidgetType(widgetType) {
   return Boolean(widgetDef(widgetType));
 }
+
+/**
+ * The ⚙ Add-widget panel's "Recent" list, resolved and de-duplicated.
+ *
+ * A browser that used the old gallery widgets still has `gallery`, `commonsGallery` and `fileGallery` in its recent
+ * list, and every one of them now resolves to the same definition — which showed the Gallery three times, with three
+ * identical "+" buttons (reported 2026-09-18, minutes after the merge shipped). De-duplication has to happen here,
+ * where the ids become definitions: `widgetDef` alone cannot know that two ids are one widget.
+ */
+export function recentWidgetDefs(ids) {
+  const seen = new Set();
+  const out = [];
+  for (const id of ids || []) {
+    const def = widgetDef(id);
+    if (!def || seen.has(def.id)) continue;
+    seen.add(def.id);
+    out.push(def);
+  }
+  return out;
+}

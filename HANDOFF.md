@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CHEYTt5v.js` (+ `index-B6skfVtC.css`) |
-| deployed | 2026-09-18 — **the gallery family is one widget** (ISSUE-105): `commonsGallery` and `fileGallery` are gone, `gallery` takes `from: article | page | list | category` with per-source fields via `showIf`, and the old type ids still resolve (aliases at lookup, source inferred from the config) so saved boards and shared `#/z/` links keep rendering — 18/18 live across all three sources · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-iy9GZzH5.js` (+ `index-B6skfVtC.css`) |
+| deployed | 2026-09-18 — **the Add-widget panel showed the Gallery three times** (ISSUE-106): retired ids in a browser's recents each resolved to the same widget and nothing collapsed them, so `recentWidgetDefs()` de-duplicates where ids become definitions. The demos sweep now renders the panel with retired ids seeded and fails if a section repeats a widget — the second fault in a day that only existed in a browser · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { WIDGET_TYPES } from '../widgets';
-import { widgetDef } from '../widgets';
+import { recentWidgetDefs, widgetDef } from '../widgets';
 
 /** Catalog organization (ISSUE-32): two discovery views (flat list /
  *  categorized two-pane) + search that overrides both + type filter +
@@ -57,7 +57,9 @@ function readRecent() {
 
 function markRecent(typeId) {
   try {
-    const r = [typeId, ...readRecent().filter((x) => x !== typeId)].slice(0, 6);
+    // Store the CANONICAL id, so a legacy id in someone's list converges as they use the panel.
+    const canonical = widgetDef(typeId)?.id || typeId;
+    const r = [canonical, ...readRecent().filter((x) => (widgetDef(x)?.id || x) !== canonical)].slice(0, 6);
     localStorage.setItem(RECENT_KEY, JSON.stringify(r));
   } catch { /* best-effort */ }
 }
@@ -87,7 +89,7 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
     (def.category || '').toLowerCase().includes(q);
 
   const filtered = types.filter((def) => matches(def) && (typeFilter === 'all' || typeOf(def) === typeFilter));
-  const recentTypes = recent.map((id) => widgetDef(id)).filter(Boolean);
+  const recentTypes = recentWidgetDefs(recent);
   const countIn = (cat) => (cat.recent ? recentTypes.length : types.filter((d) => d.category === cat.id).length);
 
   const handleHeaderPointerDown = (e) => {

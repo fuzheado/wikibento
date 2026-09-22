@@ -31,6 +31,16 @@ would have caught the empty-box-on-iPhone report:
 npm run test:browsers:demos                                  # 15 boards × 3 engines × desktop+phone
 node scripts/browser-matrix.mjs --demos --base http://localhost:5199 --engines webkit,chromium --wait 9000
 
+### The Add-widget panel is rendered, not assumed
+
+The demos pass opens **Add Widget** on desktop, with `wikibento-recent-widgets` seeded with retired type ids — the
+state every returning user is in once a widget type is renamed or merged — and fails the run if any one section lists
+a widget twice. (Across sections names repeat by design: a recent widget is also in "All widgets".)
+
+This exists because two faults in one day were reachable *only* here: a helper called but never imported (`ReferenceError`
+on every render of a widget) and a recents list that showed one widget once per legacy id it had ever had. Neither
+was visible to the unit tests, because nothing in them renders the panel. Verified by injecting the second one back.
+
 ### Which build are you testing?
 
 `--base` **defaults to production** (`https://wikibento.toolforge.org`). That is the right default for checking a

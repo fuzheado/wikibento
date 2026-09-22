@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanCategoryName, categoryMemberTitles } from '../src/widgets/dataSources.js';
 import { inferGallerySource, galleryProject, GALLERY_SOURCES } from '../src/lib/gallerySource.js';
-import { WIDGET_TYPES, widgetDef } from '../src/widgets/index.js';
+import { WIDGET_TYPES, widgetDef, recentWidgetDefs } from '../src/widgets/index.js';
 
 /**
  * A Commons category as a gallery source (2026-09-18).
@@ -168,4 +168,17 @@ test('every source can name its own card (labelFromConfig is called on every ren
   assert.equal(def.labelFromConfig({ ...def.defaults, from: 'category', category: 'Category:Images from XBio' }), 'Category:Images from XBio');
   assert.equal(def.labelFromConfig({ ...def.defaults, from: 'list', files: 'File:A.jpg\nFile:B.jpg' }), '2 files');
   assert.equal(def.labelFromConfig({ ...def.defaults, from: 'article', article: 'Ada_Lovelace' }), 'Ada Lovelace');
+});
+
+test('the Add-widget recents collapse to one entry per widget, not one per legacy id', () => {
+  // A browser mid-migration holds all three gallery ids, and each resolves to the same definition: the panel showed
+  // "Gallery" three times, with three identical + buttons (reported 2026-09-18).
+  const defs = recentWidgetDefs(['gallery', 'commonsGallery', 'fileGallery', 'pageviews']);
+  assert.deepEqual(defs.map((d) => d.id), ['gallery', 'pageviews']);
+  assert.equal(defs.length, 2);
+  // order is the recency order, unknown ids are dropped, and an empty list is fine
+  assert.deepEqual(recentWidgetDefs(['pageviews', 'nonsense']).map((d) => d.id), ['pageviews']);
+  assert.deepEqual(recentWidgetDefs([]), []);
+  assert.deepEqual(recentWidgetDefs(undefined), []);
+  assert.deepEqual(recentWidgetDefs(['fileGallery', 'gallery']).map((d) => d.id), ['gallery']);
 });

@@ -4992,6 +4992,24 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-106 · The Add-widget panel listed the Gallery three times — **done + verified 2026-09-18**
+
+Andrew, minutes after the gallery merge shipped, with a screenshot: the panel's **Recent** list showed "Gallery"
+three times, each with its own `+` button.
+
+**Cause, and it is the merge's own footprint:** his browser had `gallery`, `commonsGallery` and `fileGallery` in
+`wikibento-recent-widgets`. `widgetDef()` resolves all three to the same definition — correctly, that is the point of
+aliases — but nothing collapsed them, so the recents list showed one widget once per id it had ever been.
+
+- `recentWidgetDefs(ids)` resolves **and** de-duplicates by canonical id, preserving recency order; the panel uses it,
+  and the recents list is now written with the canonical id so a legacy list converges as it is used.
+- **The class of bug, not the instance:** this was the *second* fault in a day that only existed in a browser — the
+  first was a helper called but never imported, which threw on every render of the widget. Neither could be seen by
+  the unit tests, because nothing renders the panel. The demos sweep now **renders it** on desktop, seeding the
+  recents with retired ids (the state every returning user is in), and asserts each section lists a widget once.
+  Asserting is not enough on its own — a check that reports without failing is worse than none — so it feeds the
+  same verdict as everything else, and was verified by injecting the bug back: ❌ with the message, then ✅.
+
 ## ISSUE-105 · One gallery widget, four sources — **done + verified 2026-09-18**
 
 The gallery family is now four sources behind the same renderer: a pasted list (ISSUE-104 made it `from:

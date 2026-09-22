@@ -313,6 +313,47 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
       await page.evaluate(() => document.body.removeAttribute('data-print'));
     }
 
+
+    // ── the Add-widget panel ───────────────────────────────────────────────────────────────────────────────
+    // The panel renders the registry, so anything that resolves or merges widget ids can break it without touching
+    // a widget — and only here, because nothing else renders it. Two bugs did exactly that on one day (a helper
+    // used but never imported; a "recent" list that showed the Gallery three times after the gallery merge), and
+    // the unit tests could not see either. Rendering it also means a panel-only error lands in row.errors.
+    if (DEMOS && viewportName === 'desktop') {
+      try {
+        // Seed the recents with a mix that includes retired ids: that is the state every returning user has once a
+        // widget type is renamed or merged, and it is the state the recents path broke in.
+        await page.evaluate(() => localStorage.setItem('wikibento-recent-widgets', JSON.stringify(['gallery', 'commonsGallery', 'fileGallery', 'pageviews'])));
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForSelector('[data-widget-id]', { timeout: 20000 });
+        await page.locator('button:has-text("Add Widget")').first().click({ force: true, timeout: 4000 });
+        await page.waitForSelector('.add-widget-panel', { timeout: 4000 });
+        const listBtn = page.locator('.add-widget-panel button:has-text("List")').first();
+        if (await listBtn.count()) { await listBtn.click({ force: true }); await page.waitForTimeout(250); }
+        // Within one section a name must appear once. Across sections they repeat by design: a recent widget is
+        // also in "All widgets", which is the whole point of the recents list.
+        const dupes = await page.evaluate(() => {
+          const list = document.querySelector('.add-widget-list');
+          if (!list) return ['no panel list'];
+          const out = [];
+          let section = '(top)';
+          let seen = new Set();
+          for (const el of list.children) {
+            if (el.classList.contains('add-widget-section')) { section = el.textContent.trim(); seen = new Set(); continue; }
+            const name = el.querySelector('.add-widget-name')?.innerText.trim();
+            if (!name) continue;
+            if (seen.has(name)) out.push(`${name} twice in "${section}"`);
+            seen.add(name);
+          }
+          return out;
+        });
+        if (dupes.length) { row.panelErrors = (row.panelErrors || []).concat(dupes.map((d) => `add-widget panel: ${d}`)); }
+        else row.notes.push('add-widget panel lists each widget once per section');
+        await page.keyboard.press('Escape');
+      } catch (e) {
+        row.panelErrors = (row.panelErrors || []).concat([`add-widget panel: ${String(e.message).slice(0, 70)}`]);
+      }
+    }
     // …the print pass's verdict travels on the row (the reporter lives in the worker, not in here)
     row.printOverlaps = printOverlaps;
     row.printCards = printCards;
@@ -423,12 +464,13 @@ if (DEMOS) {
       if (row.emptyRows.length) problems.push(`empty body: ${[...new Set(row.emptyRows)].join(', ')}`);
       if ((row.printOverlaps || []).length) problems.push(`print overlap: ${row.printOverlaps.slice(0, 4).join(', ')}`);
       if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
+      if ((row.panelErrors || []).length) problems.push(...row.panelErrors.map((e) => e.slice(0, 80)));
       if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
       row.status = problems.length ? '❌' : '✅';
       row.why = problems.join(' · ');
       rows.push(row);
       console.log(`${row.status} ${row.board.padEnd(28)} ${row.engine.padEnd(9)} ${row.viewport.padEnd(8)} cards=${String(row.cards).padStart(2)}${row.why ? '  ' + row.why : ''}${!row.why && row.degraded.length ? '  (relay degraded: ' + row.degraded.join(',') + ')' : ''}`);
-      for (const e of row.errors.slice(0, 2)) console.log(`      └ ${e}`);
+      for (const e of [...row.errors, ...(row.panelErrors || [])].slice(0, 2)) console.log(`      └ ${e}`);
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
@@ -493,7 +535,8 @@ for (const engine of ENGINES) {
     await browser?.close().catch(() => {});
   }
 
-  const ok = row.widgets > 0 && row.widgetErrors === 0 && row.consoleErrors === 0;
+  const ok = row.widgets > 0 && row.widgetErrors === 0 && row.consoleErrors === 0
+    && (row.panelErrors || []).length === 0;   // reporting a failure without failing is worse than not checking
   if (!ok) hadFailure = true;
   const status = ok ? '✅ PASS' : '❌ FAIL';
   console.log(`${status}  ${engine.padEnd(9)} widgets=${row.widgets}  widgetErrors=${row.widgetErrors}  consoleErrors=${row.consoleErrors}${row.benignConsole ? ` (+${row.benignConsole} benign)` : ''}`);
