@@ -36,38 +36,24 @@
  */
 export function boardPrintGeometry(layout) {
   const items = (Array.isArray(layout) ? layout : [])
-    .filter((l) => l && l.i && Number.isFinite(l.y))
+    .filter((l) => l && l.i)
     .map((l) => {
-      // Clamped into the 12-column grid: a bad author value must not push a card off the paper — a column start
-      // past the last column, or a span that runs past it, is trimmed rather than trusted.
+      // Clamped into the grid: a bad author value must not push a card off the paper. A column start past the
+      // last column, or a span running past it, is trimmed rather than trusted.
       const col = Math.min(12, Math.max(1, Math.round(Number(l.x) || 0) + 1));
       const span = Math.min(13 - col, Math.max(1, Math.round(Number(l.w) || 12)));
-      const y = Number(l.y) || 0;
-      return { id: l.i, col, span, y, bottom: y + Math.max(1, Math.round(Number(l.h) || 1)) };
-    })
-    .sort((a, b) => a.y - b.y || a.col - b.col);
-
-  const rows = [];
-  for (const it of items) {
-    // A shelf holds everything that starts before the shelf's current bottom — the on-screen row.
-    const shelf = rows[rows.length - 1];
-    if (!shelf || it.y >= shelf.bottom) rows.push({ bottom: it.bottom, items: [it] });
-    else {
-      shelf.items.push(it);
-      shelf.bottom = Math.max(shelf.bottom, it.bottom);
-    }
-  }
-  const out = [];
-  rows.forEach((shelf, i) => {
-    for (const it of shelf.items) out.push({ id: it.id, col: it.col, span: it.span, row: i + 1 });
-  });
-  return out;
+      const row = Math.max(1, Math.round(Number(l.y) || 0) + 1);
+      const rowSpan = Math.max(1, Math.round(Number(l.h) || 1));
+      return { id: l.i, col, span, row, rowSpan };
+    });
+  // Sorted for readability and stable output; the grid placement does not depend on it.
+  return items.sort((a, b) => a.row - b.row || a.col - b.col);
 }
 
 /** Give every card on the board its print slot. Called only for `data-print="board"`. */
 function applyBoardPrintGeometry(layout) {
-  const geometry = boardPrintGeometry(layout);
-  const byId = new Map(geometry.map((g) => [g.id, g]));
+  const geometry = boardPrintGeometry(layout);   // already sorted by (row, column) — the board's reading order
+  const byId = new Map(geometry.map((g, i) => [g.id, { ...g, order: i }]));
   let fallbackRow = geometry.length + 1;
   for (const wrapper of document.querySelectorAll('.react-grid-item')) {
     // react-grid-layout puts its classes ON the element the app renders (the one carrying `data-widget-id`),
@@ -76,10 +62,14 @@ function applyBoardPrintGeometry(layout) {
       || wrapper.querySelector('[data-widget-id]')?.getAttribute('data-widget-id');
     const g = id ? byId.get(id) : null;
     // A card the layout does not mention still prints — full width, after the ones that do.
-    const slot = g || { col: 1, span: 12, row: fallbackRow++ };
+    const slot = g || { col: 1, span: 12, row: fallbackRow++, rowSpan: 1, order: fallbackRow };
     wrapper.style.setProperty('--print-col', String(slot.col));
     wrapper.style.setProperty('--print-span', String(slot.span));
     wrapper.style.setProperty('--print-row', String(slot.row));
+    wrapper.style.setProperty('--print-rowspan', String(slot.rowSpan || 1));
+    // Document mode reads in (row, column) order — the order the board reads in. DOM order is the widgets array,
+    // a different thing entirely, and that mismatch is half of why the printed board used to be wrong.
+    wrapper.style.setProperty('--print-order', String(slot.order ?? 0));
   }
 }
 
@@ -88,6 +78,9 @@ function clearBoardPrintGeometry() {
     wrapper.style.removeProperty('--print-col');
     wrapper.style.removeProperty('--print-span');
     wrapper.style.removeProperty('--print-row');
+    wrapper.style.removeProperty('--print-rowspan');
+    wrapper.style.removeProperty('--print-order');
+    wrapper.style.removeProperty('--print-hpx');
   }
 }
 
@@ -98,14 +91,74 @@ function clearBoardPrintGeometry() {
  * listener in App.jsx, which means ⌘P now prints the board correctly too (before this, only the toolbar button
  * set `data-print`, so a browser-menu print got react-grid-layout's transforms and printed as a clipped stack).
  */
-export function armBoardPrint(layout) {
+const PAGE_STYLE_ID = 'wikibento-print-page';
+const PX_PER_MM = 96 / 25.4;   // CSS pixels per millimetre, the ratio @page sizes are expressed in
+
+/**
+ * Poster mode: **one page, sized to the board** (2026-09-18).
+ *
+ * `@page size` accepts dimensions, so the sheet can ask for a page exactly as big as the board is on screen — 391×
+ * 1693 mm for the Met demo. The reader's print dialogue then scales that one page down to whatever paper they have,
+ * which is what makes it a poster: the whole board, its own aspect ratio, nothing paginated and nothing cropped.
+ * Each card keeps the box it has on screen (`--print-hpx`), so the poster is the board *as drawn* — including the
+ * clipping a card does on screen, because un-clipping here would change the shapes the poster is meant to preserve.
+ */
+function applyPosterPage() {
+  const grid = document.querySelector('.react-grid-layout') || document.querySelector('.dashboard-container');
+  if (grid) {
+    const { width, height } = grid.getBoundingClientRect();
+    /* The page is the board's box plus a real allowance, and the allowance is the honest part of this function.
+     *
+     * Script cannot measure the printed layout: `beforeprint` runs while the page is still in screen media, so the
+     * box measured here is the on-screen one. Measured on the Met board that was 4618px against 5929px of printed
+     * content — a poster that spilled 1300px onto a second page, twice. The causes are mundane and not worth
+     * chasing one by one (a card whose printed content exceeds its screen box, images that arrive later, the grid's
+     * own gaps). What matters for a *poster* is the shape of the answer: a page a little taller than its content is
+     * still one page, and the reader's scale-to-fit handles the rest — whereas a page even slightly too short is a
+     * second page nobody wanted. So: the box, plus a quarter. */
+    const mm = (px) => (Math.max(1, px) / PX_PER_MM * 1.25).toFixed(1);
+    let style = document.getElementById(PAGE_STYLE_ID);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = PAGE_STYLE_ID;
+      document.head.appendChild(style);
+    }
+    style.textContent = `@page { size: ${mm(width)}mm ${mm(height)}mm; margin: 0; }`;
+  }
+  for (const wrapper of document.querySelectorAll('.react-grid-item')) {
+    wrapper.style.setProperty('--print-hpx', `${Math.round(wrapper.getBoundingClientRect().height)}px`);
+  }
+}
+
+/**
+ * Arm board mode. `mode` chooses the shape of the paper:
+ *
+ *   'board'    the board's own grid — the same rows, the same columns, no overlap (default)
+ *   'poster'   one page, sized to the board, cards clipped exactly as they are on screen
+ *   'document' one card per row, full width, in reading order — the shape to *read* rather than
+ *              to recognise, and the page count that is easiest to predict
+ *
+ * Exported so the app can re-arm on **every** print attempt, not just a click on 🖨: see the `beforeprint`
+ * listener in App.jsx, which means ⌘P now prints the board correctly too (before this, only the toolbar button
+ * set `data-print`, so a browser-menu print got react-grid-layout's transforms and printed as a clipped stack).
+ */
+export function armBoardPrint(layout, mode = 'board') {
   document.body.setAttribute('data-print', 'board');
+  document.body.setAttribute('data-print-mode', mode);
   applyBoardPrintGeometry(layout);
+  // EVERY image must be loaded before the sheet is taken. Cards below the fold use `loading="lazy"`, so on a tall
+  // board — the Met demo's gallery came out as a grid of empty black tiles in the poster — the images a reader has
+  // not scrolled to were never fetched and print as nothing. Flipping them to eager on arm gives the print pass
+  // (and the dialogue's own preview, which takes a moment) the images it needs.
+  for (const img of document.querySelectorAll('img[loading="lazy"]')) img.loading = 'eager';
+  if (mode === 'poster') applyPosterPage();
 }
 
 /** Back to the screen. Safe to call when nothing is armed. */
 export function disarmPrint() {
   document.body.removeAttribute('data-print');
+  document.body.removeAttribute('data-print-mode');
+  document.getElementById(PAGE_STYLE_ID)?.remove();
   for (const el of document.querySelectorAll('.print-target')) el.classList.remove('print-target');
   clearBoardPrintGeometry();
 }
@@ -120,14 +173,14 @@ export function disarmPrint() {
  * re-arming makes a stale armed state harmless (the sheet only affects print media; it cannot change what is on
  * screen), so the timer is gone entirely.
  */
-export function printTarget(widgetId, { layout } = {}) {
+export function printTarget(widgetId, { layout, mode = 'board' } = {}) {
   const el = widgetId ? document.querySelector(`[data-widget-id="${widgetId}"]`) : null;
   if (widgetId && !el) return;
   if (widgetId) {
     document.body.setAttribute('data-print', 'widget');
     el.classList.add('print-target');
   } else {
-    armBoardPrint(layout);
+    armBoardPrint(layout, mode);
   }
   window.print();
 }

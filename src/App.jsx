@@ -121,6 +121,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
   // browser stays resizable, so the board reads as a compact app.
   const [lean, setLean] = useState(false);
+  // the 🖨 menu: three deliberate PDF shapes, closed after a choice
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
   // react-grid-layout doesn't re-layout on every pixel of a window drag).
   const [gridWidth, setGridWidth] = useState(() => window.innerWidth - 40);
@@ -861,9 +863,24 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn" onClick={openShare} title="Share via QR code or link (config embedded in the URL)">
             🔗 Share
           </button>
-<button className="btn" onClick={() => printTarget(null, { layout })} title="Print or save the whole board as PDF — the same grid, the same order, one row per screen row">
-  🖨 Print
-</button>
+<span className="widget-menu-wrap">
+  <button className="btn" onClick={() => setShowPrintMenu((v) => !v)} title="Print or save the board as PDF — three shapes: the board's own grid, one big poster page, or a readable document">
+    🖨 Print ▾
+  </button>
+  {showPrintMenu && (
+    <div className="widget-menu board-print-menu" onMouseLeave={() => setShowPrintMenu(false)}>
+      <button className="widget-menu-item" onClick={() => { setShowPrintMenu(false); printTarget(null, { layout, mode: 'board' }); }}>
+        🧩 <b>Board</b> — the grid you see, row for row
+      </button>
+      <button className="widget-menu-item" onClick={() => { setShowPrintMenu(false); printTarget(null, { layout, mode: 'poster' }); }}>
+        🖼 <b>Poster</b> — one page, sized to the board
+      </button>
+      <button className="widget-menu-item" onClick={() => { setShowPrintMenu(false); printTarget(null, { layout, mode: 'document' }); }}>
+        📄 <b>Document</b> — one card per row, in reading order
+      </button>
+    </div>
+  )}
+</span>
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">
             ⬇ Export
           </button>

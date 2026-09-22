@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CKfG8oL8.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-18 — **the printed board matches the board** (ISSUE-77): the print sheet reproduces the on-screen grid — same columns, same rows, same reading order — for the 🖨 button and ⌘P alike, with the racing disarm timer removed · before that: **a Commons-gallery widget** (ISSUE-103) · **Wiki Stats reads the wiki itself**, and the 360° panorama renders for the first time |
+| production bundle | `index-CjMygZ-T.js` (+ `index-LCnQkRks.css`) |
+| deployed | 2026-09-18 — **a print you choose the shape of** (ISSUE-77): the 🖨 menu offers **Board** (the grid you see), **Poster** (one page, sized to the board) and **Document** (a card per row, to read), with the staggered-mosaic overlap fixed and lazy images loaded before the sheet is taken · before that: **the printed board matched the board** · **a Commons-gallery widget** (ISSUE-103) · **Wiki Stats reads the wiki itself** |
 | registry | 43 widget types — 34 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; the print flow is verified live against it (clicking 🖨 gives `note → excerpt │ views │ views │ excerpt → timeline → gallery │ gallery`, exactly the screen's order) |
+| pending deploy | none — production serves this branch's tip; all three print shapes are verified live by driving the deployed menu (Met demo: Board 11 pages with 0 overlaps, Poster **1 page**, Document 21; Anne Frank: 6 / **1** / 4) |
 | newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -350,6 +350,14 @@ and a stream pipeline that works in Node is not evidence about a browser.
     every stacked card showed only its 58px header. Reproduce it in one line of Playwright (an iPhone 14 context)
     and check `.widget-body`'s `scrollHeight`, not its text: the data was all there, invisible. Fixed with
     `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }` — and by making the demo sweep assert it.
+
+32. **Two cards can be in the same *row* and still not be in the same *cell*.** Grouping a board's cards into
+    "shelves" by overlapping vertical spans is a plausible way to paginate it, and it is wrong the moment a layout is
+    a staggered mosaic: on the Met demo a tall card's column is re-used by the card below it, so the shelf held five
+    cards, two pairs shared a column, and page two printed four cards on top of each other. What works is the grid
+    the board is *already drawn on* — column, span, row and row-span straight from the layout — because CSS grid
+    cannot overlap two items. The general form: when reproducing an arrangement, copy the coordinates you are given
+    rather than inferring a structure from them.
 
 31. **A safety timeout that fires mid-operation is worse than no timeout.** The print sheet disarmed itself three
     seconds after arming, because `afterprint` is unreliable (Safari, a cancelled dialogue) — and three seconds is

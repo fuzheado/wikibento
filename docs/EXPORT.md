@@ -69,6 +69,27 @@ listener, so ⌘P and the browser's own Print… menu get the board instead of r
 and the three-second disarm timer is **gone** — it fired mid-print on a slow job, clearing the slots and producing
 a PDF with the layout this all exists to fix. `afterprint` plus a re-arming `beforeprint` needs no timer.
 
+### Three shapes, because a dashboard is not a document (2026-09-18, second pass)
+
+The 🖨 toolbar button is a menu. Reproducing the board's grid fixed the flow; the *first* attempt at it grouped cards
+into "shelves" by overlapping vertical spans, which is right for a tidy board and **wrong for a staggered mosaic** —
+on the Met demo a tall card's column is re-used by the card below it, five cards landed in one shelf, two pairs shared
+a column, and page two printed four cards over each other. Placement now comes from the layout's own `x`/`w`/`y`/`h`,
+so **CSS grid cannot overlap two cards** — the invariant the sweep now checks on every demo in every engine.
+
+| in the menu | what you get | Met demo | Anne Frank demo |
+|---|---|---|---|
+| 🧩 **Board** | the board's own grid: same rows, same columns, cards never split | 11 pages, no overlap | 6 pages |
+| 🖼 **Poster** | **one page, sized to the board** (`@page size` from the board's box) — the whole thing at its own aspect, cards clipped exactly as on screen; the dialogue's "scale to fit" turns it into whatever paper you have | **1 page** | **1 page** |
+| 📄 **Document** | one card per row, full width, in (row, column) order — the shape to *read*, with the most predictable page count | 21 pages | 4 pages |
+
+Two things the poster taught, both only visible by looking at the output: card heights come from the screen, so the
+page needs an **allowance** — script cannot measure the printed layout, because `beforeprint` runs while the page is
+still in screen media (a poster page a little taller than its content is still one page, and scale-to-fit handles the
+rest) — and every image has to be **loaded before the sheet is taken**: the Met gallery printed as a grid of empty
+black tiles because cards below the fold use `loading="lazy"` and had never been fetched, so arming now flips them to
+eager (139/139 loaded, verified).
+
 What is deliberately kept on paper: the widget's own header (it names the card), and the ⏱ freshness
 footer — a printed chart with no "as of" line is a claim without a date. What is hidden: the toolbar,
 the action buttons, the instance-id chip, the resize grips.

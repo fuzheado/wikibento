@@ -1,18 +1,20 @@
 /**
  * Print layout (2026-09-18) — the board's arrangement on paper.
  *
- * The print sheet used to make every card full width and stack it in DOM order. Measured on
- * `anne-frank-mlk-demo`, that turned a symmetric on-screen row (excerpt w4 · views w2 · views w2 · excerpt w4) into
- * four stacked pages, put two side-by-side galleries on separate pages, and printed the note that *opens* the board
- * fifth. `boardPrintGeometry` is where that is fixed, so it is where it is tested: columns and spans from the
- * layout, rows derived as shelves (items whose vertical spans overlap share a line), DOM order irrelevant.
+ * The print sheet used to make every card full width and stack it in DOM order. Reproducing the board's own grid
+ * fixed the flow; the *first* attempt at that grouped cards into "shelves" by overlapping vertical spans, which is
+ * right for a tidy board and wrong for a staggered mosaic — on the Met demo a tall card's column is re-used by the
+ * card below it, five cards landed in one shelf, two pairs shared a column, and they printed on top of each other.
+ * The placement now comes from the layout's own `x`/`w`/`y`/`h`, which makes an overlap impossible rather than
+ * unlikely — that is the property these tests pin.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { boardPrintGeometry } from '../src/lib/print.js';
 
-// The real board, in its real array order (which is NOT its visual order — note prints first on screen, fifth in
-// the array; the galleries sit between the excerpts in the array and below them on screen).
+// The Ann Frank / MLK board: tidy, and the case the shelf version also got right.
 const ANNE_FRANK = [
   { i: 'anne-frank-excerpt', x: 0, y: 1, w: 4, h: 6 },
   { i: 'anne-frank-gallery', x: 0, y: 11, w: 6, h: 12 },
@@ -24,25 +26,24 @@ const ANNE_FRANK = [
   { i: 'mlk-views', x: 6, y: 1, w: 2, h: 6 },
 ];
 
-test('print: the board keeps its rows, its columns and its reading order', () => {
-  const slots = boardPrintGeometry(ANNE_FRANK);
-  const at = (id) => slots.find((s) => s.id === id);
-  // four cards share one shelf, in screen order, with their screen widths
-  assert.deepEqual(
-    slots.filter((s) => s.row === 2).map((s) => [s.id, s.col, s.span]),
-    [['anne-frank-excerpt', 1, 4], ['anne-views', 5, 2], ['mlk-views', 7, 2], ['mlk-excerpt', 9, 4]],
-  );
-  // the note that opens the board is on the first row, not fifth
-  assert.deepEqual([at('comparison-note').row, at('comparison-note').span], [1, 9]);
-  // the timeline is a full-width row of its own, between the cards and the galleries
-  assert.deepEqual([at('lives-timeline').row, at('lives-timeline').span], [3, 12]);
-  // and the two galleries stay side by side
-  assert.deepEqual(
-    slots.filter((s) => s.row === 4).map((s) => [s.id, s.col, s.span]),
-    [['anne-frank-gallery', 1, 6], ['mlk-gallery', 7, 6]],
-  );
-  assert.equal(at('anne-frank-gallery').row, at('mlk-gallery').row);
-});
+// The Met board, which broke the shelf version: staggered starts, mixed widths, a tall card whose column the card
+// below it re-uses (`edithistory` x388 and `cimtopeditors` x388 start 368px apart; `fileusage` x20 and `articlelist`
+// x20 likewise).
+const MET = [
+  { i: 'welcome', x: 0, y: 0, w: 3, h: 4 },
+  { i: 'catsize', x: 3, y: 0, w: 3, h: 4 },
+  { i: 'cimsnap', x: 6, y: 0, w: 3, h: 4 },
+  { i: 'cimtrend', x: 9, y: 0, w: 3, h: 4 },
+  { i: 'fileusage', x: 0, y: 4, w: 3, h: 5 },
+  { i: 'edithistory', x: 3, y: 4, w: 4, h: 4 },
+  { i: 'cimtopfiles', x: 7, y: 4, w: 5, h: 6 },
+  { i: 'cimtopeditors', x: 3, y: 8, w: 4, h: 6 },
+  { i: 'articlelist', x: 0, y: 9, w: 3, h: 4 },
+  { i: 'file-spotlight', x: 7, y: 10, w: 3, h: 5 },
+  { i: 'cimtoppages', x: 0, y: 13, w: 3, h: 4 },
+  { i: 'sparql', x: 3, y: 14, w: 4, h: 3 },
+  { i: 'gallery', x: 0, y: 17, w: 12, h: 34 },
+];
 
 test('print: every widget gets exactly one slot, whatever the input order', () => {
   const shuffled = [...ANNE_FRANK].reverse();
@@ -52,18 +53,27 @@ test('print: every widget gets exactly one slot, whatever the input order', () =
   assert.equal(new Set(a.map((s) => s.id)).size, ANNE_FRANK.length);
 });
 
-test('print: shelves do not merge rows that merely touch, and tolerate gaps', () => {
-  const slots = boardPrintGeometry([
-    { i: 'a', x: 0, y: 0, w: 6, h: 2 },
-    { i: 'b', x: 6, y: 0, w: 6, h: 3 },   // taller: the shelf runs to y3
-    { i: 'c', x: 0, y: 2, w: 6, h: 1 },   // starts inside b's span → same shelf
-    { i: 'd', x: 0, y: 3, w: 6, h: 2 },   // starts where the shelf ends → new shelf
-    { i: 'e', x: 0, y: 12, w: 6, h: 1 },  // a gap is just a gap, not an empty row
-  ]);
-  const row = (id) => slots.find((s) => s.id === id).row;
-  assert.deepEqual([row('a'), row('b'), row('c')], [1, 1, 1]);
-  assert.equal(row('d'), 2);
-  assert.equal(row('e'), 3);
+test('print: a staggered mosaic can never put two cards in one cell', () => {
+  // The bug this replaces: `articlelist` (x0 y9) shares a column with `fileusage` (x0 y4 h5) and starts *inside*
+  // that card's vertical span, so a vertical-overlap shelf put both in one row and they printed on top of each
+  // other. Placing by the layout's own rows keeps them in different cells.
+  const slots = boardPrintGeometry(MET);
+  const at = (id) => slots.find((s) => s.id === id);
+  assert.deepEqual([at('fileusage').row, at('fileusage').rowSpan], [5, 5]);
+  assert.deepEqual([at('articlelist').row, at('articlelist').rowSpan], [10, 4]);
+  assert.notEqual(at('fileusage').row, at('articlelist').row);
+  assert.deepEqual([at('cimtopfiles').row, at('cimtopeditors').row, at('sparql').row], [5, 9, 15]);
+
+  // …and as a general invariant, because "no overlap" is the property that matters, not these numbers:
+  for (const a of slots) {
+    for (const b of slots) {
+      if (a.id >= b.id) continue;
+      const colsClash = a.col < b.col + b.span && b.col < a.col + a.span;
+      const rowsClash = a.row < b.row + b.rowSpan && b.row < a.row + a.rowSpan;
+      assert.ok(!(colsClash && rowsClash),
+        `${a.id} and ${b.id} share a cell: ${JSON.stringify(a)} / ${JSON.stringify(b)}`);
+    }
+  }
 });
 
 test('print: malformed and missing layout entries are survivable', () => {
@@ -88,7 +98,7 @@ test('print: malformed and missing layout entries are survivable', () => {
   ])) assert.ok(onPaper(slot), `${slot.id} escaped the grid`);
   // fractional values (zoom, rounding) round rather than throw
   assert.deepEqual(boardPrintGeometry([{ i: 'x', x: 2.4, y: 1.6, w: 3.6, h: 2 }])[0],
-    { id: 'x', col: 3, span: 4, row: 1 });
+    { id: 'x', col: 3, span: 4, row: 3, rowSpan: 2 });
 });
 
 test('print: a span never runs past the last column', () => {
@@ -102,4 +112,26 @@ test('print: a span never runs past the last column', () => {
   assert.deepEqual([at('wide').col, at('wide').span], [9, 4], '8 + 6 = 14 → trimmed to 4');
   assert.deepEqual([at('last').col, at('last').span], [12, 1]);
   assert.deepEqual([at('full').col, at('full').span], [1, 12]);
+});
+
+test('print: the three shapes are all reachable from the print call', async () => {
+  // The menu offers Board / Poster / Document, and `printTarget` is the only thing that arms a print. A `mode`
+  // that never reaches `armBoardPrint` is invisible in a unit test of the geometry and obvious in a browser:
+  // every choice printed "board" (found by driving the deployed menu, 2026-09-18). So: assert the wiring exists,
+  // and that each mode lands in the DOM the sheet keys off.
+  // `process.cwd()`, not `import.meta.url`: the test files are bundled before running, so a URL relative to this
+  // module points at the emitted bundle's directory, not the source tree (the trap documented in HANDOFF).
+  const src = readFileSync(join(process.cwd(), 'src/lib/print.js'), 'utf8');
+  assert.match(src, /export function armBoardPrint\(layout, mode = 'board'\)/);
+  assert.match(src, /export function printTarget\(widgetId, \{ layout, mode = 'board' \} = \{\}\)/);
+  assert.match(src, /armBoardPrint\(layout, mode\)/, 'printTarget must pass the mode on');
+  assert.match(src, /if \(mode === 'poster'\) applyPosterPage\(\)/);
+  // the sheet keys off data-print-mode, and the app re-arms board mode for ⌘P
+  const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8');
+  for (const mode of ['poster', 'document']) {
+    assert.match(css, new RegExp(`data-print-mode='${mode}'`), `the ${mode} shape has no styles`);
+  }
+  const app = readFileSync(join(process.cwd(), 'src/App.jsx'), 'utf8');
+  assert.match(app, /mode: 'poster'/);
+  assert.match(app, /mode: 'document'/);
 });

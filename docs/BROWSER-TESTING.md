@@ -46,6 +46,12 @@ announces its state is not empty, and an uncalibrated version of this check flag
 Both boards carrying one of every widget type are in the sweep for exactly this reason: `dashboard.json` (the
 full-catalog board) is the single best target in the repo.
 
+There is a **print pass** in every run (2026-09-18): `beforeprint` is dispatched to arm the board sheet, print media
+is emulated, and **two cards must never be drawn on top of each other**. It exists because the first version of that
+sheet grouped cards into "shelves" by overlapping vertical spans — right for a tidy board, wrong for a staggered
+mosaic, where the Met demo's page two printed four cards over each other. CSS grid cannot overlap items, so the
+placement now comes from the layout's own rows and columns; this is what says so, on every demo, in every engine.
+
 Two flags exist because the *host* changes what correct looks like: `--require-relay` (a host with `/api/proxy`
 should never need the "Wikipedia reduced this for phones" fallback), and the documented benign-console list, which
 explains each allowance rather than muting a category — including Toolforge's own `content-security-policy-report-only`

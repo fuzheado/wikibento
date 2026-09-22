@@ -2656,20 +2656,53 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
   body[data-print='board'] .react-grid-layout {
     display: grid !important;
     grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: auto;
     gap: 6mm;
   }
   body[data-print='board'] .react-grid-item {
     grid-column: var(--print-col, auto) / span var(--print-span, 12);
-    grid-row: var(--print-row, auto);
+    grid-row: var(--print-row, auto) / span var(--print-rowspan, 1);
     align-self: start;
     margin: 0 !important;
   }
   /* Paper has no scrollbars and no hover: show everything the screen scrolls or truncates, or the PDF is a
      document with holes in it. 33 selectors scroll internally on screen (galleries, rankings, excerpts,
-     timelines, the info panels) — un-clipping them all is the only honest way to print a board whole. */
-  body[data-print='board'] .grid-item * {
+     timelines, the info panels) — un-clipping them all is the only honest way to print a board whole. Not in
+     poster mode, though: a poster is the board AS DRAWN, so it keeps the screen's own clipping and shapes. */
+  body[data-print='board']:not([data-print-mode='poster']) .grid-item * {
     overflow: visible !important;
     max-height: none !important;
+  }
+
+  /* ── the two deliberate shapes (2026-09-18) ─────────────────────────────────────────────────────────
+     Poster: one page, sized to the board by applyPosterPage(); every card keeps its on-screen box.
+     Document: one card per row, full width, in (row, column) order — the shape to read rather than to
+     recognise, and the one whose page count is easiest to predict. */
+  body[data-print-mode='poster'] .react-grid-layout {
+    /* No gap: the poster page is sized from the board's box, which already contains the on-screen spacing —
+       adding 6mm between ~18 rows put 108mm of nothing on the page and spilled a one-page poster onto two. */
+    gap: 0 !important;
+  }
+  body[data-print-mode='poster'] .react-grid-item {
+    height: var(--print-hpx, auto) !important;
+  }
+  body[data-print-mode='poster'] .grid-item,
+  body[data-print-mode='poster'] .widget-body {
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+  body[data-print-mode='document'] .react-grid-layout {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6mm;
+  }
+    .board-print-menu { min-width: 20rem; }
+  .board-print-menu .widget-menu-item { display: block; text-align: left; }
+
+body[data-print-mode='document'] .react-grid-item {
+    order: var(--print-order, 0);
+    width: 100% !important;
+    margin: 0 !important;
   }
   /* the borrowed-board notice is a UI affordance, not board content */
   .board-notice, .boot-banner { display: none !important; }

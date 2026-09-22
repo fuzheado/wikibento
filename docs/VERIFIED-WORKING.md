@@ -11,6 +11,31 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A print you can choose the shape of (ISSUE-77, 2026-09-18, fifth pass)
+
+Andrew, on the Met demo (`?config=https://w.wiki/TT2g`): *"the second page … all types of things overlap incorrectly"*
+— and then the better question: *"is there a better way to export a PDF directly where you take more charge of the
+appearance? I could imagine a one large PDF poster of what the board shows, or paginated but more smartly."*
+
+- 🐛 **The overlap was mine, and the cause is worth naming.** Reproducing the board's grid, I grouped cards into
+  *shelves* by overlapping vertical spans. That is right for a tidy board and wrong for a **staggered mosaic**: on
+  the Met board a tall card's column is re-used by the card below it, so five cards landed in one shelf, two pairs
+  shared a column, and four printed on top of each other. Placement now comes from the layout's own `x`/`w`/`y`/`h`
+  — the grid the board is drawn on — which makes an overlap impossible rather than unlikely (13 cards, measured
+  against production: **0 overlaps**).
+- ✅ **Three shapes, in the 🖨 menu** — because a dashboard is not a document: **Board** (the grid you see),
+  **Poster** (one page *sized to the board*, so the dialogue's scale-to-fit makes it any paper you like), and
+  **Document** (one card per row in reading order, for reading rather than recognising). Measured on the Met board:
+  11 / **1** / 21 pages; on the Anne Frank board: 6 / **1** / 4. A poster is one page on both.
+- 🐛 **Two bugs only visible by looking at the output.** The poster was two pages until the fixed heights and the
+  screen-derived page size were reconciled (script cannot measure the printed layout — `beforeprint` runs in screen
+  media — so the page carries a deliberate allowance). And the Met gallery printed as **empty black tiles**: cards
+  below the fold use `loading="lazy"`, so their images had never been fetched. Arming a print now flips them to eager
+  (verified: 139/139 loaded).
+- ✅ **And the check that keeps it honest**, in the sweep: a print pass arms the sheet, emulates print media, and
+  fails any run where two cards touch. That is the class of bug this whole thread was about, now caught on every
+  demo board in every engine rather than on the board someone happened to print.
+
 ## The printed board now looks like the board (ISSUE-77, 2026-09-18, fourth pass)
 
 Andrew, printing `?config=/anne-frank-mlk-demo.json`: *"the layout of the PDF … doesn't seem close to what the

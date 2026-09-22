@@ -205,6 +205,48 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     });
     await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(DEMO_WAIT);
+    /* ── the print pass (2026-09-18) ──────────────────────────────────────────────────────────────────────
+     * The board sheet is armed by `beforeprint`, so dispatching it and switching to print media shows exactly
+     * what a PDF would get. What is checked is the invariant the first version of that sheet broke: **two cards
+     * must never be drawn on top of each other**. It grouped cards into "shelves" by overlapping vertical spans,
+     * which is right for a tidy board and wrong for a staggered mosaic — on the Met demo five cards landed in one
+     * shelf, two pairs shared a column, and page two printed four cards over each other. CSS grid cannot overlap
+     * items, so the placement now comes from the layout's own rows; this is the check that says so, on every demo,
+     * in every engine. */
+    let printOverlaps = [];
+    let printCards = 0;
+    try {
+      await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
+      await page.emulateMedia({ media: 'print' });
+      await page.waitForTimeout(300);
+      const print = await page.evaluate(() => {
+        const boxes = [...document.querySelectorAll('.react-grid-item')].map((el) => {
+          const r = el.getBoundingClientRect();
+          const id = el.getAttribute('data-widget-id') || el.querySelector('[data-widget-id]')?.getAttribute('data-widget-id') || '?';
+          return { id, x: r.x, y: r.y, w: r.width, h: r.height };
+        });
+        const hits = [];
+        for (let i = 0; i < boxes.length; i += 1) {
+          for (let j = i + 1; j < boxes.length; j += 1) {
+            const a = boxes[i]; const c = boxes[j];
+            if (a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h) hits.push(`${a.id}↔${c.id}`);
+          }
+        }
+        return { hits, count: boxes.length, armed: document.body.getAttribute('data-print') };
+      });
+      printOverlaps = print.armed === 'board' ? print.hits : ['print sheet did not arm'];
+      printCards = print.count;
+    } catch (e) {
+      printOverlaps = ['print pass failed: ' + String(e.message).slice(0, 60)];
+    } finally {
+      await page.emulateMedia({ media: null });
+      await page.evaluate(() => document.body.removeAttribute('data-print'));
+    }
+
+    // …the print pass's verdict travels on the row (the reporter lives in the worker, not in here)
+    row.printOverlaps = printOverlaps;
+    row.printCards = printCards;
+
     const seen = await page.evaluate(() => {
       const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [] };
       const frames = [...document.querySelectorAll('.widget-frame')];
@@ -309,6 +351,7 @@ if (DEMOS) {
       if (row.errorFrames.length) problems.push(`error frames: ${row.errorFrames.join(', ')}`);
       if (row.placeholders.length) problems.push(`shows no value: ${row.placeholders.join(', ')}`);
       if (row.emptyRows.length) problems.push(`empty body: ${[...new Set(row.emptyRows)].join(', ')}`);
+      if ((row.printOverlaps || []).length) problems.push(`print overlap: ${row.printOverlaps.slice(0, 4).join(', ')}`);
       if (row.consoleErrors) problems.push(`${row.consoleErrors} console error(s)`);
       if (REQUIRE_RELAY && row.degraded.length) problems.push(`no-relay fallback: ${row.degraded.join(', ')}`);
       row.status = problems.length ? '❌' : '✅';
