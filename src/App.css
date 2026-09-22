@@ -2691,6 +2691,15 @@ body.panel-dragging { cursor: grabbing; user-select: none; }
     height: 100% !important;
     overflow: hidden !important;
   }
+  /* ── board and document: scale to the paper, never reflow (2026-09-18) ───────────────────────────────
+     `zoom` shrinks the board to A4's content width *including its layout size*, so pagination stays correct and, more
+     importantly, every card keeps the width it was drawn at. That is what stops a gallery's fixed tile grid or a wide
+     table from overflowing a narrower print column and painting over its neighbour — the reported overlap in both of
+     these modes. `transform: scale()` cannot do this: it leaves the layout size alone, so the pages would be cut in
+     the wrong places. */
+  body[data-print='board']:not([data-print-mode='poster']) .react-grid-layout {
+    zoom: var(--print-zoom, 1);
+  }
   body[data-print-mode='document'] .react-grid-layout {
     display: flex !important;
     flex-direction: column;
@@ -2703,6 +2712,12 @@ body[data-print-mode='document'] .react-grid-item {
     order: var(--print-order, 0);
     width: 100% !important;
     margin: 0 !important;
+    /* A DOCUMENT FLOWS. `break-inside: avoid` (right for the board, where a card is a picture) pushed a card taller
+       than the remaining space onto a fresh page and left the rest of the previous one empty — measured on the Met
+       board, where a page held a card header, one line of text and nothing else. Letting a tall card split is what a
+       reader expects from a document, and it removes the near-empty pages. */
+    break-inside: auto;
+    page-break-inside: auto;
   }
   /* the borrowed-board notice is a UI affordance, not board content */
   .board-notice, .boot-banner { display: none !important; }
@@ -2725,6 +2740,22 @@ body[data-print-mode='document'] .react-grid-item {
   body[data-print='widget'] .tl-scroll { overflow: visible !important; }
   body[data-print='widget'] .tl-plot-inner { width: 100% !important; }
 }
+
+/* The print preparation note: visible only while a print is being prepared, and only on screen. */
+.board-print-progress {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  font-size: 13px;
+}
+@media print { .board-print-progress { display: none !important; } }
 
 /* ── The widget export menu (ISSUE-77) ──────────────────────────────────────────
    Four formats behind one ⤓ button. The menu is absolutely positioned inside the card and overlays

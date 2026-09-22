@@ -142,6 +142,60 @@ function applyPosterPage() {
  * listener in App.jsx, which means ⌘P now prints the board correctly too (before this, only the toolbar button
  * set `data-print`, so a browser-menu print got react-grid-layout's transforms and printed as a clipped stack).
  */
+const A4_CONTENT_MM = 210 - 16;   // A4 portrait, minus the 8mm margins the sheet asks for
+
+/** Is anything still on its way? Cards in a loading state, or images not yet decoded. */
+function printPendingContent() {
+  const loading = document.querySelectorAll('.widget-loading').length;
+  const images = [...document.querySelectorAll('img')];
+  const missing = images.filter((img) => !img.complete || img.naturalWidth === 0).length;
+  return { loading, images: images.length, missing };
+}
+
+/** A small, honest progress note while a print is being prepared — this can take seconds on a gallery-heavy board. */
+function showPrintProgress(text) {
+  let el = document.getElementById('wikibento-print-progress');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'wikibento-print-progress';
+    el.className = 'board-print-progress';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+}
+
+function hidePrintProgress() {
+  document.getElementById('wikibento-print-progress')?.remove();
+}
+
+/**
+ * Wait until the board has settled, then run `done` (2026-09-18, second pass).
+ *
+ * Why this exists: printing a *live* dashboard is a race. Stats APIs and galleries resolve over seconds, and the
+ * browser takes the sheet whenever the dialogue is ready — so the Met poster came out with a grid of images that
+ * simply had not arrived, and the geometry was computed from a half-loaded board. Arming flips `loading="lazy"`
+ * images to eager; this then waits for every image to decode and for no card to be in a loading state, with a
+ * timeout so a slow API cannot hold the print dialogue hostage. The note tells the reader what it is waiting for —
+ * silently stalling a print would be worse than a missing image.
+ */
+export function preparePrint({ timeoutMs = 20000, onDone } = {}) {
+  const started = Date.now();
+  const tick = () => {
+    const { loading, images, missing } = printPendingContent();
+    const elapsed = Date.now() - started;
+    if ((loading === 0 && missing === 0) || elapsed > timeoutMs) {
+      hidePrintProgress();
+      onDone();
+      return;
+    }
+    showPrintProgress(loading > 0
+      ? `Preparing the print — ${loading} card${loading === 1 ? '' : 's'} still loading…`
+      : `Preparing the print — ${images - missing} of ${images} images…`);
+    setTimeout(tick, 250);
+  };
+  tick();
+}
+
 export function armBoardPrint(layout, mode = 'board') {
   document.body.setAttribute('data-print', 'board');
   document.body.setAttribute('data-print-mode', mode);
@@ -151,7 +205,33 @@ export function armBoardPrint(layout, mode = 'board') {
   // not scrolled to were never fetched and print as nothing. Flipping them to eager on arm gives the print pass
   // (and the dialogue's own preview, which takes a moment) the images it needs.
   for (const img of document.querySelectorAll('img[loading="lazy"]')) img.loading = 'eager';
-  if (mode === 'poster') applyPosterPage();
+  if (mode === 'poster') {
+    applyPosterPage();
+  } else {
+    applyPrintZoom();
+  }
+}
+
+/**
+ * Board and document modes: **scale, never reflow** (2026-09-18, second pass).
+ *
+ * They used to let the paper's width decide the cards' width. Everything inside a card that was measured for the
+ * screen — a gallery's fixed tile grid, a wide table, a chart's absolute labels — then overflowed the narrower
+ * column and painted over its neighbour: the reported "page two has all types of things overlapping", and the
+ * reason "text overlaps" in both the board and document views. A dashboard is a *drawing*, not a document, so on
+ * paper it should be shrunk rather than re-laid-out.
+ *
+ * `zoom` does exactly that — unlike `transform: scale()`, it changes the layout size, so the browser still
+ * paginates correctly. The factor takes the board's own width to A4's content width; the page size is left to the
+ * dialogue, so any paper works and a wider one simply leaves margin. Text stays vector and selectable.
+ */
+function applyPrintZoom() {
+  const grid = document.querySelector('.react-grid-layout') || document.querySelector('.dashboard-container');
+  if (!grid) return;
+  const boardPx = grid.getBoundingClientRect().width;
+  if (!boardPx) return;
+  const k = Math.min(1, (A4_CONTENT_MM * PX_PER_MM) / boardPx);
+  grid.style.setProperty('--print-zoom', String(k));
 }
 
 /** Back to the screen. Safe to call when nothing is armed. */
@@ -159,6 +239,10 @@ export function disarmPrint() {
   document.body.removeAttribute('data-print');
   document.body.removeAttribute('data-print-mode');
   document.getElementById(PAGE_STYLE_ID)?.remove();
+  hidePrintProgress();
+  for (const grid of document.querySelectorAll('.react-grid-layout, .dashboard-container')) {
+    grid.style.removeProperty('--print-zoom');
+  }
   for (const el of document.querySelectorAll('.print-target')) el.classList.remove('print-target');
   clearBoardPrintGeometry();
 }
@@ -179,10 +263,13 @@ export function printTarget(widgetId, { layout, mode = 'board' } = {}) {
   if (widgetId) {
     document.body.setAttribute('data-print', 'widget');
     el.classList.add('print-target');
-  } else {
-    armBoardPrint(layout, mode);
+    window.print();
+    return;
   }
-  window.print();
+  // Arm first (so lazy images start loading and the reader sees the shape), then wait for the board to settle, then
+  // take the sheet. Waiting is the whole point: `window.print()` snapshots whatever is on screen at that moment.
+  armBoardPrint(layout, mode);
+  preparePrint({ onDone: () => window.print() });
 }
 
 // Disarm once, for every print path (the toolbar, the widget menu, ⌘P) — registered at module scope so a print

@@ -83,6 +83,38 @@ so **CSS grid cannot overlap two cards** — the invariant the sweep now checks 
 | 🖼 **Poster** | **one page, sized to the board** (`@page size` from the board's box) — the whole thing at its own aspect, cards clipped exactly as on screen; the dialogue's "scale to fit" turns it into whatever paper you have | **1 page** | **1 page** |
 | 📄 **Document** | one card per row, full width, in (row, column) order — the shape to *read*, with the most predictable page count | 21 pages | 4 pages |
 
+### Printing a live dashboard is a race, and a reflow is the wrong answer (2026-09-18, third pass)
+
+Andrew, whose Met-board PDFs still showed overlaps in Board and Document and missing gallery images in Poster:
+*"is there an issue with some images not loading, given the timing … do you have any plan? … can we make the text run
+better and not overlap?"* Two mechanisms, both now in place.
+
+**1. Wait for the board to settle.** `window.print()` snapshots whatever is on screen at that instant; stats APIs and
+galleries resolve over seconds, so the sheet could be taken from a half-loaded board — the poster's grid of images
+that had simply not arrived, and geometry computed from content that was still growing. `preparePrint()` now waits for
+every image to decode and for no card to be in a loading state (20s timeout, a visible *"Preparing the print — 42 of
+139 images…"* note, because silently stalling a print would be worse than a missing image), and only then asks for
+the sheet.
+
+**2. Scale to the paper; never reflow it.** Board and Document used to let the paper's width decide the cards' width,
+and everything measured for the screen — a gallery's fixed tile grid, a wide table, a chart's absolute labels —
+overflowed the narrower column and painted over its neighbour. That is the reported overlap, and it is *horizontal*,
+which is why two card boxes never touched and the first print check reported "0 overlaps" while the PDF had four
+cards on top of each other. A dashboard is a drawing, not a document: on paper it should be shrunk, not re-laid-out.
+`zoom: var(--print-zoom)` takes the board's own width to A4's content width — `zoom`, not `transform: scale()`, because
+it changes the layout size so pagination stays correct — and the page size is left to the dialogue, so any paper
+works.
+
+**3. In Document mode, let a document flow.** `break-inside: avoid` is right for the board (a card is a picture) and
+wrong for a document: a tall card jumped to a fresh page and left the rest of the previous one empty — measured, a
+page holding a card header, one line of text and nothing else. Cards may split there now, which took the Met board
+from 21 pages to 11 to **8**. The trade-off, stated plainly: a tall chart can be cut by a page boundary.
+
+**And the check that let this through is fixed too.** The sweep's print pass measured 300ms after arming, when every
+card was short and nothing collided; it now waits for the same settled state a real print gets, and it checks two
+things — that no two cards touch, and that nothing inside a card (`.gallery-grid`, `.ranking-rows`, `table`,
+`.glam-card`, `.excerpt-card`) paints outside its own box. A print check that does not wait is a check that lies.
+
 Two things the poster taught, both only visible by looking at the output: card heights come from the screen, so the
 page needs an **allowance** — script cannot measure the printed layout, because `beforeprint` runs while the page is
 still in screen media (a poster page a little taller than its content is still one page, and scale-to-fit handles the

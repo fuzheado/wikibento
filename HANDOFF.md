@@ -27,13 +27,13 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CjMygZ-T.js` (+ `index-LCnQkRks.css`) |
-| deployed | 2026-09-18 — **a print you choose the shape of** (ISSUE-77): the 🖨 menu offers **Board** (the grid you see), **Poster** (one page, sized to the board) and **Document** (a card per row, to read), with the staggered-mosaic overlap fixed and lazy images loaded before the sheet is taken · before that: **the printed board matched the board** · **a Commons-gallery widget** (ISSUE-103) · **Wiki Stats reads the wiki itself** |
+| production bundle | `index-C1tSoMlV.js` (+ `index-D34qWrSa.css`) |
+| deployed | 2026-09-18 — **a print of a live board, done properly** (ISSUE-77): the sheet waits for the board to settle (images and cards) instead of racing it, Board and Document **scale** to the paper rather than reflowing it (no more content painting over its neighbour), Document flows instead of jumping (21 → 8 pages), and the print check waits like a real print does · before that: **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 43 widget types — 34 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 44 widgets covering all 43 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; all three print shapes are verified live by driving the deployed menu (Met demo: Board 11 pages with 0 overlaps, Poster **1 page**, Document 21; Anne Frank: 6 / **1** / 4) |
+| pending deploy | none — production serves this branch's tip; the print shapes are verified live and by looking at the generated PDFs (Met demo: Board 5 pages, Poster **1 page**, Document 8; every image loaded, no overlap after settling) |
 | newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
@@ -350,6 +350,13 @@ and a stream pipeline that works in Node is not evidence about a browser.
     every stacked card showed only its 58px header. Reproduce it in one line of Playwright (an iPhone 14 context)
     and check `.widget-body`'s `scrollHeight`, not its text: the data was all there, invisible. Fixed with
     `.mobile-stack .widget-body { flex: 0 0 auto; min-height: auto }` — and by making the demo sweep assert it.
+
+33. **A print check that does not wait is a check that lies.** The sweep's print pass armed the sheet and measured
+    300ms later: on the Met board the images had not arrived, every card was short, nothing collided — "0 overlaps"
+    — while the real PDF had four cards printed over each other. `window.print()` snapshots a *settled* board, so a
+    check for it has to measure a settled one: wait for every image to decode and for no card to be loading, then
+    measure. The same lesson in the other direction is what makes the export work at all now: the app holds the sheet
+    (`preparePrint`) until the board has settled, instead of printing whatever happened to be on screen.
 
 32. **Two cards can be in the same *row* and still not be in the same *cell*.** Grouping a board's cards into
     "shelves" by overlapping vertical spans is a plausible way to paginate it, and it is wrong the moment a layout is

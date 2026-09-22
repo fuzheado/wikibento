@@ -218,7 +218,16 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     try {
       await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
       await page.emulateMedia({ media: 'print' });
-      await page.waitForTimeout(300);
+      /* WAIT FOR THE BOARD TO SETTLE. The first version of this pass measured 300ms after arming and reported
+       * "0 overlaps" on a board whose real PDF had four cards printed over each other: at that moment the images
+       * had not arrived, so every card was short and nothing collided. A print check that does not wait is a check
+       * that lies — the sheet is taken from a settled board, so it has to be measured from one. */
+      await page.waitForFunction(() => {
+        const loading = document.querySelectorAll('.widget-loading').length;
+        const imgs = [...document.querySelectorAll('img')];
+        return loading === 0 && imgs.every((i) => i.complete);
+      }, null, { timeout: 20000 }).catch(() => { /* a slow API is reported through the overlap check, not here */ });
+      await page.waitForTimeout(400);
       const print = await page.evaluate(() => {
         const boxes = [...document.querySelectorAll('.react-grid-item')].map((el) => {
           const r = el.getBoundingClientRect();
@@ -232,9 +241,27 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
             if (a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h) hits.push(`${a.id}↔${c.id}`);
           }
         }
-        return { hits, count: boxes.length, armed: document.body.getAttribute('data-print') };
+        // …and the subtler version of the same bug: content that paints OUTSIDE its own card, over the neighbour.
+        // A gallery drawn as a fixed grid of tiles, or a wide table, overflows a narrower print column without any
+        // two card boxes touching — which is exactly what the reported Met board and document PDFs showed.
+        const spill = [];
+        for (const el of document.querySelectorAll('.react-grid-item')) {
+          const card = el.getBoundingClientRect();
+          const id = el.getAttribute('data-widget-id') || el.querySelector('[data-widget-id]')?.getAttribute('data-widget-id') || '?';
+          for (const child of el.querySelectorAll('.gallery-grid, .ranking-rows, table, .glam-card, .excerpt-card')) {
+            const r = child.getBoundingClientRect();
+            if (r.width === 0) continue;
+            if (r.right > card.right + 2 || r.left < card.left - 2) {
+              spill.push(`${id} (${Math.round(r.right - card.right)}px)`);
+              break;
+            }
+          }
+        }
+        return { hits, spill, count: boxes.length, armed: document.body.getAttribute('data-print') };
       });
-      printOverlaps = print.armed === 'board' ? print.hits : ['print sheet did not arm'];
+      printOverlaps = print.armed === 'board'
+        ? [...print.hits, ...(print.spill || []).map((s) => `spills: ${s}`)]
+        : ['print sheet did not arm'];
       printCards = print.count;
     } catch (e) {
       printOverlaps = ['print pass failed: ' + String(e.message).slice(0, 60)];

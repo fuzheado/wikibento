@@ -125,12 +125,20 @@ test('print: the three shapes are all reachable from the print call', async () =
   assert.match(src, /export function armBoardPrint\(layout, mode = 'board'\)/);
   assert.match(src, /export function printTarget\(widgetId, \{ layout, mode = 'board' \} = \{\}\)/);
   assert.match(src, /armBoardPrint\(layout, mode\)/, 'printTarget must pass the mode on');
-  assert.match(src, /if \(mode === 'poster'\) applyPosterPage\(\)/);
+  assert.match(src, /if \(mode === 'poster'\) \{/, 'the mode branches on the poster');
+  // …and the two lessons of 2026-09-18's second pass, both of which only show up in a real PDF:
+  assert.match(src, /preparePrint\(\{ onDone: \(\) => window\.print\(\) \}\)/,
+    'a print must wait for the board to settle (images and cards) before the sheet is taken');
+  assert.match(src, /function preparePrint/, 'the wait is implemented');
+  assert.match(src, /--print-zoom/, 'board/document scale to the paper instead of reflowing');
   // the sheet keys off data-print-mode, and the app re-arms board mode for ⌘P
   const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8');
   for (const mode of ['poster', 'document']) {
     assert.match(css, new RegExp(`data-print-mode='${mode}'`), `the ${mode} shape has no styles`);
   }
+  // (declared above the `app` read, and used only here: referencing it earlier is a TDZ error, which this test
+  // happily demonstrated on its first run)
+  assert.match(css, /zoom: var\(--print-zoom, 1\)/, 'the CSS applies the zoom');
   const app = readFileSync(join(process.cwd(), 'src/App.jsx'), 'utf8');
   assert.match(app, /mode: 'poster'/);
   assert.match(app, /mode: 'document'/);

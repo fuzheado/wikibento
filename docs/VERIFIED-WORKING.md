@@ -11,6 +11,30 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `
 
 Back to the [README](../README.md).
 
+## A print of a live board, done properly (ISSUE-77, 2026-09-18, sixth pass)
+
+The follow-up from Andrew, with three of his own PDFs: images missing from the poster, overlaps in Board and
+Document, and *"can we make the text run better and not overlap?"*
+
+- 🐛 **My overlap check was measuring the wrong moment.** It ran 300ms after arming a print, when images had not
+  arrived, every card was short, and nothing collided — so it reported "0 overlaps" for a board whose real PDF had
+  four cards printed over each other. It now waits for the settled state a real print gets (images decoded, no card
+  loading) and checks the subtler failure too: anything inside a card that **paints outside its own box**. A print
+  check that does not wait is a check that lies.
+- 🐛 **The overlap was horizontal, and a reflow was the wrong answer.** Board and Document let the paper's width
+  decide the cards' width, so a gallery's fixed tile grid, a wide table or a chart's absolute labels spilled into the
+  neighbouring column — visible in the reported PDFs as paintings printed over a CIM table. Both modes now **`zoom`**
+  the board to A4's content width: the same drawing, smaller, with the layout size scaled too so pagination stays
+  correct. Verified by generating the PDFs: the Met board's page two is clean, thumbnails inside their column.
+- ✅ **The timing question, answered with a wait.** `preparePrint()` holds the sheet until every image has decoded and
+  no card is loading (20s cap), showing *"Preparing the print — 42 of 139 images…"*. That is what stops the poster
+  from capturing a grid of images that had not arrived.
+- ✅ **Document mode flows** rather than jumping: `break-inside: avoid` left near-empty pages behind a tall card, so
+  cards may split there now — the Met board went 21 → 11 → **8 pages**. The trade-off, stated rather than hidden: a
+  tall chart can be cut by a page boundary.
+- Measured after the fix, on the Met board: **Board 5 pages · Poster 1 page · Document 8 pages**, every image loaded,
+  no overlap in either mode.
+
 ## A print you can choose the shape of (ISSUE-77, 2026-09-18, fifth pass)
 
 Andrew, on the Met demo (`?config=https://w.wiki/TT2g`): *"the second page … all types of things overlap incorrectly"*
