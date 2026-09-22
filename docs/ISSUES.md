@@ -3458,6 +3458,14 @@ to anything we add.
 
 ## ISSUE-77 · Export: save a widget's data, or a widget/board as a document
 
+> **Revised 2026-09-18 (print layout) — final state:** the 🖨 button is a menu of three shapes — **Board** (the
+> board's own grid), **Poster** (one page, sized to the board) and **Document** (a card per row, at its own width) —
+> the sheet **waits for the board to settle** before it is taken, and Board/Document **scale to the paper instead of
+> reflowing it**. Met demo: Board 5 pages · Poster 1 · Document 7, every image loaded, no overlap and no reflow.
+> Four rounds of fixes each hit the same class of mistake in a different place (inferred shelves, then a reflowed
+> sheet, then reflowed cards); the invariants now live in the sweep's print pass, and the history is in
+> `docs/VERIFIED-WORKING.md`.
+>
 > **Revised 2026-09-18 (print layout).** The board's print sheet used to make every card full width in DOM order;
 > it now reproduces the on-screen grid — columns, spans and shelf rows derived from the live layout — so a row of
 > cards stays a row and the PDF reads in the same order as the board (the Anne Frank / MLK demo: seven pages of

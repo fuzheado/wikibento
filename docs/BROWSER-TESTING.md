@@ -46,11 +46,22 @@ announces its state is not empty, and an uncalibrated version of this check flag
 Both boards carrying one of every widget type are in the sweep for exactly this reason: `dashboard.json` (the
 full-catalog board) is the single best target in the repo.
 
-There is a **print pass** in every run (2026-09-18): `beforeprint` is dispatched to arm the board sheet, print media
-is emulated, and **two cards must never be drawn on top of each other**. It exists because the first version of that
-sheet grouped cards into "shelves" by overlapping vertical spans — right for a tidy board, wrong for a staggered
-mosaic, where the Met demo's page two printed four cards over each other. CSS grid cannot overlap items, so the
-placement now comes from the layout's own rows and columns; this is what says so, on every demo, in every engine.
+There is a **print pass** in every run (2026-09-18): `beforeprint` is dispatched to arm the board sheet, the board is
+allowed to **settle** (every image decoded, no card loading), print media is emulated, and then three things are
+asserted on every demo in every engine:
+
+1. **no two cards are drawn on top of each other** — the sheet's first version grouped cards into "shelves" by
+   overlapping vertical spans, right for a tidy board and wrong for a staggered mosaic (the Met demo's page two
+   printed four cards over each other);
+2. **nothing inside a card paints outside its box** (`.gallery-grid`, `.ranking-rows`, `table`, `.glam-card`,
+   `.excerpt-card`) — the horizontal version of the same bug, where content sized for the screen overflowed a narrower
+   print column;
+3. **every card keeps its share of the board's width** between screen and print — the mode-agnostic form of "the print
+   reflowed something", which caught a chart stretched to four times its width and an image overflowing its card in
+   Document mode.
+
+The settle step is not a nicety: the first version of this pass measured 300 ms after arming, when every card was
+still short, and reported "0 overlaps" for a board whose PDF had four cards printed over each other.
 
 Two flags exist because the *host* changes what correct looks like: `--require-relay` (a host with `/api/proxy`
 should never need the "Wikipedia reduced this for phones" fallback), and the documented benign-console list, which

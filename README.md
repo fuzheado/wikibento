@@ -171,7 +171,11 @@ All 34 data-driven widget types render live data in the browser; the 9 static on
   (`iiif.archive.org`, `upload.wikimedia.org`, `thumb.wikimedia.org`), which is how a book or document page
   exports as a real PNG. PNG of an *arbitrary* HTML/CSS card is deliberately not offered —
   [docs/EXPORT.md](docs/EXPORT.md) says why, and what to do instead.
-- **🖨 Print the whole board** — from the toolbar: one card per page, chrome removed, freshness footers kept.
+- **🖨 Print or save the board as PDF** — three shapes, because a dashboard is not a document: **Board** (the grid you
+  see, row for row), **Poster** (one page, sized to the board) and **Document** (a card per row, to read). The sheet
+  waits for stats and images to arrive before it is taken, and it scales the board to the paper rather than reflowing
+  it, so nothing overlaps and nothing is cropped. Chrome is removed; each card's ⏱ freshness line is kept
+  ([docs/EXPORT.md](docs/EXPORT.md)).
 
 ### Reliability
 

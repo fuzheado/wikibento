@@ -1,7 +1,7 @@
 # Getting a board — or one widget — out of WikiBento (ISSUE-77)
 
 **What shipped 2026-09-14:** one **⤓ Export** menu on every widget with four items — **PDF, CSV, PNG,
-SVG** — and **🖨 Print / save as PDF** on the board toolbar for the whole board.
+SVG** — and **🖨 Print / save as PDF** on the board toolbar — three shapes for the whole board.
 
 ![The export menu](screenshots/wikibento-2026-09-14-export-menu.png)
 
@@ -48,96 +48,71 @@ column an aligned comparison is really about.
 
 ## PDF: the 🖨 button
 
-The browser's print engine is the highest-fidelity PDF path that exists, and it is free: real vector text,
-selectable and searchable, correct page geometry. Two print modes, both driven by `data-print` on `<body>`:
+The browser's print engine is the highest-fidelity PDF path that exists, and it is free: real vector text, selectable
+and searchable, correct page geometry, no library. The sheet is driven by two attributes on `<body>`:
 
-- **`data-print="widget"`** — every other card and all editing chrome is hidden; the card fills the page.
-- **`data-print="board"`** — the whole board, reproducing the on-screen grid: the same columns, the same rows
-  side by side, in reading order.
+- **`data-print="widget"`** — one card, every other card and all editing chrome hidden.
+- **`data-print="board"`** — the whole board, in one of three shapes (`data-print-mode`).
 
-**The board sheet reproduces the grid (revised 2026-09-18).** It used to make every card full width and stack it in
-DOM order, which is neither the board's arrangement nor its reading order. Measured on `anne-frank-mlk-demo`, that
-turned a symmetric row (`excerpt w4 · views w2 · views w2 · excerpt w4`) into four stacked pages, split two
-side-by-side galleries across pages, and printed the note that *opens* the board fifth. Now `boardPrintGeometry`
-(`src/lib/print.js`) derives a slot per card from the live layout — column, span, and a **shelf** row, where items
-whose vertical spans overlap share a line — and the sheet lays out the same 12-column grid on paper. The same board
-prints in the same order, as two pages instead of seven, and a card authored outside the grid is trimmed to fit
-rather than pushed off the paper.
+It is armed by a `beforeprint` listener, so **⌘P and the browser's Print… menu behave like the 🖨 button**. (Before
+that, only the button set the attributes, and a browser-menu print got react-grid-layout's transforms as a clipped
+stack.) Disarming is driven by `afterprint`; there is no timer, because one that fires mid-print is worse than none.
 
-Two related fixes came with it: the sheet is armed for **any** print, not just the 🖨 button (a `beforeprint`
-listener, so ⌘P and the browser's own Print… menu get the board instead of react-grid-layout's clipped transforms),
-and the three-second disarm timer is **gone** — it fired mid-print on a slow job, clearing the slots and producing
-a PDF with the layout this all exists to fix. `afterprint` plus a re-arming `beforeprint` needs no timer.
+### Three shapes, because a dashboard is not a document
 
-### Three shapes, because a dashboard is not a document (2026-09-18, second pass)
+| in the menu | what you get | Met demo |
+|---|---|---|
+| 🧩 **Board** | the board's own grid — the same columns, the same rows side by side, cards never split | 5 pages |
+| 🖼 **Poster** | **one page, sized to the board** (`@page size` from the board's box): the whole thing at its own aspect, and the dialogue's scale-to-fit turns it into whatever paper you have | **1 page** |
+| 📄 **Document** | one card per row, in (row, column) order, each at its own width — the shape to *read*, with the most predictable page count | 7 pages |
 
-The 🖨 toolbar button is a menu. Reproducing the board's grid fixed the flow; the *first* attempt at it grouped cards
-into "shelves" by overlapping vertical spans, which is right for a tidy board and **wrong for a staggered mosaic** —
-on the Met demo a tall card's column is re-used by the card below it, five cards landed in one shelf, two pairs shared
-a column, and page two printed four cards over each other. Placement now comes from the layout's own `x`/`w`/`y`/`h`,
-so **CSS grid cannot overlap two cards** — the invariant the sweep now checks on every demo in every engine.
+### Two rules make it work
 
-| in the menu | what you get | Met demo | Anne Frank demo |
-|---|---|---|---|
-| 🧩 **Board** | the board's own grid: same rows, same columns, cards never split | 11 pages, no overlap | 6 pages |
-| 🖼 **Poster** | **one page, sized to the board** (`@page size` from the board's box) — the whole thing at its own aspect, cards clipped exactly as on screen; the dialogue's "scale to fit" turns it into whatever paper you have | **1 page** | **1 page** |
-| 📄 **Document** | one card per row, full width, in (row, column) order — the shape to *read*, with the most predictable page count | 21 pages | 4 pages |
+**1. Wait for the board to settle.** `window.print()` snapshots whatever is on screen at that instant, and stats APIs
+and galleries resolve over seconds — so a sheet taken immediately can be half a board. `preparePrint()`
+(`src/lib/print.js`) holds it until every image has decoded and no card is in a loading state (20 s cap), showing
+*"Preparing the print — 42 of 139 images…"*. Silently stalling a print would be worse than a missing image, so the
+wait is visible. Arming also flips `loading="lazy"` images to eager: cards below the fold would otherwise print as
+empty tiles (that is not hypothetical — the Met gallery did exactly that).
 
-### Printing a live dashboard is a race, and a reflow is the wrong answer (2026-09-18, third pass)
+**2. Scale to the paper; never reflow it.** A dashboard is a *drawing*. Everything inside a card was measured for the
+width it has on screen — a gallery's tile grid, a table, a chart's labels — so a print column that is narrower (or
+wider) makes content overflow and paint over its neighbour, or stretch to four times its size. Board and Document
+therefore `zoom` the sheet to A4's content width (`--print-zoom`; `zoom` rather than `transform: scale()` because it
+changes the layout size, so pagination stays correct), and every card keeps the width its **grid span** gives it
+(`calc((var(--print-span) / 12) * 100%)`. Document mode adds one thing — cards may **split across pages**, because a
+document flows, where a board card is a picture that must stay whole.
 
-Andrew, whose Met-board PDFs still showed overlaps in Board and Document and missing gallery images in Poster:
-*"is there an issue with some images not loading, given the timing … do you have any plan? … can we make the text run
-better and not overlap?"* Two mechanisms, both now in place.
+### What the sheet promises, and what the tests check
 
-**1. Wait for the board to settle.** `window.print()` snapshots whatever is on screen at that instant; stats APIs and
-galleries resolve over seconds, so the sheet could be taken from a half-loaded board — the poster's grid of images
-that had simply not arrived, and geometry computed from content that was still growing. `preparePrint()` now waits for
-every image to decode and for no card to be in a loading state (20s timeout, a visible *"Preparing the print — 42 of
-139 images…"* note, because silently stalling a print would be worse than a missing image), and only then asks for
-the sheet.
+`boardPrintGeometry(layout)` derives each card's slot from the live layout — column, span, row, row-span — so DOM
+order is irrelevant (which is also what makes it correct for a board loaded from a URL) and an overlap is impossible
+rather than unlikely. Placement comes from the grid, never from a reading order inferred from it: the first version
+grouped cards into *shelves* by overlapping vertical spans, which is right for a tidy board and wrong for a staggered
+mosaic, where a tall card's column is re-used by the card below it.
 
-**2. Scale to the paper; never reflow it.** Board and Document used to let the paper's width decide the cards' width,
-and everything measured for the screen — a gallery's fixed tile grid, a wide table, a chart's absolute labels —
-overflowed the narrower column and painted over its neighbour. That is the reported overlap, and it is *horizontal*,
-which is why two card boxes never touched and the first print check reported "0 overlaps" while the PDF had four
-cards on top of each other. A dashboard is a drawing, not a document: on paper it should be shrunk, not re-laid-out.
-`zoom: var(--print-zoom)` takes the board's own width to A4's content width — `zoom`, not `transform: scale()`, because
-it changes the layout size so pagination stays correct — and the page size is left to the dialogue, so any paper
-works.
+The sweep's **print pass** (`npm run test:browsers:demos`) checks three invariants on every demo, in every engine,
+**after the board has settled the way a real print does**:
 
-**3. In Document mode, let a document flow.** `break-inside: avoid` is right for the board (a card is a picture) and
-wrong for a document: a tall card jumped to a fresh page and left the rest of the previous one empty — measured, a
-page holding a card header, one line of text and nothing else. Cards may split there now, which took the Met board
-from 21 pages to 11 to **8**. The trade-off, stated plainly: a tall chart can be cut by a page boundary.
+- no two cards are drawn on top of each other;
+- nothing inside a card (`.gallery-grid`, `.ranking-rows`, `table`, `.glam-card`, `.excerpt-card`) paints outside its
+  own box;
+- every card keeps **its share of the board's width** between screen and print — the mode-agnostic form of "the print
+  reflowed something", which is how a stretched chart and a giant image were caught.
 
-**4. Document mode keeps every card's own width** (2026-09-18, fourth pass). Making cards full width — the obvious
-way to build a "document" — reflows the inside of every card: a trend chart stretches to four times its width, and a
-CIM file-spotlight image sized for a narrow card becomes enormous and overflows it entirely (both reported, with
-screenshots). Cards now take the width their **grid span** gives them (`calc((var(--print-span) / 12) * 100%)`), so
-the inside of a card looks like the card, one per row, in reading order. The first attempt at this made the mistake
-one level down — a flex item with no width takes its *content* width, which gave one card 19% of the page and another
-100% (measured); the span is the width that works. Met board: 21 → 11 → 8 → **7 pages**.
+A print check that does not wait is a check that lies: the first version measured 300 ms after arming, when every
+card was still short, and reported "0 overlaps" for a board whose PDF had four cards printed over each other.
 
-**And the check that let this through is fixed too.** The sweep's print pass measured 300ms after arming, when every
-card was short and nothing collided; it now waits for the same settled state a real print gets, and it checks two
-things — that no two cards touch, and that nothing inside a card (`.gallery-grid`, `.ranking-rows`, `table`,
-`.glam-card`, `.excerpt-card`) paints outside its own box. A print check that does not wait is a check that lies.
+### On paper
 
-Two things the poster taught, both only visible by looking at the output: card heights come from the screen, so the
-page needs an **allowance** — script cannot measure the printed layout, because `beforeprint` runs while the page is
-still in screen media (a poster page a little taller than its content is still one page, and scale-to-fit handles the
-rest) — and every image has to be **loaded before the sheet is taken**: the Met gallery printed as a grid of empty
-black tiles because cards below the fold use `loading="lazy"` and had never been fetched, so arming now flips them to
-eager (139/139 loaded, verified).
+Kept deliberately: the widget's own header (it names the card) and the ⏱ freshness footer — a printed chart with no
+"as of" line is a claim without a date. Hidden: the toolbar, the action buttons, the instance-id chip, the resize
+grips, the borrowed-board notice.
 
-What is deliberately kept on paper: the widget's own header (it names the card), and the ⏱ freshness
-footer — a printed chart with no "as of" line is a claim without a date. What is hidden: the toolbar,
-the action buttons, the instance-id chip, the resize grips.
-
-The mechanism is small enough to read in one sitting (`src/lib/print.js`), and it exists because
-react-grid-layout positions cards **absolutely with transforms** while `.grid-item` clips its overflow.
-Printed as-is that is a cropped, overlapping mess; the print sheet neutralises the grid completely
-(`position: static`, no transforms, auto height).
+The mechanism is small enough to read in one sitting (`src/lib/print.js`), and it exists because react-grid-layout
+positions cards **absolutely with transforms** while `.grid-item` clips its overflow: printed as-is that is a
+cropped, overlapping mess. The full history of what each round got wrong — four rounds, four different places for the
+same class of mistake — is in [VERIFIED-WORKING.md](VERIFIED-WORKING.md); known follow-ups are in HANDOFF's queue.
 
 ## SVG and PNG: what is possible, measured
 

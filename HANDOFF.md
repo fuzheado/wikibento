@@ -495,6 +495,17 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      - **ISSUE-103's known limit** — the 🎞️ Commons Gallery reads literal `<gallery>` blocks from the wikitext, so a
        gallery generated *by a template* reads as empty (the rendered HTML would catch those, at 10× the bytes: 654 KB
        against 56 KB for London). Worth deciding per case rather than assuming; everything else about galleries shipped.
+     - **The print's known tweaks** (Andrew, 2026-09-18: *"all much better but could use some tweaking"*). Three
+       small, well-understood follow-ups, in the order I would take them:
+       (1) **a scale chooser in the 🖨 menu** — *fit* (today's behaviour) or *100%* — because Board and Document mode
+       now scale the board to A4's content width, which is a lot of shrinkage for a 1480px board: a deliberate
+       trade of page count against text size;
+       (2) **Document mode should keep a tall card whole when it fits a page** — it flows now (21 → 7 pages) at the
+       cost of a chart occasionally being cut by a page boundary; a JS paginator that knows each card's height could
+       insert breaks only where a card would straddle;
+       (3) **the poster's allowance is generous** — the page is the board's box × 1.25, so there is ~25% white space
+       at the bottom. It is deliberate (script cannot measure the printed layout, and a page slightly too short is a
+       second page nobody wanted), but a measured allowance would tighten it.
      - **Also filed, not queued** — ISSUE-101 (a full-bleed single Commons image tile) and ISSUE-102 (quiz / trivia
        mode for an event, GitHub #95) came in from a parallel session. Both are self-contained and neither blocks
        anything here.
