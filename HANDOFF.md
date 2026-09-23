@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-2NqsmsxJ.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **share links carried string booleans, and every widget's defaults** (ISSUE-112): `'False'` was truthy, so a gallery that excluded caption-less images included them; `configNormalize.js` now coerces by the registry's field types and fills the defaults, `WidgetFrame` uses the normalised config, and `savedBoardPayload` compacts (share link, localStorage and the URL fingerprint together) · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-BFulNC7j.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **`?lean=1` fix + the errant-board policy** (ISSUE-113): a skipped import (guarded by a string my own comment contained) threw in lean mode only; the sweep now loads every board in lean and kiosk too, and `docs/JSON-FORMAT.md` states the severity model for boards that arrive from outside the app · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

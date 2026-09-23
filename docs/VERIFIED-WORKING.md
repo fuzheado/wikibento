@@ -42,6 +42,19 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### A missing import that only bit in lean mode (ISSUE-113, 2026-09-18)
+
+`?lean=1` on a shared board threw `normalizeConfigForDef is not defined`. The import had been skipped by a guard that
+tested for the string `configNormalize` — which my own comment above it contained. Production worked anyway, because
+the bundler flattened module scope and the loose reference found the exported function; a differently built bundle
+would not.
+
+- ✅ The import is explicit and asserted; the sweep now loads every board in `?lean=1` and `?kiosk=1` and fails when a
+  mode renders no cards, because this class of error lives in exactly one mode.
+- 📌 **Three times in one session a guard or an anchor that tested for text I had just written myself did the wrong
+  thing** (this import, the `fieldContext` declaration, a `widgetDef` replace). The rule that comes out of it: assert
+  the *count* of what you are replacing, and never let a guard be satisfied by prose in the same file.
+
 ### A share link showed strings where booleans should be (ISSUE-112, 2026-09-18)
 
 Decoding the reporter's `#/z/` link showed `includeAll: 'True'`, `hideDecorative: 'True'`, `minSize: '200'` — and

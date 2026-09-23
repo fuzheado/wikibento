@@ -46,6 +46,14 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 
 ## Where things are
 
+## A board is data from outside
+
+Boards come from files, links, other people and other tools, and their *types* are as untrustworthy as
+their values (`!!"False"` is `true`). Coerce by the registry's declared field type, fill the registry
+defaults, and trim default-equal fields only when *writing* — never in a borrowed board's hands. The
+severity model (unusable / repairable / inefficient) and the reporting rules are in
+`docs/JSON-FORMAT.md`; `src/lib/configNormalize.js` is the implementation.
+
 ## Driving the UI when a test cannot see it
 
 - **The ⚙ on a card is `button[title="Configure"]`** (`class="widget-btn"`). `.react-grid-item` filtered by a widget's
@@ -64,6 +72,7 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 | export, print and PDF behaviour | `docs/EXPORT.md` |
 | current state, deployment, queue | `HANDOFF.md` |
 | thumbnail widths, buckets, lazy loading | `docs/THUMBNAILS.md` |
+| what a board file may contain, and what to do when it is errant | `docs/JSON-FORMAT.md` |
 
 ## A sibling project worth consulting
 

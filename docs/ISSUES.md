@@ -4992,6 +4992,21 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-113 · `?lean=1` threw `normalizeConfigForDef is not defined` — **done + verified 2026-09-18**
+
+Andrew shared a lean link (`?config=https://meta.wikimedia.org/wiki/WikiBento/Neon-museums.json&lean=1`) and got
+`normalizeConfigForDef is not defined`. My regression from ISSUE-112, with an instructive cause:
+
+- The **import was never added**, because the guard that was supposed to add it looked for the string `configNormalize`
+  — which my own comment two lines above already contained. A guard satisfied by the prose it sits in.
+- **The production build worked anyway**: the bundler flattened module scope, so the loose reference resolved to the
+  exported function. The dev/module path would not have. That is luck, not correctness, and it is why the error was
+  intermittent — a stale or differently-built bundle is all it takes.
+- **No unit test could see it**: nothing renders `WidgetFrame`, and the failure only appears in a real browser.
+- **The class, not just the instance**: a reference error can live in exactly one UI mode, because lean and kiosk render
+  the same components through different chrome. The demos sweep now loads each board in `?lean=1` and `?kiosk=1` as
+  well and fails if a mode renders no cards. Prose rules are not checks; this is now a check.
+
 ## ISSUE-112 · Share links carried string booleans and every widget's defaults — **done + verified 2026-09-18**
 
 Andrew, with a `#/z/` link: *"the JSON for a board like this seems to still have some straggling fields … every

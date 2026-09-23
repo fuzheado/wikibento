@@ -13,6 +13,7 @@ import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
 import { WIDGET_TYPES, widgetDef } from './index';
+import { normalizeConfigForDef } from '../lib/configNormalize';
 import { renderMarkdown } from '../lib/markdown';
 import { qrSvg, qrModuleCount } from '../lib/qr';
 import { createSpeechController, pickVoice } from '../lib/speech';

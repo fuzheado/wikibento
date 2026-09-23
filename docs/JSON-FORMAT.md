@@ -303,3 +303,38 @@ exactly what `dashboard.json` looks like after export.
 - The widget registry (`src/widgets/index.js`) is the source of truth for
   `configFields` — new widget types or config fields automatically become part
   of the format's vocabulary via `validateDashboard`.
+
+
+## A board is data from outside — what happens when it is errant
+
+A board arrives from a demo file, a URL, a share link, a browser's localStorage, or a tool that wrote JSON by hand.
+Its *types* are as much a matter of trust as its values — a board that spells `includeAll: "False"` (as one generated
+outside the app did) means the opposite of what it looks like, because `!!"False"` is `true`.
+
+### The severity model
+
+| what | example | behaviour |
+|---|---|---|
+| **Unusable** | an unknown `widgetType`; a layout that does not match the widgets; a malformed `params` entry | **Refuse the board** and say which field, in the app's own words. `validateDashboard` returns the error list; the boot banner shows the first one. |
+| **Repairable** | `"200"` for a number; `"True"`/`"False"` for a boolean; a missing key that the registry defaults; an unknown key | **Normalise silently, and report it if it changed anything.** `normalizeConfigForDef` coerces by the field's declared type and fills the registry defaults, so the card behaves as the registry says. A value that cannot be read (`"twelve"` for a number) is left exactly as written rather than guessed at, and appears in the warnings. |
+| **Inefficient, not wrong** | every widget storing every field, including the three source fields it does not use | **Nothing to report.** `compactConfig` drops what the registry would say anyway when the board is *saved*, shared or hashed — so a board the app writes is a description of the choices made, not a copy of the defaults. Never trimmed in the reader's hands: a borrowed board is shown, not rewritten. |
+
+### Prompting the user
+
+**Report, do not interrupt**, and only when a repair changed the *meaning* rather than the shape:
+
+- A **repaired type** or **filled default** is silent — the board renders as the board intended, and the ⚙ panel shows
+  the normalised value, so nothing is hidden.
+- An **unreadable value**, a **dropped field** or an **unknown key** belongs in a non-blocking notice (the existing
+  `BoardNotice` pattern: what was found, what was assumed), with the option to *save a clean copy* — never an automatic
+  write, because the board may be a link someone else owns.
+- **Errors that cannot be repaired** (an unknown widget type, a broken layout) block with a message naming the field
+  and the expected shape. That is already `validateDashboard`'s contract.
+
+### Why one function, two callers
+
+The lint that decides "is this repairable, and is it worth telling anyone?" is the same one that should run over the
+boards in this repo. `scripts/docs-facts.mjs` exists because *"a rule in prose is not a check"*; board files deserve
+the same treatment, and a single `lintWidgetConfig(config, def)` can serve both the loader (warn the reader) and a
+build-time pass over `public/*.json` (fail the PR). That is the piece still to build — the severity model above is
+what it should implement.

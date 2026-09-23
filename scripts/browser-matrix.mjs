@@ -346,7 +346,16 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
             seen.add(name);
           }
           return out;
-        });
+        });        // Lean and kiosk render the same components through different chrome, so a reference error can live in
+        // exactly ONE mode: a missing import threw in `?lean=1` while every unit test passed (2026-09-18).
+        for (const mode of ['lean=1', 'kiosk=1']) {
+          await page.goto(`${BASE}/?config=/${boardName}&${mode}`, { waitUntil: 'domcontentloaded' });
+          await page.waitForTimeout(4000);
+          if (!(await page.locator('[data-widget-id]').count())) row.errors.push(`${mode}: no cards rendered`);
+        }
+        await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(1500);
+
         if (dupes.length) { row.panelErrors = (row.panelErrors || []).concat(dupes.map((d) => `add-widget panel: ${d}`)); }
         else row.notes.push('add-widget panel lists each widget once per section');
         await page.keyboard.press('Escape');
