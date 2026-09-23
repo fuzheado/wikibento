@@ -13,7 +13,7 @@
       "id": "depth",
       "widgetType": "sparql",
       "config": {
-        "preset": "met-collection",
+        "preset": "laureates-by-country",
         "query": "",
         "endpoint": "wdqs",
         "renderer": "auto",
