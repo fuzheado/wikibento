@@ -42,6 +42,25 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### A share link showed strings where booleans should be (ISSUE-112, 2026-09-18)
+
+Decoding the reporter's `#/z/` link showed `includeAll: 'True'`, `hideDecorative: 'True'`, `minSize: '200'` — and
+`!!'False'` is `true`, so one gallery that asked to exclude caption-less images rendered as though it had included
+them. Every widget also carried every field the registry defines, including the three source fields it was not using.
+
+- ✅ `src/lib/configNormalize.js`: coercion by the registry's own field types, registry defaults filled in, and
+  `compactConfig` as the inverse for storage. The Ask path had the coercion all along — in `deploy/server.js` — so
+  only the server ever applied it.
+- ✅ Behaviour fixed at `WidgetFrame` (it knows the definition; the data path now uses the normalised config);
+  storage fixed in `savedBoardPayload`, which is the single source for the share link, localStorage and the
+  truth-of-the-URL fingerprint.
+- ✅ The safety property is asserted, not assumed: `normalize(compact(c))` equals `normalize(c)`, so a compacted board
+  cannot behave differently from the one that was saved. Plus the reporter's exact strings as cases.
+- 📌 **The class:** a board file is data from outside the app, and its *types* are as much a matter of trust as its
+  values. The app had one coercion helper and applied it in exactly one (server-side) place.
+- 📌 A self-inflicted TDZ on the way (the normalisation declared below its first use) was caught by loading a board,
+  not by the tests — the argument for the browser check in `AGENTS.md` that a green suite cannot replace.
+
 ### The SPARQL default was a query that cannot finish (ISSUE-111, 2026-09-18)
 
 A new SPARQL card opened on a `COUNT(DISTINCT ?item)` over every item in the Met's collection. Measured: **>75 s, the

@@ -197,6 +197,14 @@ function ExportMenu({ node, type, data, title, widgetId }) {
 }
 
 export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
+  // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
+  // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's rule).
+  const def = widgetDef(widget.widgetType);
+  // Board context for a field that must show something the config cannot know (the Board Controls spec).
+  const fieldContext = useMemo(() => ({ paramSpecs }), [paramSpecs]);
+  // What the card will actually read: types coerced from whatever the board file said ('False' is not false),
+  // and every registry default present (a compacted board omits them). See src/lib/configNormalize.js.
+  const normalizedConfig = useMemo(() => normalizeConfigForDef(widget.config, def), [widget.config, def]);
   // ISSUE-50: resolve {{param}} placeholders ONCE here — the DATA path (fetch,
   // transform, titles, refresh interval) uses the resolved config; the ⚙ editor
   // path (config panel, handleConfigChange) deliberately uses the RAW
@@ -206,7 +214,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   // The placeholder stays visible in the ⚙ form — provenance, and overwriting
   // it manually is the documented freeze/override escape hatch.
   const resolvedConfig = useMemo(
-    () => resolveParams(widget.config, paramValues, widgetOutputs),
+    () => resolveParams(normalizedConfig, paramValues, widgetOutputs),
     [widget.config, paramValues, widgetOutputs],
   );
   // ISSUE-51 (widget-to-widget dataflow): the emitted value of the widget this
@@ -276,12 +284,6 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   onAutoHeightRef.current = onAutoHeight;
   // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
   // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's compatibility rule).
-  const def = widgetDef(widget.widgetType);
-  // Board context for a field that must show something the config cannot know (the Board Controls spec reads the
-  // dashboard's params block, which the widget's own config does not contain).
-  const fieldContext = useMemo(() => ({ paramSpecs }), [paramSpecs]);
-
-  // Header shows the analyzed asset (from config, live) unless the user
   // explicitly set a custom _title. Falls back to the generic widget name.
   const headerTitle =
     resolvedConfig._title && resolvedConfig._title !== def?.name

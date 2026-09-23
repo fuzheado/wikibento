@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-BLpTM1g8.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **the SPARQL default was a query that could not finish** (ISSUE-111): it counted every item in the Met's collection (>75 s, client gave up; paintings-only still 41 s). The default is now `laureates-by-country` (2.9 s, 12 rows), heavy presets are marked `cost: 'slow'` and warn inside their own query text, a test states the rule, and the showcase catalog no longer selects the slow one · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-2NqsmsxJ.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **share links carried string booleans, and every widget's defaults** (ISSUE-112): `'False'` was truthy, so a gallery that excluded caption-less images included them; `configNormalize.js` now coerces by the registry's field types and fills the defaults, `WidgetFrame` uses the normalised config, and `savedBoardPayload` compacts (share link, localStorage and the URL fingerprint together) · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

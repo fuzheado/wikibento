@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { configFieldValue, fieldVisible } from '../src/lib/configFields.js';
+import { coerceFieldValue, normalizeConfigForDef, compactConfig } from '../src/lib/configNormalize.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { paramSpecToText } from '../src/lib/params.js';
 import { readFileSync } from 'node:fs';
@@ -117,4 +118,47 @@ test("the reporter's board renders in the panel, not an empty box (ISSUE-110)", 
   assert.equal(configFieldValue(field, {}, control.defaults, { paramSpecs: board.params }), spec);
   // …and a widget that does carry its own spec keeps it (a stored value always wins)
   assert.equal(configFieldValue(field, { spec: 'mine | text | Mine' }, control.defaults, { paramSpecs: board.params }), 'mine | text | Mine');
+});
+
+test('a board file spells booleans and numbers as strings — coerce them, do not guess', () => {
+  // The share link that started this: includeAll: 'True', hideDecorative: 'True', minSize: '200', maxItems: '12',
+  // allowExternalImages: 'False'. `!!'False'` is TRUE, so a widget that asked to exclude caption-less images
+  // rendered as though it had included them — a silent behaviour change, not a cosmetic one.
+  assert.equal(coerceFieldValue({ type: 'boolean' }, 'True'), true);
+  assert.equal(coerceFieldValue({ type: 'boolean' }, 'False'), false);
+  assert.equal(coerceFieldValue({ type: 'boolean' }, 'false'), false);
+  assert.equal(coerceFieldValue({ type: 'boolean' }, true), true);
+  assert.equal(coerceFieldValue({ type: 'number' }, '200'), 200);
+  assert.equal(coerceFieldValue({ type: 'number' }, 12), 12);
+  assert.equal(coerceFieldValue({ type: 'number' }, 'twelve'), 'twelve');   // left as written: validate, don't invent
+  assert.equal(coerceFieldValue({ type: 'text' }, 'x'), 'x');
+  assert.equal(coerceFieldValue({ type: 'boolean' }, undefined), undefined);
+});
+
+test('normalizing fills in registry defaults, so a compacted board behaves like a spelled-out one', () => {
+  const def = WIDGET_TYPES.gallery;
+  const full = normalizeConfigForDef({ from: 'category', category: 'Featured pictures' }, def);
+  assert.equal(full.maxItems, def.defaults.maxItems);
+  assert.equal(full.from, 'category');
+  // …and a hand-written string is coerced while it is at it
+  const coerced = normalizeConfigForDef({ from: 'article', includeAll: 'False', maxItems: '12' }, def);
+  assert.equal(coerced.includeAll, false);
+  assert.equal(coerced.maxItems, 12);
+  // keys the registry does not declare ride along untouched (the frame's `_title`)
+  assert.equal(normalizeConfigForDef({ _title: 'Mine' }, def)._title, 'Mine');
+});
+
+test('compacting drops what the registry would say anyway — and round-trips', () => {
+  const def = WIDGET_TYPES.gallery;
+  const stored = { from: 'article', article: 'Neon Museum', files: def.defaults.files, page: def.defaults.page,
+                   category: def.defaults.category, order: def.defaults.order, minSize: 200, displayMode: 'grid',
+                   _title: 'Mine' };
+  const small = compactConfig(stored, def);
+  assert.ok(!('files' in small) && !('page' in small) && !('category' in small), 'default-equal fields go');
+  assert.equal(small.article, 'Neon Museum');       // a real value stays
+  assert.equal(small._title, 'Mine');               // a non-registry key stays, whatever its value
+  assert.ok(!('minSize' in small), 'a value equal to the default is not information');
+  assert.equal(small.refreshSeconds, undefined, 'likewise the refresh interval at its default');
+  // the round-trip: remove-then-restore changes nothing the app can observe
+  assert.deepEqual(normalizeConfigForDef(small, def), normalizeConfigForDef(stored, def));
 });

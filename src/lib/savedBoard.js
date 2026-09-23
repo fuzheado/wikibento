@@ -1,3 +1,6 @@
+import { compactConfig } from './configNormalize';
+import { widgetDef } from '../widgets/index';
+
 /**
  * What board to restore from a saved blob (the localStorage snapshot).
  *
@@ -31,5 +34,13 @@ export function readSavedBoard(raw) {
  * two cannot drift. `params` is normalized to `null` (never `undefined`, which JSON drops).
  */
 export function savedBoardPayload(widgets, layout, params) {
-  return { widgets, layout, params: params || null };
+  // Compact the configs: a field equal to its registry default carries no information, and a board that stores every
+  // widget's every source field is bigger AND harder to read — a `from: 'article'` gallery was carrying `files`,
+  // `category`, `page` and `order` too (17 keys where 7 apply). This one function feeds the share link, localStorage
+  // and the "is the URL still telling the truth?" fingerprint, which is why the fix belongs here.
+  return {
+    widgets: (widgets || []).map((w) => ({ ...w, config: compactConfig(w.config, widgetDef(w.widgetType)) })),
+    layout,
+    params: params || null,
+  };
 }

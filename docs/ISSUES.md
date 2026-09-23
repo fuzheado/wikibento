@@ -4992,6 +4992,38 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-112 · Share links carried string booleans and every widget's defaults — **done + verified 2026-09-18**
+
+Andrew, with a `#/z/` link: *"the JSON for a board like this seems to still have some straggling fields … every
+gallery has `files: …`. Can you check to see if there is a bug?"* Decoded, the board showed two, and the second is
+not cosmetic:
+
+```
+from: 'article', article: 'Neon Museum', page: 'The Venetian Macao', category: 'Featured pictures',
+files: 'File:The Earth seen from Apollo 17.jpg', order: 'listed', minSize: '200', maxItems: '12',
+includeAll: 'True', hideDecorative: 'True', groupBy: 'none', linkAction: 'new tab', refreshSeconds: '3600'
+```
+
+1. **Values were strings.** `includeAll: 'True'`, `minSize: '200'`, `allowExternalImages: 'False'`. `!!'False'` is
+   **true** — so a widget that asked to exclude caption-less images rendered as though it had included them. The
+   coercion helper the Ask pipeline uses lives in `deploy/server.js`, so **only the server ever coerced**; anything
+   loaded from a board file went in exactly as written.
+2. **Every widget stored every field**, including the three source fields it was not using: 17 keys where 7 apply.
+
+- ✅ **`src/lib/configNormalize.js`** — `coerceFieldValue` (per the registry's field types: `'False'` → `false`,
+  `'200'` → `200`, and a value that cannot be read is left as written rather than guessed at),
+  `normalizeConfigForDef` (coerced **and** registry defaults filled in, so a board that omits a key behaves exactly
+  like one that spells it out) and `compactConfig` (the inverse for storage).
+- ✅ **Behaviour fix at the render path**: `WidgetFrame` normalises once and the data path uses that
+  (`resolveParams(normalizedConfig, …)`), because it is the one place that knows the widget's definition.
+- ✅ **Storage fix in one place**: `savedBoardPayload` compacts each config — and that function feeds the share link,
+  localStorage **and** the "is the URL still telling the truth?" fingerprint, so all three agree.
+- ✅ Tests cover the reporter's exact strings, the default-filling, and a **round-trip**
+  (`normalize(compact(c)) === normalize(c)`) — the property that makes compacting safe.
+- 📌 Introduced and immediately caught while doing it: the normalisation was first declared *below* its own first use
+  (`useMemo(() => resolveParams(normalizedConfig, …)`), a temporal-dead-zone throw on every render. The live board
+  check caught it in one load; the unit tests could not, because they never render the component.
+
 ## ISSUE-111 · The SPARQL default query was unusable — **done + verified 2026-09-18**
 
 Andrew: *"When I add a SPARQL query card, the default sample query is very intensive and takes a long time — can we
