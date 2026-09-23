@@ -42,6 +42,25 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### A sibling project's benchmark found a live bug (ISSUE-108, 2026-09-18)
+
+Andrew asked for a local checkout of `commons-vibe` to be consulted for best practices, mentioning his work on
+thumbnail sizing and lazy loading. Its `benchmark/thumb-metrics.md` documents the bucket ladder and one sharp fact:
+`iiurlwidth` is rewritten by the API (safe), but a **hand-built `…/700px-` URL answers HTTP 400**, because a page
+thumbnail has no API endpoint.
+
+- ✅ **Verified on Commons**: the ladder widths answer 200, the off-ladder ones 400 — and this project's paged viewer
+  was zooming on `[400, 700, 1000, 1400]`, off-ladder at every step. Zooming was offering broken widths.
+- ✅ `src/lib/thumbWidths.js` owns the ladder and the snapping; ceilings snap **down** (a 700px source renders at 500,
+  never the 960 bucket above it), and a ceiling below the first step snaps to it.
+- 📌 **Two tests had pinned the broken widths as expected values.** They were asserting current behaviour, not correct
+  behaviour — the general lesson of this round, and the reason the new test asserts the *rule* (every step exists)
+  rather than a list of numbers.
+- 📌 The consultation is now durable: `docs/THUMBNAILS.md` records the measured facts, what to adopt next
+  (`srcset`+`sizes` from the served width and `responsiveUrls`; `decoding="async"`; `preconnect`) and what **not** to
+  add (an `IntersectionObserver` — native `loading="lazy"` is what the sibling project uses too). `AGENTS.md` points
+  at the checkout so the next session reads rather than re-derives.
+
 ### Thin bands instead of gallery tiles (ISSUE-107, 2026-09-18)
 
 A screenshot from Andrew: a category gallery whose tiles were ~600px wide and ~65px tall, each showing a horizontal

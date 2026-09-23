@@ -4992,6 +4992,27 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-108 · Zooming a document page thumbnail answered HTTP 400 — **done + verified 2026-09-18**
+
+Found by consulting a sister project rather than by a bug report: Andrew asked for a local checkout of
+`commons-vibe` to be consulted for its thumbnail work, and its `benchmark/thumb-metrics.md` documents that
+`thumb.wikimedia.org` quantizes to a **pre-rendered ladder** (20/40/60/120/250/330/500/960/1280/1920/3840) and that
+hand-built non-ladder URLs answer **HTTP 400**.
+
+- **Verified here**: page 1 of a Commons PDF → 330/500/960/1280 → 200; **400/700/1000/1400 → 400**.
+- **The bug**: the paged viewer's zoom ladder was `[400, 700, 1000, 1400]` — off-ladder at *every* step — and the
+  page-thumbnail URL is built by substituting into a `{w}px-` template, which no API rewrites. So zooming was broken
+  for exactly the widths on offer. The file already carried a comment naming 330/500/960 as served and 400/700 as not;
+  the default ladder had never been reconciled with it.
+- **Two pinned tests had locked the broken steps in** as expected values — a useful reminder that a test asserting
+  current behaviour is not the same as a test asserting correct behaviour. Both now assert the pre-rendered steps.
+- `src/lib/thumbWidths.js` owns the ladder (`THUMB_LADDER`, `legalThumbWidth`, `floorThumbWidth`); the ceiling a
+  source declares is snapped **down** (a 700px source renders at 500, never at the 960 bucket above it), and a ceiling
+  below the smallest step snaps to it (a 300px source renders at 250). Every step the viewer can offer is asserted to
+  exist, and `iiurlwidth` values are deliberately left alone: the API quantizes those safely.
+- The next step (not done) is in `docs/THUMBNAILS.md`: `srcset` + `sizes` built from the **served** width and the
+  API's `responsiveUrls`, which is what took the sibling project's first three tiles from 607 KB to 197 KB.
+
 ## ISSUE-107 · Gallery tiles rendered as thin bands — **done + verified 2026-09-18**
 
 Andrew, with a screenshot of a category gallery: tiles ~600px wide and ~65px tall, each showing a horizontal sliver of

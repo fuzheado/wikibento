@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-CqQiCSEs.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **gallery tiles were rendering as thin bands** (ISSUE-107): a definite thumbnail height per size class and `min-content` rows, so a tile is never shorter than the image it holds and a wider card gets more tiles rather than thinner ones — with a demos check that measures the two against each other · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-Ty6xHfJm.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **consulted the sister project, and it found a live bug** (ISSUE-108): the paged viewer zoomed on widths that answer HTTP 400 (the pre-rendered ladder is 20/40/60/120/250/330/500/960/1280/1920/3840); `src/lib/thumbWidths.js` now owns the ladder and every step is asserted to exist · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

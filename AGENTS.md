@@ -51,3 +51,13 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 | which API a widget reads, and its measured gotchas | `docs/DATA-SOURCES.md` |
 | export, print and PDF behaviour | `docs/EXPORT.md` |
 | current state, deployment, queue | `HANDOFF.md` |
+| thumbnail widths, buckets, lazy loading | `docs/THUMBNAILS.md` |
+
+## A sibling project worth consulting
+
+`~/Documents/ai/commons-vibe` is a clone of `github.com/fuzheado/commons-vibe` (MIT, same author) — a visual Commons
+category explorer. It solved problems this project has too, and wrote down the measurements: its
+`benchmark/thumb-metrics.md` is the reference for thumbnail sizing and bucket quantization, and its `HANDOFF.md`
+records the traps it hit in production. **Read it before re-deriving image behaviour by trial and error** — that is
+how the off-ladder page-thumbnail ladder was found here (ISSUE-108). It is a *reference*, not a dependency: nothing
+in this repo imports from it.

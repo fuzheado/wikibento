@@ -322,6 +322,9 @@ front door.
 - **Ideas & brainstorming** → [Discussions → Ideas](https://github.com/fuzheado/wikibento/discussions/categories/ideas)
 - **Boards you built** → [Discussions → Show and tell](https://github.com/fuzheado/wikibento/discussions/categories/show-and-tell)
 
+**Thumbnails** are their own subject: sizes, the pre-rendered bucket ladder, and which bytes a card actually
+fetches — [docs/THUMBNAILS.md](docs/THUMBNAILS.md), which also points at the sister project that measured it.
+
 Requests that get picked up are tracked with design notes in [docs/ISSUES.md](docs/ISSUES.md) and
 [docs/ROADMAP.md](docs/ROADMAP.md), so you can watch an idea become a widget.
 

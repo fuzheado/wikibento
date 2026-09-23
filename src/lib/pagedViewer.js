@@ -101,8 +101,14 @@ export function spreadsFit(cardWidth) {
   return Number(cardWidth) >= SPREAD_MIN_WIDTH;
 }
 
+import { floorThumbWidth } from './thumbWidths';
+
 /** The base zoom ladder. A source may cap it (see `zoomLadder`). */
-export const PV_LADDER = [400, 700, 1000, 1400];
+// Every step must be a width Wikimedia has pre-rendered: these go into a hand-built `{w}px-` page thumbnail URL,
+// which has no API to rewrite them, so an off-ladder step is HTTP 400 rather than a bigger image. The old
+// [400, 700, 1000, 1400] was off-ladder at every step — found by measuring against commons-vibe's thumbnail
+// benchmark (2026-09-18). See `src/lib/thumbWidths.js`.
+export const PV_LADDER = [330, 500, 960, 1280];
 
 /**
  * The ladder for one source: the base steps that fit its ceiling, plus the ceiling itself.
@@ -114,8 +120,13 @@ export const PV_LADDER = [400, 700, 1000, 1400];
 export function zoomLadder(maxWidth, base = PV_LADDER) {
   const cap = Number(maxWidth) > 0 ? Math.round(Number(maxWidth)) : Infinity;
   const kept = base.filter((w) => w <= cap);
-  if (!kept.length) return [Math.min(cap, base[0])];
-  if (Number.isFinite(cap) && !kept.includes(cap)) kept.push(cap);
+  // A ceiling below the smallest base step still has to be a width that exists — a 300px source renders at 250.
+  if (!kept.length) return [floorThumbWidth(cap)];
+  // The ceiling joins the ladder, so it must be a width that exists: snap it DOWN to the largest legal one that
+  // still fits (a 700px source renders at 500, never at the 960 bucket above it). Otherwise a source whose
+  // ceiling is not a pre-rendered width offers a step that answers HTTP 400.
+  const ceiling = floorThumbWidth(cap);
+  if (Number.isFinite(cap) && ceiling > 0 && ceiling <= cap && !kept.includes(ceiling)) kept.push(ceiling);
   return kept;
 }
 

@@ -110,10 +110,14 @@ test('the served width set is a LIST, not a range — measured on a PDF and a Dj
   }
 });
 
+// 2026-09-18: these expected [400, 700, 960] — widths that are not pre-rendered. A page thumbnail is built by
+// substituting into a `{w}px-` template and has no API to rewrite it, so 400 and 700 answer HTTP 400 (measured:
+// 330/500/960 → 200, 400/700/1000/1400 → 400). The pinned test suite was locking in the broken steps; the ladder
+// is now the pre-rendered one (src/lib/thumbWidths.js).
 test('sourceWidths: a source that states its widths is believed; one that caps a ladder is capped', () => {
   assert.deepEqual(sourceWidths({ widths: [960, 330, 500] }), [330, 500, 960], 'sorted, and no duplicates');
   assert.deepEqual(sourceWidths({ widths: [500, 500, 330] }), [330, 500]);
-  assert.deepEqual(sourceWidths({ maxWidth: 960 }), [400, 700, 960], 'a IIIF source caps the base ladder');
+  assert.deepEqual(sourceWidths({ maxWidth: 960 }), [330, 500, 960], 'a IIIF source caps the base ladder');
   assert.deepEqual(sourceWidths({}), PV_LADDER, 'no caps at all → the base ladder');
   assert.deepEqual(sourceWidths({ widths: [] }), PV_LADDER, 'an empty list is not a statement');
 });
@@ -181,11 +185,12 @@ test('zoomLadder: a source with no ceiling keeps the base ladder', () => {
 });
 
 test('zoomLadder: a 960 ceiling stops the ladder there, and says so', () => {
-  assert.deepEqual(zoomLadder(DOCUMENT_MAX_WIDTH), [400, 700, 960]);
+  assert.deepEqual(zoomLadder(DOCUMENT_MAX_WIDTH), [330, 500, 960]);
   assert.ok(!zoomLadder(DOCUMENT_MAX_WIDTH).includes(1400), 'the step the server cannot serve is gone');
-  assert.deepEqual(zoomLadder(1000), [400, 700, 1000], 'a ceiling already on the ladder is not duplicated');
-  assert.deepEqual(zoomLadder(320), [320], 'a ceiling below the first step leaves exactly that step');
-  assert.deepEqual(zoomLadder(1100), [400, 700, 1000, 1100]);
+  assert.deepEqual(zoomLadder(1000), [330, 500, 960], 'a ceiling already on the ladder is not duplicated');
+  // 320 is not served (see the list above), so a 320px source is rendered at the largest step that exists and
+  assert.deepEqual(zoomLadder(320), [250], 'a ceiling below the first step snaps DOWN to a width that exists');
+  assert.deepEqual(zoomLadder(1100), [330, 500, 960]);
 });
 
 test('clampPage: a typed page number becomes a valid index, out-of-range input clamps', () => {

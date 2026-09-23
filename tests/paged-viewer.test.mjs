@@ -6,11 +6,22 @@
  * says, and where a thumbnail strip should look. Wrong here and a book reads backwards for Arabic, Hebrew
  * and Yiddish without anything looking broken to an English reader — so these are the tests that matter.
  */
+import { THUMB_LADDER, isLegalThumbWidth } from '../src/lib/thumbWidths.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pageImageUrl, canCrop, spreadPairs, spreadOrder, spreadIndexOf, spreadLabel,
-  spreadsFit, leafWidth, stripWindow, SPREAD_MIN_WIDTH,
+  pageImageUrl,
+  canCrop,
+  spreadPairs,
+  spreadOrder,
+  spreadIndexOf,
+  spreadLabel,
+  spreadsFit,
+  leafWidth,
+  stripWindow,
+  SPREAD_MIN_WIDTH,
+  PV_LADDER,
+  zoomLadder,
 } from '../src/lib/pagedViewer.js';
 
 const IIIF_PAGE = { index: 4, label: '5', image: 'https://iiif.archive.org/image/iiif/3/x%2Fy.jp2/{region}/{w},/0/default.jpg' };
@@ -115,4 +126,21 @@ test('stripWindow: a window around the page, never past the ends', () => {
   assert.deepEqual(stripWindow(40, 0, 5).indices, [0, 1, 2, 3, 4], 'clamped at the start');
   assert.deepEqual(stripWindow(40, 39, 5).indices, [35, 36, 37, 38, 39], 'clamped at the end');
   assert.equal(stripWindow(0, 0, 5).indices.length, 0);
+});
+
+test('every page-thumbnail width the viewer can request actually exists', () => {
+  // A page thumbnail URL is built by substituting into a `{w}px-` template — there is no API to rewrite a bad width,
+  // so an off-ladder step is HTTP 400, not a bigger image. Measured 2026-09-18: 400/700/1000/1400 → 400. The old
+  // PV_LADDER was off-ladder at every step. Found by measuring against commons-vibe's thumbnail benchmark.
+  for (const w of PV_LADDER) assert.ok(isLegalThumbWidth(w), `PV_LADDER step ${w} is not a pre-rendered width`);
+  // …and so must every per-source ceiling, and every step of the ladder it produces.
+  for (const cap of [300, 700, 960, 1000, 1400, 4000]) {
+    for (const w of zoomLadder(cap)) {
+      assert.ok(isLegalThumbWidth(w), `zoomLadder(${cap}) offers ${w}, which does not exist`);
+      assert.ok(w <= cap, `zoomLadder(${cap}) offers ${w}, above the source's own ceiling`);
+    }
+  }
+  assert.deepEqual(zoomLadder(700), [330, 500]);      // snapped DOWN, never up into the next bucket
+  assert.deepEqual(zoomLadder(960), [330, 500, 960]); // an exact ceiling is kept
+  assert.deepEqual(zoomLadder(4000).at(-1), 3840);    // above the ladder, the top step wins
 });
