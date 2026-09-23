@@ -46,6 +46,15 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 
 ## Where things are
 
+## Driving the UI when a test cannot see it
+
+- **The ⚙ on a card is `button[title="Configure"]`** (`class="widget-btn"`). `.react-grid-item` filtered by a widget's
+  text, then that button, is a reliable pair — two rounds were lost to a selector that "failed to open the panel"
+  that had opened all along.
+- A panel is open when `.config-field` elements exist; field labels are their `<label>` text.
+- Scope a card by `[data-widget-id="…"]`, never by its text: `filter({ hasText })` matches whichever card happens to
+  contain the words (a note card saying "alphabetical" is not the gallery).
+
 | you want | read |
 |---|---|
 | how to test in a browser, incl. the print pass | `docs/BROWSER-TESTING.md` |

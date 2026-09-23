@@ -5023,6 +5023,20 @@ there, the wiring was not.
   The gate is the durable half: `AUDIT: no field shows an empty box while the card renders a value` sweeps all 41
   registry types and every field, so the next one of these fails a test instead of waiting for a screenshot.
 
+**Follow-ups, both found when the first fix reached a browser** (Andrew: *"When I click on the gear icon I get this
+error: Can't find variable: fieldContext"*):
+
+- The declaration never landed. Eight call sites passed `fieldContext`; the `useMemo` that defines it was a
+  silently-failed edit (the same anchor-whitespace trap as the module-scope lookup bug in the last round). It is
+  declared in the same scope as `def` now, and the panel is verified by driving it, not by reading the JSX.
+- **`WidgetFrame` still resolved the type with `WIDGET_TYPES[...]`, not `widgetDef(...)`** — so the compatibility rule
+  ISSUE-105 rests on was only true of the *validator* and the picker. A board saved before the gallery merge would
+  have rendered with no definition at all: no fetch, no card. The unit test asserted `widgetDef` resolves the old ids;
+  nothing asserted the *renderer* uses it. Both are true now.
+- 📌 **Driving the ⚙ panel: the button is `button[title="Configure"]`.** Two earlier attempts to verify this fix
+  "failed to open the panel" and I nearly reported an app bug; the panel had opened all along and my selector was
+  wrong.
+
 ## ISSUE-109 · Gallery thumbnails fetched one width for every tile — **done + verified 2026-09-18**
 
 The follow-through on ISSUE-108: a gallery requested a single thumbnail width and had no `srcset`/`sizes`, so a 132px

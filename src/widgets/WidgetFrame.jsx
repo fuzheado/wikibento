@@ -12,7 +12,7 @@ import {
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
 import { resolveMonth, fmtMonth } from '../lib/scope';
 import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
-import { WIDGET_TYPES } from './index';
+import { WIDGET_TYPES, widgetDef } from './index';
 import { renderMarkdown } from '../lib/markdown';
 import { qrSvg, qrModuleCount } from '../lib/qr';
 import { createSpeechController, pickVoice } from '../lib/speech';
@@ -274,7 +274,12 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
   const onAutoHeightRef = useRef(onAutoHeight);
   onAutoHeightRef.current = onAutoHeight;
-  const def = WIDGET_TYPES[widget.widgetType];
+  // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
+  // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's compatibility rule).
+  const def = widgetDef(widget.widgetType);
+  // Board context for a field that must show something the config cannot know (the Board Controls spec reads the
+  // dashboard's params block, which the widget's own config does not contain).
+  const fieldContext = useMemo(() => ({ paramSpecs }), [paramSpecs]);
 
   // Header shows the analyzed asset (from config, live) unless the user
   // explicitly set a custom _title. Falls back to the generic widget name.

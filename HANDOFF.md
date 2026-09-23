@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-BdEx53B1.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **the ⚙ panel disagreed with the card** (ISSUE-110): the Board Controls *Params* box reads the board's params back through `paramSpecToText`, `configFieldValue` honours the registry defaults (a boolean defaulting to true showed unchecked), and an audit gate sweeps all 41 types · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-CgipBOCn.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **the ⚙ regression fixed and verified in a browser** (ISSUE-110): `fieldContext` was used in eight places and never declared, and `WidgetFrame` still resolved types with `WIDGET_TYPES[...]` so a pre-merge board would not render at all — the Params box now shows the board's params, a boolean default renders checked, and the ⚙ recipe is in AGENTS.md · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
