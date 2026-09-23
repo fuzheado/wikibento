@@ -13,6 +13,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseGalleryBlocks, galleryCaptionText } from '../src/widgets/dataSources.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { servedThumbWidth, thumbSrcset, thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, cleanMediaUrl, allowHiDpi } from '../src/lib/imageSrcset.js';
 
 // The Venetian Macao, verbatim (542 bytes, one block, all three caption shapes).
 const VENETIAN = `{{Gallery page}}
@@ -124,4 +125,60 @@ test('galleries: the widget declares the gallery contract (channels, cap, honest
   const normal = def.transform({ page: 'A gallery', rows: [{ title: 'A.jpg' }], total: 5, shown: 1, dropped: 0 }, { page: 'A gallery' });
   assert.match(normal.subtitle, /5 images/);
   assert.match(normal.subtitle, /showing 1/i);
+});
+
+/* ── srcset/sizes: which bytes a tile fetches (ISSUE-109) ─────────────────────────────────────────────────── */
+
+test('the served width is parsed from the URL, because the API reports the requested one', () => {
+  // iiurlwidth=480 reports thumbwidth 480 and serves 500px — the descriptor must be the 500.
+  assert.equal(servedThumbWidth('https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/500px-Foo.jpg'), 500);
+  assert.equal(servedThumbWidth('https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2f/Book.pdf/page1-330px-Book.pdf.jpg'), 330);
+  assert.equal(servedThumbWidth('https://example.org/no-width-here.jpg'), null);
+  assert.equal(servedThumbWidth(''), null);
+  assert.equal(servedThumbWidth(undefined), null);
+  assert.equal(cleanMediaUrl('https://x/y.jpg?utm_source=commons.wikimedia.org'), 'https://x/y.jpg');
+});
+
+test('srcset declares the real pixel widths, and gives up when there is nothing to choose', () => {
+  const base = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/250px-Foo.jpg';
+  const two = { '2': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/500px-Foo.jpg' };
+  assert.equal(thumbSrcset(base, two),
+    `${base} 250w, https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/500px-Foo.jpg 500w`);
+  // sorted by width, and de-duplicated when the API hands back the base twice
+  assert.equal(thumbSrcset(base, { '2': base }), '');
+  assert.equal(thumbSrcset(base, {}), '');                      // one candidate is not a choice
+  assert.equal(thumbSrcset(base, { '2': 'not a url' }), '');    // never guess a width
+  assert.equal(thumbSrcset('', two), '');
+  // tracking params are stripped from both candidates
+  assert.equal(thumbSrcset(`${base}?utm_source=x`, { '2': `${two['2']}?utm_campaign=y` }),
+    `${base} 250w, ${two['2']} 500w`);
+});
+
+test('sizes is the slot width the grid will actually produce', () => {
+  // the auto-fill arithmetic: how many min-columns fit, then the leftover split between them
+  // Measured on a real card: `.gallery-grid` carries 2px padding, so the box you measure is 801 while the layout
+  // solves 797 — and that 4px is the difference between a 193px slot and a 194px one. `sizes` must be the content box.
+  assert.equal(slotWidthPx(797, GALLERY_MIN_COLUMN.medium), 193);
+  assert.equal(slotWidthPx(801, GALLERY_MIN_COLUMN.medium), 194);
+  assert.equal(slotWidthPx(551, GALLERY_MIN_COLUMN.small), 132);    // 4 columns of 110+ in a 555px border box
+  assert.equal(slotWidthPx(320, GALLERY_MIN_COLUMN.large), 320);    // one column: the whole width
+  assert.equal(slotWidthPx(0, 170), 0);                             // not measured yet
+  assert.equal(slotWidthPx(NaN, 170), 0);
+  assert.equal(slotWidthPx(200, 0), 0);
+  // a wide card fits more tiles rather than wider ones — the fitting rule the CSS already promised
+  assert.ok(slotWidthPx(1600, 170) < slotWidthPx(900, 170) * 2);
+});
+
+test('the user can ask for fewer bytes, and we listen', () => {
+  const base = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/250px-Foo.jpg';
+  const two = { '2': 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Foo.jpg/500px-Foo.jpg' };
+  assert.equal(thumbSrcsetFor(base, two, { hiDpi: true }), thumbSrcset(base, two));
+  assert.equal(thumbSrcsetFor(base, two, { hiDpi: false }), `${base} 250w`);   // a single candidate, no 2×
+  assert.equal(thumbSrcsetFor('', {}, { hiDpi: true }), '');
+  // the platform's own signals: saveData, or a connection too slow to spend bytes on sharpness
+  assert.equal(allowHiDpi({ connection: { saveData: true, effectiveType: '4g' } }), false);
+  assert.equal(allowHiDpi({ connection: { saveData: false, effectiveType: '2g' } }), false);
+  assert.equal(allowHiDpi({ connection: { saveData: false, effectiveType: '4g' } }), true);
+  assert.equal(allowHiDpi({}), true);        // no Network Information API (Safari, Firefox): default to quality
+  assert.equal(allowHiDpi(null), true);
 });

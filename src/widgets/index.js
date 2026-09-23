@@ -6,6 +6,7 @@
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
+import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
 import {
   fetchDocumentPages,
   fetchIaBook,
@@ -873,9 +874,14 @@ export const WIDGET_TYPES = {
         const maxItems = Math.max(parseInt(config.maxItems) || 0, 0);
         const faithful = order !== 'random' && order !== 'largest';
         const limit = faithful ? Math.max(maxItems || 60, 24) : 500;
-        return fetchCategoryFiles(config.category, { wiki: galleryProject(config, 'category'), order, limit });
+        const baseWidth = GALLERY_BASE_WIDTH[config.iconSize] || GALLERY_BASE_WIDTH.medium;
+        return fetchCategoryFiles(config.category, {
+          wiki: galleryProject(config, 'category'), order, limit, width: baseWidth,
+        });
       }
-      if (source === 'list') return fetchCommonsGallery(config.files);
+      if (source === 'list') {
+        return fetchCommonsGallery(config.files, { width: GALLERY_BASE_WIDTH[config.iconSize] || GALLERY_BASE_WIDTH.medium });
+      }
       // An article: `project` is resolved here rather than in the registry defaults, because a static default
       // cannot depend on the source (and en.wikipedia is the wrong default for a Commons gallery page).
       const p = pageRef({ ...config, project: galleryProject(config, 'article') }, 'article');

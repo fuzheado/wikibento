@@ -27,6 +27,7 @@ import { configFieldValue, fieldVisible } from '../lib/configFields';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
+import { thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, allowHiDpi } from '../lib/imageSrcset';
 import '../vendor/pannellum.css';
 
 /**
@@ -1731,6 +1732,17 @@ function galleryTileClick(data, img, onSelect) {
 
 function GalleryGridCard({ data, onSelect }) {
   const size = data.size || 'medium';
+  const gridRef = useRef(null);
+  const measured = useContentWidth(gridRef);
+  // `sizes` must be the width a tile really occupies: the column maths below is the same one the CSS uses.
+  const slotPx = slotWidthPx(measured, GALLERY_MIN_COLUMN[size] || GALLERY_MIN_COLUMN.medium);
+  // One read of the user's connection preference; the 2× rendition is skipped when they asked for less.
+  const hiDpi = allowHiDpi();
+  const sizes = slotPx ? `${slotPx}px` : undefined;
+  // srcSet and sizes must arrive TOGETHER. With width descriptors and no `sizes`, a browser assumes
+  // 100vw — on a 1500px viewport it fetches the largest candidate, then fetches AGAIN once `sizes`
+  // appears. Measured: 72 requests for 36 tiles, both renditions of every image (2026-09-18). Until
+  // the grid has been measured, the plain `src` — the low candidate — is the honest offer.
   const fit = data.fit || 'contain';
   const rows = data.rows || [];
   const tiles = [];
@@ -1743,7 +1755,15 @@ function GalleryGridCard({ data, onSelect }) {
     tiles.push(
       <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
         onClick={galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
-        <img className="gallery-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" style={{ objectFit: fit }} />
+        {sizes ? (
+  <img className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
+              sizes={sizes} alt={img.caption || img.title} loading="lazy" decoding="async" style={{ objectFit: fit }} />
+        ) : (
+          {/* One frame of empty tile while the grid is measured — `ResizeObserver` runs before paint, so it is
+              not visible. The alternative is worse: an <img> with `src` but no `sizes` yet fetches a rendition the
+              browser then replaces (measured: 63 requests for 36 tiles at DPR2). */}
+          <div className="gallery-thumb" aria-hidden="true" />
+        )}
         {(img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}
       </a>
     );
@@ -1752,12 +1772,34 @@ function GalleryGridCard({ data, onSelect }) {
     <div className="gallery-card">
       <div className="ranking-title" title={data.title}>{data.title}</div>
       <div className="ranking-subtitle">{data.subtitle}</div>
-      <div className={`gallery-grid gallery-${size}`}>
+      <div className={`gallery-grid gallery-${size}`} ref={gridRef}>
         {rows.length === 0 && <div className="widget-empty">{data.emptyText || 'No images found'}</div>}
         {tiles}
       </div>
     </div>
   );
+}
+
+/** Measure an element's CONTENT width (padding excluded) and keep it current.
+ *  `sizes` has to be the width a tile really occupies: the auto-fill column maths runs on the content box, and
+ *  `.gallery-grid` carries 2px of padding — on a real card that decides whether the slot is 193px or 194px. */
+function useContentWidth(ref) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const cs = getComputedStyle(el);
+      const inner = el.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+      setWidth(inner > 0 ? inner : 0);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return width;
 }
 
 /** Article List — clickable rows: optional thumb left, title + intro. */
@@ -1853,7 +1895,8 @@ function GalleryListCard({ data, onSelect }) {
     items.push(
       <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
         onClick={galleryTileClick(data, img, onSelect)}>
-        <img className="gallery-list-thumb" src={img.thumbUrl} alt={img.caption || img.title} loading="lazy" />
+        <img className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
+            sizes="90px" alt={img.caption || img.title} loading="lazy" decoding="async" />
         <div className="gallery-list-body">
           <span className="gallery-list-caption">{img.caption || img.title}</span>
           <span className="gallery-list-file">{img.title}</span>

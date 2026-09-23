@@ -1646,7 +1646,7 @@ function parseTitleList(text) {
  *  Adaptive batching: long filenames (WLM etc.) blow GET URLs (HTTP 414) — chunk by
  *  encoded length, not by count (the same rule as fetchBatchedUsage).
  *  Shape: { title, fileUrl, thumbUrl, caption, width, height } — what the gallery renderers expect. */
-async function fetchFileRows(titles, { apiBase = 'https://commons.wikimedia.org/w/api.php', width = 400 } = {}) {
+async function fetchFileRows(titles, { apiBase = 'https://commons.wikimedia.org/w/api.php', width = 330 } = {}) {
   const rows = [];
   const MAX_ENCODED = 4500;
   let chunk = [];
@@ -1673,6 +1673,9 @@ async function fetchFileRows(titles, { apiBase = 'https://commons.wikimedia.org/
         title: p.title.replace(/^File:/, '').replace(/_/g, ' '),
         fileUrl: `https://commons.wikimedia.org/wiki/${p.title.replace(/ /g, '_')}`,
         thumbUrl: ii.thumburl?.split('?')[0],
+        // The API's sanctioned larger rendition (usually 2×), so the renderer can offer a srcset without string
+        // surgery — see src/lib/imageSrcset.js and docs/THUMBNAILS.md.
+        responsive: ii.responsiveUrls,
         caption: stripHtml(ii.extmetadata?.ImageDescription?.value || ''),
         width: ii.width,
         height: ii.height,
@@ -1692,10 +1695,10 @@ async function fetchFileRows(titles, { apiBase = 'https://commons.wikimedia.org/
   return rows;
 }
 
-export async function fetchCommonsGallery(filesText) {
+export async function fetchCommonsGallery(filesText, { width } = {}) {
   const titles = parseTitleList(filesText).map((t) => t.replace(/^File:\s*/i, '').replace(/ /g, '_'));
   if (!titles.length) throw new Error('Enter at least one Commons file (one per line)');
-  const rows = await fetchFileRows(titles);
+  const rows = await fetchFileRows(titles, { width });
   return { rows, total: titles.length, missing: titles.length - rows.length };
 }
 
@@ -1726,7 +1729,7 @@ export function categoryMemberTitles(d) {
  *     error), and the widget shuffles client-side already, so nothing is lost;
  *   · cmsort=timestamp appears to ignore cmtype (Category: titles came back for a cmtype=file query), so
  *     File: membership is checked by hand as well as by ns. */
-export async function fetchCategoryFiles(categoryText, { wiki = 'commons.wikimedia', order = 'listed', limit = 500 } = {}) {
+export async function fetchCategoryFiles(categoryText, { wiki = 'commons.wikimedia', order = 'listed', limit = 500, width } = {}) {
   const name = cleanCategoryName(categoryText || '');
   if (!name) throw new Error('Enter a category — e.g. "Images from XBio" (the Category: prefix is optional)');
   const apiBase = wikiApiUrl(wiki);
@@ -1763,7 +1766,7 @@ export async function fetchCategoryFiles(categoryText, { wiki = 'commons.wikimed
 
   if (!exists) throw new Error(`No such category on ${wiki}: ${catTitle}`);
   const unique = [...new Set(titles)].slice(0, hardLimit);
-  const rows = await fetchFileRows(unique, { apiBase });
+  const rows = await fetchFileRows(unique, { apiBase, width });
   return {
     rows,
     total: total ?? unique.length,

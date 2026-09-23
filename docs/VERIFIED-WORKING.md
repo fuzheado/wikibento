@@ -42,6 +42,22 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### Gallery thumbnails stopped paying for pixels nobody sees (ISSUE-109, 2026-09-18)
+
+The follow-through on the sibling project's finding: one thumbnail width served every tile, and no `srcset`/`sizes`, so
+the browser had nothing to choose with.
+
+- ✅ **`srcset` from the API's own URLs** plus **`sizes` from the grid's column maths** (content box, because 2px of
+  padding decides 193 vs 194), and a base width per density: `small → 250`, `medium → 330`, `large → 500`.
+- ✅ **1× screens: 2685 KB → 1442 KB (46% less)**, one request per tile, and the small slots render at 250px where a
+  flat 500px used to arrive — 4× fewer pixels. 2× screens now get real retina renditions (500/960) instead of an
+  upscaled 500px: more bytes, and the first time those pixels have been honest. `allowHiDpi()` defers to `saveData`
+  and slow connections.
+- 📌 **Two traps measured the hard way, both now documented.** A `srcset` whose `sizes` arrives a frame later makes the
+  browser assume 100vw and fetch **twice** (72 requests for 36 tiles — worse than no `srcset`), so the grid is measured
+  before the `<img>` mounts. And `encodedBodySize` counts responses served from cache: the first A/B run reported a
+  100% saving because the shared browser cache had the files, and only `transferSize` in a fresh browser told the truth.
+
 ### A sibling project's benchmark found a live bug (ISSUE-108, 2026-09-18)
 
 Andrew asked for a local checkout of `commons-vibe` to be consulted for best practices, mentioning his work on

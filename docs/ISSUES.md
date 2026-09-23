@@ -4992,6 +4992,24 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-109 · Gallery thumbnails fetched one width for every tile — **done + verified 2026-09-18**
+
+The follow-through on ISSUE-108: a gallery requested a single thumbnail width and had no `srcset`/`sizes`, so a 132px
+tile and a 250px tile fetched the same bytes and the browser had no way to choose better.
+
+- **A `srcset` from the API's own URLs** (`thumburl` + `responsiveUrls`, declared by the width each is *served* at —
+  `iiurlwidth=480` reports 480 and serves 500, so descriptors are parsed, never assumed).
+- **`sizes` from the grid's column maths**, measured on the content box, so the browser can pick.
+- **The base width follows the density** — `small → 250`, `medium → 330`, `large → 500` — so the small tiles stop
+  paying for the 500px bucket.
+- **Measured on the 36-tile category demo, network transfer only:** 1× screens **2685 KB → 1442 KB (46% less)**, one
+  request per tile, rendering 250px/330px where a flat 500px used to arrive — **4× fewer pixels** in the small slots.
+  On 2× screens the same board now fetches 2948 KB → 5765 KB, which is the *correct* rendition (500px/960px) rather
+  than an upscaled 500px, and `allowHiDpi()` skips it when the browser reports `saveData` or a `2g` connection.
+- **Two traps, both measured, both now in `docs/THUMBNAILS.md`:** a `srcset` without `sizes` makes the browser assume
+  100vw and fetch twice (72 requests for 36 tiles); and `encodedBodySize` counts cached responses, so an A/B comparison
+  must use `transferSize` in a fresh browser.
+
 ## ISSUE-108 · Zooming a document page thumbnail answered HTTP 400 — **done + verified 2026-09-18**
 
 Found by consulting a sister project rather than by a bug report: Andrew asked for a local checkout of

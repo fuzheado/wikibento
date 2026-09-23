@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-Ty6xHfJm.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **consulted the sister project, and it found a live bug** (ISSUE-108): the paged viewer zoomed on widths that answer HTTP 400 (the pre-rendered ladder is 20/40/60/120/250/330/500/960/1280/1920/3840); `src/lib/thumbWidths.js` now owns the ladder and every step is asserted to exist · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-BKqE0kUG.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **gallery thumbnails stopped paying for pixels nobody sees** (ISSUE-109): a `srcset` from the API's own URLs plus `sizes` from the grid's column maths, and a base width per density (250/330/500) — **46% fewer bytes on 1× screens**, one request per tile, correct retina renditions on 2× · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -158,6 +158,13 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
 
 ## Hard-won gotchas (don't rediscover these)
 
+35. **A `srcset` whose `sizes` arrives a frame later is worse than no `srcset`.** With width descriptors and
+   no `sizes`, the browser assumes 100vw, fetches the largest candidate, then fetches AGAIN once `sizes`
+   appears — measured as 72 requests for 36 tiles, i.e. both renditions of every image. Measure the container
+   before the `<img>` mounts (a `ResizeObserver` runs before paint, so nothing is seen), and always ship
+   `srcset` and `sizes` together. Related measurement trap: `encodedBodySize` counts cache hits, so use
+   `transferSize` in a FRESH browser when comparing before/after — the first attempt reported a 100% saving
+   that was entirely the disk cache.
 34. **`width: 100%` + `aspect-ratio` on an image inside a grid row sized `auto` is a cyclic dependency.**
    The row asks the image its height, the height depends on a column width the row has not decided, and the
    browser falls back to the image's INTRINSIC size — nothing, for a lazy-loaded image — and never re-expands

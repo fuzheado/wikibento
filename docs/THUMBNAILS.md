@@ -50,6 +50,39 @@ step the viewer can offer is asserted to exist.
 That is the whole reason to consult a sibling project: it had already paid for this knowledge in production, and the
 same class of bug was sitting here unverified.
 
+## What was adopted (2026-09-18)
+
+- **`srcset` with width descriptors + `sizes`**, built from the width **served** in the URL (`imageSrcset.servedThumbWidth`)
+  and the API's `responsiveUrls` for the larger rendition — no string surgery. `sizes` comes from the grid's own column
+  maths (`slotWidthPx`), measured on the **content box** (`.gallery-grid` carries 2px of padding, and on a real card
+  that 4px decides whether the slot is 193px or 194px).
+- **The base width now follows the density**: `small → 250`, `medium → 330`, `large → 500` (`GALLERY_BASE_WIDTH`),
+  each paired with what the API returns as its 2× rendition (250→500, 330→960, 500→1280).
+- **`decoding="async"`** alongside the existing `loading="lazy"`.
+
+Measured on the 36-tile category demo, network transfer only, fresh browser per run:
+
+| screen | before | after | rendered at |
+|---|---|---|---|
+| 1× | 2685 KB | **1442 KB** (46% less) | 250px for the ~132px slot, 330px for the ~193px slot (was a flat 500px) |
+| 2× | 2948 KB | 5765 KB | 500px and 960px — **real retina pixels** instead of an upscaled 500px |
+
+The 2× figure is a deliberate trade, not a regression: a retina screen previously received an *upscaled* 500px
+thumbnail, which is cheap and soft. `allowHiDpi()` suppresses the larger rendition when the browser reports `saveData`
+or a `2g` connection — the user asking for fewer bytes is a request to honour, not to argue with.
+
+### Two traps worth knowing
+
+**`srcset` and `sizes` must arrive together.** With width descriptors and no `sizes`, a browser assumes **100vw**: on a
+1500px viewport it fetches the largest candidate, then fetches *again* when `sizes` appears. Measured as 72 requests
+for 36 tiles — both renditions of every image, which is worse than having no `srcset` at all. The grid is therefore
+measured before the `<img>` mounts (`ResizeObserver` runs before paint, so nothing is seen), and a `<div>` holds the
+tile for that frame.
+
+**A browser cache makes A/B measurement lie.** `encodedBodySize` counts a response that came from cache;
+`transferSize` does not, and a shared browser context reuses its disk cache between runs. Compare `transferSize > 0`,
+in a fresh browser per measurement, or the second run reports numbers from the first.
+
 ## What to adopt next (not yet done)
 
 - **`srcset` with width descriptors + `sizes`**, built from the width **served** in the URL (parse `/500px-`, do not
