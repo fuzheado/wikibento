@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-BKqE0kUG.js` (+ `index-5YMsq1dp.css`) |
-| deployed | 2026-09-18 — **gallery thumbnails stopped paying for pixels nobody sees** (ISSUE-109): a `srcset` from the API's own URLs plus `sizes` from the grid's column maths, and a base width per density (250/330/500) — **46% fewer bytes on 1× screens**, one request per tile, correct retina renditions on 2× · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| production bundle | `index-BdEx53B1.js` (+ `index-5YMsq1dp.css`) |
+| deployed | 2026-09-18 — **the ⚙ panel disagreed with the card** (ISSUE-110): the Board Controls *Params* box reads the board's params back through `paramSpecToText`, `configFieldValue` honours the registry defaults (a boolean defaulting to true showed unchecked), and an audit gate sweeps all 41 types · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -158,6 +158,16 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
 
 ## Hard-won gotchas (don't rediscover these)
 
+36. **A field whose box is empty while the card shows data is a lie about the widget.** Two of the ways that
+   happens are invisible in code review: `configFieldValue` not consulting the registry default (so a boolean
+   defaulting to `true` renders CHECKED and shows UNCHECKED), and a value that comes from the BOARD (the
+   Board Controls `spec` is the editor for the dashboard's `params` block, so reading back needs the board's
+   context, not the widget's config). `tests/config-fields.test.mjs` now sweeps every registry field for the
+   first, and asserts the reporter's own board for the second.
+37. **Check that a build produced a NEW asset filename.** A JSX error meant `vite build` had been failing
+   while the tests kept passing; `dist/` still held the previous bundle, so a deploy shipped old code and a
+   whole round of measurements described something that was never served. `npx vite build` is quick — run it
+   and compare the filename in `dist/assets/` before believing any measurement or writing it into HANDOFF.
 35. **A `srcset` whose `sizes` arrives a frame later is worse than no `srcset`.** With width descriptors and
    no `sizes`, the browser assumes 100vw, fetches the largest candidate, then fetches AGAIN once `sizes`
    appears — measured as 72 requests for 36 tiles, i.e. both renditions of every image. Measure the container

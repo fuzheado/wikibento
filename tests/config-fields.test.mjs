@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { configFieldValue, fieldVisible } from '../src/lib/configFields.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { paramSpecToText } from '../src/lib/params.js';
+import { readFileSync } from 'node:fs';
 
 /**
  * What the ⚙ panel shows for a field.
@@ -67,4 +70,51 @@ test('showIf: a source-specific field appears only for its source', () => {
   const both = { key: 'x', showIf: { from: 'category', wiki: 'commons.wikimedia' } };
   assert.equal(fieldVisible(both, { from: 'category', wiki: 'commons.wikimedia' }, defaults), true);
   assert.equal(fieldVisible(both, { from: 'category', wiki: 'en.wikipedia' }, defaults), false);
+});
+
+test('the panel shows the value the card is rendering — the registry default', () => {
+  // The class this guards (2026-09-18): a field left at its default showed an EMPTY box while the card rendered the
+  // default's value. Worst case was boolean: `default: true` (e.g. hideDecorative) rendered checked and showed an
+  // unchecked box, because the input read `!!widget.config[key]` directly. Whatever the card uses is what the box shows.
+  assert.equal(configFieldValue({ key: 'lang' }, {}, { lang: 'en' }), 'en');
+  assert.equal(configFieldValue({ key: 'lang' }, { lang: 'de' }, { lang: 'en' }), 'de');   // a stored value wins
+  assert.equal(configFieldValue({ key: 'hideDecorative' }, {}, { hideDecorative: true }), true);
+  assert.equal(configFieldValue({ key: 'x' }, {}, {}), '');
+  // …and a fallbackValue receives board context, which is how the Board Controls spec box gets filled
+  const withCtx = { key: 'spec', fallbackValue: (c, x) => ((x && x.paramSpecs) ? 'FROM BOARD' : '') };
+  assert.equal(configFieldValue(withCtx, {}, {}, { paramSpecs: { a: 1 } }), 'FROM BOARD');
+  assert.equal(configFieldValue(withCtx, {}, {}, {}), '');
+});
+
+test('AUDIT: no field shows an empty box while the card renders a value', () => {
+  // The systematic version of the bug above — every widget, every field. A field with a registry default must be
+  // visible with that default when nothing is stored; a field with a fallbackValue is exempt because its own logic
+  // decides (presets, board params), and a field with neither is genuinely empty.
+  const missing = [];
+  for (const [type, def] of Object.entries(WIDGET_TYPES)) {
+    for (const field of def.configFields || []) {
+      const want = def.defaults && def.defaults[field.key];
+      if (want === undefined || field.fallbackValue) continue;
+      const shown = configFieldValue(field, {}, def.defaults, {});
+      if (String(shown) !== String(want)) {
+        missing.push(`${type}.${field.key} shows ${JSON.stringify(shown)} but renders ${JSON.stringify(want)}`);
+      }
+    }
+  }
+  assert.deepEqual(missing, []);
+});
+
+test("the reporter's board renders in the panel, not an empty box (ISSUE-110)", () => {
+  // The exact case: `?config=/category-images-demo.json` declares its params in the BOARD's params block, and the
+  // Board Controls spec textarea was empty — the box disagreed with the three buttons on the card. Both halves are
+  // asserted here: the params block renders as spec text, and that text is what the field shows.
+  const board = JSON.parse(readFileSync(`${process.cwd()}/public/category-images-demo.json`, 'utf8'));
+  const spec = paramSpecToText(board.params);
+  assert.ok(spec.includes('category | buttons | Category | Images from XBio, Featured pictures, London'), spec);
+  const control = WIDGET_TYPES.boardControls;
+  const field = control.configFields.find((f) => f.key === 'spec');
+  assert.equal(field.fallbackValue({}, { paramSpecs: board.params }), spec);
+  assert.equal(configFieldValue(field, {}, control.defaults, { paramSpecs: board.params }), spec);
+  // …and a widget that does carry its own spec keeps it (a stored value always wins)
+  assert.equal(configFieldValue(field, { spec: 'mine | text | Mine' }, control.defaults, { paramSpecs: board.params }), 'mine | text | Mine');
 });

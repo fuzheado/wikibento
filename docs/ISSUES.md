@@ -4992,6 +4992,37 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-110 · The ⚙ panel disagreed with the card — **done + verified 2026-09-18**
+
+Andrew, on the category board: the **Board Controls** card showed three buttons, but its ⚙ panel's *Params* box was
+**empty**. *"If this is a bug we should fix it and also audit all our code to make sure these types of rendered vs
+input box discrepancies don't exist."* The audit found one more, and a class behind both.
+
+**The mechanics.** A demo may declare its params in the dashboard JSON's `params` block, and `boardControls` has a
+`spec` textarea that is the *editor* for exactly that block. The **write** path existed (`App.jsx` parses the spec on
+save) — the **read-back** never did, so the box was blank while the card rendered the params. The repo even ships
+`paramSpecToText()`, whose own doc says it exists *"for pre-filling the Board Controls ⚙ textarea"*: the intent was
+there, the wiring was not.
+
+- **Fixed:** `configFieldValue(field, config, defaults, extra)` — a field's `fallbackValue` now receives board context,
+  and `boardControls.spec` renders the board's params through the same parser the save path uses, so the box shows
+  exactly what is driving the board. A stored value still wins, so a hand-edited spec is never hidden.
+- **Fixed, same class:** `configFieldValue` never consulted the **registry defaults**, so every field left at its
+  default showed an empty box while the card rendered the default. Worst case, a **boolean**: `hideDecorative`
+  defaults to `true`, rendered checked, and showed an **unchecked** box (the input read `!!widget.config[key]`).
+- **The audit, as asked.** Every mechanism by which what renders can differ from what the box shows:
+
+  | mechanism | verdict |
+  |---|---|
+  | registry **defaults** | **was broken** → fixed, and gated (a field with a default must show that default) |
+  | **board params** (this report) | **was broken** → fixed, asserted against the reporter's own board |
+  | **presets** (SPARQL `query`) | already fixed (the 2026-08 bug that introduced `fallbackValue`) |
+  | **`{{param}}` / `{{widget:id}}` references** | correct by design: the config *is* a reference and the panel shows it; resolving it in the box would break the wiring |
+  | **lookup params** (ISSUE-99) | already correct: the field displays its resolved page and validation |
+
+  The gate is the durable half: `AUDIT: no field shows an empty box while the card renders a value` sweeps all 41
+  registry types and every field, so the next one of these fails a test instead of waiting for a screenshot.
+
 ## ISSUE-109 · Gallery thumbnails fetched one width for every tile — **done + verified 2026-09-18**
 
 The follow-through on ISSUE-108: a gallery requested a single thumbnail width and had no `srcset`/`sizes`, so a 132px

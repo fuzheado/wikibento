@@ -615,7 +615,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
               {(() => null)()}
               {field.type === 'select' || field.type === 'preset' ? (
                 <select
-                  value={configFieldValue(field, widget.config) || ''}
+                  value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                   onChange={e => { const v = e.target.value; if (field.type === 'preset') { const p = (field.presets || []).find(x => x.id === v); onUpdateConfig(widget.id, { ...widget.config, [field.key]: v, query: p ? p.query : widget.config.query, endpoint: p ? p.endpoint : widget.config.endpoint }); } else { handleConfigChange(field.key, v); } }}
                 >
                   {field.options.map(o => (
@@ -625,7 +625,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
               ) : field.type === 'project' ? (
                 <ProjectField
                   field={field}
-                  value={configFieldValue(field, widget.config) || ''}
+                  value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                   projects={projectList}
                   onChange={(v) => handleConfigChange(field.key, v)}
                 />
@@ -638,7 +638,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   <input
                     className="config-source-input"
                     list={`source-dl-${widget.id}`}
-                    value={configFieldValue(field, widget.config) || ''}
+                    value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                     onChange={(e) => handleConfigChange(field.key, e.target.value)}
                     placeholder="— none — or type an instance id"
                   />
@@ -653,7 +653,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                 </div>
               ) : field.type === 'params' ? (
                 <ParamPicker
-                  value={configFieldValue(field, widget.config) || ''}
+                  value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                   paramSpecs={paramSpecs}
                   onChange={(v) => handleConfigChange(field.key, v)}
                 />
@@ -661,7 +661,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                 <input
                   type="checkbox"
                   className="config-checkbox"
-                  checked={!!widget.config[field.key]}
+                  checked={!!configFieldValue(field, widget.config, def?.defaults, fieldContext)}
                   onChange={e => handleConfigChange(field.key, e.target.checked)}
                 />
               ) : field.type === 'number' ? (
@@ -670,7 +670,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                     type="number"
                     min={field.min}
                     max={field.max}
-                    value={configFieldValue(field, widget.config) || ''}
+                    value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                     onChange={e => handleConfigChange(field.key, parseInt(e.target.value) || 0)}
                     placeholder={field.placeholder}
                   />
@@ -686,7 +686,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                 <div className="config-input-wrap">
                   <textarea
                     ref={(el) => { fieldRefs.current[field.key] = el; }}
-                    value={configFieldValue(field, widget.config) || ''}
+                    value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                     onChange={e => handleConfigChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
                     rows={field.rows || 6}
@@ -698,7 +698,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   <input
                     type="text"
                     ref={(el) => { fieldRefs.current[field.key] = el; }}
-                    value={configFieldValue(field, widget.config) || ''}
+                    value={configFieldValue(field, widget.config, def?.defaults, fieldContext) || ''}
                     onChange={e => handleConfigChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
                   />
@@ -1759,9 +1759,9 @@ function GalleryGridCard({ data, onSelect }) {
   <img className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
               sizes={sizes} alt={img.caption || img.title} loading="lazy" decoding="async" style={{ objectFit: fit }} />
         ) : (
-          {/* One frame of empty tile while the grid is measured — `ResizeObserver` runs before paint, so it is
-              not visible. The alternative is worse: an <img> with `src` but no `sizes` yet fetches a rendition the
-              browser then replaces (measured: 63 requests for 36 tiles at DPR2). */}
+          // One frame of empty tile while the grid is measured — `ResizeObserver` runs before paint, so it is not
+          // visible. The alternative is worse: an <img> with `src` but no `sizes` yet fetches a rendition the
+          // browser then replaces (measured: 63 requests for 36 tiles at DPR2).
           <div className="gallery-thumb" aria-hidden="true" />
         )}
         {(img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}

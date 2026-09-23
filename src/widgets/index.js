@@ -4,7 +4,7 @@
  */
 
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
-import { stringifyOutput } from '../lib/params';
+import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
 import {
@@ -1318,7 +1318,11 @@ export const WIDGET_TYPES = {
     dataSource: 'static (writes board params — edited here or in the dashboard JSON params block)',
     configFields: [
       { key: 'title', label: 'Title', type: 'text', placeholder: 'Board Controls' },
-      { key: 'spec', label: 'Params (one per line: name | type | Label | options)', type: 'textarea', rows: 6, placeholder: 'category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\ncount | number | Photos | 3, 12, 1\nmonth | month | Data month\nyear | select | Year | 2023, 2024\ninstitution | lookup | Institution | cim-category', hint: 'One param per line — name | type | Label | options. Types: buttons/select/text/number/month/lookup. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). lookup (ISSUE-68): a validated combobox — the 4th field is the option SOURCE (cim-category, commons-category, commons-file, article, wikidata-item), so the value is suggested and checked against live Wikimedia data. Saving updates the board params; widgets referencing {{name}} re-fetch.' },
+      { key: 'spec', label: 'Params (one per line: name | type | Label | options)', type: 'textarea', rows: 6, placeholder: 'category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\ncount | number | Photos | 3, 12, 1\nmonth | month | Data month\nyear | select | Year | 2023, 2024\ninstitution | lookup | Institution | cim-category', hint: 'One param per line — name | type | Label | options. Types: buttons/select/text/number/month/lookup. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). lookup (ISSUE-68): a validated combobox — the 4th field is the option SOURCE (cim-category, commons-category, commons-file, article, wikidata-item), so the value is suggested and checked against live Wikimedia data. Saving updates the board params; widgets referencing {{name}} re-fetch.',
+          // A demo (or an import) may declare its params in the dashboard JSON instead of here. `paramSpecToText` is
+          // the inverse of the parser the App applies on save, so this box shows what is actually driving the board,
+          // and editing it still writes back through App.jsx. Before this the box was simply empty.
+          fallbackValue: (config, extra) => paramSpecToText(extra && extra.paramSpecs) || '' },
       { key: 'show', label: 'Params on this widget', type: 'params', hint: 'Only the checked params render here — lets you split controls across widgets (one for the article, one for the language). None checked = every board param.' },
     ],
     // Static — the spec (params block) + values + setter arrive as WidgetFrame props;

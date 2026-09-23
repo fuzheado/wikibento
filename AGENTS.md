@@ -38,8 +38,11 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   It names the file that disagrees. Count claims are duplicated across ~22 sources and must move together.
 - A new `public/*-demo.json` must be linked from **both** the README demo table and the hub text in
   `public/demos.json`.
-- Read the real asset filename from `dist/assets/` before writing it into HANDOFF's "production bundle" row — a stale
-  name fails the live check.
+- **After `npx vite build`, confirm the asset filename CHANGED.** A failing app build leaves the previous `dist/` in
+  place, so a deploy ships old code and a browser sweep will cheerfully verify it — the tests were passing while the
+  app build was broken, and a whole round of measurements described a bundle that was never served. Read the real
+  filename from `dist/assets/` before writing it into HANDOFF's "production bundle" row; a stale name fails the live
+  check, and that check is the only cheap proof a build happened.
 
 ## Where things are
 

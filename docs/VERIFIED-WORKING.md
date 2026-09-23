@@ -42,6 +42,26 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### The panel disagreed with the card (ISSUE-110, 2026-09-18)
+
+A Board Controls card showed three buttons; its ⚙ *Params* box was empty. The write path existed — `App.jsx` parses
+that spec into the board's params — but nothing ever read the board's params *back* into the box, and the panel did not
+consult registry defaults either.
+
+- ✅ `configFieldValue(field, config, defaults, extra)` — a `fallbackValue` can now read board context, and the registry
+  **default** is shown when nothing is stored. `boardControls.spec` uses the repo's own `paramSpecToText()`, the
+  inverse of the parser the save path applies, so the box and the card cannot disagree.
+- ✅ **A boolean bug of the same class**: `hideDecorative` defaults to `true`, rendered checked, and displayed an
+  unchecked box, because the input read `!!widget.config[key]` instead of the resolved value.
+- ✅ **The audit the report asked for** — five mechanisms, of which two were broken (defaults, board params), one was
+  already fixed (presets), and two are correct by design (references; lookup resolution). The gate sweeps all 41 types
+  and every field: a field with a registry default must show that default when nothing is stored.
+- 📌 **A process failure worth recording.** While fixing this I found my own **app build had been failing** (a JSX
+  comment in a ternary branch is not an expression), and because I had been grepping only the *test* summary, `dist/`
+  was **stale** — so an earlier deploy shipped the previous bundle while I reported new numbers for it. The build now
+  gets checked for a **new asset filename**, which is the only cheap proof that a build happened at all. That check is
+  in `AGENTS.md` with the rest of the pre-flight gates.
+
 ### Gallery thumbnails stopped paying for pixels nobody sees (ISSUE-109, 2026-09-18)
 
 The follow-through on the sibling project's finding: one thumbnail width served every tile, and no `srcset`/`sizes`, so
