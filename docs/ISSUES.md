@@ -4992,6 +4992,39 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-111 · The SPARQL default query was unusable — **done + verified 2026-09-18**
+
+Andrew: *"When I add a SPARQL query card, the default sample query is very intensive and takes a long time — can we
+make it a simpler and safer query."* A new card opened on the `met-collection` preset:
+
+```sparql
+SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE { ?item wdt:P195 wd:Q160236 . }
+```
+
+That counts **every** item in the Met's collection. Measured against WDQS on 2026-09-18 (descriptive UA, paced):
+
+| query | time | rows |
+|---|---|---|
+| trivial control | 1.8 s | 1 |
+| **the default: every Met item** | **>75 s — the client gave up (HTTP 000)** | — |
+| the same narrowed to *paintings only* | **41 s** | 1 |
+| one item's statements (`wd:Q42`) | 3.6 s | 60 |
+| **Nobel laureates by country** (the new default) | **2.9 s** | 12 |
+
+So it is not a matter of tuning: **an aggregate over an entire collection is the one shape WDQS cannot answer
+quickly**, and the narrowing people reach for first (`wdt:P31` a type) does not rescue it.
+
+- **The default is now `laureates-by-country`** — anchored on ONE award item (`wd:Q38104`) instead of a collection,
+  with `LIMIT 12` on the group-by: bounded twice, and therefore safe however large Wikidata grows.
+- **Heavy presets are marked, not hidden.** `met-collection` and `multi-institution` carry `cost: 'slow'`, the ⚙
+  preset list shows them as *"— slow, may take a minute"*, and each query now **begins with a `# SLOW:` comment
+  inside its own text**, where the reader actually is, with the narrowing to try.
+- **A test states the rule**: the default preset may not be marked slow, must carry a `LIMIT`, and every slow preset
+  must warn in its own query text. A prose rule is not a check — and this bug existed because "it runs in seconds"
+  was written in the preset file's header comment about two *other* presets, while the default was never timed.
+- **The showcase catalog was carrying the slow preset too** (`multi-institution`), which is very likely what has been
+  throttling WDQS during browser sweeps; it now uses the measured-fast query.
+
 ## ISSUE-110 · The ⚙ panel disagreed with the card — **done + verified 2026-09-18**
 
 Andrew, on the category board: the **Board Controls** card showed three buttons, but its ⚙ panel's *Params* box was

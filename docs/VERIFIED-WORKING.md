@@ -42,6 +42,23 @@ three widgets were named after their *source* rather than what they are: a galle
   `dataSources.js` and never imported into the registry, so **every render of the widget threw a ReferenceError**.
   The tests had passed because none of them ever *called* `labelFromConfig`; one now does, for every source.
 
+### The SPARQL default was a query that cannot finish (ISSUE-111, 2026-09-18)
+
+A new SPARQL card opened on a `COUNT(DISTINCT ?item)` over every item in the Met's collection. Measured: **>75 s, the
+client gave up** — and narrowing it to paintings only still took 41 s. Replaced with `laureates-by-country`
+(2.9 s, 12 rows, a big number plus a bar chart), which is bounded twice: one anchored award item, one `LIMIT` on the
+group-by.
+
+- ✅ Heavy presets are **marked** (`cost: 'slow'` → shown in the ⚙ list) and **warn inside their own query text**
+  (`# SLOW: … NARROW IT before running, e.g. add a type`), which is where a reader of the query actually is.
+- ✅ A test states the rule: not-slow default, a `LIMIT` in it, and a `# SLOW` warning in every slow preset.
+- 📌 **The lesson is about the shape of the mistake:** the preset file's header asserted "P1/P2 run on WDQS (CORS *,
+  seconds)" about *two other* presets, and the default — added later — was never timed. A documented measurement of
+  one thing is not a measurement of the thing next to it, and the card's own `loadingHint` ("may take up to 60 s")
+  quietly normalised a default that could not finish in that budget.
+- 📌 The showcase catalog was selecting the slow preset, which is very likely what has been throttling WDQS during
+  browser sweeps (the sweep has carried a "WDQS throttling" note for weeks).
+
 ### The panel disagreed with the card (ISSUE-110, 2026-09-18)
 
 A Board Controls card showed three buttons; its ⚙ *Params* box was empty. The write path existed — `App.jsx` parses

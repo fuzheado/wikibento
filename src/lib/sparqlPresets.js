@@ -31,10 +31,34 @@ export const SPARQL_ENDPOINTS = {
 
 export const SPARQL_PRESETS = [
   {
+    id: 'laureates-by-country',
+    label: 'Nobel laureates by country',
+    endpoint: 'wdqs',
+    // The DEFAULT, and the reason is measured (2026-09-18): 2.9 s and 12 rows — a number and a bar chart, which is
+    // what a dashboard card is for. It is bounded twice over, and that is what makes it safe: anchored on ONE award
+    // item (wd:Q38104 — the Nobel Prize) rather than on a collection, and a LIMIT on the group-by. A query that
+    // counts an entire collection takes a minute or dies (see met-collection); this one cannot, however large
+    // Wikidata grows.
+    query: `SELECT ?country ?countryLabel (COUNT(DISTINCT ?item) AS ?count) WHERE {
+    ?item wdt:P166 wd:Q38104 ;   # award received = Nobel Prize
+          wdt:P27  ?country .    # country of citizenship
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+  }
+  GROUP BY ?country ?countryLabel
+  ORDER BY DESC(?count)
+  LIMIT 12`,
+  },
+  {
     id: 'met-collection',
     label: 'Collection depth (Met)',
     endpoint: 'wdqs',
-    query: `SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {
+    // Measured 2026-09-18: an aggregate over an entire collection is the one shape WDQS cannot
+    // answer quickly (>75 s, client gave up; narrowing to paintings only still took 41 s). Kept because it
+    // answers a real question, marked slow, and never the default.
+    cost: 'slow',
+    query: `# SLOW: counts every item in the Met's collection — expect a minute or a timeout on WDQS. NARROW IT before running, e.g. add a type:
+  #   ?item wdt:P31 wd:Q3305213 .
+  SELECT (COUNT(DISTINCT ?item) AS ?count) WHERE {
   ?item wdt:P195 wd:Q160236 .
 }`,
   },
@@ -42,7 +66,13 @@ export const SPARQL_PRESETS = [
     id: 'multi-institution',
     label: 'Collection depth — multiple institutions',
     endpoint: 'wdqs',
-    query: `SELECT ?institution ?institutionLabel (COUNT(DISTINCT ?item) AS ?count) WHERE {
+    // Measured 2026-09-18: an aggregate over an entire collection is the one shape WDQS cannot
+    // answer quickly (>75 s, client gave up; narrowing to paintings only still took 41 s). Kept because it
+    // answers a real question, marked slow, and never the default.
+    cost: 'slow',
+    query: `# SLOW: scans four collections at once — expect a minute or a timeout on WDQS. NARROW IT before running, e.g. add a type:
+  #   ?item wdt:P31 wd:Q3305213 .
+  SELECT ?institution ?institutionLabel (COUNT(DISTINCT ?item) AS ?count) WHERE {
   VALUES ?institution { wd:Q160236 wd:Q190804 wd:Q6373 wd:Q131626 }
   ?item wdt:P195 ?institution .
   SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }

@@ -9,6 +9,8 @@
  * (?x + ?xLabel) are left untouched, and the default (no opts) keeps the
  * legacy raw-QID behavior.
  */
+import { SPARQL_PRESETS, getPreset } from '../src/lib/sparqlPresets.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -344,4 +346,26 @@ test('fetchSparql + resolveLabels: label API failure never fails the query', asy
   assert.equal(out.rows[1].depicts, 'Q88888');
   assert.equal(out.rows[0].count, 100);
   assert.equal(out.rows.length, 2);
+});
+
+test('the SPARQL default is a query that cannot become slow (ISSUE-111)', () => {
+  // A new card used to open on `met-collection`: count every item in the Met's collection. Measured 2026-09-18 that is
+  // >75 s (the client gave up) — and narrowing it to paintings only still took 41 s. So the default is now BOUNDED
+  // TWICE (anchored on one award item, with a LIMIT on the group-by): 2.9 s, 12 rows, and it stays fast however large
+  // Wikidata grows. The rule below is the general form: a preset marked `cost: 'slow'` may never be the default, and
+  // the default must carry a LIMIT.
+  const def = WIDGET_TYPES.sparql;
+  const defPreset = getPreset(def.defaults.preset);
+  assert.ok(defPreset, `default preset ${def.defaults.preset} exists`);
+  assert.notEqual(defPreset.cost, 'slow', 'the default preset must not be marked slow');
+  assert.match(defPreset.query, /LIMIT\s+\d+/i, 'the default query must be bounded');
+  // every preset is labelled, has an endpoint, and (except Humaniki, which is an API) a query
+  for (const p of SPARQL_PRESETS) {
+    assert.ok(p.id && p.label && p.endpoint, `preset ${p.id} is complete`);
+    if (p.endpoint !== 'humaniki') assert.ok(p.query && p.query.trim().length > 20, `preset ${p.id} has a query`);
+  }
+  // a slow preset must say so in its query text, where the reader is, not only in a label
+  for (const p of SPARQL_PRESETS.filter((x) => x.cost === 'slow')) {
+    assert.match(p.query.trimStart(), /^#\s*SLOW/i, `${p.id} warns in its own text`);
+  }
 });

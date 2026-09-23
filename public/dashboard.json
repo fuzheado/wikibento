@@ -191,7 +191,7 @@
       "id": "sparql",
       "widgetType": "sparql",
       "config": {
-        "preset": "multi-institution",
+        "preset": "laureates-by-country",
         "query": "",
         "endpoint": "wdqs",
         "renderer": "auto",

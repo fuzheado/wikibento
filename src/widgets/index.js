@@ -1562,7 +1562,7 @@ export const WIDGET_TYPES = {
     // where the frame's own title bar is hidden.
     labelFromConfig: (c) => (c.title || getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
     defaults: {
-      preset: 'met-collection',
+      preset: 'laureates-by-country',   // measured 2.9 s / 12 rows (2026-09-18); never a full-collection aggregate
       query: '',
       endpoint: 'wdqs',      // 'wdqs' | 'qlever-commons' | 'humaniki'
       renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table'
@@ -1577,7 +1577,7 @@ export const WIDGET_TYPES = {
     dataSource: 'WDQS / QLever SPARQL + Humaniki API',
     configFields: [
       { key: 'preset', label: 'Preset (fills the query)', type: 'preset',
-        options: SPARQL_PRESETS.map((p) => ({ value: p.id, label: p.label })),
+        options: SPARQL_PRESETS.map((p) => ({ value: p.id, label: p.cost === 'slow' ? `${p.label} — slow, may take a minute` : p.label })),
         presets: SPARQL_PRESETS },
       { key: 'query', label: 'SPARQL query', type: 'textarea', rows: 10, placeholder: 'SELECT ...',
         // Boards store a preset, not its query (so editing a preset upstream still reaches them), which
