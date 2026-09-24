@@ -11,6 +11,15 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
+## `wikibento-2026-09-24-pick-wiki-page.png` — a pick that used to be refused (ISSUE-118)
+
+![The spawned Wiki Page card rendering Ada Lovelace](screenshots/wikibento-2026-09-24-pick-wiki-page.png)
+
+Armed **Wiki Page**, clicked *Ada Lovelace* in an article list: the card the click placed renders the real Wikipedia
+page. Until 2026-09-24 this was refused — *"Wiki Page does not take a article"* — because the kind gate compared
+`article` and `page` as labels, when `paramSources.js` defines the first as the main namespace and the second as the
+wider set containing it.
+
 ## `wikibento-2026-09-24-pick-mode-menu.png` — the pick menu (ISSUE-114)
 
 ![The pick menu, grouped by what each type consumes](screenshots/wikibento-2026-09-24-pick-mode-menu.png)

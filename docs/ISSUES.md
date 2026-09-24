@@ -4992,6 +4992,30 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-118 · Pick mode refused an article for a Wiki Page brush — **done + verified 2026-09-24** (reported by Andrew)
+
+> **The report.** Armed **Wiki Page**, clicked an article in an article list, got *"Wiki Page does not take a article"*.
+>
+> **Two faults, and the grammar was the smaller one.**
+> 1. **The vocabulary is a hierarchy, implemented as a set of labels.** `paramSources.js` defines `article` as the main
+>    namespace and `page` as the wider set a page lookup covers — so an article **is** a page, and the Wiki Page widget
+>    had always been able to render one. `brushConfig` and `alreadyPlaced` compared `kind` for equality, so a legitimate
+>    pick was refused. `KIND_SUPERSET = { article: ['page'] }` and `kindsAccepting(kind)` now answer "can this widget
+>    accept a thing of that kind?", one-way on purpose: a page is not necessarily an article, so a `Category:` value
+>    still will not fill an article-only field (both directions are asserted).
+> 2. **The message read wrong**: "does not take a article". `aOrAn()` fixes the article, and the refusal now says what
+>    to arm instead — *"…does not take a Commons file — it takes an article, a gallery page, a category or a Commons
+>    file"* (`acceptedKindsLabel(def)`), which is a sentence someone can act on.
+>
+> **Verified** by the acceptance script, 19/19 in the built app, with the reported case as its own check: with Wiki Page
+> armed, an article row spawns a card (`47 → 48`, "🖌 Added Wiki Page: Ada Lovelace"). The justification for allowing it
+> was not assumed either: the spawned card was watched in the browser and renders the **real Ada Lovelace page**
+> (Wikipedia's own header and title) with no error state and no page errors —
+> `docs/screenshots/wikibento-2026-09-24-pick-wiki-page.png`.
+>
+> **The durable rule** (now in AGENTS.md): a kind is not a label, it is a position in a small hierarchy — ask what a
+> widget *accepts* before refusing.
+
 ## ISSUE-117 · Pick mode refused the second item of the same kind — **done + verified 2026-09-24** (reported by Andrew)
 
 > **The report.** With the Gallery brush armed: click an article, a card appears; click a second article and nothing

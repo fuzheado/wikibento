@@ -62,6 +62,10 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   `scripts/smoke-built.mjs` compare the newest `src/` mtime with the newest `dist/assets/` one and exit with a reason if
   the build is older. Twice on 2026-09-24 a fixed feature *measured* as broken because of this; the doc line below did
   not prevent it, so the check is mechanical now.
+**A kind is not a label, it is a position in a hierarchy.** `article` is the main namespace and `page` is the wider
+  set, so an article is also a page; comparing the two labels for equality refused a pick that would have worked
+  (ISSUE-118). `KIND_SUPERSET` / `kindsAccepting()` in `lib/pickMode.js` answer "does this widget accept a thing of
+  that kind?" — ask that before refusing.
 - **A browser check that needs a board no demo has should paste it through the app's own ⬆ Import panel.**
   `scripts/pick-mode-e2e.mjs` builds a small board from `public/dashboard.json` (so it cannot drift), fills
   `.import-textarea`, and clicks Import — no scratch file. A file in `public/` trips the demos gate, and a file in

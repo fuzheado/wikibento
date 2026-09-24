@@ -14,7 +14,7 @@ import { fetchProjectList } from './widgets/dataSources';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES, widgetDef } from './widgets';
-import { brushConfig, alreadyPlaced, KIND_LABELS } from './lib/pickMode.js';
+import { brushConfig, alreadyPlaced, KIND_LABELS, aOrAn, acceptedKindsLabel } from './lib/pickMode.js';
 import { printTarget, armBoardPrint, disarmPrint } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
@@ -567,7 +567,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     const config = def && brushConfig(def, item.kind, item.value, { project: item.project });
     if (!config) {
       // The brush's kind does not match the thing that was clicked (an article brush, a Commons file clicked).
-      setAssemblyToast({ message: `🖌 ${def?.name || pickBrush} does not take a ${KIND_LABELS[item.kind] || item.kind}`, error: true });
+      // Say what to arm instead: "does not take an article — it takes a wiki page" is a sentence someone can act on.
+      setAssemblyToast({ message: `🖌 ${def?.name || pickBrush} does not take ${aOrAn(KIND_LABELS[item.kind] || item.kind)} — it takes ${acceptedKindsLabel(def)}`, error: true });
       return;
     }
     // Clicking the same row twice should focus what is there, not make a twin.

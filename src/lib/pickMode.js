@@ -10,6 +10,35 @@
  */
 import { fieldVisible } from './configFields.js';
 
+/**
+ * Which kinds a thing of each kind can also satisfy — the vocabulary is a small hierarchy, not a set of labels.
+ *
+ * `paramSources.js` defines `article` as the main namespace and `page` as the namespaces a page lookup covers, so an
+ * article **is** a page and a Wiki Page widget renders one happily. Comparing the labels for equality made that a
+ * refusal: Andrew armed "Wiki Page", clicked an article in an article list, and got "Wiki Page does not take a
+ * article" (2026-09-24). The relation is one-way on purpose — a page is not necessarily an article, so a page value
+ * still won't fill an `article` field.
+ */
+export const KIND_SUPERSET = { article: ['page'] };
+
+/** The kinds that can accept a thing of this kind: itself, plus the broader kinds it belongs to. */
+export function kindsAccepting(kind) {
+  return [kind, ...(KIND_SUPERSET[kind] || [])];
+}
+
+/** "an article", "a wiki page" — for messages that read like sentences. Vowel-letter based, which is enough here. */
+export function aOrAn(word) {
+  return `${/^[aeiou]/i.test(String(word)) ? 'an' : 'a'} ${word}`;
+}
+
+/** What a widget accepts, in words: "an article", or "an article, a wiki page or a Commons file". */
+export function acceptedKindsLabel(def) {
+  const labels = [...new Set(kindFields(def).map((k) => KIND_LABELS[k.kind] || k.kind))];
+  if (!labels.length) return 'nothing';
+  if (labels.length === 1) return aOrAn(labels[0]);
+  return `${labels.slice(0, -1).map(aOrAn).join(', ')} or ${aOrAn(labels[labels.length - 1])}`;
+}
+
 /** Kinds a field may declare — the ids `paramSources.js` can validate. */
 export const KIND_IDS = ['article', 'page', 'commons-file', 'commons-category', 'commons-gallery', 'wikidata-item', 'cim-category'];
 
@@ -128,7 +157,8 @@ export function typesForKind(kind, registry = {}) {
  * while fixing the false-twin bug below (2026-09-24).
  */
 export function brushConfig(def, kind, value, { project } = {}) {
-  const field = kindFields(def).find((k) => k.kind === kind)?.field;
+  const accepting = kindsAccepting(kind);
+  const field = kindFields(def).find((k) => accepting.includes(k.kind))?.field;
   if (!field) return null;
   const config = { ...(def?.defaults || {}) };
   for (const [selector, want] of Object.entries(field.showIf || {})) {
@@ -160,7 +190,8 @@ export function brushConfig(def, kind, value, { project } = {}) {
  * pictures" while its source is an article — look like a duplicate of a category you are only now picking.
  */
 export function alreadyPlaced(def, widgets, widgetType, config, kind) {
-  const field = kindFields(def).find((k) => k.kind === kind)?.field;
+  const accepting = kindsAccepting(kind);
+  const field = kindFields(def).find((k) => accepting.includes(k.kind))?.field;
   if (!field) return false;                              // this kind cannot be placed by this widget at all
   if (!fieldVisible(field, config, def?.defaults)) return false;
   const value = String(config?.[field.key] ?? '');

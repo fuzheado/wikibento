@@ -4,7 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { KIND_IDS, kindFields, brushableTypes, typesForKind, brushConfig, alreadyPlaced } from '../src/lib/pickMode.js';
-import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS, minimalConfig } from '../src/lib/pickMode.js';
+import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS, minimalConfig, aOrAn, acceptedKindsLabel, kindsAccepting } from '../src/lib/pickMode.js';
 const registry = WIDGET_TYPES;
 
 /**
@@ -170,4 +170,29 @@ test('a spawned config carries only what the card reads', () => {
 
 test('minimalConfig keeps keys it does not recognise', () => {
   assert.equal(minimalConfig(WIDGET_TYPES.gallery, { from: 'article', article: 'X', somethingNew: 1 }).somethingNew, 1);
+});
+
+// Reported by Andrew, 2026-09-24: "Wiki Page does not take a article" when clicking an article in an article list.
+// Two faults, and the grammar was the smaller one. `article` is the main namespace and `page` is the wider set, so an
+// article IS a page: the gate was comparing labels instead of asking whether the widget accepts a thing of that kind.
+test('an article is also a page — the vocabulary is a hierarchy', () => {
+  const wp = WIDGET_TYPES.wikiPage;                 // its field `page` declares kind 'page'
+  const cfg = brushConfig(wp, 'article', 'Hunter Museum of American Art', { project: 'en.wikipedia' });
+  assert.ok(cfg, 'an article must be placeable in a widget that takes a page');
+  assert.equal(cfg.page, 'Hunter Museum of American Art');
+  assert.equal(cfg.project, 'en.wikipedia');
+  assert.equal(alreadyPlaced(wp, [{ id: 'w1', widgetType: 'wikiPage', config: cfg }], 'wikiPage', cfg, 'article'), true);
+  // One-way: a page is not necessarily an article, so a page still will not fill an article-only field.
+  assert.equal(brushConfig(WIDGET_TYPES.pageviews, 'page', 'Category:Physicists'), null);
+  assert.equal(brushConfig(WIDGET_TYPES.pageviews, 'article', 'Marie Curie')?.article, 'Marie Curie');
+});
+
+test('the refusal message reads like a sentence, and says what to arm instead', () => {
+  assert.equal(aOrAn('article'), 'an article');
+  assert.equal(aOrAn('Commons file'), 'a Commons file');
+  assert.equal(aOrAn('wiki page'), 'a wiki page');
+  assert.equal(acceptedKindsLabel(WIDGET_TYPES.wikiPage), 'a wiki page');
+  assert.equal(acceptedKindsLabel(WIDGET_TYPES.excerpt), 'an article');
+  const gallery = acceptedKindsLabel(WIDGET_TYPES.gallery);
+  assert.ok(/^an article, .+ or a Commons file$/.test(gallery), `gallery reads "${gallery}"`);
 });

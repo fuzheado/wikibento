@@ -283,6 +283,19 @@ try {
   } else bad('no .cim-top-file on this board');
   await page.screenshot({ path: '/tmp/pick-publishers.png' });
 
+  // 2d. The reported case (Andrew, 2026-09-24): "Wiki Page does not take a article". `article` is the main namespace
+  // and `page` the wider set, so an article IS a page — the gate compared labels instead of asking what a widget
+  // accepts. A Wiki Page card must now be placeable from an article row.
+  await arm(page, 'Wiki Page');
+  const w0 = await cards(page);
+  await row.click();
+  await page.waitForTimeout(1800);
+  const w1 = await cards(page);
+  const wmsg = await toast(page);
+  (w1 === w0 + 1 && !/does not take/.test(wmsg))
+    ? ok(`a Wiki Page card spawns from an article row (${w0} → ${w1}): "${wmsg}"`)
+    : bad(`Wiki Page from an article row: ${w0} → ${w1}, toast "${wmsg}"`);
+
   // ── the Commons-file half, on a board that is mostly galleries ────────────────────────────────────────────
   const gp = await freshPage();
   await gp.goto(`${base}/?config=/gallery-demo.json`, { waitUntil: 'domcontentloaded' });
