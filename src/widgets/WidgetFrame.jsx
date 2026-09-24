@@ -30,6 +30,7 @@ import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, 
 import { printTarget } from '../lib/print';
 import { thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, allowHiDpi } from '../lib/imageSrcset';
 import '../vendor/pannellum.css';
+import { projectFromUrl } from '../lib/pickMode.js';
 
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
@@ -197,7 +198,7 @@ function ExportMenu({ node, type, data, title, widgetId }) {
   );
 }
 
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput, picking, onPickItem }) {
   // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
   // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's rule).
   const def = widgetDef(widget.widgetType);
@@ -812,7 +813,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         )}
         {state.data && !state.loading && (
   <>
-    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} projects={projectList} />
+    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} picking={picking} onPickItem={onPickItem} projects={projectList} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
         ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(resolvedConfig.refreshSeconds)}
@@ -825,7 +826,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   );
 }
 
-function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, projects }) {
+function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, projects, picking, onPickItem }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
     case 'RankingCard': return <RankingCard data={data} />;
@@ -841,10 +842,10 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'TranslateCard': return <TranslateCard data={data} />;
     case 'QualityCard': return <QualityCard data={data} />;
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
-    case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} />;
-    case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} />;
+    case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
+    case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
-    case 'ArticleListCard': return <ArticleListCard data={data} />;
+    case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
 
     case 'ListSourceCard': return <ListSourceCard data={data} />;
     case 'EchoCard': return <EchoCard data={data} />;
@@ -1738,7 +1739,16 @@ function galleryTileClick(data, img, onSelect) {
   };
 }
 
-function GalleryGridCard({ data, onSelect }) {
+function pickClick(item, onPickItem) {
+  // A modifier-click is a reader asking the browser for a new tab: let it through even while picking.
+  return (event) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();                        // picking replaces the link, it does not follow it
+    onPickItem(item);
+  };
+}
+
+function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
   const size = data.size || 'medium';
   const gridRef = useRef(null);
   const measured = useContentWidth(gridRef);
@@ -1762,7 +1772,7 @@ function GalleryGridCard({ data, onSelect }) {
     }
     tiles.push(
       <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
-        onClick={galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
+        onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
         {sizes ? (
   <img className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
               sizes={sizes} alt={img.caption || img.title} loading="lazy" decoding="async" style={{ objectFit: fit }} />
@@ -1811,7 +1821,7 @@ function useContentWidth(ref) {
 }
 
 /** Article List — clickable rows: optional thumb left, title + intro. */
-function ArticleListCard({ data }) {
+function ArticleListCard({ data, picking, onPickItem }) {
   const rows = data.rows || [];
   return (
     <div className="article-list-card">
@@ -1820,7 +1830,8 @@ function ArticleListCard({ data }) {
       <div className="ranking-rows">
         {rows.length === 0 && <div className="widget-empty">No articles</div>}
         {rows.map((r) => (
-          <a key={r.title} className="article-list-row" href={r.pageUrl} target="_blank" rel="noopener noreferrer" title={r.title}>
+          <a key={r.title} className="article-list-row" href={r.pageUrl} target="_blank" rel="noopener noreferrer" title={r.title}
+            onClick={picking ? pickClick({ kind: 'article', value: r.title, label: r.title, project: projectFromUrl(r.pageUrl) }, onPickItem) : undefined}>
             {r.thumbUrl && <img className="article-list-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
             <span className="article-list-body">
               <span className="article-list-title">{r.title}</span>
@@ -1891,7 +1902,7 @@ function EchoCard({ data }) {
 
 /** Article Gallery — list rows: thumb left, caption right.
  *  Grouped mode inserts a group header at each group boundary. */
-function GalleryListCard({ data, onSelect }) {
+function GalleryListCard({ data, onSelect, picking, onPickItem }) {
   const rows = data.rows || [];
   const items = [];
   for (let i = 0; i < rows.length; i++) {
@@ -1902,7 +1913,7 @@ function GalleryListCard({ data, onSelect }) {
     }
     items.push(
       <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
-        onClick={galleryTileClick(data, img, onSelect)}>
+        onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)}>
         <img className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes="90px" alt={img.caption || img.title} loading="lazy" decoding="async" />
         <div className="gallery-list-body">

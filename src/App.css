@@ -2962,3 +2962,91 @@ body[data-print-mode='document'] .react-grid-layout {
 .settings-mini { margin-left: auto; }
 .settings-mini:hover, .settings-clear:hover { color: var(--text); border-color: var(--accent); }
 .settings-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+
+/* ── ISSUE-114 · Pick mode ("shop and pick") ───────────────────────────────────────────────────────────
+   The brush lives in the header; while it is armed the pointer becomes a crosshair and everything that can be
+   picked says so with a dashed outline, so the mode is legible without a modal. Cards keep their ordinary look —
+   this is the same board, with one extra verb available. */
+.app.picking,
+.app.picking .gallery-item,
+.app.picking .gallery-list-item,
+.app.picking .article-list-row {
+  cursor: crosshair;
+}
+
+.app.picking .gallery-item,
+.app.picking .gallery-list-item,
+.app.picking .article-list-row {
+  outline: 2px dashed var(--accent, #6b8afd);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+
+.app.picking .gallery-item:hover,
+.app.picking .gallery-list-item:hover,
+.app.picking .article-list-row:hover {
+  background: color-mix(in srgb, var(--accent, #6b8afd) 14%, transparent);
+}
+
+.btn-picking {
+  border-color: var(--accent, #6b8afd);
+  box-shadow: inset 0 0 0 1px var(--accent, #6b8afd);
+}
+
+.pick-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 17rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pick-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+}
+
+.pick-menu-head span { color: var(--text-dim); font-size: 0.78rem; line-height: 1.3; }
+
+.pick-menu-group-label {
+  padding: 6px 6px 2px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.pick-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 6px 8px;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pick-menu-item:hover { background: var(--surface-active, rgb(255 255 255 / 8%)); }
+.pick-menu-item.active { background: color-mix(in srgb, var(--accent, #6b8afd) 22%, transparent); font-weight: 600; }
+.pick-menu-icon { width: 1.2em; text-align: center; }
+.pick-menu-off { color: var(--text-dim); }

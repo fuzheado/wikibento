@@ -16,6 +16,17 @@ export const KIND_LABELS = {
   'commons-gallery': 'gallery page', 'wikidata-item': 'Wikidata item', 'cim-category': 'CIM category',
 };
 
+/**
+ * Which wiki an item came from, read off its own URL — `https://de.wikipedia.org/wiki/X` → `de.wikipedia`,
+ * `https://commons.wikimedia.org/wiki/File:X` → `commons.wikimedia`. The brush uses it so a spawned card targets the
+ * wiki the reader was actually reading: the ISSUE-99 rule ("a reference beats a configured project") applied to a
+ * click. An unknown or relative URL returns undefined, which leaves the widget's own default in place.
+ */
+export function projectFromUrl(url) {
+  const m = /^https?:\/\/([a-z0-9-]+)\.([a-z]+)\.org\//i.exec(String(url || ''));
+  return m ? `${m[1]}.${m[2]}` : undefined;
+}
+
 /** The fields of one definition that consume a kind: `[{ field, kind }]`. */
 export function kindFields(def) {
   return (def?.configFields || []).filter((f) => f.kind).map((f) => ({ field: f, kind: f.kind }));

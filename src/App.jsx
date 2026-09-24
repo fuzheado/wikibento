@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import GridLayout from 'react-grid-layout';
 import WidgetFrame from './widgets/WidgetFrame';
 import AddWidgetPanel from './components/AddWidgetPanel';
+import PickMenu from './components/PickMenu';
 import AskPanel from './components/AskPanel';
 import ImportPanel from './components/ImportPanel';
 import AboutPanel from './components/AboutPanel';
@@ -12,7 +13,8 @@ import SettingsPanel, { readFullscreenPreference } from './components/SettingsPa
 import { fetchProjectList } from './widgets/dataSources';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
-import { WIDGET_TYPES } from './widgets';
+import { WIDGET_TYPES, widgetDef } from './widgets';
+import { brushConfig, alreadyPlaced, KIND_LABELS } from './lib/pickMode.js';
 import { printTarget, armBoardPrint, disarmPrint } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
@@ -121,6 +123,13 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // Lean mode: the same chrome-free presentation WITHOUT fullscreen — the
   // browser stays resizable, so the board reads as a compact app.
   const [lean, setLean] = useState(false);
+
+  // ISSUE-114 "shop and pick": the brush is a widget type id (null = off). While it is set, clicks on items inside
+  // cards place a card for that item instead of following the link — the same gesture the cards already use to
+  // publish a selection, spent on a different verb. `picking` is false in presentation modes: a talk is not an edit.
+  const [pickBrush, setPickBrush] = useState(null);
+  const [pickMenu, setPickMenu] = useState(false);
+  const picking = !!pickBrush && !kiosk && !lean;
   // the 🖨 menu: three deliberate PDF shapes, closed after a choice
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   // Grid width follows the window — recomputed on resize (rAF-throttled so
@@ -542,6 +551,36 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     persist(newWidgets, newLayout);
   }, [widgets, layout, persist]);
 
+  /**
+   * ISSUE-114 step 2: a click in pick mode. It spawns exactly one card, through `handleAddWidget` — so placement (the
+   * first free grid slot), the registry's layout constraints, the borrowed-board adoption rule and persistence all
+   * behave exactly as the + Widget path, and there is no second code path to keep in sync.
+   *
+   * Declared as a hoisted `function`, NOT a `useCallback`. The first attempt wrote this as a `useCallback` whose
+   * dependency array read `handleAddWidget` — a `const` declared *below* it in this same function — and a dependency
+   * array is evaluated during render, so it was a temporal dead zone on every render. That was the first of four
+   * failures in the reverted attempt (ISSUE-114 records the rest).
+   */
+  function handlePickItem(item) {
+    if (!pickBrush) return;
+    const def = widgetDef(pickBrush);
+    const config = def && brushConfig(def, item.kind, item.value, { project: item.project });
+    if (!config) {
+      // The brush's kind does not match the thing that was clicked (an article brush, a Commons file clicked).
+      setAssemblyToast({ message: `🖌 ${def?.name || pickBrush} does not take a ${KIND_LABELS[item.kind] || item.kind}`, error: true });
+      return;
+    }
+    // Clicking the same row twice should focus what is there, not make a twin.
+    if (alreadyPlaced(def, widgets, pickBrush, config)) {
+      setAssemblyToast({ message: `🖌 ${item.label} is already on the board` });
+      return;
+    }
+    // The same `prev` shape the assembly toast's Undo applies: a spawn is one undo away, like a paste.
+    const prev = { widgets, layout, paramBlock };
+    handleAddWidget({ id: `${pickBrush}-${Date.now()}`, widgetType: pickBrush, config });
+    setAssemblyToast({ message: `🖌 Added ${def.name}: ${item.label}`, prev });
+  }
+
 const lastAutoH = useRef({});
 // Content-based auto-fit (gallery-family widgets): the widget reports its
 // natural pixel height after a successful load; fit the grid row height —
@@ -822,6 +861,8 @@ const handleAutoHeight = useCallback((id, px) => {
  widgetOutputs={widgetOutputs}
  sourceOptions={sourceOptions}
  onOutput={handleWidgetOutput}
+ picking={picking}
+ onPickItem={handlePickItem}
 />
       </ErrorBoundary>
     </div>
@@ -838,7 +879,7 @@ const handleAutoHeight = useCallback((id, px) => {
   });
 
   return (
-    <div className={`app ${kiosk ? 'kiosk' : lean ? 'lean' : ''}`}>
+    <div className={`app ${kiosk ? 'kiosk' : lean ? 'lean' : ''}${picking ? ' picking' : ''}`}>
       <header className="app-header">
         <div className="app-brand">
           <h1>📊 WikiBento</h1>
@@ -857,6 +898,25 @@ const handleAutoHeight = useCallback((id, px) => {
           <button className="btn btn-ask" onClick={() => setShowAskPanel(true)} title="Describe what you want - get widget suggestions (ML advisor)">
             ✨ Ask
           </button>
+          {/* ISSUE-114: a mode beside + Widget, not a replacement. + Widget adds one widget and configures it;
+              the brush places a card for each item you click while reading a card you already have. */}
+          <span className="widget-menu-wrap">
+            <button className={`btn${picking ? ' btn-picking' : ''}`} onClick={() => setPickMenu((v) => !v)} title="Pick mode — choose a widget type, then click items in your cards to place one card per item">
+              🖌 {pickBrush ? (widgetDef(pickBrush)?.name || pickBrush) : 'Pick'} ▾
+            </button>
+            {pickMenu && (
+              <PickMenu
+                registry={WIDGET_TYPES}
+                brush={pickBrush}
+                onPick={(type) => {
+                  setPickBrush(type);
+                  setPickMenu(false);
+                  setAssemblyToast(type ? { message: `🖌 ${widgetDef(type)?.name || type} — now click items in your cards` } : null);
+                }}
+                onClose={() => setPickMenu(false)}
+              />
+            )}
+          </span>
           <button className="btn" onClick={() => setShowImportPanel(true)} title="Import dashboard config from JSON">
             ⬆ Import
           </button>

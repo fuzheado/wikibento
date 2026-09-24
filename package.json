@@ -25,6 +25,7 @@
     "tutorial:review": "node pipeline/review.mjs --config video/demo.config.mjs",
     "update:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs",
     "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check",
+    "smoke:pick": "node scripts/pick-mode-e2e.mjs",
     "smoke:iabook": "node scripts/ia-book-e2e.mjs",
     "smoke:document": "node scripts/document-reader-e2e.mjs",
     "smoke:url": "node scripts/url-state-audit.mjs",

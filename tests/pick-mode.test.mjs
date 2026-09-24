@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { KIND_IDS, kindFields, brushableTypes, typesForKind, brushConfig, alreadyPlaced } from '../src/lib/pickMode.js';
+import { projectFromUrl } from '../src/lib/pickMode.js';
 const registry = WIDGET_TYPES;
 
 /**
@@ -62,4 +63,15 @@ test('every brushable type can place something, and the brush list is sorted by 
   }
   const names = brushable.map((t) => t.def.name);
   assert.deepEqual(names, [...names].sort((a, b) => String(a).localeCompare(String(b))));
+});
+
+test('a click knows which wiki the item came from — the ISSUE-99 rule, applied to a click', () => {
+  assert.equal(projectFromUrl('https://en.wikipedia.org/wiki/Marie_Curie'), 'en.wikipedia');
+  assert.equal(projectFromUrl('https://de.wikipedia.org/wiki/Weddellmeer'), 'de.wikipedia');
+  assert.equal(projectFromUrl('https://commons.wikimedia.org/wiki/File:X.jpg'), 'commons.wikimedia');
+  assert.equal(projectFromUrl('https://en.wikisource.org/wiki/Page:X'), 'en.wikisource');
+  // Anything that is not a Wikimedia article URL leaves the widget's own default alone.
+  for (const bad of ['/wiki/X', 'http://localhost:3000/x', 'https://archive.org/details/x', '', null, undefined]) {
+    assert.equal(projectFromUrl(bad), undefined, `${bad} should not name a project`);
+  }
 });
