@@ -523,6 +523,13 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
        line each: the registry is an object keyed by id, so `id:`-based deletions corrupt it silently
        (`commonsGallery` → `fileUsage`, with 588/609 tests passing); and **a sweep without `--base` tests production,
        not your working tree** — the script now prints its base and warns when it is the implicit default.
+     - **ISSUE-114 slice 2 — the \u201cshop and pick\u201d brush (next session, ~1 h).** Slice 1 shipped and is inert ( on 19
+       registry fields, `src/lib/pickMode.js`, `tests/pick-mode.test.mjs`); the brush UI was built, then **reverted** because
+       the built bundle threw `Cannot access 'Re' before initialization` — a module-initialisation cycle. Rebuild it
+       **acyclically by construction**: a `PickMenu` component importing only `lib/pickMode` (registry as a prop),
+       `App` as the only new edge, spawning through the existing `handleAddWidget`, and `npm run smoke:built` after every
+       increment — that check loads the BUILT page and is the one that sees this class. Full design, what was ruled out,
+       and the fallback diagnostics are in `docs/ISSUES.md` → ISSUE-114.
      - **The print's known tweaks** (Andrew, 2026-09-18: *"all much better but could use some tweaking"*). Three
        small, well-understood follow-ups, in the order I would take them:
        (1) **a scale chooser in the 🖨 menu** — *fit* (today's behaviour) or *100%* — because Board and Document mode
