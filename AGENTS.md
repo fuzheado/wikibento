@@ -44,8 +44,9 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 - **Load the BUILT page after a UI change**, not just the dev server. A module-initialisation cycle is a bundle-time
   property: the suite passes, `vite build` succeeds, and the dev server renders — while the built bundle throws
   `Cannot access … before initialization` on the first render (2026-09-24, ISSUE-114: a feature was written, tested
-  and then reverted because of it). `npx vite preview --port 4173` + `node scripts/browser-matrix.mjs --demos --base
-  http://localhost:4173` is the check that sees it; run it before deploying UI work.
+  and then reverted because of it). **`npm run smoke:built`** starts a preview server, loads a board in a real browser
+  and requires cards with no page errors — and it runs at the end of `npm test`, right after the build it depends on.
+  `node scripts/browser-matrix.mjs --demos --base http://localhost:4173` goes further (every board, every engine).
 - **After `npx vite build`, confirm the asset filename CHANGED.** A failing app build leaves the previous `dist/` in
   place, so a deploy ships old code and a browser sweep will cheerfully verify it — the tests were passing while the
   app build was broken, and a whole round of measurements described a bundle that was never served. Read the real

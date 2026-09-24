@@ -48,6 +48,26 @@ This exists because two faults in one day were reachable *only* here: a helper c
 on every render of a widget) and a recents list that showed one widget once per legacy id it had ever had. Neither
 was visible to the unit tests, because nothing in them renders the panel. Verified by injecting the second one back.
 
+### The built artefact is loaded, not just built
+
+`npm run smoke:built` (`scripts/smoke-built.mjs`) starts a preview server, loads a board in a real browser and requires
+cards with no page errors; it runs at the end of `npm test`, immediately after the build it depends on.
+
+It exists because on 2026-09-24 a feature was written, unit-tested, built successfully, and then reverted: in the
+**built** bundle it threw on first render. A module-initialisation cycle is a *bundle-time* property — the test suite
+passes, `node --check` passes, `vite build` prints a success, and the dev server renders. Only loading the artefact we
+actually ship sees it, and every gate we had stopped one step short of that artefact.
+
+```bash
+npm run smoke:built                                  # one light board, Chromium
+node scripts/smoke-built.mjs --boards demos.json,glam-demo.json --engine webkit
+node scripts/smoke-built.mjs --base http://localhost:4173   # against a server you started
+```
+
+Verified by injection: a deliberate first-render failure makes it exit 1 with the page's own error, and removing it
+returns 0. (A *cycle* could not be reproduced on demand — unused module-scope bindings are tree-shaken and used ones
+are reordered — so the injection is a stand-in for the class rather than the exact mechanism.)
+
 ### Which build are you testing?
 
 `--base` **defaults to production** (`https://wikibento.toolforge.org`). That is the right default for checking a
