@@ -51,7 +51,16 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   place, so a deploy ships old code and a browser sweep will cheerfully verify it — the tests were passing while the
   app build was broken, and a whole round of measurements described a bundle that was never served. Read the real
   filename from `dist/assets/` before writing it into HANDOFF's "production bundle" row; a stale name fails the live
-  check, and that check is the only cheap proof a build happened.
+  check, and that check is the only cheap proof a build happened. **A browser check against a stale `dist/` is a false
+  negative that looks exactly like a broken feature** — an e2e run reported "the click does nothing" for code that had
+  been edited but not rebuilt (2026-09-24).
+- **A leaf component that receives its data as a prop cannot close an import cycle.** `PickMenu.jsx` imports only
+  React and `lib/pickMode.js` and takes the registry as a prop; the earlier version imported the registry itself and
+  formed a cycle with `App`, which threw in the built bundle and cost a revert (ISSUE-114). Prefer that shape to
+  debugging the cycle afterwards.
+- **An exception inside a React event handler reaches the console, not `pageerror`.** A browser check that listens
+  only for page errors passes while every click is broken. Listen to both; treat upstream `Failed to load resource`
+  as a note, and everything else as fatal.
 
 ## Editing files here: assert the anchor, and let the suite check the wiring
 

@@ -46,15 +46,24 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 } });
 const noise = [];
 const notes = [];
+// Failing responses are recorded WITH their URL: a count alone ("43 × Failed to load resource") cannot tell a
+// pageviews candidate-date 404 from a 502 on our own /api/petscan proxy, and the latter is the interesting one.
+const failures = [];
 const freshPage = async () => {
   const p = await ctx.newPage();
   const errs = [];
   p.on('pageerror', (e) => errs.push(String(e.message).slice(0, 110)));
+  p.on('response', (r) => { if (r.status() >= 400) failures.push(`${r.status()} ${r.url().slice(0, 110)}`); });
   p.on('console', (m) => {
     if (m.type() !== 'error') return;
-    const text = m.text().slice(0, 110);
-    // Upstream network noise is not this feature's error; see the note at the top of this file.
-    if (/Failed to load resource/.test(text)) notes.push(text);
+    const full = m.text();
+    const text = full.slice(0, 110);
+    // Environment noise is not this feature's error; see the note at the top of this file. These are all browser
+    // reports about an EMBED — a report-only CSP violation, a subresource that failed, or Chromium refusing an
+    // autofocus inside a cross-origin subframe (the Wayback iframe does this on production): nothing is blocked and
+    // the widgets render. Test the FULL message: slicing first once cut "Content Security Policy" down to "…Polic",
+    // and the note silently became a failure.
+    if (/Failed to load resource|Content Security Policy|violates the following|Blocked autofocusing/.test(full)) notes.push(text);
     else errs.push('console: ' + text);
   });
   p.errs = errs;
@@ -173,7 +182,12 @@ try {
   await browser.close();
   if (srv) srv.kill('SIGTERM');
 }
-if (notes.length) console.log(`\n  note: ${new Set(notes).size} × 'Failed to load resource' — the pageviews card's candidate-date walk (upstream, not pick mode)`);
+if (failures.length) {
+  console.log('\n  notes: non-2xx responses (upstream, not pick mode) —');
+  const byUrl = new Map();
+  for (const f of failures) { const k = f.replace(/[?&].*$/, ''); byUrl.set(k, (byUrl.get(k) || 0) + 1); }
+  for (const [k, n] of [...byUrl].sort((a, b) => b[1] - a[1]).slice(0, 6)) console.log(`    ${n}× ${k}`);
+}
 const fails = results.reduce((a, b) => a + b, 0);
 console.log(`\n  ${fails ? 'FAILED' : 'PICK MODE OK'} — ${results.length - fails}/${results.length} checks`);
 process.exit(fails ? 1 : 0);

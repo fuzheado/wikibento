@@ -83,7 +83,15 @@ try {
     const page = await ctx.newPage();
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(String(e.message).slice(0, 120)));
-    page.on('console', (m) => { if (m.type() === 'error') pageErrors.push(`console: ${m.text().slice(0, 110)}`); });
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const full = m.text();
+      // A report-only CSP violation or a failed subresource is the environment talking, not this app failing: the
+      // browser reports it and renders anyway. Everything else is a page error. (Same rule as scripts/pick-mode-e2e.mjs;
+      // on Toolforge several embeds trip report-only CSP, and a check that dies on that is a check nobody runs.)
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(full)) return;
+      pageErrors.push(`console: ${full.slice(0, 110)}`);
+    });
 
     for (const board of BOARDS) {
       pageErrors.length = 0;

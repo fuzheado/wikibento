@@ -243,3 +243,28 @@ between cards*.
 - Why the project exists (HyperCard lineage) — [PHILOSOPHY.md](PHILOSOPHY.md)
 - Design decisions & the dataflow ladder — [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md)
 - Every API, cap and gotcha — [DATA-SOURCES.md](DATA-SOURCES.md)
+
+## 10. Pick mode — building a board out of what you are reading (ISSUE-114)
+
+Sometimes you do not want to configure a card; you want to point at six things and have six cards. That is what the
+brush is for.
+
+1. Click **🖌 Pick ▾** in the header. The menu lists every widget type that can consume something, grouped by what it
+   consumes: articles, wiki pages, Commons files, categories.
+2. Choose a type — say **Article Excerpt**. The button now shows the armed type, and every card that holds something
+   you can pick gets a dashed outline.
+3. Click items. Each click places a card for that item, named after it, and reports itself in the toast.
+4. Click again on something new, and again. The brush **stays armed** — that is the point.
+5. Click **🖌 <type> ▾** to switch types, or **✕ Stop picking** to leave the mode.
+
+Rules worth knowing:
+
+- **One click, one card.** Clicking an item that is already on the board refuses and says so instead of making a twin.
+- **A mismatch refuses.** An article brush clicked on a Commons file says *"does not take a Commons file"* and places
+  nothing — the vocabulary comes from each widget's declared `kind`, so the menu never offers the wrong type.
+- **Undo** on the toast takes back the card that click made.
+- **The spawned card targets the wiki you clicked**, read off the item's own URL (`de.wikipedia` for a German article),
+  not off a board setting.
+- **Picking is editing.** On a board you opened from someone else's link, the first pick adopts it, exactly as any
+  other edit would.
+- In **Present** or **Lean** mode there is no pick control at all: a talk is not an edit.

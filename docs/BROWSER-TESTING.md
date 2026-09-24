@@ -68,6 +68,28 @@ Verified by injection: a deliberate first-render failure makes it exit 1 with th
 returns 0. (A *cycle* could not be reproduced on demand — unused module-scope bindings are tree-shaken and used ones
 are reordered — so the injection is a stand-in for the class rather than the exact mechanism.)
 
+### A feature's own acceptance script
+
+`npm run smoke:pick` (`scripts/pick-mode-e2e.mjs`) drives pick mode end to end against the built app: arm a brush,
+click a row, assert one card and the toast naming it; click it again and assert no twin; undo it; click a gallery tile
+with an article brush and assert the kind refusal; arm a file brush and assert the card. It accepts `--base URL` to run
+against a deployed build — `node scripts/pick-mode-e2e.mjs --base https://wikibento.toolforge.org` — which is how the
+production check is done after a deploy.
+
+Two things it does that a page-error-only check does not:
+
+- **It listens to console errors.** An exception thrown inside a React event handler is logged to the console and never
+  reaches `pageerror`, so a check that only listens for the latter passes while every click is broken.
+- **It separates upstream noise from ours.** A `Failed to load resource: 404` is recorded as a note, not a failure: the
+  pageviews card walks candidate dates back from today (`topPageCandidates`) and today's top-pages dataset is often
+  unpublished, so the first candidate legitimately 404s and the next one succeeds. So is a **report-only** CSP
+  violation — production logs several (the Wayback iframe, plus the touch icons and stylesheets of embedded Wikipedia
+  pages), nothing is blocked, and the cards render; a check that dies on that is a check nobody runs. Both checks
+  (`smoke:built` and `smoke:pick`) apply the same rule.
+
+Note the trap: match on the **whole** console message. One version sliced the text to 110 characters *before* testing
+it, which cut "Content Security Policy" down to "…Polic" — so the note silently became a failure (2026-09-24).
+
 ### Which build are you testing?
 
 `--base` **defaults to production** (`https://wikibento.toolforge.org`). That is the right default for checking a

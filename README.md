@@ -87,6 +87,10 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 - **Presentation** — ⛶ **Present** hides every editing affordance and locks the grid for a clean data wall;
   `?kiosk=1` loads any board that way directly (a shareable presentation link), and ▣ **Lean** does the same
   without taking over the screen
+- **Pick mode** — 🖌 **Pick ▾** arms a brush: choose a widget type, then click items inside the cards you are
+  already reading and each click places a card for that item. One click, one card, named in the toast; the same
+  item twice refuses rather than making a twin; **Undo** takes it back off. It is a second, power-user verb
+  beside **+ Add Widget**, not a replacement — the menu only offers types that can consume the thing you clicked.
 - **Content-fit galleries** — image galleries default to full window width and fit their height to the image
   count after loading, until you resize one yourself, and then your size sticks
 

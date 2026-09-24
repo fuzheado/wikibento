@@ -4992,9 +4992,66 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
-## ISSUE-114 · Spawn widgets from a list item: the missing "add" verb — **open** (design; slice 1 shipped, slice 2 built then reverted)
+## ISSUE-115 · The Wayback embed trips a report-only CSP violation on production — **open** (found 2026-09-24)
 
-> **Status 2026-09-24 — an honest interim.** **Slice 1 shipped and is inert**: 19 registry fields now declare
+> **What was seen.** Running `node scripts/pick-mode-e2e.mjs --base https://wikibento.toolforge.org` after the ISSUE-114
+> deploy logged, three times per page, `Framing 'https://web.archive.org/' violates the following report-only Content
+> Security Policy directive: "default-src …"`. It does not appear against the local preview, because Toolforge's web
+> service sends the CSP header and `vite preview` does not.
+>
+> **Severity: cosmetic, and verified so.** The directive is **report-only** — the browser reports the violation and
+> frames the page anyway — and the Wayback card rendered in that same run (the spawn checks on the same page passed).
+> So this is a noisy console, not a broken widget. It is filed because it is real: any future browser check that
+> treats console errors as fatal will fail on production for a reason that looks like our bug and is not.
+>
+> **What the fix would be.** Either narrow the report with a `frame-src https://web.archive.org` (a Toolforge
+> `webservice` header change, not app code), or stop framing archive.org and present the capture as a link/preview
+> image. Neither is urgent; both need a decision rather than a patch. Meanwhile the two browser checks that read the
+> console — `npm run smoke:built` and `npm run smoke:pick` — treat a CSP report-only message as a note, and
+> `docs/BROWSER-TESTING.md` says why.
+>
+> **How it was found:** by verifying a *different* feature against production. A local check cannot see it.
+
+## ISSUE-114 · Spawn widgets from a list item: the missing "add" verb — **done + verified 2026-09-24**
+
+> **Status 2026-09-24 — shipped, and the second attempt is the point.** The brush works: **🖌 Pick ▾** in the header
+> opens a menu of the 19 widget types that can consume something, grouped by what they consume (articles, wiki pages,
+> Commons files, categories); choosing one **arms** the brush and every click on an item inside a card places a card for
+> that item. It persists across clicks — six excerpts from one list of links is six clicks and no dialog — which is the
+> whole reason the feature exists.
+>
+> **Verified 12/12 in the built artefact** by `scripts/pick-mode-e2e.mjs` (`npm run smoke:pick`), on 42-card and
+> gallery boards: one click → one card named in the toast; the same row twice → *"already on the board"*, no twin;
+> **Undo** takes the spawned card back off; a kind mismatch refuses and places nothing (*"Article Excerpt does not take
+> a Commons file"*); a matching file brush places a card for a gallery tile; `?lean=1` and `?kiosk=1` show no pick
+> control, place nothing on a click, and log no errors. 635 unit tests pass.
+>
+> **How the module-init cycle was avoided rather than diagnosed.** The first attempt threw
+> `Cannot access 'Re' before initialization` in the built bundle and was reverted; the code was gone, so the cycle
+> could not be re-read afterwards. The rebuild removed the *possibility*: `src/components/PickMenu.jsx` imports only
+> React and `lib/pickMode.js` and **receives the registry as a prop** — a leaf that receives its data cannot close a
+> cycle — and `App.jsx` is the only new edge (it already imported `widgets/index`, so no new import direction was
+> created). `handlePickItem` is a **hoisted `function`**, not a `useCallback` whose dependency array reads a `const`
+> declared below it (that was the first failure of the reverted attempt: a temporal dead zone on every render).
+>
+> **Three lessons, now in AGENTS.md.** (1) A component that receives its data as a prop cannot participate in an
+> import cycle — prefer that shape to debugging the cycle afterwards. (2) An exception thrown inside a **React event
+> handler** reaches the **console**, not `pageerror`; a browser check that only listens for page errors passes while
+> every click is broken (this script listens to both, and treats upstream `404`s as notes). (3) A **stale `dist/`** makes
+> a browser check a false negative — the first run of this very e2e reported "the click does nothing" because the
+> clicks had been built but not rebuilt; confirm the asset filename changed, which AGENTS.md already said and I did not
+> do.
+>
+> **What stayed small on purpose:** `+ Widget` is untouched — this is a second, power-user verb beside it. A click
+> *retargets* by default (ISSUE-52/68, unchanged); only the brush *spawns*. The spawn goes through the existing
+> `handleAddWidget`, so placement, the registry's layout constraints, the borrowed-board adoption rule and persistence
+> are the same code path, and `alreadyPlaced()` (slice 1) is the dedupe.
+>
+> **Still open in this issue** (deliberately not done): a per-row palette (slice 2b — more discoverable, slower);
+> clicking an already-placed item **focusing** that card rather than only refusing; a cap on spawned cards; and the
+> touch question (a brush armed from the header is fine on a phone, hover affordances are not).
+
+> **Status 2026-09-24 — the interim, kept: the failure it records is what shaped the fix above.** **Slice 1 shipped and is inert**: 19 registry fields now declare
 > `kind` (`article`, `page`, `commons-file`, `commons-category`, `commons-gallery`, `wikidata-item`), `src/lib/pickMode.js`
 > holds the pure helpers, and `tests/pick-mode.test.mjs` gates the vocabulary and the matching. Nothing about the app's
 > behaviour changed.
