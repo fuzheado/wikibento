@@ -33,7 +33,10 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 
 ## Gates to run before saying "done"
 
-- `npm test` — the suite plus the docs/manifest gates.
+- `npm test` — the suite, the docs/manifest gates, **and the app build** (`vite build`, which takes well under a second here). It was
+  added after a duplicate import I had pushed: the tests were green (esbuild tolerates it) while `vite` failed the
+  build, and I had run the tests rather than the build. Now the suite cannot be green with a broken build, so the
+  "confirm a new asset filename" rule has a mechanism behind it instead of a habit.
 - `node scripts/docs-facts.mjs --live` — counts, links, issue numbers, and the bundle production is actually serving.
   It names the file that disagrees. Count claims are duplicated across ~22 sources and must move together.
 - A new `public/*-demo.json` must be linked from **both** the README demo table and the hub text in

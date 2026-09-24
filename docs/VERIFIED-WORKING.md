@@ -63,6 +63,13 @@ would not.
     `gallerySource.js` — prose counted as code — so it strips comments now.)
   - The cross-project version of the rule lives in `~/.pi/agent/AGENTS.md` ("Editing files — asserted edits"), which
     is loaded in every session, so the habit is not repo-specific.
+  - **Then I broke the build and pushed it** — a sloppy invocation handed the tool an anchor that matched while my
+    *intent* was wrong, and it duly added a duplicate `import { renderMarkdown }`. esbuild tolerates that, so all 629
+    tests passed; `vite` failed the build, which I had run one step earlier and not re-run after the edit. A tool
+    guarantees the anchor matched, never that the edit was the one you meant.
+  - **The mechanism, so it cannot recur:** `npm test` now ends with `vite build` (sub-second here). Verified by
+    injecting the duplicate import back — `npm test` exits 1 — then removing it — exits 0. That turns "remember to run
+    the build" into something the suite enforces, which is the only kind of rule that survives a long session.
 
 ### A share link showed strings where booleans should be (ISSUE-112, 2026-09-18)
 
