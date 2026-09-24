@@ -4992,6 +4992,76 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-114 · Spawn widgets from a list item: the missing "add" verb — **open** (design)
+
+**What:** Andrew, 2026-09-24: *"I'd like to be able to add widgets interactively and selectively. If I provided a
+Wikipedia article as a starting point, you might provide a list of all the articles it links to, and if I clicked on a
+list item, it would add an 'Article gallery' for each article I clicked on. Or maybe I pulled down a menu so that it's
+in 'Article excerpt' mode, and then clicked on a list item, it would add a widget showing the article excerpt. For any
+widget that takes an individual Wikipedia article as input, that would be a valid option."*
+
+**In one line:** make a row in a list a *source of widgets* — a small type palette ("spawn me as …") — instead of the
+reader copying a title into `+ Widget` and then filling in the ⚙ form by hand.
+
+**Prior art here — most of the plumbing exists**
+
+- `AskPanel` already adds a widget from a **clicked suggestion** (`onAdd`). The *verb* exists; what is missing is
+  driving it from the reader's own list rather than from a suggestion list.
+- **ISSUE-52** (widget-to-widget dataflow, named channels) plus the gallery's click-to-publish (`selection`): the
+  board can already **respond** to a click — one card *follows* your clicks. That is the other verb; see the table.
+- **ISSUE-42** (1-or-n content primitives with a list-source vocabulary) is the data-side mirror of this: one widget,
+  many items. This issue is the interaction side: one item, many widgets.
+- **ISSUE-68 Slice 2** (the **Finder** widget — a search-and-pick card whose rows drive the board) is the natural
+  host: same gesture, different verb.
+- `paramSources.js` already names the kinds — `article`, `page`, `commons-file`, `commons-category`,
+  `commons-gallery`, `wikidata-item`, `cim-category` — and validates values against them (ISSUE-99).
+
+**The blocker, and it is small: a widget cannot say what it consumes.** 38 registry fields are `type: 'text'`;
+`gallery.article`, `excerpt.article` and `pageviews.article` are indistinguishable, so nothing can answer *"which
+widget types accept an ARTICLE?"*. The kind vocabulary exists but only board **param** specs use it
+(`page | lookup | Page | page | de.wikipedia`). So slice 1 is an annotation — `{ key: 'article', type: 'text',
+kind: 'article' }` — one line per field, no format break, and it would also unlock ISSUE-42's 1..n ambition and
+kind-aware validation everywhere.
+
+**Two verbs, and the honest comparison**
+
+| verb | what it does | today |
+|---|---|---|
+| **retarget** | one card *follows* the click — the item fills a param or a channel | **already works** (ISSUE-52 / 68) |
+| **spawn** | each click *creates a card* for that item | missing |
+
+Spawn is not automatically better: N clicks give N cards, which is clutter and a board nobody planned. Its value is
+**exploration** — building a board while reading a list, a different act from configuring one. The design should
+therefore offer both and make the cheap one the default: click **retargets**, the palette's *add* **spawns**.
+
+**Slice plan**
+
+1. **`kind` on registry fields** for the article / page / file / category / gallery inputs (~20 fields), with a test
+   that every `kind` is a known `paramSources` id and that a widget's declared kind agrees with the value it fetches
+   with.
+2. **A spawn palette** on the rows of an existing list widget — the natural first host is 📋 Article List, the 🖼️
+   Gallery, or the ISSUE-68 Finder — listing the widget types whose `kind` matches the row, each spawning a card
+   pre-filled with the row's title. Reuses `AddWidgetPanel`'s list machinery and `onAdd`.
+3. **Placement, dedupe, undo**: spawned cards go to the first free slot (react-grid-layout already does this), name the
+   item in their title, and the existing undo toast offers a single undo. Clicking the same row twice should focus the
+   card it already made rather than make a twin.
+4. **Borrowed-board rule**: spawning *is* an edit, so it adopts a borrowed board exactly like any other edit
+   (ISSUE-88) — and the toast should say so, because "I clicked a link and my board changed" needs an explanation.
+
+**Risks and open questions**
+
+- **Clutter** is the main one: cap spawned cards per session? Require the palette (no bare-click spawn)? Offer
+  "spawn as a *retarget* instead" on a single-card board?
+- **Snapshot or wire?** A spawned card can carry the title literally (a snapshot) or be wired to a param/channel the
+  row sets (live, and it keeps responding afterwards). Snapshot is simpler; live is the more interesting board.
+- **Touch**: a palette that appears on hover is unusable on a phone — the row's own menu button has to be reachable.
+- Does the palette belong on the *row* (contextual) or in the *card header* ("put the selected item into …"), where
+  the selection already lives (ISSUE-91)?
+
+**Effort:** **S** for slice 1 (an annotation plus a gate); **M** for slices 2–4 (a palette component, placement,
+dedupe, undo). No format break — `kind` is additive and ignored by older readers, and a board without it behaves
+exactly as today.
+
 ## ISSUE-113 · `?lean=1` threw `normalizeConfigForDef is not defined` — **done + verified 2026-09-18**
 
 Andrew shared a lean link (`?config=https://meta.wikimedia.org/wiki/WikiBento/Neon-museums.json&lean=1`) and got

@@ -51,7 +51,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 | Idea | Effort | Impact | Notes |
 |---|---|---|---|
 | ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all 7 widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
-| **Shared fetch cache** | S | Medium | **Done 2026-08-12 for Wikistats** (5-min TTL + coalescing, `lib/fetchCache.js`); extend to other fetchers when needed |
+| **Spawn widgets from a list row** (ISSUE-114) | S–M | High | The *retarget* half already works (ISSUE-52 / 68: one card follows your clicks); the *spawn* half needs a `kind` on registry fields first (~20 one-line annotations), then a palette over the widget types whose kind matches the row |\n| **Shared fetch cache** | S | Medium | **Done 2026-08-12 for Wikistats** (5-min TTL + coalescing, `lib/fetchCache.js`); extend to other fetchers when needed |
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |
 | **CORS proxy** | S (partial) | High | **Done 2026-08-12 for hatnote + w.wiki:** deploy/server.js has `/api/resolve` (short-URL expansion) and `/api/proxy` (https GET, wraps `{status, body}` with `ACAO: *`) — used by the Top Wikipedia Articles widget and `?config=` w.wiki links. The **Arbitrary URL Extractor power widget** will reuse `/api/proxy` for arbitrary scraped sources |
