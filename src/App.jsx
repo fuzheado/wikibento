@@ -571,7 +571,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
       return;
     }
     // Clicking the same row twice should focus what is there, not make a twin.
-    if (alreadyPlaced(def, widgets, pickBrush, config)) {
+    if (alreadyPlaced(def, widgets, pickBrush, config, item.kind)) {
       setAssemblyToast({ message: `🖌 ${item.label} is already on the board` });
       return;
     }

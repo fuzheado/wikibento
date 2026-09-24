@@ -8,6 +8,8 @@
  * `commons-gallery`, `wikidata-item`, `cim-category`). Before that annotation, `gallery.article`, `excerpt.article`
  * and `pageviews.article` were all "text" and nothing could answer "which widgets accept an ARTICLE?".
  */
+import { fieldVisible } from './configFields.js';
+
 /** Kinds a field may declare — the ids `paramSources.js` can validate. */
 export const KIND_IDS = ['article', 'page', 'commons-file', 'commons-category', 'commons-gallery', 'wikidata-item', 'cim-category'];
 
@@ -49,22 +51,51 @@ export function typesForKind(kind, registry = {}) {
  * The config a brush click produces: the registry defaults, the item's value in the field that consumes its kind,
  * and the project when the item came from a wiki (so a spawned article card does not download the wrong one).
  * A field that holds a list gets the value as its single line — a spawn places one card for one item.
+ *
+ * It also points the widget's own SOURCE selector at the picked kind. A multi-source widget (the gallery has four:
+ * an article, a Commons gallery page, a category, or a pasted list) declares each kind's field with a `showIf`, so
+ * that field says which value of the selector makes it visible — `{ key: 'category', kind: 'commons-category',
+ * showIf: { from: 'category' } }` means a category pick also sets `from: 'category'`. Without this, picking a
+ * category from the menu spawned an *article* gallery: the value went into a field the card was not reading. Found
+ * while fixing the false-twin bug below (2026-09-24).
  */
 export function brushConfig(def, kind, value, { project } = {}) {
   const field = kindFields(def).find((k) => k.kind === kind)?.field;
   if (!field) return null;
   const config = { ...(def?.defaults || {}) };
+  for (const [selector, want] of Object.entries(field.showIf || {})) {
+    config[selector] = Array.isArray(want) ? want[0] : want;
+  }
   if (field.type === 'textarea') config[field.key] = String(value);
   else config[field.key] = value;
   if (project && def?.configFields?.some((f) => f.key === 'project')) config.project = project;
   return config;
 }
 
-/** Is this click already on the board? Clicking the same row twice should not make a twin (ISSUE-114 step 3). */
-export function alreadyPlaced(def, widgets, widgetType, config) {
-  const kinds = kindFields(def);
-  return (widgets || []).some((w) => {
-    if (w.widgetType !== widgetType) return false;
-    return kinds.some(({ field }) => String(w.config?.[field.key] ?? '') === String(config?.[field.key] ?? ''));
-  });
+/**
+ * Is this click already on the board? Clicking the same row twice should not make a twin (ISSUE-114 step 3).
+ *
+ * Scoped to the field that consumes the picked **kind**, and to that field alone. The first version compared *every*
+ * kind-declaring field, which made a second item of the same kind impossible for any widget that declares more than
+ * one — the gallery declares four (`article`, `page`, `category`, `files`). Because `brushConfig` starts from the
+ * registry defaults, two *different* articles produced configs that agreed on the three fields neither of them was
+ * about (the default page, the default category, the default file list), so the second click was refused with
+ * "already on the board". Reported by Andrew, 2026-09-24, with two articles.
+ *
+ * An empty pick is never a duplicate: a config whose field is blank carries no item to compare.
+ *
+ * "Already on the board" means the card would show the same thing, so both sides must be READINGS of that field:
+ * the field has to be visible for the config in hand (the source selector points at this kind) and for the candidate
+ * card's own config. Otherwise a spawned card's untouched defaults — a category field still holding "Featured
+ * pictures" while its source is an article — look like a duplicate of a category you are only now picking.
+ */
+export function alreadyPlaced(def, widgets, widgetType, config, kind) {
+  const field = kindFields(def).find((k) => k.kind === kind)?.field;
+  if (!field) return false;                              // this kind cannot be placed by this widget at all
+  if (!fieldVisible(field, config, def?.defaults)) return false;
+  const value = String(config?.[field.key] ?? '');
+  if (!value) return false;
+  return (widgets || []).some((w) => w.widgetType === widgetType
+    && fieldVisible(field, w.config, def?.defaults)
+    && String(w.config?.[field.key] ?? '') === value);
 }

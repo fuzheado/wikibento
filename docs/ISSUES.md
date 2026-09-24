@@ -4992,6 +4992,37 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-117 · Pick mode refused the second item of the same kind — **done + verified 2026-09-24** (reported by Andrew)
+
+> **The report.** With the Gallery brush armed: click an article, a card appears; click a second article and nothing
+> appears, with the toast "Albert Einstein is already on the board". The first worked, the second did not.
+>
+> **Two causes, both in the dedupe's idea of "the same card".**
+> 1. `alreadyPlaced()` compared **every** field declaring a `kind`. A gallery declares four (`article`, `page`,
+>    `category`, `files`) and `brushConfig` starts from the registry defaults, so a gallery of Ada and a gallery of
+>    Albert agreed on the three fields *neither pick was about* — the default page, the default category, the default
+>    file list — and the second click was refused. Reproduced before touching anything: against a board holding only the
+>    Ada card, `alreadyPlaced(Ada) = true` **and** `alreadyPlaced(Albert) = true`.
+> 2. Asking *which* field was the deeper question, and it exposed a cross-kind case: an article pick also matched a
+>    spawned card's untouched `category` default ("Featured pictures"). The rule is now "the card would show the same
+>    thing" — the field must consume the picked kind, be **visible for the config in hand**, be visible for the candidate
+>    card's own config, and hold a non-empty equal value. A blank pick is never a duplicate.
+>
+> **Found on the way: a second, latent bug.** A pick never set the widget's **source selector**. Picking a category from
+> the menu wrote `category: "Featured pictures"` while leaving `from: "article"` — a spawned card that looks right in the
+> ⚙ panel and fetches something else entirely. Each kind field's own `showIf` already says which selector value makes it
+> visible, so `brushConfig` now sets it: article → `from: article`, category → `from: category`, a Commons gallery page
+> → `from: page`, a picked file → `from: list`. All four asserted.
+>
+> **Verified** by `npm run smoke:pick`, **13/13** against the built app, with the reported case as a check of its own:
+> two different articles with the Gallery brush armed → `43 → 44 → 45`, toast "🖌 Added Gallery: Albert Einstein".
+> Seven unit tests cover the multi-kind collision, the cross-kind case, the blank pick and the selector rule.
+>
+> **And a guard, because this cost two rounds.** Twice the fix *looked* broken: the browser check was measuring the
+> previous `dist/`. `scripts/pick-mode-e2e.mjs` and `scripts/smoke-built.mjs` now refuse to run at all when anything
+> under `src/` is newer than `dist/assets/`, printing how stale it is. A doc line (AGENTS.md already had it) did not
+> prevent it twice in an hour; a ten-line timestamp check does.
+
 ## ISSUE-116 · `/api/petscan` answered 502 twice during verification — **open** (low, intermittent; seen twice 2026-09-24)
 
 > **What was seen.** Twice while running `node scripts/pick-mode-e2e.mjs --base https://wikibento.toolforge.org`: the

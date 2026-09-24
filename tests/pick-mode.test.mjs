@@ -48,10 +48,45 @@ test('a brush click produces the config the widget needs, and only for a kind it
 test('clicking the same item twice does not make a twin', () => {
   const cfg = brushConfig(WIDGET_TYPES.excerpt, 'article', 'Neon Museum', { project: 'en.wikipedia' });
   const board = [{ id: 'e1', widgetType: 'excerpt', config: cfg }];
-  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, board, 'excerpt', cfg), true);
-  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, board, 'excerpt', brushConfig(WIDGET_TYPES.excerpt, 'article', 'Another')), false);
-  assert.equal(alreadyPlaced(WIDGET_TYPES.gallery, board, 'gallery', cfg), false, 'a different type is a different card');
-  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, [], 'excerpt', cfg), false);
+  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, board, 'excerpt', cfg, 'article'), true);
+  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, board, 'excerpt', brushConfig(WIDGET_TYPES.excerpt, 'article', 'Another'), 'article'), false);
+  assert.equal(alreadyPlaced(WIDGET_TYPES.gallery, board, 'gallery', cfg, 'article'), false, 'a different type is a different card');
+  assert.equal(alreadyPlaced(WIDGET_TYPES.excerpt, [], 'excerpt', cfg, 'article'), false);
+});
+
+// Reported by Andrew, 2026-09-24: pick an article gallery, click a second article, get "Albert Einstein is already
+// on the board". A gallery declares four kinds (article, page, category, files) and brushConfig starts from the
+// registry defaults, so the two configs agreed on every field EXCEPT the one that mattered — and the first version
+// of alreadyPlaced compared all of them.
+test('two different items of the same kind are two different cards, even for a widget with many kinds', () => {
+  const def = WIDGET_TYPES.gallery;
+  assert.ok(kindFields(def).length >= 4, 'the gallery is the multi-kind case this guards');
+  const ada = brushConfig(def, 'article', 'Ada Lovelace', { project: 'en.wikipedia' });
+  const albert = brushConfig(def, 'article', 'Albert Einstein', { project: 'en.wikipedia' });
+  const board = [{ id: 'g1', widgetType: 'gallery', config: ada }];
+  assert.equal(alreadyPlaced(def, board, 'gallery', ada, 'article'), true, 'the same article is a twin');
+  assert.equal(alreadyPlaced(def, board, 'gallery', albert, 'article'), false, 'a different article is not');
+  // The other kinds say nothing about this one: an article gallery and a category gallery coexist.
+  const cat = brushConfig(def, 'commons-category', 'Featured pictures');
+  assert.equal(alreadyPlaced(def, board, 'gallery', cat, 'commons-category'), false, 'a different kind is a different card');
+  // A blank pick is not a duplicate of another blank pick.
+  assert.equal(alreadyPlaced(def, board, 'gallery', { ...albert, article: '' }, 'article'), false);
+});
+
+// The other half of the same rule: the picked kind decides which SOURCE the spawned card reads from. A field's own
+// `showIf` says which selector value makes it visible, so a pick cannot silently fill a field the card ignores —
+// picking a category must not spawn an article gallery (found with the above, 2026-09-24).
+test('a pick points the widget at the source that reads it', () => {
+  const g = WIDGET_TYPES.gallery;
+  assert.equal(brushConfig(g, 'article', 'Albert Einstein').from, 'article');
+  assert.equal(brushConfig(g, 'commons-category', 'Featured pictures').from, 'category');
+  assert.equal(brushConfig(g, 'commons-gallery', 'The Venetian Macao').from, 'page');
+  const files = brushConfig(g, 'commons-file', 'File:Airplane vortex edit.jpg');
+  assert.equal(files.from, 'list');
+  assert.equal(files.files, 'File:Airplane vortex edit.jpg');
+  // A widget whose field has no `showIf` keeps whatever its defaults say — single-source widgets are unaffected.
+  const e = brushConfig(WIDGET_TYPES.excerpt, 'article', 'Neon Museum');
+  assert.equal(e.article, 'Neon Museum');
 });
 
 test('every brushable type can place something, and the brush list is sorted by name', () => {

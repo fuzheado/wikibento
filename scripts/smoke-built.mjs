@@ -17,9 +17,39 @@
  *   node scripts/smoke-built.mjs --engine webkit --port 4400
  */
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import net from 'node:net';
+import path from 'node:path';
 import process from 'node:process';
 import { chromium, firefox, webkit } from 'playwright';
+
+/**
+ * Refuse to measure a stale build.
+ *
+ * Twice on 2026-09-24 a browser check reported a feature broken while the source was already fixed: the script was
+ * loading the previous `dist/`. It is the most confident wrong answer this kind of check can give, and a doc line did
+ * not prevent it, so it is mechanical now: if anything under `src/` is newer than the built assets, stop and say so.
+ */
+function assertFreshBuild() {
+  const newest = (dir) => {
+    let ms = 0;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true, recursive: true })) {
+      if (!entry.isFile()) continue;
+      const full = path.join(entry.parentPath || entry.path || dir, entry.name);
+      ms = Math.max(ms, fs.statSync(full).mtimeMs);
+    }
+    return ms;
+  };
+  const src = newest('src');
+  const dist = newest('dist/assets');
+  if (src > dist) {
+    console.error(`  ✘ dist/ is older than src/ by ${Math.round((src - dist) / 1000)}s — the built app is stale.`);
+    console.error('    Run `npx vite build` first (a browser check against a stale dist/ reports a broken feature).');
+    process.exit(1);
+  }
+}
+assertFreshBuild();
+
 
 const arg = (name, dflt = null) => {
   const i = process.argv.indexOf(`--${name}`);

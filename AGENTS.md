@@ -58,6 +58,10 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   React and `lib/pickMode.js` and takes the registry as a prop; the earlier version imported the registry itself and
   formed a cycle with `App`, which threw in the built bundle and cost a revert (ISSUE-114). Prefer that shape to
   debugging the cycle afterwards.
+- **A browser check refuses to run against a stale `dist/`.** `scripts/pick-mode-e2e.mjs` and
+  `scripts/smoke-built.mjs` compare the newest `src/` mtime with the newest `dist/assets/` one and exit with a reason if
+  the build is older. Twice on 2026-09-24 a fixed feature *measured* as broken because of this; the doc line below did
+  not prevent it, so the check is mechanical now.
 - **An exception inside a React event handler reaches the console, not `pageerror`.** A browser check that listens
   only for page errors passes while every click is broken. Listen to both; treat upstream `Failed to load resource`
   as a note, and everything else as fatal.

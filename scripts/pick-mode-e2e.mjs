@@ -22,8 +22,38 @@
  * first candidate legitimately 404s and the next succeeds. Every other console error is fatal here.
  */
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import net from 'node:net';
+import path from 'node:path';
 import { chromium } from 'playwright';
+
+/**
+ * Refuse to measure a stale build.
+ *
+ * Twice on 2026-09-24 a browser check reported a feature broken while the source was already fixed: the script was
+ * loading the previous `dist/`. It is the most confident wrong answer this kind of check can give, and a doc line did
+ * not prevent it, so it is mechanical now: if anything under `src/` is newer than the built assets, stop and say so.
+ */
+function assertFreshBuild() {
+  const newest = (dir) => {
+    let ms = 0;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true, recursive: true })) {
+      if (!entry.isFile()) continue;
+      const full = path.join(entry.parentPath || entry.path || dir, entry.name);
+      ms = Math.max(ms, fs.statSync(full).mtimeMs);
+    }
+    return ms;
+  };
+  const src = newest('src');
+  const dist = newest('dist/assets');
+  if (src > dist) {
+    console.error(`  ✘ dist/ is older than src/ by ${Math.round((src - dist) / 1000)}s — the built app is stale.`);
+    console.error('    Run `npx vite build` first (a browser check against a stale dist/ reports a broken feature).');
+    process.exit(1);
+  }
+}
+assertFreshBuild();
+
 
 const ARTICLE_BRUSH = 'Article Excerpt';
 const FILE_BRUSH = 'File Spotlight';
@@ -129,6 +159,24 @@ try {
     const back = await cards(page);
     back === added - 1 ? ok(`Undo removes the spawned card (${added} → ${back})`) : bad(`undo: ${added} → ${back}`);
   } else bad(`no Undo button on the spawn toast ("${await toast(page)}")`);
+
+  // 2b. The reported bug (Andrew, 2026-09-24): arm the GALLERY brush — a widget with four kinds — and click a
+  // second article. It used to answer "Albert Einstein is already on the board", because the dedupe compared every
+  // kind field and two spawned configs agreed on the three fields neither pick was about.
+  await arm(page, 'Gallery');
+  const s1 = await cards(page);
+  const secondTitle = (await row2.locator('.article-list-title').textContent())?.trim();
+  await row.click();
+  await page.waitForTimeout(1800);
+  const s2 = await cards(page);
+  await row2.click();
+  await page.waitForTimeout(1800);
+  const s3 = await cards(page);
+  const t2b = await toast(page);
+  (s2 === s1 + 1 && s3 === s2 + 1 && t2b.includes(secondTitle))
+    ? ok(`a second article makes a second gallery card (${s1} → ${s2} → ${s3}): "${t2b}"`)
+    : bad(`gallery spawn: ${s1} → ${s2} → ${s3}, toast "${t2b}" — expected the card for "${secondTitle}"`);
+  await page.screenshot({ path: '/tmp/pick-two-galleries.png' });
 
   // ── the Commons-file half, on a board that is mostly galleries ────────────────────────────────────────────
   const gp = await freshPage();
