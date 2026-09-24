@@ -11,6 +11,29 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
+## `wikibento-2026-09-24-pick-mode-menu.png` — the pick menu (ISSUE-114)
+
+![The pick menu, grouped by what each type consumes](screenshots/wikibento-2026-09-24-pick-mode-menu.png)
+
+🖌 **Pick ▾** in the header lists the 19 widget types that consume something, grouped by *what* they consume —
+Articles, Wiki pages, Commons files, Categories, Gallery pages. **+ Add Widget** sits beside it and is unchanged:
+this is a second, power-user verb, not a replacement for it.
+
+## `wikibento-2026-09-24-pick-mode-armed.png` — armed: what can be picked says so
+
+![Dashed outlines on the pickable article rows](screenshots/wikibento-2026-09-24-pick-mode-armed.png)
+
+Once a type is chosen the button reads the armed type (`🖌 Article Excerpt ▾`), everything pickable takes a dashed
+outline and the cursor becomes a crosshair. Measured rather than eyeballed — an article row computes
+`outline: none 3px; cursor: pointer` before arming and `outline: dashed 2px; cursor: crosshair` after.
+
+## `wikibento-2026-09-24-pick-mode-spawned.png` — one click, one card, named in the toast
+
+![The spawned card and the toast offering Undo](screenshots/wikibento-2026-09-24-pick-mode-spawned.png)
+
+The click placed an **Article Excerpt** card for the item that was clicked (*Ada Lovelace*), said so in the toast, and
+offered **Undo**. The brush stays armed, so the next click places the next card.
+
 ## `wikibento-2026-09-12-two-lives.png` — a timeline of two lives (ISSUE-78, v0)
 
 ![Two lives, one axis](screenshots/wikibento-2026-09-12-two-lives.png)
