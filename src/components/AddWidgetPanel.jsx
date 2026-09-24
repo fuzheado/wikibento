@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { WIDGET_TYPES } from '../widgets';
 import { recentWidgetDefs, widgetDef } from '../widgets';
+import { minimalConfig } from '../lib/pickMode.js';
 
 /** Catalog organization (ISSUE-32): two discovery views (flat list /
  *  categorized two-pane) + search that overrides both + type filter +
@@ -116,7 +117,9 @@ export default function AddWidgetPanel({ onAdd, onClose }) {
 
   const handleAdd = (def) => {
     const id = `${def.id}-${Date.now()}`;
-    onAdd({ id, widgetType: def.id, config: { ...def.defaults } });
+    // Only what this card will read: the other sources' defaults are dead weight (the gallery carries four sources'
+    // worth otherwise) and they reach the exported JSON. Same helper as the pick brush's spawn.
+    onAdd({ id, widgetType: def.id, config: minimalConfig(def, { ...def.defaults }) });
     markRecent(def.id);
     setRecent(readRecent());
   };

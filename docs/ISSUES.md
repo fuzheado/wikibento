@@ -5116,6 +5116,19 @@ and a genuinely unknown key is still dropped, so the invariant survives.
 > exposed and fixed: the top-pages API returns `Lizzie_Borden` and the spawned card wore the underscore.
 > `docs/BROWSER-TESTING.md` records the technique the check needed.
 >
+> **Follow-through 2026-09-24 — the leftovers the fix left behind** (spotted by Andrew in an exported board). Fixing the
+> *comparison* had left the *data*: an exported gallery whose source is an article still carried `"page"`,
+> `"category"` and the default `"files"` list. Three changes, one rule — write what the card reads:
+> - **`minimalConfig()`** builds a spawned config as the registry defaults *minus every field whose own `showIf` hides
+>   it*, so `brushConfig` hands over 13 keys where it used to hand over 16, none of them dead. A field with no `showIf` is
+>   shared by every source and stays.
+> - **`+ Add Widget` starts minimal too** (it had the same `{...def.defaults}` shape), so a hand-added gallery no longer
+>   carries the other three sources either. Nothing is lost: the source's field shows its registry default when you switch
+>   `from` in the ⚙ panel, which is the ISSUE-110 rule.
+> - **⬇ Export goes through `savedBoardPayload`** — the helper the share link and localStorage already used — so a board
+>   *that already has* the dead fields is trimmed the next time it is written, including the export. That is the severity
+>   model's "inefficient → nothing to report, trim on write", finally applied to the write Andrew was looking at.
+>
 > **Still open in this issue** (deliberately not done): a per-row palette (slice 2b — more discoverable, slower);
 > clicking an already-placed item **focusing** that card rather than only refusing; a cap on spawned cards; and the
 > touch question (a brush armed from the header is fine on a phone, hover affordances are not).

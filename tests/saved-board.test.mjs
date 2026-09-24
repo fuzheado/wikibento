@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readSavedBoard, savedBoardPayload } from '../src/lib/savedBoard.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 /**
  * Restoring a saved board — the rule that decides whether the app comes back with what the user had,
@@ -69,4 +70,25 @@ test('savedBoardPayload: normalizes params and survives a round-trip through JSO
 
   const withParams = savedBoardPayload([w('a')], [], { p: { type: 'text', value: 'x' } });
   assert.equal(readSavedBoard(JSON.stringify(withParams)).params.p.value, 'x');
+});
+
+// Andrew exported a board and found a gallery whose source is an article still carrying the DEFAULTS of its other
+// three sources ("files": "File:The Earth seen from Apollo 17.jpg\n…"). A spawn no longer writes them (pickMode's
+// minimalConfig), and this is the other half: a board is written compacted wherever it is written — the share link,
+// localStorage, and now ⬇ Export, which used to stringify `widgets` verbatim.
+test('a written board drops fields that only repeat a registry default', () => {
+  // The real shape: a board stored with every registry default plus the one field the card reads. (A value that
+  // DIFFERS from its default carries information and is kept — that is the point of the rule, not a hole in it.)
+  const g = WIDGET_TYPES.gallery;
+  const gallery = {
+    id: 'gallery-1', widgetType: 'gallery',
+    config: { ...g.defaults, from: 'article', article: 'Hunter Museum of American Art', project: 'en.wikipedia' },
+  };
+  const cfg = savedBoardPayload([gallery], [], null).widgets[0].config;
+  for (const dead of ['page', 'category', 'files', 'displayMode', 'iconSize']) {
+    assert.equal(dead in cfg, false, `${dead} only repeated a default and should not be written`);
+  }
+  // What carries information stays, including the field this card actually reads.
+  assert.equal(cfg.article, 'Hunter Museum of American Art');
+  assert.equal(cfg.project, 'en.wikipedia');
 });

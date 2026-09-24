@@ -816,7 +816,11 @@ const handleAutoHeight = useCallback((id, px) => {
     // `params` is part of the documented config format (docs/JSON-FORMAT.md) and is read back by the
     // import / example / ?config= paths, so leaving it out made a parameterised board lose its
     // parameters on Export → wiki page → ?config= (ISSUE-75). Board params are part of the board.
-    const config = { version: CONFIG_VERSION, widgets, layout, params: paramBlock || null };
+    // Written through the same helper the share link and localStorage use, so an exported board carries each widget's
+    // config minus the fields that merely repeat a registry default — a gallery whose source is an article no longer
+    // exports the other three sources' defaults (found in Andrew's export, 2026-09-24). Lossless: the default is
+    // restored at render time, and the ⚙ panel shows it (the ISSUE-110 rule).
+    const config = { version: CONFIG_VERSION, ...savedBoardPayload(widgets, layout, paramBlock) };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

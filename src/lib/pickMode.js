@@ -74,6 +74,29 @@ export const PICKABLE_RENDERERS = {
   CimTopFilesCard: 'commons-file',
 };
 
+/**
+ * A config carrying only what the card will actually read: the registry defaults minus every field its own `showIf`
+ * hides for this config. A field with no `showIf` is shared by every source and stays.
+ *
+ * Why this exists: a gallery config began life as `{...def.defaults}`, and the gallery's defaults hold values for ALL
+ * FOUR of its sources — so an article gallery carried the default `page`, the default `category` and the default file
+ * list as dead data. Harmless at render time (only `from`'s field is read) and not harmless to a comparison: it is
+ * what made a second pick look like a duplicate (ISSUE-117). Andrew then spotted the leftover in an exported board,
+ * 2026-09-24, inside a gallery whose source is an article:
+ *   "files": "File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\n…"
+ *
+ * Keys that are not config fields are kept: this trims what it understands and invents no policy about the rest.
+ */
+export function minimalConfig(def, config) {
+  const out = {};
+  for (const [key, value] of Object.entries(config || {})) {
+    const field = (def?.configFields || []).find((f) => f.key === key);
+    if (field && !fieldVisible(field, config, def?.defaults)) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
 /** The fields of one definition that consume a kind: `[{ field, kind }]`. */
 export function kindFields(def) {
   return (def?.configFields || []).filter((f) => f.kind).map((f) => ({ field: f, kind: f.kind }));
@@ -114,7 +137,9 @@ export function brushConfig(def, kind, value, { project } = {}) {
   if (field.type === 'textarea') config[field.key] = String(value);
   else config[field.key] = value;
   if (project && def?.configFields?.some((f) => f.key === 'project')) config.project = project;
-  return config;
+  // Hand over only what the card reads: the other sources' defaults are dead weight, and they were once mistaken for
+  // evidence of a duplicate.
+  return minimalConfig(def, config);
 }
 
 /**

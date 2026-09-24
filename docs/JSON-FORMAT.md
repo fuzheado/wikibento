@@ -319,6 +319,13 @@ outside the app did) means the opposite of what it looks like, because `!!"False
 | **Repairable** | `"200"` for a number; `"True"`/`"False"` for a boolean; a missing key that the registry defaults; an unknown key | **Normalise silently, and report it if it changed anything.** `normalizeConfigForDef` coerces by the field's declared type and fills the registry defaults, so the card behaves as the registry says. A value that cannot be read (`"twelve"` for a number) is left exactly as written rather than guessed at, and appears in the warnings. |
 | **Inefficient, not wrong** | every widget storing every field, including the three source fields it does not use | **Nothing to report.** `compactConfig` drops what the registry would say anyway when the board is *saved*, shared or hashed — so a board the app writes is a description of the choices made, not a copy of the defaults. Never trimmed in the reader's hands: a borrowed board is shown, not rewritten. |
 
+### Writing a board
+
+A spawn and a newly added widget write only the fields their source reads — the registry defaults minus everything their
+own `showIf` hides — and a board is trimmed whenever it is **written**: the share link, localStorage and ⬇ **Export** all
+go through `savedBoardPayload`. So an old board's "Inefficient" leftovers disappear at its next save rather than at its
+next read, and a trim is lossless because the default comes back at render time.
+
 ### Prompting the user
 
 **Report, do not interrupt**, and only when a repair changed the *meaning* rather than the shape:

@@ -4,7 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { KIND_IDS, kindFields, brushableTypes, typesForKind, brushConfig, alreadyPlaced } from '../src/lib/pickMode.js';
-import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS } from '../src/lib/pickMode.js';
+import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS, minimalConfig } from '../src/lib/pickMode.js';
 const registry = WIDGET_TYPES;
 
 /**
@@ -146,4 +146,28 @@ test('the publisher list is a contract: real renderers, known kinds', () => {
   for (const held of ['SparqlCard', 'ListSourceCard', 'WikiPageCard', 'AssessmentsCard']) {
     assert.equal(PICKABLE_RENDERERS[held], undefined, `${held} is deliberately not a publisher yet`);
   }
+});
+
+test('a spawned config carries only what the card reads', () => {
+  const g = WIDGET_TYPES.gallery;
+  const article = brushConfig(g, 'article', 'Hunter Museum of American Art', { project: 'en.wikipedia' });
+  assert.equal(article.from, 'article');
+  assert.equal(article.article, 'Hunter Museum of American Art');
+  for (const other of ['page', 'category', 'files']) {
+    assert.equal(other in article, false, `${other} belongs to another source and must not ride along`);
+  }
+  // Shared fields have no showIf, so nothing hides them and they stay.
+  assert.equal(article.displayMode, g.defaults.displayMode);
+  assert.ok('refreshSeconds' in article);
+
+  // A list pick is the mirror image: the pasted list stays, the article goes, and `project` is hidden for that source.
+  const list = brushConfig(g, 'commons-file', 'File:Dogs, jackals.jpg');
+  assert.equal(list.from, 'list');
+  assert.equal(list.files, 'File:Dogs, jackals.jpg');
+  assert.equal('article' in list, false);
+  assert.equal('project' in list, false, 'project is hidden when the source is a pasted list');
+});
+
+test('minimalConfig keeps keys it does not recognise', () => {
+  assert.equal(minimalConfig(WIDGET_TYPES.gallery, { from: 'article', article: 'X', somethingNew: 1 }).somethingNew, 1);
 });
