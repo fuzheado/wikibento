@@ -41,6 +41,11 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   It names the file that disagrees. Count claims are duplicated across ~22 sources and must move together.
 - A new `public/*-demo.json` must be linked from **both** the README demo table and the hub text in
   `public/demos.json`.
+- **Load the BUILT page after a UI change**, not just the dev server. A module-initialisation cycle is a bundle-time
+  property: the suite passes, `vite build` succeeds, and the dev server renders — while the built bundle throws
+  `Cannot access … before initialization` on the first render (2026-09-24, ISSUE-114: a feature was written, tested
+  and then reverted because of it). `npx vite preview --port 4173` + `node scripts/browser-matrix.mjs --demos --base
+  http://localhost:4173` is the check that sees it; run it before deploying UI work.
 - **After `npx vite build`, confirm the asset filename CHANGED.** A failing app build leaves the previous `dist/` in
   place, so a deploy ships old code and a browser sweep will cheerfully verify it — the tests were passing while the
   app build was broken, and a whole round of measurements described a bundle that was never served. Read the real
