@@ -5000,8 +5000,22 @@ list item, it would add an 'Article gallery' for each article I clicked on. Or m
 in 'Article excerpt' mode, and then clicked on a list item, it would add a widget showing the article excerpt. For any
 widget that takes an individual Wikipedia article as input, that would be a valid option."*
 
-**In one line:** make a row in a list a *source of widgets* — a small type palette ("spawn me as …") — instead of the
-reader copying a title into `+ Widget` and then filling in the ⚙ form by hand.
+**In one line:** an **additional, power-user mode** — *shop and pick* — in which the reader chooses a widget type and
+then clicks items in content they are already reading, and each click places that widget for that item.
+
+**Not a replacement for `+ Widget`.** Andrew, clarifying (2026-09-24): *"I don't mean to replace the 'Add Widget' button
+at all, as this would be another mode of operation to complement the singleton widget additions. It's more of a
+power-user type feature that allows you to 'shop and pick' content from existing content."* So: `+ Widget` stays the way
+you add **one** widget and configure it; this is a second, contextual mode for building **several** cards out of
+content you are already looking at. The two coexist, and nothing in `AddWidgetPanel` changes role.
+
+**The shape Andrew described is a brush, not a palette.** *"Perhaps if I pulled down a menu so that it's in 'Article
+excerpt' mode, and then clicked on a list item, it would add a widget showing the article excerpt."* That is a
+**stamp/brush** model: pick the current widget type once, then click item after item to place cards of that type — the
+mode persists across clicks, so adding six excerpts from one list of links is six clicks and no dialog. The
+alternative (a per-row palette that opens per item, below in slice 2) is more discoverable but slower for that case;
+the mode-and-brush version is the one worth prototyping first, because it is the one that makes *several* additions
+cheap — which is the whole point of the feature.
 
 **Prior art here — most of the plumbing exists**
 
@@ -5039,9 +5053,13 @@ therefore offer both and make the cheap one the default: click **retargets**, th
 1. **`kind` on registry fields** for the article / page / file / category / gallery inputs (~20 fields), with a test
    that every `kind` is a known `paramSources` id and that a widget's declared kind agrees with the value it fetches
    with.
-2. **A spawn palette** on the rows of an existing list widget — the natural first host is 📋 Article List, the 🖼️
-   Gallery, or the ISSUE-68 Finder — listing the widget types whose `kind` matches the row, each spawning a card
-   pre-filled with the row's title. Reuses `AddWidgetPanel`'s list machinery and `onAdd`.
+2. **The brush** — a small type picker (the *current* stamp: Article excerpt, Article gallery, Pageviews…) plus a way
+   to enter the mode (a toolbar toggle beside Present/Lean, or a modifier-click). While it is active, rows and list
+   items in cards become clickable "place a card for this" targets, and the mode **persists across clicks**. The type
+   list is filtered to widgets whose `kind` matches the item, and it reuses `AddWidgetPanel`'s list machinery and the
+   existing `onAdd`.
+2b. **Or a per-row palette** — the same list, opened per item instead of held as a brush. More discoverable, slower
+   for several additions; worth having as an alternative once the brush exists.
 3. **Placement, dedupe, undo**: spawned cards go to the first free slot (react-grid-layout already does this), name the
    item in their title, and the existing undo toast offers a single undo. Clicking the same row twice should focus the
    card it already made rather than make a twin.
