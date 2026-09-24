@@ -160,7 +160,7 @@ export const WIDGET_TYPES = {
     getRenderer: (config) => (pageviewsMode(config) === 'trend' ? 'TrendCard' : 'StatCard'),
     dataSource: 'pageviews',
     configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Main_Page' },
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', placeholder: 'Main_Page' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'stat', label: 'Stat Card' },
@@ -245,7 +245,7 @@ export const WIDGET_TYPES = {
     renderer: 'StatCard',
     dataSource: 'categoryinfo',
     configFields: [
-      { key: 'category', label: 'Category', type: 'text', placeholder: 'Images from X' },
+      { key: 'category', label: 'Category', kind: 'commons-category', type: 'text', placeholder: 'Images from X' },
       { key: 'wiki', label: 'Wiki', type: 'project' },
       { key: 'sampleCount', label: 'Sample imgs', type: 'number', placeholder: '0 = off, max 24' },
     ],
@@ -316,7 +316,7 @@ export const WIDGET_TYPES = {
     renderer: 'RankingCard',
     dataSource: 'globalusage',
     configFields: [
-      { key: 'filename', label: 'Commons Filename', type: 'text', placeholder: 'Example.jpg' },
+      { key: 'filename', label: 'Commons Filename', kind: 'commons-file', type: 'text', placeholder: 'Example.jpg' },
       { key: 'topN', label: 'Top N wikis', type: 'number', placeholder: '10' },
       { key: 'showImage', label: 'Show image', type: 'boolean' },
       { key: 'showCaption', label: 'Show caption', type: 'boolean' },
@@ -356,7 +356,7 @@ export const WIDGET_TYPES = {
     renderer: 'GlamCard',
     dataSource: 'petscan-style walk + pageviews',
     configFields: [
-      { key: 'category', label: 'Category', type: 'text', placeholder: 'Images from X' },
+      { key: 'category', label: 'Category', kind: 'commons-category', type: 'text', placeholder: 'Images from X' },
       { key: 'depth', label: 'Depth', type: 'number', min: 0, max: 12, hint: '0 = category only, 1 = + direct subcats', placeholder: '0-12' },
       { key: 'year', label: 'Year', type: 'number', placeholder: '2026' },
       { key: 'month', label: 'Month', type: 'number', placeholder: '1-12' },
@@ -630,7 +630,7 @@ export const WIDGET_TYPES = {
     renderer: 'ExcerptCard',
     dataSource: 'REST /page/summary',
     configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'verticalAlign', label: 'Vertical position', type: 'select', options: [
         { value: 'top', label: 'Top (default for text)' },
@@ -678,7 +678,7 @@ export const WIDGET_TYPES = {
     renderer: 'EditHistoryCard',
     dataSource: 'Action API prop=revisions',
     configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'limit', label: 'Edits to show', type: 'number', placeholder: '10 (max 50)' },
     ],
@@ -706,7 +706,7 @@ export const WIDGET_TYPES = {
     renderer: 'QualityCard',
     dataSource: 'Lift Wing (api.wikimedia.org)',
     configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'project' },
     ],
     fetch: (config) => { const p = pageRef(config, 'article'); return fetchArticleQuality(p.title, p.projectConfig); },
@@ -737,7 +737,7 @@ export const WIDGET_TYPES = {
     renderer: 'AssessmentsCard',
     dataSource: 'Action API prop=pageassessments',
     configFields: [
-      { key: 'article', label: 'Article', type: 'text', placeholder: 'Albert Einstein' },
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', placeholder: 'Albert Einstein' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'topN', label: 'Projects to show', type: 'number', placeholder: '12 (max 50)' },
     ],
@@ -811,12 +811,12 @@ export const WIDGET_TYPES = {
         { value: 'category', label: 'A wiki category' },
         { value: 'list', label: 'A list of files I paste' },
       ]},
-      { key: 'article', label: 'Article', type: 'text', showIf: { from: 'article' }, placeholder: 'Albert Einstein' },
-      { key: 'page', label: 'Commons gallery page', type: 'text', showIf: { from: 'page' }, placeholder: 'The Venetian Macao',
+      { key: 'article', label: 'Article', kind: 'article', type: 'text', showIf: { from: 'article' }, placeholder: 'Albert Einstein' },
+      { key: 'page', label: 'Commons gallery page', kind: 'commons-gallery', type: 'text', showIf: { from: 'page' }, placeholder: 'The Venetian Macao',
         hint: 'The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so "The Venetian Macao", not "Gallery:…". Find one by searching Commons for hastemplate:"Gallery page".' },
-      { key: 'category', label: 'Category', type: 'text', showIf: { from: 'category' }, placeholder: 'Images from XBio',
+      { key: 'category', label: 'Category', kind: 'commons-category', type: 'text', showIf: { from: 'category' }, placeholder: 'Images from XBio',
         hint: 'Bare name, or with the Category: prefix. Subcategories are not walked.' },
-      { key: 'files', label: 'Commons files (one per line)', type: 'textarea', rows: 8, showIf: { from: 'list' }, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
+      { key: 'files', label: 'Commons files (one per line)', kind: 'commons-file', type: 'textarea', rows: 8, showIf: { from: 'list' }, placeholder: 'File:Example.jpg\nFile:Another photo.png' },
       { key: 'project', label: 'Wiki', type: 'project', showIf: { from: ['article', 'page', 'category'] },
         hint: 'Defaults to the source\'s own wiki: en.wikipedia for an article, commons.wikimedia for a gallery page or a category.' },
       { key: 'order', label: 'Order', type: 'select', showIf: { from: ['list', 'category'] }, options: [
@@ -1005,7 +1005,7 @@ export const WIDGET_TYPES = {
     renderer: 'ArticleListCard',
     dataSource: 'MediaWiki API pageimages|extracts (batched, optional)',
     configFields: [
-      { key: 'articles', label: 'Article titles (one per line)', type: 'textarea', rows: 8, placeholder: 'Ada Lovelace\nAlbert Einstein' },
+      { key: 'articles', label: 'Article titles (one per line)', kind: 'article', type: 'textarea', rows: 8, placeholder: 'Ada Lovelace\nAlbert Einstein' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'enrich', label: 'Thumbnails + intros', type: 'boolean' },
       { key: 'maxItems', label: 'Max articles (0 = all)', type: 'number', placeholder: '0' },
@@ -1251,7 +1251,7 @@ export const WIDGET_TYPES = {
     renderer: 'CimSnapshotCard',
     dataSource: 'CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly',
     configFields: [
-      { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
+      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
       { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'showImage', label: 'Show image preview', type: 'boolean' },
       CIM_MONTH_FIELD,
@@ -1287,7 +1287,7 @@ export const WIDGET_TYPES = {
     renderer: 'FileTrafficCard',
     dataSource: 'CIM pageviews-per-media-file-monthly',
     configFields: [
-      { key: 'filename', label: 'Commons file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
+      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
       { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'months', label: 'Fetch window (3–24 months)', type: 'number', placeholder: '12' },
       CIM_MONTH_FIELD,
@@ -1451,7 +1451,7 @@ export const WIDGET_TYPES = {
     dataSource: 'static (iframe to the wiki)',
     configFields: [
       { key: 'url', label: 'Custom URL (overrides the wiki page below)', type: 'text', placeholder: 'https://objectium.toolforge.org/uploads/213', hint: 'http(s) only — embeddable sites (no X-Frame-Options). The wiki fields below are ignored when set.' },
-      { key: 'page', label: 'Page', type: 'text', placeholder: 'Help:Introduction' },
+      { key: 'page', label: 'Page', kind: 'page', type: 'text', placeholder: 'Help:Introduction' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
@@ -1732,7 +1732,7 @@ export const WIDGET_TYPES = {
     // Per-widget layout constraints (react-grid-layout minW/minH/maxW/maxH).
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
-      { key: 'filename', label: 'Commons file (360° / equirectangular)', type: 'text', placeholder: 'File:Example 360.jpg' },
+      { key: 'filename', label: 'Commons file (360° / equirectangular)', kind: 'commons-file', type: 'text', placeholder: 'File:Example 360.jpg' },
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'autoRotate', label: 'Auto-rotate', type: 'boolean' },
     ],
@@ -1773,7 +1773,7 @@ export const WIDGET_TYPES = {
     dataSource: 'Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call',
     defaultLayout: { w: 4, h: 4, minW: 3, minH: 3 },
     configFields: [
-      { key: 'files', label: 'Commons files or media URLs (one per line)', type: 'textarea', rows: 6, placeholder: 'File:Example.webm\nFile:Spoken article.ogg\nhttps://archive.org/download/{id}/{file}.mp4', hint: 'Either a Commons <code>File:</code> name or a direct audio/video URL — an archive.org <code>/download/</code> file plays with no API call and no key, and Range requests make seeking work. A direct URL is listed before Commons files when a playlist mixes them.' },
+      { key: 'files', label: 'Commons files or media URLs (one per line)', kind: 'commons-file', type: 'textarea', rows: 6, placeholder: 'File:Example.webm\nFile:Spoken article.ogg\nhttps://archive.org/download/{id}/{file}.mp4', hint: 'Either a Commons <code>File:</code> name or a direct audio/video URL — an archive.org <code>/download/</code> file plays with no API call and no key, and Range requests make seeking work. A direct URL is listed before Commons files when a playlist mixes them.' },
       { key: 'mediaType', label: 'Media type', type: 'select', options: [
         { value: 'auto', label: 'Auto-detect (per file)' },
         { value: 'video', label: 'Video only' },
@@ -1930,7 +1930,7 @@ export const WIDGET_TYPES = {
     renderer: 'DocumentReaderCard',
     dataSource: 'Commons API imageinfo — pagecount + a page-N thumbnail template (one call)',
     configFields: [
-      { key: 'file', label: 'File', type: 'text', placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.' },
+      { key: 'file', label: 'File', kind: 'commons-file', type: 'text', placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.' },
       { key: 'project', label: 'Wiki', type: 'project', placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.' },
       { key: 'spread', label: 'Reading mode', type: 'select', options: [
         { value: 'auto', label: 'Auto — facing pages when the card is wide enough' },

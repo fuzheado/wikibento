@@ -4992,7 +4992,33 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
-## ISSUE-114 · Spawn widgets from a list item: the missing "add" verb — **open** (design)
+## ISSUE-114 · Spawn widgets from a list item: the missing "add" verb — **open** (design; slice 1 shipped, slice 2 built then reverted)
+
+> **Status 2026-09-24 — an honest interim.** **Slice 1 shipped and is inert**: 19 registry fields now declare
+> `kind` (`article`, `page`, `commons-file`, `commons-category`, `commons-gallery`, `wikidata-item`), `src/lib/pickMode.js`
+> holds the pure helpers, and `tests/pick-mode.test.mjs` gates the vocabulary and the matching. Nothing about the app's
+> behaviour changed.
+>
+> **Slice 2 (the brush) was written, tested, and then REVERTED** — `App.jsx`, `App.css` and `WidgetFrame.jsx` are back to
+> their previous state. In the bundled app it threw `ReferenceError: Cannot access 'Re' before initialization` — a
+> module-initialisation cycle, and one that **no test can see** (the suite was green, `vite build` succeeded, and the
+> un-flagged dev server rendered). What was ruled out, in order:
+> - a `const` read before initialisation in my own code (`handlePickItem`'s dependency array read `handleAddWidget`,
+>   declared below it) — fixed, error persisted;
+> - a circular import I introduced (`pickMode` → `widgets/index`, with `App` importing both) — made `pickMode`
+>   dependency-free (the registry is now an argument), error persisted;
+> - a stale preview bundle — measured on fresh ports, with a fresh build;
+> - duplicate JSX from a failed patch (the header block had been inserted twice) — removed.
+>
+> **The app is verified working again** (4 cards, 0 page errors, 634 tests) and the feature is one debugging session
+> from done. Next steps, in order of promise: (1) build with sourcemaps and read the cycle, or `rollup-plugin-visualizer`
+> on the module graph; (2) move the brush state into its own component and load it with a dynamic `import()`, which
+> sidesteps module-init order entirely; (3) reproduce on a branch with only the header control, then only the click
+> routing, to bisect which import is in the cycle.
+>
+> **The lesson worth keeping:** a module-init cycle is a *bundle-time* property, so unit tests, `node --check`, and even
+> `vite build` cannot see it — only loading the built page can. The demos sweep does exactly that, and running it before
+> deploying is what should have caught this before the revert. *Check the built artefact, not just the build.*
 
 **What:** Andrew, 2026-09-24: *"I'd like to be able to add widgets interactively and selectively. If I provided a
 Wikipedia article as a starting point, you might provide a list of all the articles it links to, and if I clicked on a
