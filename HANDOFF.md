@@ -523,7 +523,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
        line each: the registry is an object keyed by id, so `id:`-based deletions corrupt it silently
        (`commonsGallery` → `fileUsage`, with 588/609 tests passing); and **a sweep without `--base` tests production,
        not your working tree** — the script now prints its base and warns when it is the implicit default.
-     - **ISSUE-114 slice 2 — the \u201cshop and pick\u201d brush (next session, ~1 h).** Slice 1 shipped and is inert ( on 19
+     - **ISSUE-114 slice 2 — the “shop and pick” brush (next session, ~1 h).** Slice 1 shipped and is inert (`kind` on 19
        registry fields, `src/lib/pickMode.js`, `tests/pick-mode.test.mjs`); the brush UI was built, then **reverted** because
        the built bundle threw `Cannot access 'Re' before initialization` — a module-initialisation cycle. Rebuild it
        **acyclically by construction**: a `PickMenu` component importing only `lib/pickMode` (registry as a prop),
