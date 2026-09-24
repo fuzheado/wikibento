@@ -4992,6 +4992,22 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-116 · `/api/petscan` answered 502 twice during verification — **open** (low, intermittent; seen twice 2026-09-24)
+
+> **What was seen.** Twice while running `node scripts/pick-mode-e2e.mjs --base https://wikibento.toolforge.org`: the
+> board's PetScan card requested the tool's own `/api/petscan` proxy and got **502** (the browser logs a failed
+> resource; the card shows its error state). The board itself rendered all 42 of its cards both times.
+>
+> **What was checked, so the guesswork is bounded.** Within the same hour: `/api/petscan` answers (HTTP 400 to a
+> hand-built query of mine — the proxy rejecting bad parameters, not failing), and `petscan.wmcloud.org` answers
+> **200** directly. So neither PetScan nor the proxy is down.
+>
+> **Why it is filed rather than fixed.** A 502 from a proxy usually means the upstream call exceeded a timeout, which
+> is a different fix (a longer timeout, a cached fallback, a retry) from a wrong URL — and picking one without evidence
+> would be pretending to more than two observations support. Worth a look if it recurs, and worth checking whether it
+> correlates with the first fetch after a `webservice ... restart` (the service had restarted minutes before, both
+> times).
+
 ## ISSUE-115 · The Wayback embed trips a report-only CSP violation on production — **open** (found 2026-09-24)
 
 > **What was seen.** Running `node scripts/pick-mode-e2e.mjs --base https://wikibento.toolforge.org` after the ISSUE-114
