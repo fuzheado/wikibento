@@ -257,6 +257,12 @@ brush is for.
 4. Click again on something new, and again. The brush **stays armed** — that is the point.
 5. Click **🖌 <type> ▾** to switch types, or **✕ Stop picking** to leave the mode.
 
+What can be picked today: **article-list rows**, **ranked article rows** (including the expanded top-pages card),
+**any ranking row whose own link is a Wikipedia article or a Commons file**, **GLAM sample strips**, **CIM file rows**
+and **gallery tiles**. A row's own link declares what it is, so there is nothing to configure. Deliberately not yet:
+wiki page boxes (they render the page in an iframe, so there is no DOM to click), assessment rows (those are
+WikiProjects, not the article), and SPARQL / list-source rows (which need the row to declare its kind).
+
 Rules worth knowing:
 
 - **One click, one card.** Clicking an item that is already on the board refuses and says so instead of making a twin.

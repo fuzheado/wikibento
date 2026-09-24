@@ -55,6 +55,28 @@ function assertFreshBuild() {
 assertFreshBuild();
 
 
+// The publisher checks need a board with the EXPANDED top-pages card, which no demo has (that renderer is chosen by
+// `showExpanded`). Rather than add a demo or a scratch file for it — a file in public/ trips the demos gate, and one in
+// dist/ is not loadable as a board — the script uses the app's own ⬆ Import panel: it builds the board from the app's
+// dashboard config (so it cannot drift from the widgets' real defaults) and pastes it in.
+const probeBoard = () => {
+  const dash = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/dashboard.json'), 'utf8'));
+  const want = new Set(['topPages', 'topWikipedias', 'cimTopFiles']);
+  const widgets = dash.widgets.filter((w) => want.has(w.widgetType)).map((w) => ({
+    ...w,
+    config: { ...w.config, ...(w.widgetType === 'topPages' ? { showExpanded: true } : {}) },
+  }));
+  const layout = (dash.layout || []).filter((l) => widgets.some((w) => w.id === l.i));
+  return JSON.stringify({ ...dash, widgets, layout });
+};
+const loadProbeBoard = async (p) => {
+  await p.getByRole('button', { name: /Import/ }).click();          // the header's ⬆ Import (the panel does not exist yet)
+  await p.waitForSelector('.import-textarea', { timeout: 10000 });
+  await p.locator('.import-textarea').fill(probeBoard());
+  await p.locator('.import-panel button.btn-primary').click();
+  await p.waitForTimeout(1500);
+};
+
 const ARTICLE_BRUSH = 'Article Excerpt';
 const FILE_BRUSH = 'File Spotlight';
 
@@ -101,6 +123,9 @@ const freshPage = async () => {
 };
 const cards = (p) => p.locator('[data-widget-id]').count();
 const toast = async (p) => (await p.locator('.assembly-toast-msg').textContent().catch(() => ''))?.trim() || '';
+// A row's title can be slow to come back after a re-render (the board refetches, and the APIs 429 under repeated
+// runs), and an unread title is not a finding about pick mode — so it is read defensively and named as unknown.
+const titleOf = async (loc) => (await loc.textContent().catch(() => ''))?.trim() || '(title unread)';
 const arm = async (p, name) => {
   await p.getByRole('button', { name: /🖌/ }).click();
   await p.waitForSelector('.pick-menu', { timeout: 5000 });
@@ -115,7 +140,7 @@ try {
   await page.waitForSelector('.article-list-row', { timeout: 45000 });
   const before = await cards(page);
   const row = page.locator('.article-list-row').first();
-  const article = (await row.locator('.article-list-title').textContent())?.trim();
+  const article = await titleOf(row.locator('.article-list-title'));
   ok(`board loaded: ${before} cards · first list row "${article}"`);
 
   await page.getByRole('button', { name: /🖌 Pick/ }).click();
@@ -165,7 +190,7 @@ try {
   // kind field and two spawned configs agreed on the three fields neither pick was about.
   await arm(page, 'Gallery');
   const s1 = await cards(page);
-  const secondTitle = (await row2.locator('.article-list-title').textContent())?.trim();
+  const secondTitle = await titleOf(row2.locator('.article-list-title'));
   await row.click();
   await page.waitForTimeout(1800);
   const s2 = await cards(page);
@@ -173,10 +198,90 @@ try {
   await page.waitForTimeout(1800);
   const s3 = await cards(page);
   const t2b = await toast(page);
-  (s2 === s1 + 1 && s3 === s2 + 1 && t2b.includes(secondTitle))
+  const titleKnown = secondTitle !== '(title unread)';
+  (s2 === s1 + 1 && s3 === s2 + 1 && (!titleKnown || t2b.includes(secondTitle)))
     ? ok(`a second article makes a second gallery card (${s1} → ${s2} → ${s3}): "${t2b}"`)
     : bad(`gallery spawn: ${s1} → ${s2} → ${s3}, toast "${t2b}" — expected the card for "${secondTitle}"`);
   await page.screenshot({ path: '/tmp/pick-two-galleries.png' });
+
+  // 2c. The other publishers (ISSUE-114's second pass): a ranked article row, a CIM file row, and a generic
+  // ranking row whose own link declares what it is. All three live on this board.
+  await arm(page, ARTICLE_BRUSH);
+  await page.waitForTimeout(400);
+
+  const tp = page.locator('.toppages-row').first();
+  if (await tp.count()) {
+    const t0 = await cards(page);
+    await tp.click();
+    await page.waitForTimeout(1800);
+    const t1 = await cards(page);
+    const tmsg = await toast(page);
+    t1 === t0 + 1 ? ok(`a ranked article row places a card (${t0} → ${t1}): "${tmsg}"`) : bad(`toppages row: ${t0} → ${t1}, toast "${tmsg}"`);
+  }
+  // Not a failure when absent: the dashboard's top-pages card renders in RANKING mode, and the expanded variant —
+  // different row markup, same wiring — is checked on the probe board just below.
+
+  // ── the expanded top-pages row, on the probe board (that variant only exists when `showExpanded` is set) ──
+  {
+    const pb = await freshPage();
+    await pb.goto(`${base}/?config=/dashboard.json`, { waitUntil: 'domcontentloaded' });
+    await pb.waitForSelector('[data-widget-id]', { timeout: 30000 });
+    await loadProbeBoard(pb);
+    await arm(pb, ARTICLE_BRUSH);
+    const tp = pb.locator('.toppages-row').first();
+    await tp.waitFor({ timeout: 60000 }).catch(() => {});
+    // The armed look is kind-agnostic, so every declared target can be asserted in one pass.
+    const dashed = await pb.evaluate(() => {
+      const sel = '.article-list-row, .toppages-row, .cim-top-file, .sample-strip .sample-thumb, .ranking-link';
+      const els = [...document.querySelectorAll(sel)];
+      return { total: els.length, dashed: els.filter((el) => getComputedStyle(el).outlineStyle === 'dashed').length };
+    });
+    (dashed.total > 0 && dashed.total === dashed.dashed)
+      ? ok(`every declared pick target shows the dashed outline while armed (${dashed.dashed}/${dashed.total})`)
+      : bad(`armed outlines: ${dashed.dashed}/${dashed.total} targets dashed`);
+    if (await tp.count()) {
+      const t0 = await cards(pb);
+      await tp.click();
+      await pb.waitForTimeout(2200);
+      const t1 = await cards(pb);
+      const tmsg = await toast(pb);
+      t1 === t0 + 1
+        ? ok(`an expanded top-pages row places a card (${t0} → ${t1}): "${tmsg}"`)
+        : bad(`toppages row: ${t0} → ${t1}, toast "${tmsg}"`);
+      await pb.screenshot({ path: '/tmp/pick-expanded-row.png' });
+    } else bad('the imported board has no .toppages-row — is topPages.showExpanded reaching the renderer?');
+    pb.errs.length ? bad(`errors on the probe board: ${pb.errs[0]}`) : ok('0 errors on the probe board');
+    await pb.close();
+  }
+
+  // A ranking row's own link decides: click one that is an article URL, which the link itself declares.
+  const firstArticleLink = await page.evaluate(() => {
+    for (const a of document.querySelectorAll('.ranking-link')) {
+      const h = a.getAttribute('href') || '';
+      if (/^https?:\/\/[a-z-]+\.wikipedia\.org\/wiki\//i.test(h) && !/\/wiki\/(File|Category|Talk|Special|User|Template|Portal|Wikipedia|Help):/i.test(h)) return h;
+    }
+    return null;
+  });
+  if (firstArticleLink) {
+    const r0 = await cards(page);
+    await page.locator(`.ranking-link[href="${firstArticleLink}"]`).first().click();
+    await page.waitForTimeout(1800);
+    const r1 = await cards(page);
+    const rmsg = await toast(page);
+    r1 === r0 + 1 ? ok(`a ranking row's own link places a card (${r0} → ${r1}): "${rmsg}"`) : bad(`ranking link: ${r0} → ${r1}, toast "${rmsg}"`);
+  } else bad('no article-URL .ranking-link on this board to test the derived kind');
+
+  await arm(page, FILE_BRUSH);
+  const cim = page.locator('.cim-top-file').first();
+  if (await cim.count()) {
+    const c0 = await cards(page);
+    await cim.click();
+    await page.waitForTimeout(1800);
+    const c1 = await cards(page);
+    const cmsg = await toast(page);
+    c1 === c0 + 1 ? ok(`a CIM file row places a card (${c0} → ${c1}): "${cmsg}"`) : bad(`CIM row: ${c0} → ${c1}, toast "${cmsg}"`);
+  } else bad('no .cim-top-file on this board');
+  await page.screenshot({ path: '/tmp/pick-publishers.png' });
 
   // ── the Commons-file half, on a board that is mostly galleries ────────────────────────────────────────────
   const gp = await freshPage();

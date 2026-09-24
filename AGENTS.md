@@ -62,6 +62,10 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   `scripts/smoke-built.mjs` compare the newest `src/` mtime with the newest `dist/assets/` one and exit with a reason if
   the build is older. Twice on 2026-09-24 a fixed feature *measured* as broken because of this; the doc line below did
   not prevent it, so the check is mechanical now.
+- **A browser check that needs a board no demo has should paste it through the app's own ⬆ Import panel.**
+  `scripts/pick-mode-e2e.mjs` builds a small board from `public/dashboard.json` (so it cannot drift), fills
+  `.import-textarea`, and clicks Import — no scratch file. A file in `public/` trips the demos gate, and a file in
+  `dist/` is not loadable as a board at all (found the hard way, 2026-09-24).
 - **An exception inside a React event handler reaches the console, not `pageerror`.** A browser check that listens
   only for page errors passes while every click is broken. Listen to both; treat upstream `Failed to load resource`
   as a note, and everything else as fatal.

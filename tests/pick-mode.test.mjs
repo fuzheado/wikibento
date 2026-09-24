@@ -1,8 +1,10 @@
 import test from 'node:test';
+import fs from 'node:fs';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { KIND_IDS, kindFields, brushableTypes, typesForKind, brushConfig, alreadyPlaced } from '../src/lib/pickMode.js';
-import { projectFromUrl } from '../src/lib/pickMode.js';
+import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS } from '../src/lib/pickMode.js';
 const registry = WIDGET_TYPES;
 
 /**
@@ -108,5 +110,40 @@ test('a click knows which wiki the item came from — the ISSUE-99 rule, applied
   // Anything that is not a Wikimedia article URL leaves the widget's own default alone.
   for (const bad of ['/wiki/X', 'http://localhost:3000/x', 'https://archive.org/details/x', '', null, undefined]) {
     assert.equal(projectFromUrl(bad), undefined, `${bad} should not name a project`);
+  }
+});
+
+test('a link says what it is — the row-derived kind', () => {
+  assert.deepEqual(pickFromUrl('https://en.wikipedia.org/wiki/Marie_Curie'),
+    { kind: 'article', value: 'Marie Curie', label: 'Marie Curie', project: 'en.wikipedia' });
+  // Underscores and percent-escapes both come back as a title you could paste into a widget.
+  assert.equal(pickFromUrl('https://de.wikipedia.org/wiki/Weddellmeer').value, 'Weddellmeer');
+  assert.equal(pickFromUrl('https://en.wikipedia.org/wiki/P%C3%A8re_Lachaise_Cemetery').value, 'Père Lachaise Cemetery');
+  assert.deepEqual(pickFromUrl('https://commons.wikimedia.org/wiki/File:Airplane_vortex_edit.jpg'),
+    { kind: 'commons-file', value: 'File:Airplane vortex edit.jpg', label: 'Airplane vortex edit.jpg', project: 'commons.wikimedia' });
+  // A namespace page is a page, not an article, and not a kind this vocabulary can place.
+  for (const bad of [
+    'https://en.wikipedia.org/wiki/Category:Physicists',
+    'https://en.wikipedia.org/wiki/Talk:Marie_Curie',
+    'https://commons.wikimedia.org/wiki/Category:Featured_pictures',
+    'https://en.wikipedia.org/wiki/Special:Random',
+    '/wiki/Marie_Curie', 'https://archive.org/details/x', '', null, undefined,
+  ]) {
+    assert.equal(pickFromUrl(bad), null, `${bad} should not name a pickable thing`);
+  }
+});
+
+test('the publisher list is a contract: real renderers, known kinds', () => {
+  // process.cwd(), not import.meta.url: the tests are bundled elsewhere (the repo root, or a scratch dir for a
+  // single-file run) and the bundle's own location says nothing about where the sources are.
+  const src = fs.readFileSync(path.join(process.cwd(), 'src/widgets/WidgetFrame.jsx'), 'utf8');
+  const cases = new Set([...src.matchAll(/case '([A-Za-z]+Card)':/g)].map((m) => m[1]));
+  for (const [renderer, kind] of Object.entries(PICKABLE_RENDERERS)) {
+    assert.ok(cases.has(renderer), `${renderer} is declared pickable but nothing renders it`);
+    if (kind !== 'derived') assert.ok(KIND_IDS.includes(kind), `${renderer} declares kind "${kind}"`);
+  }
+  // The two the app renders but deliberately does NOT offer, so a future pass adds them on purpose.
+  for (const held of ['SparqlCard', 'ListSourceCard', 'WikiPageCard', 'AssessmentsCard']) {
+    assert.equal(PICKABLE_RENDERERS[held], undefined, `${held} is deliberately not a publisher yet`);
   }
 });

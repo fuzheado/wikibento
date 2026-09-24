@@ -29,6 +29,51 @@ export function projectFromUrl(url) {
   return m ? `${m[1]}.${m[2]}` : undefined;
 }
 
+/**
+ * What a Wikimedia link IS, read from the link itself — the ISSUE-99 rule ("a reference beats a configured project")
+ * applied to a URL. A row that links to `en.wikipedia.org/wiki/Marie_Curie` is an article; one that links to
+ * `commons.wikimedia.org/wiki/File:X.jpg` is a Commons file. Underscores become spaces and percent-escapes are decoded,
+ * so the value is a title you could paste into a widget. Anything else — a namespace page like `Category:` or `Talk:`,
+ * another site, a relative URL — names nothing the vocabulary can place, and returns null, which leaves the row an
+ * ordinary link. This is what lets a generic renderer (RankingCard) offer a pick without the data layer declaring one.
+ */
+export function pickFromUrl(url) {
+  const m = /^https?:\/\/([a-z0-9-]+)\.([a-z]+)\.org\/wiki\/(.+)$/i.exec(String(url || ''));
+  if (!m) return null;
+  const [, lang, family, raw] = m;
+  let title;
+  try { title = decodeURIComponent(raw).replace(/_/g, ' '); } catch { title = raw.replace(/_/g, ' '); }
+  const project = `${lang}.${family}`;
+  if (family === 'wikimedia' && /^file:/i.test(title)) {
+    const value = 'File:' + title.slice(5);
+    return { kind: 'commons-file', value, label: value.slice(5), project };
+  }
+  const NS = /^(file|category|special|talk|user|user talk|help|template|portal|wikipedia|draft|module|book|timedtext|mediawiki):/i;
+  if (family === 'wikipedia' && !NS.test(title)) return { kind: 'article', value: title, label: title, project };
+  return null;
+}
+
+/**
+ * The widgets whose rows can be picked, and what picking one places. The contract in one place: a test asserts every
+ * key is a renderer that exists and every kind is one the app can resolve, and ISSUE-114's "what is pickable here"
+ * hint will read it. The frame passes `picking` / `onPickItem` down; the row supplies the item.
+ *
+ * Deliberately absent (decided with Andrew, 2026-09-24): `SparqlCard` and `ListSourceCard`, because a row there can be
+ * anything and "what is a row" is a design question (the answer is a kind declared on the row — ISSUE-96's typed
+ * payloads). Also absent, with reasons worth keeping: `WikiPageCard` renders an **iframe** (nothing inside is our
+ * DOM — the real prize for a later pass), `AssessmentsCard`'s rows are WikiProjects rather than the article the card
+ * is about, and `FileTrafficCard` is a one-file chart with no rows at all.
+ */
+export const PICKABLE_RENDERERS = {
+  ArticleListCard: 'article',
+  TopPagesExpandedCard: 'article',
+  RankingCard: 'derived',        // per row, from that row's own link: an article, or a Commons file
+  GalleryGridCard: 'commons-file',
+  GalleryListCard: 'commons-file',
+  GlamCard: 'commons-file',      // the sample filmstrip
+  CimTopFilesCard: 'commons-file',
+};
+
 /** The fields of one definition that consume a kind: `[{ field, kind }]`. */
 export function kindFields(def) {
   return (def?.configFields || []).filter((f) => f.kind).map((f) => ({ field: f, kind: f.kind }));

@@ -5094,6 +5094,28 @@ and a genuinely unknown key is still dropped, so the invariant survives.
 > `handleAddWidget`, so placement, the registry's layout constraints, the borrowed-board adoption rule and persistence
 > are the same code path, and `alreadyPlaced()` (slice 1) is the dedupe.
 >
+> **Second pass 2026-09-24 — the other publishers.** Pick mode only worked where a row was already wired, which was
+> two of forty-one types. Four more now publish, and they share one rule: **a row whose link is itself a Wikimedia
+> article or file declares its own kind** (`pickFromUrl` — the ISSUE-99 rule applied to a URL). `TopPagesExpandedCard`
+> (a ranked article), `RankingCard` (per row, from that row's own link — this is what made `fileUsage`,
+> `topWikipedias`, `topPages` and `cimTopWikis` pickable at once), `GlamCard`'s sample filmstrip and `CimTopFilesCard`
+> (Commons files). `PICKABLE_RENDERERS` in `lib/pickMode.js` is the contract; a test asserts every key is a renderer
+> that exists and every kind is one the app resolves.
+>
+> **Surveyed and deliberately left out**, with the reason, because a wrong guess here is a feature that looks broken:
+> `WikiPageCard` renders an **iframe** — nothing inside it is our DOM, which makes it the real prize for a later pass
+> (the page you are reading, made clickable — it needs the proxy to inject a script); `WikiBoxCard` draws **bars**
+> (labels, not articles); `AssessmentsCard`'s rows are **WikiProjects**, while the article is that card's *input*; and
+> `FileTrafficCard` is a one-file chart with no rows. `SparqlCard` and `ListSourceCard` are held back on purpose
+> (Andrew, 2026-09-24): a row there can be anything, so the honest fix is a **kind declared on the row** — ISSUE-96's
+> typed payloads — not a guess.
+>
+> **Verified 18/18** in the built app: the expanded row places a card (`3 → 4`, "Added Article Excerpt: Lizzie Borden"),
+> a ranking row's own link places one (`45 → 46`, "…: Dog"), a CIM file row places a Commons file (`46 → 47`), and the
+> armed outline covers every declared target (20/20 on the probe board, 162/162 on the dashboard). One wart the run
+> exposed and fixed: the top-pages API returns `Lizzie_Borden` and the spawned card wore the underscore.
+> `docs/BROWSER-TESTING.md` records the technique the check needed.
+>
 > **Still open in this issue** (deliberately not done): a per-row palette (slice 2b — more discoverable, slower);
 > clicking an already-placed item **focusing** that card rather than only refusing; a cap on spawned cards; and the
 > touch question (a brush armed from the header is fine on a phone, hover affordances are not).

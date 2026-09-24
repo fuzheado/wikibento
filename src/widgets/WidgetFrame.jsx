@@ -30,7 +30,7 @@ import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, 
 import { printTarget } from '../lib/print';
 import { thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, allowHiDpi } from '../lib/imageSrcset';
 import '../vendor/pannellum.css';
-import { projectFromUrl } from '../lib/pickMode.js';
+import { projectFromUrl, pickFromUrl } from '../lib/pickMode.js';
 
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
@@ -829,14 +829,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, projects, picking, onPickItem }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
-    case 'RankingCard': return <RankingCard data={data} />;
+    case 'RankingCard': return <RankingCard data={data} picking={picking} onPickItem={onPickItem} />;
     case 'TrendCard': return <TrendCard data={data} />;
-    case 'GlamCard': return <GlamCard data={data} />;
+    case 'GlamCard': return <GlamCard data={data} picking={picking} onPickItem={onPickItem} />;
     case 'MarkdownCard': return <MarkdownCard data={data} />;
     case 'QrCard': return <QrCard data={data} />;
     case 'BoardControlsCard': return <BoardControlsCard data={data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} projects={projects} />;
     case 'SpeakerCard': return <SpeakerCard data={data} onSetParam={onSetParam} />;
-    case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} />;
+    case 'TopPagesExpandedCard': return <TopPagesExpandedCard data={data} picking={picking} onPickItem={onPickItem} />;
     case 'ExcerptCard': return <ExcerptCard data={data} />;
     case 'EditHistoryCard': return <EditHistoryCard data={data} />;
     case 'TranslateCard': return <TranslateCard data={data} />;
@@ -856,7 +856,7 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
 
     case 'CimSnapshotCard': return <CimSnapshotCard data={data} />;
 
-    case 'CimTopFilesCard': return <CimTopFilesCard data={data} />;
+    case 'CimTopFilesCard': return <CimTopFilesCard data={data} picking={picking} onPickItem={onPickItem} />;
 
     case 'FileTrafficCard': return <FileTrafficCard data={data} />;
     case 'WaybackGalleryCard': return <WaybackGalleryCard data={data} />;
@@ -917,7 +917,7 @@ function StatCard({ data }) {
   );
 }
 
-function RankingCard({ data }) {
+function RankingCard({ data, picking, onPickItem }) {
   const colClass = (i) => (data.colClasses?.[i] ? `ranking-col ${data.colClasses[i]}` : `ranking-col col-${i}`);
   return (
     <div className="ranking-card">
@@ -955,12 +955,12 @@ function RankingCard({ data }) {
                     <span className="ranking-multi-name">{cell.text}</span>
                     <span className="ranking-multi-links">
                       {cell.links.map((l, k) => (
-                        <a key={k} className="ranking-link" href={l.href} target="_blank" rel="noopener noreferrer">[{l.label}]</a>
+                        <a key={k} className="ranking-link" href={l.href} onClick={picking ? pickLinkClick(l.href, onPickItem) : undefined} target="_blank" rel="noopener noreferrer">[{l.label}]</a>
                       ))}
                     </span>
                   </span>
                 ) : (typeof cell === 'object' && cell.href ? (
-                  <a className="ranking-link" href={cell.href} target="_blank" rel="noopener noreferrer">{cell.text}</a>
+                  <a className="ranking-link" href={cell.href} onClick={picking ? pickLinkClick(cell.href, onPickItem) : undefined} target="_blank" rel="noopener noreferrer">{cell.text}</a>
                 ) : (typeof cell === 'object' ? cell.text : cell))}
               </span>
             ))}
@@ -971,7 +971,7 @@ function RankingCard({ data }) {
   );
 }
 
-function GlamCard({ data }) {
+function GlamCard({ data, picking, onPickItem }) {
   return (
     <div className="glam-card">
       {data.title && (
@@ -1000,7 +1000,7 @@ function GlamCard({ data }) {
             <a
               key={i}
               className="sample-thumb"
-              href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(img.title)}`}
+              href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(img.title)}`} onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: 'commons.wikimedia' }, onPickItem) : undefined}
               target="_blank"
               rel="noopener noreferrer"
               title={`${img.title}: ${img.views.toLocaleString()} views`}
@@ -1556,14 +1556,14 @@ function MonthParam({ spec, value, onSetParam, name }) {
 }
 
 /** Expanded Top-Pages rows: thumbnail + title + views + summary (hatnote). */
-function TopPagesExpandedCard({ data }) {
+function TopPagesExpandedCard({ data, picking, onPickItem }) {
   return (
     <div className="ranking-card toppages-expanded">
       {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
       {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
       <div className="ranking-rows">
         {(data.rows || []).map((row, i) => (
-          <div key={i} className="toppages-row">
+          <div key={i} className="toppages-row" onClick={picking ? pickClick({ kind: 'article', value: row.title.replace(/_/g, ' '), label: row.title.replace(/_/g, ' '), project: projectFromUrl(row.url) }, onPickItem) : undefined}>
             <span className="rank-num">{i + 1}.</span>
             {row.imageUrl ? (
               <a className="toppages-thumb" href={row.url || '#'} target="_blank" rel="noopener noreferrer" title={row.title}>
@@ -1746,6 +1746,13 @@ function pickClick(item, onPickItem) {
     event.preventDefault();                        // picking replaces the link, it does not follow it
     onPickItem(item);
   };
+}
+
+/** A row's link that is itself a Wikimedia article or file: the link declares the kind, so a generic renderer can
+ *  offer a pick without the data layer saying so (see pickFromUrl). Null for anything else — the row stays a link. */
+function pickLinkClick(url, onPickItem) {
+  const item = pickFromUrl(url);
+  return item ? pickClick(item, onPickItem) : undefined;
 }
 
 function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
@@ -2749,7 +2756,7 @@ function CimSnapshotCard({ data }) {
 }
 
 /** CIM Top Files — ranked rows with 48px thumbs (RankingCard has none). */
-function CimTopFilesCard({ data }) {
+function CimTopFilesCard({ data, picking, onPickItem }) {
   const rows = data.rows || [];
   return (
     <div className="ranking-card">
@@ -2763,7 +2770,7 @@ function CimTopFilesCard({ data }) {
       <div className="ranking-rows">
         {rows.length === 0 && <div className="widget-empty">No files</div>}
         {rows.map((r, i) => (
-          <div key={r.title} className="ranking-row cim-top-file">
+          <div key={r.title} className="ranking-row cim-top-file" onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${r.title}`, label: r.title, project: 'commons.wikimedia' }, onPickItem) : undefined}>
             <span className="rank-num">{i + 1}.</span>
             <a className="cim-top-file-main" href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(r.title.replace(/ /g, '_'))}`} target="_blank" rel="noopener noreferrer" title={r.title}>
               {r.thumbUrl && <img className="cim-top-file-thumb" src={r.thumbUrl} alt="" loading="lazy" />}

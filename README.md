@@ -91,6 +91,9 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   already reading and each click places a card for that item. One click, one card, named in the toast; the same
   item twice refuses rather than making a twin; **Undo** takes it back off. It is a second, power-user verb
   beside **+ Add Widget**, not a replacement — the menu only offers types that can consume the thing you clicked.
+  Clickable today: article-list rows, ranked article rows (including the expanded top-pages card), any ranking
+  row whose own link is a Wikipedia article or a Commons file, GLAM sample strips, CIM file rows and gallery
+  tiles — a row's link declares what it is.
 - **Content-fit galleries** — image galleries default to full window width and fit their height to the image
   count after loading, until you resize one yourself, and then your size sticks
 

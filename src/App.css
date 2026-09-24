@@ -2970,13 +2970,21 @@ body[data-print-mode='document'] .react-grid-layout {
 .app.picking,
 .app.picking .gallery-item,
 .app.picking .gallery-list-item,
-.app.picking .article-list-row {
+.app.picking .article-list-row,
+.app.picking .toppages-row,
+.app.picking .cim-top-file,
+.app.picking .sample-strip .sample-thumb,
+.app.picking .ranking-link {
   cursor: crosshair;
 }
 
 .app.picking .gallery-item,
 .app.picking .gallery-list-item,
-.app.picking .article-list-row {
+.app.picking .article-list-row,
+.app.picking .toppages-row,
+.app.picking .cim-top-file,
+.app.picking .sample-strip .sample-thumb,
+.app.picking .ranking-link {
   outline: 2px dashed var(--accent, #6b8afd);
   outline-offset: -2px;
   border-radius: var(--radius);

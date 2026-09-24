@@ -24,7 +24,8 @@ this is a second, power-user verb, not a replacement for it.
 ![Dashed outlines on the pickable article rows](screenshots/wikibento-2026-09-24-pick-mode-armed.png)
 
 Once a type is chosen the button reads the armed type (`🖌 Article Excerpt ▾`), everything pickable takes a dashed
-outline and the cursor becomes a crosshair. Measured rather than eyeballed — an article row computes
+outline and the cursor becomes a crosshair — here article-list rows; ranked article rows, ranking rows whose own link
+is an article or a file, GLAM sample strips, CIM file rows and gallery tiles look the same. Measured rather than eyeballed — an article row computes
 `outline: none 3px; cursor: pointer` before arming and `outline: dashed 2px; cursor: crosshair` after.
 
 ## `wikibento-2026-09-24-pick-mode-spawned.png` — one click, one card, named in the toast
