@@ -44,7 +44,21 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   filename from `dist/assets/` before writing it into HANDOFF's "production bundle" row; a stale name fails the live
   check, and that check is the only cheap proof a build happened.
 
-## Where things are
+## Editing files here: assert the anchor, and let the suite check the wiring
+
+- **Use `node scripts/assert-edit.mjs FILE --find '…' --replace '…' [--count N]`** instead of a bare find-and-replace.
+  It reports the actual count and the nearby lines on a mismatch, refuses to write when the count is wrong, and
+  re-reads the file to verify what it wrote. `--show` prints the matching lines when you are unsure of an anchor;
+  `--regex` treats `--find` as a pattern.
+- **Never guard on a bare identifier.** `if 'configNormalize' not in s` was satisfied by a *comment* mentioning
+  `src/lib/configNormalize.js`, so an import was never added and the app threw in `?lean=1` only. Guard on the
+  statement (`^import .* from './configNormalize'`) or assert a count.
+- **`tests/undefined-refs.test.mjs` is the safety net for that class**: a name exported somewhere in `src/` and
+  *called* in a file that neither imports nor defines it fails the suite. It exists because esbuild/vite do not check
+  undefined identifiers — a missing import is a runtime error, so a green suite can hide a card that throws. It was
+  verified by removing today's import and watching it fail with the exact name.
+- Adding a test file means **three** `package.json` references (the esbuild step, the `node --test` list, the `rm -f`
+  list) — and `assert-edit.mjs` is the tool that keeps those edits honest too.## Where things are
 
 ## A board is data from outside
 

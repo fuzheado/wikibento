@@ -51,9 +51,18 @@ would not.
 
 - ✅ The import is explicit and asserted; the sweep now loads every board in `?lean=1` and `?kiosk=1` and fails when a
   mode renders no cards, because this class of error lives in exactly one mode.
-- 📌 **Three times in one session a guard or an anchor that tested for text I had just written myself did the wrong
-  thing** (this import, the `fieldContext` declaration, a `widgetDef` replace). The rule that comes out of it: assert
-  the *count* of what you are replacing, and never let a guard be satisfied by prose in the same file.
+- 📌 **Three slips in one session had the same cause**, so the lesson is now a tool and a check rather than a
+  paragraph: a find-and-replace with an assumed anchor, and a *guard* satisfied by prose the same author had just
+  written (this import — the guard tested for `configNormalize`, which my own comment contained — the `fieldContext`
+  declaration, and a `widgetDef` replace that silently did nothing).
+  - `scripts/assert-edit.mjs` performs the edit only when the anchor matches the stated number of times, reports the
+    actual count and nearby lines otherwise, and re-reads the file to verify what it wrote.
+  - `tests/undefined-refs.test.mjs` fails when a name exported from `src/` is *called* in a file that neither imports
+    nor defines it — the class esbuild/vite cannot see, and the one that reached a browser. Verified by deleting the
+    import and watching it report the exact name. (Its own first version flagged a comment of mine in
+    `gallerySource.js` — prose counted as code — so it strips comments now.)
+  - The cross-project version of the rule lives in `~/.pi/agent/AGENTS.md` ("Editing files — asserted edits"), which
+    is loaded in every session, so the habit is not repo-specific.
 
 ### A share link showed strings where booleans should be (ISSUE-112, 2026-09-18)
 
