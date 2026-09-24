@@ -27,7 +27,7 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-BS06xnb9.js` (+ `index-Cho8hgui.css`) |
+| production bundle | `index-D_JtndJV.js` (+ `index-Cho8hgui.css`) |
 | deployed | 2026-09-18 — **`?lean=1` fix + the errant-board policy** (ISSUE-113): a skipped import (guarded by a string my own comment contained) threw in lean mode only; the sweep now loads every board in lean and kiosk too, and `docs/JSON-FORMAT.md` states the severity model for boards that arrive from outside the app · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |

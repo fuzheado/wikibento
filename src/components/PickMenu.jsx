@@ -1,5 +1,23 @@
 import { useEffect, useRef } from 'react';
-import { brushableTypes, KIND_LABELS } from '../lib/pickMode.js';
+import { brushableTypes, KIND_IDS, KIND_LABELS } from '../lib/pickMode.js';
+
+/**
+ * Heading text for the menu's groups. `KIND_LABELS` reads as a noun in a sentence — the refusal message says
+ * "Article Excerpt does not take a Commons file", where the singular is right — so the menu, which heads a list,
+ * carries its own plural wording and falls back to it.
+ */
+/** Groups read in the vocabulary's own order — articles first — not alphabetically by the widget names inside them. */
+const byKindOrder = (entries) => [...entries].sort((a, b) => KIND_IDS.indexOf(a[0]) - KIND_IDS.indexOf(b[0]));
+
+const HEADINGS = {
+  article: 'Articles',
+  page: 'Wiki pages',
+  'commons-file': 'Commons files',
+  'commons-category': 'Categories',
+  'commons-gallery': 'Gallery pages',
+  'wikidata-item': 'Wikidata items',
+  'cim-category': 'CIM categories',
+};
 
 /**
  * The brush's type menu (ISSUE-114 slice 2) — choose a widget type once, then click items in the cards you are
@@ -47,9 +65,9 @@ export default function PickMenu({ registry, brush, onPick, onClose }) {
           <span className="pick-menu-icon">✕</span> Stop picking
         </button>
       )}
-      {[...groups.entries()].map(([kind, list]) => (
+      {byKindOrder(groups.entries()).map(([kind, list]) => (
         <div key={kind} className="pick-menu-group">
-          <div className="pick-menu-group-label">{KIND_LABELS[kind] || kind}</div>
+          <div className="pick-menu-group-label">{HEADINGS[kind] || KIND_LABELS[kind] || kind}</div>
           {list.map(({ type, def }) => (
             <button
               key={type}
