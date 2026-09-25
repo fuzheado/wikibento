@@ -157,7 +157,8 @@ try {
   await kiosk.waitForTimeout(4000);
   const k = await kiosk.evaluate(() => ({
     panels: document.querySelectorAll('.story-panel').length,
-    chrome: document.querySelectorAll('.app-actions button').length,
+    // Kiosk hides the chrome with CSS, so the buttons are in the DOM and merely invisible — count the VISIBLE ones.
+    chrome: [...document.querySelectorAll('.app-actions button')].filter((el) => el.offsetParent !== null && el.getBoundingClientRect().width > 0).length,
     height: document.querySelector('.story-scroll')?.clientHeight || 0,
   }));
   (k.panels >= 60 && k.chrome === 0 && kioskErrs.length === 0)
