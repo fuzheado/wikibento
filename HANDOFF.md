@@ -28,13 +28,13 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-Cm_RJ_t4.js` (+ `index-B4JsRcV8.css`) |
-| deployed | 2026-09-18 — **`?lean=1` fix + the errant-board policy** (ISSUE-113): a skipped import (guarded by a string my own comment contained) threw in lean mode only; the sweep now loads every board in lean and kiosk too, and `docs/JSON-FORMAT.md` states the severity model for boards that arrive from outside the app · before that: **a print that waits and scales** · **the print you choose the shape of** · **a Commons-gallery widget** (ISSUE-103) |
+| deployed | 2026-09-24 — **pick mode, and the two bugs it found** (ISSUE-114/117/118): 🖌 **Pick ▾** arms a widget type and each click on a row or tile places a card for that item; four more renderers publish (a row whose own link is a Wikipedia article or a Commons file declares its own kind); and two reported refusals were fixed — a second item of the same kind was called a duplicate (the dedupe compared fields the pick was not about), and an article was refused by the Wiki Page brush because the kind vocabulary is a hierarchy, not a set of labels. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🎞️ **Commons galleries as data** — a gallery page's own captions and order (Commons' curated layer: 87k pages carry `{{Gallery page}}`), clickable into a reader and a validated picker over the galleries (ISSUE-103) · 🔎 **one validated box, any wiki** — a page name with a wiki picker, a ✓/✗ verdict naming the wiki, an `en:`/`de:`/`commons:` prefix shortcut, and a *reference* as the value so consumers carry no project field (ISSUE-99) · ⚙ **Settings** (your wiki, recent wikis, present-mode fullscreen) · 🌍 **one picker for every wiki** — 364 projects, ordered recency → your default → curated → rest, searchable by label, code, script or English name (ISSUE-93) · 🧭 **references** — a page travels with its wiki (`enwiki:Weddell Sea`) and consumers honour it (ISSUE-92) · 👆 **click-through** — a link in a rendered box can publish what the reader clicked on a `selection` channel (ISSUE-91) · 📰 **Wikipedia boxes** rendered with the wiki's own markup and TemplateStyles (ISSUE-90) · 👀 **borrowed boards** — a shared link never overwrites yours (ISSUE-88) · ⤓ **compressed share links** so a big board still fits a QR (ISSUE-89) · 📄 **readers** for Commons documents and IA books, with the Wikisource transcription and its proofreading grade |
+| newest capabilities | 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
 
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
@@ -47,13 +47,14 @@ Gallery).
 
 | command | asserts |
 |---|---|
-| `npm test` | the whole suite — a bundle per constitution area: scope, freshness, manifest compliance (including **emitters, channels, `primary`, prose→reference, and the project picker's no-hardcoded-lists rule**), panel, dataflow, demos, assembly, trend-axis, gallery, config-load, references, projects, URL state… — plus `scripts/docs-facts.mjs` |
+| `npm test` | the whole suite — a bundle per constitution area: scope, freshness, manifest compliance (including **emitters, channels, `primary`, prose→reference, and the project picker's no-hardcoded-lists rule**), panel, dataflow, demos, assembly, trend-axis, gallery, config-load, references, projects, URL state… — plus `scripts/docs-facts.mjs` — and it now ends by **loading what it built** (`npm run smoke:built`): a browser opens a board in `dist/` and requires cards with no page errors, so a green suite cannot hide an app that throws in the built bundle. |
 | `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
 | `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
+| `npm run smoke:pick` | pick mode end to end in a real browser — arm a brush, place a card from a row, refuse a twin, Undo it, the kind gate, and each publisher: 19 checks, against the built app or against production with `--base` |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
-| `npm run test:browsers:demos` | **every demo board** (17 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
+| `npm run test:browsers:demos` | **every demo board** (19 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
