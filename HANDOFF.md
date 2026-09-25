@@ -36,6 +36,14 @@ Feature-complete for v1 and deployed.
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
 | newest capabilities | 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
 
+Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
+click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
+list of links is six clicks and no dialog. The menu only offers types that can consume what you clicked; a
+row whose own link is a Wikipedia article or a Commons file declares its own kind, which is what made
+rankings, top-pages rows, CIM file rows and GLAM filmstrips pickable at once. `npm run smoke:pick` asserts
+the interaction and every publisher (19 checks) in a real browser, and it refuses to run at all against a
+`dist/` older than `src/`.
+
 **Every widget type is in the showcase catalog** — no exceptions, and
 `scripts/docs-facts.mjs` keeps it that way (it fails the build if a registered
 type is missing from `public/dashboard.json` without a reasoned entry in its
@@ -415,6 +423,12 @@ and a stream pipeline that works in Node is not evidence about a browser.
 
 Tracked design work is `docs/ISSUES.md`; the plan is `docs/ROADMAP.md`. What is
 actually broken or unfinished today:
+
+- **ISSUE-115** — production logs a *report-only* Content-Security-Policy violation for the Wayback iframe, plus embed
+  warnings from the Wikipedia pages inside the wiki-page box (touch icons, a stylesheet, a blocked autofocus). Nothing is
+  blocked and the cards render — filed because the console looks alarming, and both browser checks now treat it as a note.
+- **ISSUE-116** — `/api/petscan` answered **502** twice while verifying a deploy. The proxy and PetScan both answer when
+  asked directly, so it is intermittent and most likely an upstream timeout; recorded rather than guessed at.
 
 - ~~**Reset doesn't stick on a URL-loaded board.**~~ **Fixed 2026-09-15** — and it was the visible
   half of a bigger problem: the URL was a claim nothing kept honest. Reset now drops the claim, an edit
