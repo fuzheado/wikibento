@@ -45,6 +45,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways (calendar or aligned at birth), **zoomable 8×**, per-card title and light/dark card theme — Anne Frank × Martin Luther King Jr., Marie × Pierre Curie |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
 | 📄 [Read a document](https://wikibento.toolforge.org/?config=/document-reader-demo.json) | a 329-page PDF and a DjVu read page by page — turn, zoom, jump, **facing pages** — beside an Internet Archive book (one reader, two archives), plus a small work transcribed on **Wikisource** whose page text appears with its proofreading grade (*Validated* — and *Not proofread (uncorrected OCR)* where that is the truth) |
+| 🎞 [Story mode](https://wikibento.toolforge.org/?config=/story-demo.json) | **one Wikipedia article as a continuous scroll** — its images and captions, the article's own chapters, and a panel per image chosen by that image's shape |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
 | 👆 [Click through](https://wikibento.toolforge.org/?config=/click-through-demo.json) | Click a sea in a live Wikipedia box and **another widget uses it**: the page viewer loads the article and the value card shows the string that travelled. ⚙ *Links in the box* decides whether a click opens a tab, sends to the board, or both |
@@ -90,7 +91,7 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 - **Story mode** — any gallery can present an article's images as one **continuous scroll**: each image gets the
   panel its own shape deserves (full-bleed panorama, a centred plate for tall portraits at native size, or an
   image-and-text split whose text side alternates), with the article's own sections as chapters and a progress bar down
-  the side. Set **Display → Story** on a gallery, or see it at `?config=/dashboard.json` (Gallery, Images come from
+  the side. Set **Display → Story** on any gallery and point it at an article, or open [`?config=/story-demo.json`](https://wikibento.toolforge.org/?config=/story-demo.json).json` (Gallery, Images come from
   *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
   a single tall card is the whole screen, which is the way to show it to a room.
 - **Pick mode** — 🖌 **Pick ▾** arms a brush: choose a widget type, then click items inside the cards you are

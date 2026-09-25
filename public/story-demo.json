@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "story-cover",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## \ud83c\udf9e An article as a story\n\nA gallery in **Story** display mode becomes one **continuous scroll**: the article's images in document order, and **each image gets the panel its own shape deserves** \u2014 a wide panorama fills the card edge to edge, a tall portrait or a small file is centred at its native size (no letterboxing, no upscaling), a landscape work is split with the text beside it, and the text side alternates down the story. The article's own **top-level sections become chapters**, every panel is numbered, and a progress bar runs with the scroll.\n\nThe technique is ported from the [Met / Google-Arts-&-Culture prototype](https://github.com/fuzheado/met-gac-prototype) \u2014 one Wikipedia article in, an immersive gallery out \u2014 as a **display mode** rather than a new widget. Set **Display \u2192 Story** on any gallery and point it at an article. Drag the card taller for a longer view, and press **\u26f6 Present** (or add `?kiosk=1`) to give the story the whole screen.",
+        "allowExternalImages": false
+      }
+    },
+    {
+      "id": "story-met",
+      "widgetType": "gallery",
+      "config": {
+        "from": "article",
+        "article": "Metropolitan Museum of Art",
+        "project": "en.wikipedia",
+        "displayMode": "story",
+        "minSize": 200,
+        "refreshSeconds": 3600
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "story-cover",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 3,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "story-met",
+      "x": 2,
+      "y": 5,
+      "w": 8,
+      "h": 14,
+      "minW": 3,
+      "minH": 5
+    }
+  ]
+}
