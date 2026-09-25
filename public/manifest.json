@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-22T20:33:44.902Z",
+ "generatedAt": "2026-09-25T18:38:45.571Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -744,7 +744,8 @@
      "label": "Display",
      "options": [
       "grid",
-      "list"
+      "list",
+      "story"
      ]
     },
     {

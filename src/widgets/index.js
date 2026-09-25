@@ -50,6 +50,7 @@ import { boxLines } from '../lib/wikiBox';
 import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
 import { SPARQL_PRESETS, getPreset } from '../lib/sparqlPresets';
 import { buildTimeline } from '../lib/timeline';
+import { storySequence, storyPanelCounts } from '../lib/story';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
 
 /**
@@ -64,6 +65,19 @@ import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWind
  */
 const PAGEVIEWS_MODE_DEFAULT = 'stat';
 const pageviewsMode = (config) => (config && config.displayMode === 'trend' ? 'trend' : PAGEVIEWS_MODE_DEFAULT);
+
+/**
+ * The Gallery's display mode, resolved in ONE place — same lesson as above, same shape of bug: `fetch`, `getRenderer`
+ * and `transform` all branch on it, so an absent value read three ways is how a card gets one mode's payload drawn by
+ * another mode's renderer. `story` (ISSUE-119) is the continuous-scroll presentation; it fetches like the article
+ * gallery but includes the caption-less <gallery> images and wants chapters, because a story needs every image the
+ * article shows and needs its spine.
+ */
+const GALLERY_MODE_DEFAULT = 'grid';
+const galleryMode = (config) => {
+  const m = config && config.displayMode;
+  return m === 'list' || m === 'story' ? m : GALLERY_MODE_DEFAULT;
+};
 import { toLines, countOf } from '../lib/dataflow';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
@@ -789,7 +803,7 @@ export const WIDGET_TYPES = {
       page: 'The Venetian Macao',
       category: 'Featured pictures',
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
-      displayMode: 'grid',   // 'grid' | 'list'
+      displayMode: 'grid',   // 'grid' | 'list' | 'story'   // 'grid' | 'list'
       iconSize: 'medium',
       imageFit: 'contain',
       order: 'listed',       // list/category: 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
@@ -802,7 +816,7 @@ export const WIDGET_TYPES = {
       refreshSeconds: 3600,
     },
     renderer: 'GalleryGridCard',
-    getRenderer: (config) => config.displayMode === 'list' ? 'GalleryListCard' : 'GalleryGridCard',
+    getRenderer: (config) => (galleryMode(config) === 'list' ? 'GalleryListCard' : galleryMode(config) === 'story' ? 'StoryCard' : 'GalleryGridCard'),
     dataSource: 'four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)',
     configFields: [
       { key: 'from', label: 'Images come from', type: 'select', options: [
@@ -837,6 +851,7 @@ export const WIDGET_TYPES = {
       { key: 'displayMode', label: 'Display', type: 'select', options: [
         { value: 'grid', label: 'Grid (captions below)' },
         { value: 'list', label: 'List (thumb left, caption right)' },
+        { value: 'story', label: 'Story (continuous scroll — each image\'s shape picks its panel)' },
       ]},
       { key: 'iconSize', label: 'Grid size', type: 'select', options: [
         { value: 'small', label: 'Small' },
@@ -886,6 +901,7 @@ export const WIDGET_TYPES = {
       // cannot depend on the source (and en.wikipedia is the wrong default for a Commons gallery page).
       const p = pageRef({ ...config, project: galleryProject(config, 'article') }, 'article');
       return fetchArticleGallery(p.title, p.projectConfig, config.minSize, config.maxItems, {
+          story: galleryMode(config) === 'story',
         includeAll: config.includeAll,
         hideDecorative: config.hideDecorative,
         groupBy: config.groupBy,
@@ -924,7 +940,23 @@ export const WIDGET_TYPES = {
         if (groupBy === 'gallery') parts.push('· gallery groups');
         let emptyText = includeAll ? 'No images found' : 'No captioned images found';
         if (includeAll && n === 0 && (data.dropped || data.decorative)) emptyText = 'All images filtered (tiny/decorative)';
-        return { title: String(data.article || '').replace(/_/g, ' '), subtitle: parts.join(' '), rows, ...common, emptyText };
+        const title = String(data.article || '').replace(/_/g, ' ');
+          if (galleryMode(config) === 'story') {
+            // Every row becomes a PANEL, laid out by the image's own shape (src/lib/story.js — the technique ported
+            // from the Met/Google-Arts-&-Culture prototype).
+            const panels = storySequence(rows);
+            const chapters = new Set(panels.map((p) => p.group && p.group.key).filter(Boolean)).size;
+            const counts = storyPanelCounts(panels);
+            const bits = [`${n} image${n === 1 ? '' : 's'}`, 'continuous scroll'];
+            if (chapters > 1) bits.push(`· ${chapters} chapters`);
+            // An image whose dimensions we could not measure falls back to the prototype's 1600×1000 (→ full-bleed).
+            // Say so rather than let a fallback look like a decision.
+            const unmeasured = n - (data.dimensioned ?? n);
+            if (unmeasured > 0) bits.push(`· ${unmeasured} without dimensions`);
+            if (counts.full) bits.push(`· ${counts.full} full-bleed`);
+            return { title, subtitle: bits.join(' '), rows, panels, ...common, emptyText };
+          }
+          return { title, subtitle: parts.join(' '), rows, ...common, emptyText };
       }
 
       if (source === 'page') {

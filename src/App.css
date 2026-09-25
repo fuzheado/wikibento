@@ -3058,3 +3058,77 @@ body[data-print-mode='document'] .react-grid-layout {
 .pick-menu-item.active { background: color-mix(in srgb, var(--accent, #6b8afd) 22%, transparent); font-weight: 600; }
 .pick-menu-icon { width: 1.2em; text-align: center; }
 .pick-menu-off { color: var(--text-dim); }
+
+/* ── ISSUE-119 · Story mode: one article's images as a continuous scroll ────────────────────────────────
+   The panel kinds are the Met/Google-Arts-&-Culture prototype's, chosen by each image's own shape in
+   src/lib/story.js. Everything below is scoped to the card, so a story can sit beside ordinary cards. */
+.story-card { position: relative; height: 100%; overflow: hidden; }
+
+.story-progress { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border); z-index: 2; }
+.story-progress span {
+  display: block; width: var(--story-progress, 0%); height: 100%;
+  background: var(--accent, #6b8afd); transition: width 120ms linear;
+}
+
+.story-scroll { height: 100%; overflow-y: auto; scroll-behavior: smooth; }
+
+.story-cover { position: relative; min-height: 60%; display: flex; align-items: flex-end; padding: 1.6rem 1.2rem; overflow: hidden; }
+.story-cover-bg {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  filter: blur(18px) saturate(1.1); opacity: 0.42; transform: scale(1.08);
+}
+.story-cover-inner { position: relative; z-index: 1; }
+.story-kicker { text-transform: uppercase; letter-spacing: 0.09em; font-size: 0.66rem; color: var(--text-dim); }
+.story-title { margin: 0.25rem 0 0.35rem; font-size: 1.5rem; line-height: 1.15; }
+.story-sub { color: var(--text-dim); font-size: 0.8rem; }
+
+.story-chapter { display: flex; align-items: baseline; gap: 0.6rem; padding: 1.3rem 1.2rem 0.5rem; border-top: 1px solid var(--border); }
+.story-chapter-kicker { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.6rem; color: var(--accent, #6b8afd); }
+.story-chapter-title { font-size: 1rem; font-weight: 600; }
+.story-chapter-count { margin-left: auto; color: var(--text-dim); font-size: 0.7rem; }
+
+.story-panel { position: relative; display: flex; flex-direction: column; cursor: zoom-in; }
+.story-idx {
+  position: absolute; top: 0.5rem; right: 0.7rem; z-index: 1;
+  font-variant-numeric: tabular-nums; font-size: 0.66rem; color: #fff; text-shadow: 0 1px 3px rgb(0 0 0 / 0.75);
+}
+.story-idx-dark { color: var(--text-dim); text-shadow: none; }
+.story-img { display: block; }
+
+/* Full-bleed: the image fills the panel, the caption sits on a gradient — panoramas. */
+.story-full { min-height: 46vh; justify-content: flex-end; }
+.story-full .story-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.story-full .story-copy-bleed {
+  position: relative; z-index: 1; padding: 3rem 1.2rem 1.1rem;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.8)); color: #fff;
+}
+
+/* Plate: centred at native size, never upscaled — tall portraits and small files. */
+.story-plate { align-items: center; gap: 0.7rem; padding: 1.2rem 1.1rem 1.6rem; }
+.story-plate .story-frame { display: flex; justify-content: center; width: 100%; }
+.story-plate .story-img { max-width: 100%; max-height: 62vh; object-fit: contain; }
+.story-plate .story-copy { text-align: center; }
+
+/* Split: image and text side by side, the text side alternating for rhythm. */
+.story-split { flex-direction: row; align-items: center; gap: 1.1rem; padding: 1.2rem 1.1rem; }
+.story-split.story-reverse { flex-direction: row-reverse; }
+.story-split .story-frame { flex: 1 1 58%; display: flex; justify-content: center; }
+.story-split .story-img { max-width: 100%; max-height: 54vh; object-fit: contain; }
+.story-copy-split { flex: 1 1 42%; }
+
+.story-caption { font-size: 0.9rem; line-height: 1.45; }
+.story-meta { color: var(--text-dim); font-size: 0.7rem; margin-top: 0.3rem; }
+.story-end { padding: 1.4rem 1.2rem 2rem; color: var(--text-dim); font-size: 0.7rem; border-top: 1px solid var(--border); }
+
+/* Armed for picking, a panel is a target like any other row or tile. */
+.app.picking .story-panel { outline: 2px dashed var(--accent, #6b8afd); outline-offset: -2px; cursor: crosshair; }
+
+@media (max-width: 700px) {
+  .story-split, .story-split.story-reverse { flex-direction: column; }
+  .story-plate .story-img, .story-split .story-img { max-height: 42vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-scroll { scroll-behavior: auto; }
+  .story-progress span { transition: none; }
+}

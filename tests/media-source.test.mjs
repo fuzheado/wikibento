@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import {
   mediaKindFromUrl, mediaMimeFromUrl, directMediaRow, fetchMediaPlaylist,
 } from '../src/widgets/dataSources.js';
+import { joinGalleryCaptions, parseGalleryTemplates, fileKey, collapseToChapters } from '../src/widgets/dataSources.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 const IA_FILM = 'https://archive.org/download/AboutBan1935/AboutBan1935.mp4';
@@ -96,4 +97,56 @@ test('the player widget advertises direct URLs in its own UI copy', () => {
   assert.match(copy, /https?:\/\//i,
     'the field copy must show a media URL, or nobody will know an archive.org file can be pasted in');
   assert.match(copy, /archive\.org/i, 'and it may as well name the case that motivated it');
+});
+
+// ISSUE-119 — an article's galleries are not always <gallery> tags. The Metropolitan Museum of Art uses four
+// {{gallery}} TEMPLATES and no tags at all, which is why the first version of this join found nothing (0 of the 63
+// gallery images got a caption) while media-list had reported those images with an empty caption.
+test('gallery captions are joined from {{gallery}} templates as well as <gallery> tags', () => {
+  const wikitext = [
+    '{{gallery',
+    '|height=150',
+    '|mode=packed',
+    '|File:Silver-gilt bowl MET gr74.51.4554.R.jpg|[[Phoenician metal bowls|Phoenician metal bowl]] from 725 to 675 BCE',
+    '|File:WLA metmuseum Tabernacle of Cherves 2.jpg|Tabernacle of Cherves, {{Circa|1220}}–30',
+    '}}',
+    '<gallery>',
+    'File:Dogs, jackals.jpg|A dog and a jackal',
+    '</gallery>',
+  ].join('\n');
+  const rows = [
+    { title: 'Silver-gilt bowl MET gr74.51.4554.R.jpg' },   // the row's title: prefix stripped, underscores as spaces
+    { title: 'WLA metmuseum Tabernacle of Cherves 2.jpg' },
+    { title: 'Dogs, jackals.jpg' },
+    { title: 'Not in any gallery.jpg' },
+    { title: 'Already captioned.jpg', caption: 'kept' },
+  ];
+  assert.equal(joinGalleryCaptions(rows, wikitext), 3);
+  assert.equal(rows[0].caption, 'Phoenician metal bowl from 725 to 675 BCE');   // a wiki link becomes its label
+  assert.equal(rows[0].showFileName, false);
+  assert.match(rows[1].caption, /^Tabernacle of Cherves/);
+  assert.equal(rows[2].caption, 'A dog and a jackal');
+  assert.equal(rows[3].caption, undefined, 'a file in no gallery keeps no caption');
+  assert.equal(rows[4].caption, 'kept', 'an existing caption is never overwritten');
+  // The key both lookups share: the title the API returns and the title media-list gave differ exactly here.
+  assert.equal(fileKey('File:Queen_Mother_Pendant_Mask-_Iyoba_MET_DP231460.jpg'), 'Queen Mother Pendant Mask- Iyoba MET DP231460.jpg');
+  assert.equal(fileKey('file:lower.jpg'), 'Lower.jpg');
+});
+
+// ISSUE-119 — a story's chapters are the TOP-LEVEL headings, not every sub-heading. Grouped by raw section ids the
+// Met article produced 26 chapters of one image each where the prototype's <h2> walk found 6.
+test('sub-sections collapse onto the chapter that contains them', () => {
+  const sections = [
+    { index: '1', line: 'Collections', toclevel: '1', level: '2' },
+    { index: '2', line: 'European paintings', toclevel: '2', level: '3' },
+    { index: '3', line: 'Arms and armor', toclevel: '2', level: '3' },
+    { index: '4', line: 'History', toclevel: '1', level: '2' },
+    { index: '5', line: '19th century', toclevel: '2', level: '3' },
+  ];
+  const map = collapseToChapters(sections);
+  assert.deepEqual(map.get(1), { key: 1, label: 'Collections' });
+  assert.deepEqual(map.get(2), { key: 1, label: 'Collections' }, 'a sub-section belongs to the chapter before it');
+  assert.deepEqual(map.get(3), { key: 1, label: 'Collections' });
+  assert.deepEqual(map.get(4), { key: 4, label: 'History' });
+  assert.deepEqual(map.get(5), { key: 4, label: 'History' });
 });

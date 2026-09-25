@@ -11,6 +11,17 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
+## `wikibento-2026-09-24-story-mode.png` — an article as a continuous scroll (ISSUE-119)
+
+![Story mode: chapter dividers and shape-chosen panels](screenshots/wikibento-2026-09-24-story-mode.png)
+
+A gallery in **Story** display mode on the Metropolitan Museum of Art: the article's images in document order, each
+panel chosen by its own shape — a centred plate for the tall and the small, an image-and-text split whose text side
+alternates, full-bleed for a panorama — with the article's top-level sections as chapters, panels numbered down the
+story, and a progress bar tracking the card's scroll. The technique is ported from the Met/Google-Arts-&-Culture
+prototype; verified by `npm run smoke:story` (7/7: 93 panels, all three panel kinds used, 91 of 93 captioned,
+7 chapters).
+
 ## `wikibento-2026-09-24-pick-wiki-page.png` — a pick that used to be refused (ISSUE-118)
 
 ![The spawned Wiki Page card rendering Ada Lovelace](screenshots/wikibento-2026-09-24-pick-wiki-page.png)

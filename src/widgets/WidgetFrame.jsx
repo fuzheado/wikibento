@@ -29,6 +29,7 @@ import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
 import { thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, allowHiDpi } from '../lib/imageSrcset';
+import { legalThumbWidth } from '../lib/thumbWidths';
 import '../vendor/pannellum.css';
 import { projectFromUrl, pickFromUrl } from '../lib/pickMode.js';
 
@@ -846,6 +847,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
+    case 'StoryCard': return <StoryCard data={data} picking={picking} onPickItem={onPickItem} />;
 
     case 'ListSourceCard': return <ListSourceCard data={data} />;
     case 'EchoCard': return <EchoCard data={data} />;
@@ -1828,6 +1830,126 @@ function useContentWidth(ref) {
 }
 
 /** Article List — clickable rows: optional thumb left, title + intro. */
+/**
+ * The story: one article's images as a single continuous scroll (ISSUE-119) — the presentation technique of the
+ * Met/Google-Arts-&-Culture prototype, ported into a card so the board keeps its grid and the URL keeps its board.
+ *
+ * The panel kinds are the prototype's, chosen by the image's OWN shape in `lib/story.js`:
+ *   full   full-bleed image with a gradient caption (panoramas)
+ *   plate  centred at native size (tall portraits and small files — no letterboxing, no upscaling)
+ *   split  image + text side by side, the text side alternating for rhythm
+ * Chapters come from the same section groups the grid mode uses; index numbers run across the whole story.
+ */
+function StoryCard({ data, picking, onPickItem }) {
+  const panels = data.panels || [];
+  const scrollRef = useRef(null);
+  const barRef = useRef(null);
+  const measured = useContentWidth(scrollRef);
+  const hiDpi = allowHiDpi();
+  // Full-bleed panels want the largest honest rendition, which is the width this card is actually given.
+  const sizes = measured ? `${legalThumbWidth(measured)}px` : undefined;
+  const srcSetFor = (p) => (sizes ? (thumbSrcsetFor(p.thumbUrl, p.responsive, { hiDpi }) || undefined) : undefined);
+
+  // Progress is written straight to a CSS variable: a re-render per scroll frame would fight the scroll.
+  const onScroll = (e) => {
+    const el = e.currentTarget;
+    const bar = barRef.current;
+    if (!bar) return;
+    const max = el.scrollHeight - el.clientHeight;
+    bar.style.setProperty('--story-progress', max > 0 ? `${Math.round((el.scrollTop / max) * 100)}%` : '0%');
+  };
+
+  const nodes = [];
+  let lastChapter = null;
+  panels.forEach((p, i) => {
+    const key = p.group && p.group.key;
+    if (key && key !== lastChapter) {
+      lastChapter = key;
+      const n = panels.filter((x) => x.group && x.group.key === key).length;
+      nodes.push(
+        <div key={`ch-${key}`} className="story-chapter">
+          <span className="story-chapter-kicker">Chapter</span>
+          <span className="story-chapter-title">{p.group.label}</span>
+          <span className="story-chapter-count">{n} image{n === 1 ? '' : 's'}</span>
+        </div>
+      );
+    }
+    const caption = p.caption || p.title;
+    // Picking a panel places a card for that Commons file; an ordinary click opens the file page, which is what the
+    // gallery's tiles do with `linkAction: 'new tab'`.
+    const onClick = picking && onPickItem
+      ? pickClick({ kind: 'commons-file', value: `File:${p.title}`, label: caption, project: 'commons.wikimedia' }, onPickItem)
+      : () => window.open(p.fileUrl, '_blank', 'noopener,noreferrer');
+    const img = (
+      <img
+        className="story-img"
+        src={p.thumbUrl}
+        srcSet={srcSetFor(p)}
+        sizes={sizes}
+        alt={caption}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+    const body = (extraClass) => (
+      <div className={`story-copy${extraClass ? ` ${extraClass}` : ''}`}>
+        <div className="story-caption">{caption}</div>
+        {!p.caption && <div className="story-meta">Commons file</div>}
+      </div>
+    );
+    if (p.layout === 'full') {
+      nodes.push(
+        <section key={i} className="story-panel story-full" onClick={onClick}>
+          <span className="story-idx">{p.index}</span>
+          {img}
+          {body('story-copy-bleed')}
+        </section>
+      );
+    } else if (p.layout === 'plate') {
+      const native = p.width && p.width < 1200 ? { maxWidth: `min(90%, ${p.width}px)` } : undefined;
+      nodes.push(
+        <section key={i} className="story-panel story-plate" onClick={onClick}>
+          <span className="story-idx story-idx-dark">{p.index}</span>
+          <div className="story-frame" style={native}>{img}</div>
+          {body()}
+        </section>
+      );
+    } else {
+      nodes.push(
+        <section key={i} className={`story-panel story-split${p.reverse ? ' story-reverse' : ''}`} onClick={onClick}>
+          <span className="story-idx story-idx-dark">{p.index}</span>
+          {body('story-copy-split')}
+          <div className="story-frame">{img}</div>
+        </section>
+      );
+    }
+  });
+
+  return (
+    <div className="story-card">
+      <div className="story-progress" ref={barRef}><span /></div>
+      <div className="story-scroll" ref={scrollRef} onScroll={onScroll}>
+        <section className="story-cover">
+          {panels[0]?.thumbUrl && (
+            <div className="story-cover-bg" style={{ backgroundImage: `url(${panels[0].thumbUrl})` }} />
+          )}
+          <div className="story-cover-inner">
+            <div className="story-kicker">A story from Wikipedia</div>
+            <div className="story-title">{data.title || 'Story'}</div>
+            <div className="story-sub">{data.subtitle}</div>
+          </div>
+        </section>
+        {panels.length === 0 && <div className="widget-empty">{data.emptyText || 'No images found'}</div>}
+        {nodes}
+        <section className="story-end">
+          Images and captions from the Wikipedia article, via Wikimedia Commons.
+          {data.joined ? ` ${data.joined} gallery captions joined from the article source.` : ''}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function ArticleListCard({ data, picking, onPickItem }) {
   const rows = data.rows || [];
   return (

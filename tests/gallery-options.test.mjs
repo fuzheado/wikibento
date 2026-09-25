@@ -14,6 +14,7 @@ import assert from 'node:assert/strict';
 import { isDecorativeImageTitle, selectGalleryCandidates, assignRowGroups } from '../src/widgets/dataSources.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
+import { storyPanelFor, storySequence, storyPanelCounts } from '../src/lib/story.js';
 
 const galleryDef = WIDGET_TYPES.gallery;
 const transform = galleryDef.transform;
@@ -246,4 +247,31 @@ test('gallery registry: new options declared in defaults + configFields + fetche
   assert.match(fetchSrc, /fetchArticleGallery\(/);
   assert.match(fetchSrc, /includeAll:\s*config\.includeAll/);
   assert.match(fetchSrc, /groupBy:\s*config\.groupBy/);
+});
+
+// ISSUE-119 — the story panel chooser, ported from the Met/Google-Arts-&-Culture prototype. The prototype was run
+// over its own 91-item dataset as an oracle while porting: 0 of 91 panels differed from `layoutFor` (plate 37,
+// split 46, full 8). These cases pin the thresholds and the two fallbacks that made that true.
+test('a story panel is chosen by the image shape, as the prototype chose it', () => {
+  assert.equal(storyPanelFor({ width: 2000, height: 1000 }), 'full');   // 2.0 ≥ 1.55
+  assert.equal(storyPanelFor({ width: 1550, height: 1000 }), 'full');   // exactly 1.55
+  assert.equal(storyPanelFor({ width: 1500, height: 1000 }), 'split');  // 1.5 — landscape, but not a panorama
+  assert.equal(storyPanelFor({ width: 1000, height: 1000 }), 'plate');  // square and under 1100px wide
+  assert.equal(storyPanelFor({ width: 800, height: 1000 }), 'plate');   // exactly 0.8
+  assert.equal(storyPanelFor({ width: 900, height: 1200 }), 'plate');   // tall portrait
+  assert.equal(storyPanelFor({ width: 1200, height: 1000 }), 'split');  // 1.2, wide enough to split
+  assert.equal(storyPanelFor({}), 'full');                              // the prototype's 1600×1000 fallback
+});
+
+test('the split side alternates, and only a split advances it', () => {
+  const seq = storySequence([
+    { width: 1200, height: 1000, title: 'a' },  // split → text right
+    { width: 2000, height: 1000, title: 'b' },  // full  → must NOT flip the side
+    { width: 1200, height: 1000, title: 'c' },  // split → text left
+    { width: 1200, height: 1000, title: 'd' },  // split → text right again
+  ]);
+  assert.deepEqual(seq.map((p) => p.layout), ['split', 'full', 'split', 'split']);
+  assert.deepEqual(seq.map((p) => p.reverse), [true, false, false, true]);
+  assert.deepEqual(seq.map((p) => p.index), ['01', '02', '03', '04']);
+  assert.deepEqual(storyPanelCounts(seq), { split: 3, full: 1 });
 });

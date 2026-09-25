@@ -4992,6 +4992,43 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-119 · Story mode: an article's images as a continuous scroll — **done + verified 2026-09-24**
+
+> **What.** The presentation technique of the Met/Google-Arts-&-Culture prototype (`~/Documents/ai/met-gac-prototype`),
+> ported into WikiBento as a **display mode of the Gallery** rather than a new widget — the same argument as the
+> category source: a story is a way of *presenting* an article's image list, and the repo's own doctrine says a new way
+> of obtaining a list is a source, a new way of showing one is a mode. `displayMode: 'story'` fetches like the article
+> gallery and renders one continuous scroll inside the card.
+>
+> **The technique, ported exactly.** A panel is chosen by the image's own shape, never by its index: ratio ≥ 1.55 →
+> full-bleed; ratio ≤ 0.8 or width < 1100 → a centred "plate" at native size (no letterboxing, no upscaling); otherwise
+> a split panel with the text side alternating. `src/lib/story.js` is the pure half, and the prototype itself was the
+> oracle: run over its own 91-item dataset, **0 of 91 panels differed** from its `layoutFor` (plate 37 · split 46 ·
+> full 8). Plus hero with a blurred backdrop, chapter dividers with counts, index numbers across the whole story,
+> progress bar, lazy images, reduced motion.
+>
+> **Verified in the built app** by `npm run smoke:story` — 7/7 on the Met article: **93 panels**, all three panel kinds
+> used (full 10 · plate 35 · split 48, against the prototype's 8 · 37 · 46 — the difference is four months of article
+> edits), **91 of 93 panels captioned**, **7 chapters**, hero backdrop, and a progress bar that tracks the card's own
+> scroll (28% → 65%). Two bugs found this way and fixed, both of which had been swallowed by a best-effort `try`:
+>
+> 1. **Dimensions never arrived** (3 of 93 rows had them, so 90 panels fell to the full-bleed fallback). The batch was
+>    fine — 50/50 `imageinfo` — but the lookup keyed by the API's returned title while rows are keyed by media-list's,
+>    and media-list keeps its underscores. One canonical `fileKey()` now serves both.
+> 2. **Gallery captions**: media-list reports the images inside a `<gallery>` block with no caption at all, and the Met
+>    article turned out to use four `{{gallery}}` **templates** and no tags — so the join found 0 of 63. The join now
+>    reads both shapes, reusing the tag parser's caption machinery.
+>
+> **Chapters were the subtle one.** media-list gives an image the id of the deepest section it sits in, so grouping by
+> raw section ids produced **26** "chapters" of one image each. The prototype's `<h2>` walk found 6. `collapseToChapters`
+> maps each section onto its top-level ancestor, and `assignRowGroups` groups by that chapter — 7 chapters now, which is
+> the spine a reader recognises. The grid mode's own grouping is untouched (a string map still means sections).
+>
+> **What is deliberately not here:** paragraph text between images (the prototype has none either — its README lists the
+> narrative engine as future work; ours would need the 1–2 MB Parsoid HTML), per-image licence/artist stamps and P180
+> depicts (both available from one batched `imageinfo` + SDC, not wired), and a zoom lightbox (the panel opens the
+> Commons file page instead). The story prints and shares like any other board, which the prototype cannot do.
+
 ## ISSUE-118 · Pick mode refused an article for a Wiki Page brush — **done + verified 2026-09-24** (reported by Andrew)
 
 > **The report.** Armed **Wiki Page**, clicked an article in an article list, got *"Wiki Page does not take a article"*.

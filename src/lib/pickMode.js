@@ -100,6 +100,7 @@ export const PICKABLE_RENDERERS = {
   GalleryGridCard: 'commons-file',
   GalleryListCard: 'commons-file',
   GlamCard: 'commons-file',      // the sample filmstrip
+  StoryCard: 'commons-file',     // a story panel is one image from the article (ISSUE-119)
   CimTopFilesCard: 'commons-file',
 };
 

@@ -1217,6 +1217,65 @@ export async function fetchEditHistory(article, project = 'en.wikipedia', limit 
   return { article, project, rows };
 }
 
+/**
+ * Join the captions that live in `<gallery>` markup onto rows that have none (ISSUE-119).
+ *
+ * media-list reports the images inside a `<gallery>` block with no `caption.html` at all — the caption is a parameter
+ * of the gallery line, not a `<figcaption>` — so an article's gallery images arrive caption-less and the gallery
+ * renderer falls back to showing the file name. That is tolerable in a grid; in a story it is two thirds of the
+ * panels. The wikitext is the cheap source for those captions, for the reason `fetchGalleryPage` documents at length:
+ * the same items, a tenth of the bytes. Returns how many rows were filled, which the card reports.
+ */
+/**
+ * A file title in MediaWiki's canonical form: no `File:` prefix, underscores as spaces, runs collapsed, and the first
+ * letter capitalised (the one position MediaWiki treats case-insensitively). One definition, because two lookups need
+ * it: the dimension batch is keyed by the title the API *returns* while rows are keyed by the title media-list
+ * *gave*, and they differ in exactly this way — measured on the Met article 2026-09-24: only 3 of 93 rows matched
+ * before this, because a media-list title keeps its underscores.
+ */
+export function fileKey(title) {
+  const s = String(title ?? '').replace(/^File\s*:\s*/i, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+}
+
+/**
+ * The same gallery lines, declared as a `{{gallery …}}` TEMPLATE rather than a `<gallery>` tag. The Met article uses
+ * four of these and no tags at all, which is why the first version of the caption join found nothing (2026-09-24).
+ * The line format is identical — `|File:X.jpg|caption` — so the caption machinery is shared, and a line that is not a
+ * file is a template option (`|height=150`, `|mode=packed`) and is skipped.
+ */
+export function parseGalleryTemplates(wikitext) {
+  const out = [];
+  const re = /\{\{\s*gallery\b([\s\S]*?)\n\s*\}\}/gi;
+  let m;
+  while ((m = re.exec(String(wikitext || '')))) {
+    for (const raw of m[1].split('\n')) {
+      const line = raw.trim().replace(/^\|/, '').trim();
+      if (!/^File\s*:/i.test(line)) continue;
+      const pipe = line.indexOf('|');
+      const head = pipe === -1 ? line : line.slice(0, pipe);
+      const caption = pipe === -1 ? '' : galleryCaptionText(stripGalleryLineParams(line.slice(pipe + 1)));
+      if (caption) out.push({ file: canonicalGalleryFile(head), caption });
+    }
+  }
+  return out;
+}
+
+export function joinGalleryCaptions(rows, wikitext) {
+  // Both shapes an article can use: <gallery> tags, and the {{gallery}} template.
+  const byFile = new Map();
+  for (const g of [...parseGalleryBlocks(wikitext), ...parseGalleryTemplates(wikitext)]) {
+    if (g.caption) byFile.set(fileKey(g.file), g.caption);
+  }
+  let joined = 0;
+  for (const row of rows || []) {
+    if (row.caption) continue;
+    const caption = byFile.get(fileKey(row.title));
+    if (caption) { row.caption = caption; row.showFileName = false; joined++; }
+  }
+  return joined;
+}
+
 /** Normalize a media-list thumb URL: absolute https + no utm_* params. */
 function cleanThumbUrl(url) {
   if (!url) return null;
@@ -1312,10 +1371,17 @@ export function assignRowGroups(rows, groupBy = 'none', headings = new Map()) {
     } else {
       const sid = Number(row.sectionId) || 0;
       const heading = headings.get(sid);
-      row.group = {
-        key: `s:${sid}`,
-        label: heading ? `Section: ${heading}` : (sid === 0 ? 'Section: Introduction' : `Section ${sid}`),
-      };
+      // A string map is the section index (`Section: <heading>` per heading, the grid's grouping); an object map is a
+      // chapter (`collapseToChapters`), where several sub-sections share one chapter — and therefore one group key, so
+      // the renderer draws ONE divider for the chapter rather than one per sub-heading (ISSUE-119).
+      if (heading && typeof heading === 'object') {
+        row.group = { key: `c:${heading.key}`, label: heading.label };
+      } else {
+        row.group = {
+          key: `s:${sid}`,
+          label: heading ? `Section: ${heading}` : (sid === 0 ? 'Section: Introduction' : `Section ${sid}`),
+        };
+      }
     }
   }
   return rows;
@@ -1323,7 +1389,7 @@ export function assignRowGroups(rows, groupBy = 'none', headings = new Map()) {
 
 /** Fetch section index → heading (prop=tocdata) for section-group labels.
  *  Returns an empty Map on any failure — callers fall back to "Section N". */
-async function fetchSectionHeadings(project, article) {
+async function fetchSectionHeadings(project, article, { chaptersOnly = false } = {}) {
   try {
     const params = new URLSearchParams({
       action: 'parse',
@@ -1334,15 +1400,46 @@ async function fetchSectionHeadings(project, article) {
       origin: '*',
     });
     const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
-    const map = new Map();
-    for (const s of d?.parse?.tocdata?.sections || []) {
-      if (s && /^\d+$/.test(String(s.index))) {
-        const line = String(s.line || '').trim();
-        if (line) map.set(parseInt(s.index, 10), line);
-      }
+    const sections = d?.parse?.tocdata?.sections || [];
+    return chaptersOnly ? collapseToChapters(sections) : plainHeadings(sections);
+  } catch {
+    return new Map();
+  }
+}
+
+/** section id → heading, as tocdata gives it: every level, so a sub-heading is its own group. */
+function plainHeadings(sections) {
+  const map = new Map();
+  for (const s of sections) {
+    if (s && /^\d+$/.test(String(s.index))) {
+      const line = String(s.line || '').trim();
+      if (line) map.set(parseInt(s.index, 10), line);
     }
-    return map;
-  } catch { return new Map(); }
+  }
+  return map;
+}
+
+/**
+ * section id → the TOP-LEVEL heading that contains it (ISSUE-119).
+ *
+ * tocdata lists every heading level, and media-list gives an image the id of the deepest section it sits in, so a
+ * story grouped by raw section ids gets a chapter per sub-heading: measured on the Met article, 26 "chapters" of one
+ * image each, where the prototype's `<h2>` walk found 6. A story wants the 6 — the spine a reader recognises — so the
+ * sub-sections are mapped onto the chapter they belong to and the renderer draws one divider per chapter, with its
+ * count. Pure, so the rule is testable without the network.
+ */
+export function collapseToChapters(sections) {
+  const map = new Map();
+  let chapter = null;
+  for (const s of sections || []) {
+    if (!s || !/^\d+$/.test(String(s.index))) continue;
+    const id = parseInt(s.index, 10);
+    const line = String(s.line || '').trim();
+    const top = String(s.toclevel ?? s.tocLevel ?? 1) === '1' || Number(s.level) === 2;
+    if (top && line) chapter = { key: id, label: line };
+    if (chapter) map.set(id, chapter);
+  }
+  return map;
 }
 
 /**
@@ -1365,8 +1462,10 @@ async function fetchSectionHeadings(project, article) {
  */
 export async function fetchArticleGallery(article, project = 'en.wikipedia', minSize = 200, maxItems = 0, options = {}) {
   const opts = options && typeof options === 'object' ? options : {};
-  const includeAll = !!opts.includeAll;
-  const groupBy = opts.groupBy === 'section' || opts.groupBy === 'gallery' ? opts.groupBy : 'none';
+  // A story needs every image the article shows, not only the <figure>-captioned ones, and it needs its chapters.
+  const story = !!opts.story;
+  const includeAll = !!opts.includeAll || story;
+  const groupBy = opts.groupBy === 'section' || opts.groupBy === 'gallery' ? opts.groupBy : (story ? 'section' : 'none');
   // hideDecorative only means anything once includeAll is on — the default
   // mode already drops every caption-less item. Default true.
   const hideDecorative = includeAll && opts.hideDecorative !== false;
@@ -1397,16 +1496,17 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
       const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
       for (const p of d?.query?.pages || []) {
         const ii = p.imageinfo?.[0];
-        if (ii) info[p.title] = { width: ii.width, height: ii.height, mime: ii.mime };
+        if (ii) info[fileKey(p.title)] = { width: ii.width, height: ii.height, mime: ii.mime };
       }
     } catch { /* dimension filter is best-effort */ }
   }
 
-  const min = Math.max(parseInt(minSize) || 200, 0);
+  let joined = 0;
+    const min = Math.max(parseInt(minSize) || 200, 0);
   const rows = [];
   let dropped = 0;
   for (const it of kept) {
-    const dim = info[it.title];
+    const dim = info[fileKey(it.title)];
     if (dim && (dim.width < min || dim.height < min)) { dropped++; continue; }
     const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
     const thumbUrl = cleanThumbUrl(src?.src);
@@ -1425,11 +1525,24 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
     });
   }
   // Section/gallery grouping labels (one cheap tocdata call, grouped modes only).
-  if (rows.length && groupBy !== 'none') {
-    assignRowGroups(rows, groupBy, await fetchSectionHeadings(project, article));
+  if (story && rows.length) {
+      // The captions that live in <gallery> markup (see joinGalleryCaptions): media-list reports those images with no
+      // caption at all — measured on the Met article 2026-09-24: 93 rows, 63 of them gallery items.
+      try {
+        const gparams = new URLSearchParams({
+          action: 'query', prop: 'revisions', titles: String(article).replace(/ /g, '_'),
+          rvslots: 'main', rvprop: 'content', format: 'json', formatversion: '2', origin: '*',
+        });
+        const gd = await fetchJSON(`https://${project}.org/w/api.php?${gparams}`);
+        joined = joinGalleryCaptions(rows, gd?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content || '');
+      } catch { /* a story without gallery captions is still a story */ }
+    }
+    if (rows.length && groupBy !== 'none') {
+    assignRowGroups(rows, groupBy, await fetchSectionHeadings(project, article, { chaptersOnly: story }));
   }
   const limit = Math.max(parseInt(maxItems) || 0, 0);
-  return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped, decorative, includeAll, groupBy };
+  const dimensioned = rows.reduce((n, r) => n + (r.width && r.height ? 1 : 0), 0);
+    return { article, rows: limit ? rows.slice(0, limit) : rows, total: rows.length, dropped, decorative, includeAll, groupBy, story, joined, dimensioned };
 }
 
 /**

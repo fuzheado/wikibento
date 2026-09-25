@@ -27,14 +27,14 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-Cm_RJ_t4.js` (+ `index-B4JsRcV8.css`) |
+| production bundle | `index-Dn-0aMa4.js` (+ `index-BUkYxElK.css`) |
 | deployed | 2026-09-24 — **pick mode, and the two bugs it found** (ISSUE-114/117/118): 🖌 **Pick ▾** arms a widget type and each click on a row or tile places a card for that item; four more renderers publish (a row whose own link is a Wikipedia article or a Commons file declares its own kind); and two reported refusals were fixed — a second item of the same kind was called a duplicate (the dedupe compared fields the pick was not about), and an article was refused by the Wiki Page brush because the kind vocabulary is a hierarchy, not a set of labels. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
+| newest capabilities | 🎞 **Story mode** (ISSUE-119) — any gallery can present an article's images as one continuous scroll, each panel chosen by the image's own shape, with the article's sections as chapters; `?kiosk=1` with one tall card is the way to show it. Ported from the Met/Google-Arts-&-Culture prototype, verified 7/7 by `npm run smoke:story`. · 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -60,6 +60,7 @@ Gallery).
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
 | `npm run smoke:document` | the 📄 Commons document reader — 37 assertions: page counts from `imageinfo`, the served-width ceiling, the DjVu, the polite refusal of a non-document, and the Wikisource panel open on load and following the page turn |
+| `npm run smoke:story` | story mode end to end — a story card for a real article pasted in through ⬆ Import: the panel mix (a mix dominated by one kind means the shape data never arrived), caption coverage, chapters, the progress bar, and screenshots |
 | `npm run smoke:pick` | pick mode end to end in a real browser — arm a brush, place a card from a row, refuse a twin, Undo it, the kind gate, and each publisher: 19 checks, against the built app or against production with `--base` |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
 | `npm run test:browsers:demos` | **every demo board** (19 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |

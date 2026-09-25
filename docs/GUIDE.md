@@ -257,6 +257,20 @@ brush is for.
 4. Click again on something new, and again. The brush **stays armed** — that is the point.
 5. Click **🖌 <type> ▾** to switch types, or **✕ Stop picking** to leave the mode.
 
+## Story mode — the article as a continuous scroll (ISSUE-119)
+
+A gallery whose **Display** is **Story** stops being a grid and becomes one continuous scroll inside its card: the
+article's images in document order, each given the panel its *own shape* deserves — a wide panorama fills the card
+edge-to-edge, a tall portrait or a small file is centred at its native size so it is neither letterboxed nor upscaled,
+and a landscape work gets an image-and-text split whose text side alternates down the story. The article's top-level
+sections become **chapters** with a count above each, every panel is numbered, and a progress bar runs with the scroll.
+
+Worth knowing: **Story implies the whole article** — it includes the images inside `{{gallery}}` templates and
+`<gallery>` blocks (whose captions are read from the article's source), where the grid shows only the ones wrapped in a
+figure unless you turn on *All images*. The card's own height is the scroll, so drag it taller for a longer view; in
+**Present** or **Lean** mode one story card fills the screen, which is the way to show it to a room. Clicking a panel
+opens its Commons file page — unless you are picking, in which case it places a card for that file.
+
 What can be picked today: **article-list rows**, **ranked article rows** (including the expanded top-pages card),
 **any ranking row whose own link is a Wikipedia article or a Commons file**, **GLAM sample strips**, **CIM file rows**
 and **gallery tiles**. A row's own link declares what it is, so there is nothing to configure. Deliberately not yet:

@@ -87,6 +87,12 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
 - **Presentation** — ⛶ **Present** hides every editing affordance and locks the grid for a clean data wall;
   `?kiosk=1` loads any board that way directly (a shareable presentation link), and ▣ **Lean** does the same
   without taking over the screen
+- **Story mode** — any gallery can present an article's images as one **continuous scroll**: each image gets the
+  panel its own shape deserves (full-bleed panorama, a centred plate for tall portraits at native size, or an
+  image-and-text split whose text side alternates), with the article's own sections as chapters and a progress bar down
+  the side. Set **Display → Story** on a gallery, or see it at `?config=/dashboard.json` (Gallery, Images come from
+  *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
+  a single tall card is the whole screen, which is the way to show it to a room.
 - **Pick mode** — 🖌 **Pick ▾** arms a brush: choose a widget type, then click items inside the cards you are
   already reading and each click places a card for that item. One click, one card, named in the toast; the same
   item twice refuses rather than making a twin; **Undo** takes it back off. It is a second, power-user verb
