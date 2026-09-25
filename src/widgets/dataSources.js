@@ -448,12 +448,23 @@ function daysAgo(n) {
 function stripHtml(html) {
   return String(html || '')
     .replace(/<[^>]*>/g, ' ')
+    // Named entities, then NUMERIC ones — the API's rendered HTML uses them freely for typography, and a caption that
+    // came out as "c. &#8201;530 BCE" is not something a reader should ever see (Andrew, 2026-09-24). Decoding them is
+    // also what lets the whitespace collapse below turn a thin space into an ordinary one.
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-f]+);/gi, (m, hex) => {
+      const code = parseInt(hex, 16);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+    })
+    .replace(/&#(\d+);/g, (m, dec) => {
+      const code = parseInt(dec, 10);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+    })
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -1261,7 +1272,55 @@ export function parseGalleryTemplates(wikitext) {
   return out;
 }
 
-export function joinGalleryCaptions(rows, wikitext) {
+/** A separator that is not wikitext, so the renderer passes it through and we can split on it afterwards. */
+export const CAPTION_MARKER = '\u2702WBCAP\u2702';
+
+/** The text to hand to `action=parse`: every caption, in order, separated by something the renderer leaves alone. */
+export function captionBatch(captions) {
+  return (captions || []).join(` ${CAPTION_MARKER} `);
+}
+
+/** Split rendered HTML back into one caption per input. Null when the count does not match (the caller falls back). */
+export function splitExpandedCaptions(html, count) {
+  const parts = String(html || '').split(CAPTION_MARKER);
+  if (parts.length !== count) return null;
+  return parts.map((p) => stripHtml(p).replace(/\s+/g, ' ').trim());
+}
+
+/**
+ * Render the wikitext still sitting in a caption: `{{circa|530 BCE}}` -> "c. 530 BCE", `{{convert|30|km}}` ->
+ * "30 kilometres (19 mi)", `[[A|B]]` -> "B".
+ *
+ * Captions arrive by two routes and only one is rendered. A figure caption comes from media-list's `caption.html`,
+ * which Parsoid already rendered; a caption inside a gallery block does not, so the join below reads it from the
+ * article's wikitext and it keeps its template syntax — reported by Andrew, 2026-09-24: "Sphinx, Greece,
+ * {{circa|530 BCE}}". (The prototype this mode ports has the same wart in its own data.)
+ *
+ * One `action=parse` call expands them all, which beats stripping braces with a regex: templates, links and HTML
+ * entities all come out as a reader sees them. Returns fileKey -> caption; empty on failure, and the caller keeps
+ * the raw text rather than showing nothing.
+ */
+export async function expandWikitextCaptions(byFile, project = 'en.wikipedia') {
+  const braces = /\{\{|\[\[/;
+  const entries = [...(byFile || new Map())].filter(([, cap]) => braces.test(String(cap || '')));
+  if (!entries.length) return new Map();
+  try {
+    const params = new URLSearchParams({
+      action: 'parse', text: captionBatch(entries.map(([, cap]) => cap)), prop: 'text',
+      contentmodel: 'wikitext', format: 'json', formatversion: '2', origin: '*',
+    });
+    const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
+    const rendered = splitExpandedCaptions(d?.parse?.text || '', entries.length);
+    if (!rendered) return new Map();
+    const out = new Map();
+    entries.forEach(([key], i) => { if (rendered[i]) out.set(key, rendered[i]); });
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
+export function joinGalleryCaptions(rows, wikitext, rendered = new Map()) {
   // Both shapes an article can use: <gallery> tags, and the {{gallery}} template.
   const byFile = new Map();
   for (const g of [...parseGalleryBlocks(wikitext), ...parseGalleryTemplates(wikitext)]) {
@@ -1270,7 +1329,9 @@ export function joinGalleryCaptions(rows, wikitext) {
   let joined = 0;
   for (const row of rows || []) {
     if (row.caption) continue;
-    const caption = byFile.get(fileKey(row.title));
+    const key = fileKey(row.title);
+    // `rendered` holds the captions the API expanded for us; the raw one is the fallback.
+    const caption = rendered.get(key) || byFile.get(key);
     if (caption) { row.caption = caption; row.showFileName = false; joined++; }
   }
   return joined;
@@ -1511,7 +1572,7 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
     const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
     const thumbUrl = cleanThumbUrl(src?.src);
     if (!thumbUrl) { dropped++; continue; }
-    const caption = stripHtml(it.caption?.html || '');
+    const caption = tidyCaption(stripHtml(it.caption?.html || ''));
     rows.push({
       title: it.title.replace(/^File:/, '').replace(/_/g, ' '),
       fileUrl: `https://${project}.org/wiki/${it.title.replace(/ /g, '_')}`,
@@ -1526,17 +1587,44 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
   }
   // Section/gallery grouping labels (one cheap tocdata call, grouped modes only).
   if (story && rows.length) {
-      // The captions that live in <gallery> markup (see joinGalleryCaptions): media-list reports those images with no
-      // caption at all — measured on the Met article 2026-09-24: 93 rows, 63 of them gallery items.
+      // Captions, three sources deep, in decreasing order of trust:
+      //   1. the article's wikitext — complete, but wikitext (templates and links unrendered);
+      //   2. media-list's caption for the same image — already rendered, but for a gallery item it is TRUNCATED at the
+      //      first pipe inside a link, which is why "…[[John Wentworth (Lieutenant-Governor)|John Wentworth, lieutenant
+      //      governor of New Hampshire]]" arrived as "…[[John Wentworth (Lieutenant-Governor)|John Wentworth,
+      //      lieutenant governor of New Hampshire" (Andrew, 2026-09-24, via smoke:story's markup check);
+      //   3. the file name, which the renderer falls back to when there is no caption at all.
+      // So the wikitext WINS where it exists, and one action=parse call renders whatever markup is left.
       try {
         const gparams = new URLSearchParams({
           action: 'query', prop: 'revisions', titles: String(article).replace(/ /g, '_'),
           rvslots: 'main', rvprop: 'content', format: 'json', formatversion: '2', origin: '*',
         });
         const gd = await fetchJSON(`https://${project}.org/w/api.php?${gparams}`);
-        joined = joinGalleryCaptions(rows, gd?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content || '');
+        const wikitext = gd?.query?.pages?.[0]?.revisions?.[0]?.slots?.main?.content || '';
+        const fromWikitext = new Map();
+        for (const g of [...parseGalleryBlocks(wikitext), ...parseGalleryTemplates(wikitext)]) {
+          if (g.caption) fromWikitext.set(fileKey(g.file), g.caption);
+        }
+        const renderedWikitext = await expandWikitextCaptions(fromWikitext, project);
+        // Anything media-list gave us that still looks like markup — a figure caption the API left raw.
+        const stillMarkup = new Map();
+        for (const r of rows) {
+          if (r.caption && /\{\{|\[\[/.test(r.caption)) stillMarkup.set(fileKey(r.title), r.caption);
+        }
+        const renderedRows = await expandWikitextCaptions(stillMarkup, project);
+        for (const r of rows) {
+          const key = fileKey(r.title);
+          const preferred = renderedWikitext.get(key) || fromWikitext.get(key);
+          if (preferred) { r.caption = preferred; r.showFileName = false; continue; }
+          const better = renderedRows.get(key);
+          if (better && better !== r.caption) { r.caption = better; r.showFileName = false; }
+        }
+        joined = joinGalleryCaptions(rows, wikitext, renderedWikitext);
       } catch { /* a story without gallery captions is still a story */ }
     }
+
+
     if (rows.length && groupBy !== 'none') {
     assignRowGroups(rows, groupBy, await fetchSectionHeadings(project, article, { chaptersOnly: story }));
   }
@@ -1585,8 +1673,34 @@ function stripGalleryLineParams(text) {
 }
 
 /** A caption as a reader sees it: wiki links become their label, markup and HTML go away. */
+/**
+ * Strip the fragments a split template or link leaves behind: an opener with no closer (the rest was on the previous
+ * gallery line), or a lone closer at the end. Seen in the wild as "Interior of the early colonial home of John
+ * Wentworth, lieutenant governor of New Hampshire}}" — found by smoke:story's markup check, which fails on any caption
+ * a reader would see as markup.
+ *
+ * A BALANCED template is deliberately left alone: it goes to the API to be rendered (expandWikitextCaptions).
+ */
+export function tidyCaption(text) {
+  let out = String(text ?? '').trim();
+  const count = (t) => out.split(t).length - 1;
+  // Only a closer with no opener to match it is stripped. The first version stripped ANY trailing "}}" or "]]", which
+  // broke the very things it was meant to protect: "[[Aztec]]" became "[[Aztec" and "{{circa|1434}}" became
+  // "{{circa|1434", so the API could no longer render them and the caption showed the markup instead (2026-09-24).
+  // Balance is the whole test, and it keeps a caption that is fine completely untouched.
+  for (let guard = 0; guard < 4; guard++) {
+    if (count('}}') > count('{{')) out = out.replace(/\}\}+[\s,.;:]*(?![\s\S]*\}\})/, ' ').trimEnd();
+    else if (count(']]') > count('[[')) out = out.replace(/\]\]+[\s,.;:]*(?![\s\S]*\]\])/, ' ').trimEnd();
+    else break;
+  }
+  // An opener whose rest was on the previous gallery line, with nothing to close it.
+  if (count('{{') > count('}}')) out = out.replace(/\{\{[^{}]*$/, ' ').trimEnd();
+  if (count('[[') > count(']]')) out = out.replace(/\[\[[^\[\]]*$/, ' ').trimEnd();
+  return out.replace(/\s+/g, ' ').trim();
+}
+
 export function galleryCaptionText(raw) {
-  let out = String(raw ?? '');
+  let out = tidyCaption(String(raw ?? ''));
   // [[target|label]] → label · [[target]] → the part after the last colon (`[[:Category:X]]` → `X`)
   out = out.replace(/\[\[([^\]]*?)\|([^\]]*?)\]\]/g, (_, _t, label) => label);
   out = out.replace(/\[\[([^\]]*?)\]\]/g, (_, target) => String(target).split(':').pop());

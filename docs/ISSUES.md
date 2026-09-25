@@ -4992,6 +4992,35 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-121 · Story captions showed wikitext — **done + verified 2026-09-24** (reported by Andrew)
+
+> **The report.** *"Sphinx, Greece, {{circa|530 BCE}}"* — reported right after the mode shipped.
+>
+> **Why.** Captions arrive by two routes and only one is rendered. A figure caption comes from media-list's
+> `caption.html`, which Parsoid already rendered; a caption inside a gallery block does not, so the join reads it from
+> the article's wikitext and it keeps its syntax. (The prototype this mode ports has the same wart in its own data:
+> "Tabernacle of Cherves, {{Circa|1220}}–30".)
+>
+> **The fix, in three parts.**
+> 1. **One `action=parse` call renders them all** — `{{circa|530 BCE}}` → "c. 530 BCE", `{{convert|30|km}}` →
+>    "30 kilometres (19 mi)". That beats stripping braces with a regex, because templates, links and entities all come
+>    out as a reader sees them; a marker between captions lets a single call serve every caption in the article.
+> 2. **The wikitext wins where it exists**, because media-list's caption for a gallery item is *truncated at the first
+>    pipe inside a link*: `…[[John Wentworth (Lieutenant-Governor)|John Wentworth, lieutenant governor of New
+>    Hampshire]]` arrived only as far as "…of New". The three sources are ranked now — wikitext, then media-list, then
+>    the file name — and only the first is complete.
+> 3. **Numeric entities are decoded** in the HTML stripper: rendered captions carry `&#8201;` (a thin space), and
+>    "c. 530 BCE" must not reach a reader as "c. &#8201;530 BCE".
+>
+> **One self-inflicted bug is worth recording.** The first version of the fragment cleaner stripped *any* trailing
+> `}}` or `]]`, which broke exactly what it was meant to protect: `[[Aztec]]` → `[[Aztec`, `{{circa|1434}}` →
+> `{{circa|1434`, so the API could no longer render them and the markup stayed. It is balance-aware now: a closer is
+> stripped only when it has no opener to match it, and a balanced caption passes through untouched.
+>
+> **Verified** by `npm run smoke:story` — **10/10** against the built app and against production, including a new check
+> that no panel's caption contains template syntax, an HTML entity or a tag: the report as a permanent invariant.
+> 13 unit tests cover the batch format, the split, the balance rule and the entity decoding.
+
 ## ISSUE-120 · A shared board's notice appears in kiosk, where the chrome is meant to be gone — **open** (design question, low)
 
 > **Seen** while screenshotting a story in `?kiosk=1` for ISSUE-119: *"Viewing a shared board — Story. Your own board is

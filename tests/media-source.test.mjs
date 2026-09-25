@@ -17,7 +17,7 @@ import assert from 'node:assert/strict';
 import {
   mediaKindFromUrl, mediaMimeFromUrl, directMediaRow, fetchMediaPlaylist,
 } from '../src/widgets/dataSources.js';
-import { joinGalleryCaptions, parseGalleryTemplates, fileKey, collapseToChapters } from '../src/widgets/dataSources.js';
+import { joinGalleryCaptions, parseGalleryTemplates, fileKey, collapseToChapters, captionBatch, splitExpandedCaptions, CAPTION_MARKER, galleryCaptionText } from '../src/widgets/dataSources.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 const IA_FILM = 'https://archive.org/download/AboutBan1935/AboutBan1935.mp4';
@@ -149,4 +149,30 @@ test('sub-sections collapse onto the chapter that contains them', () => {
   assert.deepEqual(map.get(3), { key: 1, label: 'Collections' });
   assert.deepEqual(map.get(4), { key: 4, label: 'History' });
   assert.deepEqual(map.get(5), { key: 4, label: 'History' });
+});
+
+// ISSUE-121 — captions from an article's galleries are wikitext, and a reader must never see the markup. Andrew
+// reported "Sphinx, Greece, {{circa|530 BCE}}"; the API renders those in one call, and this pins the pieces that can
+// be checked without a network: the batch format, the split, and the entity decoding that rendered HTML needs.
+test('a caption batch round-trips through the renderer', () => {
+  const raw = ['Sphinx, Greece, {{circa|530 BCE}}', 'Plain caption', '{{convert|30|km}}'];
+  const sent = captionBatch(raw);
+  assert.ok(sent.includes(CAPTION_MARKER), 'the marker is what the renderer passes through');
+  // What the API hands back is one HTML fragment per caption, the marker intact — including inside a <p>.
+  const returned = `<p>${raw[0].replace('{{circa|530 BCE}}', '<abbr title="circa">c.</abbr>&#8201;530 BCE')}</p> ${CAPTION_MARKER} <p>Plain caption</p> ${CAPTION_MARKER} <p>30 kilometres (19&#160;mi)</p>`;
+  const out = splitExpandedCaptions(returned, 3);
+  assert.equal(out[0], 'Sphinx, Greece, c. 530 BCE');
+  assert.equal(out[1], 'Plain caption');
+  assert.equal(out[2], '30 kilometres (19 mi)', 'a numeric entity becomes the character, then collapses to a space');
+  // A count mismatch means the split is untrustworthy, and the caller falls back rather than mis-assigning captions.
+  assert.equal(splitExpandedCaptions(returned, 2), null);
+});
+
+// ISSUE-121, second case — smoke:story's markup check found a caption ending in an orphaned "}}" (a template that
+// started on the previous gallery line). A lone closer is never display text.
+test('orphaned template and link fragments do not survive into a caption', () => {
+  assert.equal(galleryCaptionText('Interior of the early colonial home}}, '), 'Interior of the early colonial home');
+  assert.equal(galleryCaptionText('A caption with a {{circa|530 BCE}} inside'), 'A caption with a {{circa|530 BCE}} inside',
+    'a BALANCED template is left for the API to render, not stripped here');
+  assert.equal(galleryCaptionText('A bowl from [[Phoenician'), 'A bowl from');
 });

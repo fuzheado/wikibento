@@ -93,7 +93,10 @@ try {
       const c = (p.querySelector('.story-caption')?.textContent || '').trim();
       return c && !/\.(jpe?g|png|gif|svg|tiff?|webp)$/i.test(c);
     }).length;
-    return { panels: panels.length, mix, captioned, chapters: document.querySelectorAll('.story-chapter').length,
+    const markup = panels
+      .map((p) => (p.querySelector('.story-caption')?.textContent || '').trim())
+      .filter((c) => /\{\{|\}\}|\[\[|&#\d+;|&[a-z]+;|<[a-z/]/.test(c));
+    return { panels: panels.length, mix, captioned, markup, chapters: document.querySelectorAll('.story-chapter').length,
       title: document.querySelector('.story-title')?.textContent?.trim(),
       subtitle: document.querySelector('.story-sub')?.textContent?.trim(),
       hero: !!document.querySelector('.story-cover-bg') };
@@ -108,6 +111,11 @@ try {
   s.captioned / Math.max(s.panels, 1) >= 0.8
     ? ok(`${s.captioned} of ${s.panels} panels carry a caption rather than a file name`)
     : bad(`only ${s.captioned} of ${s.panels} panels are captioned`);
+  // Andrew, 2026-09-24: "Sphinx, Greece, {{circa|530 BCE}}". A caption that came from a gallery is wikitext until the
+  // API renders it, and the rendered HTML carries numeric entities; a reader must see neither.
+  s.markup.length === 0
+    ? ok('no caption shows template syntax or an HTML entity')
+    : bad(`${s.markup.length} captions still carry markup, e.g. ${JSON.stringify(s.markup[0])}`);
   s.chapters >= 5 ? ok(`${s.chapters} chapters`) : bad(`${s.chapters} chapters`);
   s.hero ? ok('the cover has a blurred backdrop') : bad('no cover backdrop');
 
