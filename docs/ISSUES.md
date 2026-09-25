@@ -4992,6 +4992,20 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-120 · A shared board's notice appears in kiosk, where the chrome is meant to be gone — **open** (design question, low)
+
+> **Seen** while screenshotting a story in `?kiosk=1` for ISSUE-119: *"Viewing a shared board — Story. Your own board is
+> saved and untouched — edit anything to make this copy yours."* with **[Save this as mine]** / **[Back to my board]**,
+> across the top of an otherwise chrome-free presentation.
+>
+> **Both sides are real.** It is the ISSUE-88 borrowed-board notice, and a viewer who followed someone else's link into
+> a presentation does need a way out — but **Esc already exits kiosk**, and the notice is an *editing* affordance in a
+> mode whose whole promise is that editing affordances are gone. The screenshot of the kiosk run is the evidence.
+>
+> **Not fixed here** because it is a design call rather than a defect, and it is unrelated to story mode — any shared
+> board in kiosk shows it. Options: hide the notice when kiosk is on and lean on Esc; keep it but drop the buttons and
+> leave a one-line "Esc to exit"; or leave it as the escape hatch it is.
+
 ## ISSUE-119 · Story mode: an article's images as a continuous scroll — **done + verified 2026-09-24**
 
 > **What.** The presentation technique of the Met/Google-Arts-&-Culture prototype (`~/Documents/ai/met-gac-prototype`),
