@@ -196,3 +196,21 @@ test('the refusal message reads like a sentence, and says what to arm instead', 
   const gallery = acceptedKindsLabel(WIDGET_TYPES.gallery);
   assert.ok(/^an article, .+ or a Commons file$/.test(gallery), `gallery reads "${gallery}"`);
 });
+
+// A link inside a rendered box or page is a pick target (ISSUE-122). The box's own links are local ones, so a
+// File: link on a wikipedia has to be a file too — otherwise the most useful links in a page are the dead ones.
+test('a File: link is a file on any Wikimedia wiki, not only on Commons', () => {
+  assert.deepEqual(pickFromUrl('https://en.wikipedia.org/wiki/File:Leopardus_tilcayo_(5x3_cropped).jpg'),
+    { kind: 'commons-file', value: 'File:Leopardus tilcayo (5x3 cropped).jpg', label: 'Leopardus tilcayo (5x3 cropped).jpg', project: 'en.wikipedia' });
+  assert.equal(pickFromUrl('https://commons.wikimedia.org/wiki/File:Dogs.jpg').kind, 'commons-file');
+  // Namespaces that are not a thing this vocabulary can place stay links: the box is full of them.
+  for (const notPickable of [
+    'https://en.wikipedia.org/wiki/Category:Kohat',
+    'https://en.wikipedia.org/wiki/Template:In_the_news',
+    'https://en.wikipedia.org/wiki/Special:Random',
+    'https://en.wikipedia.org/wiki/Kohat#History',
+  ]) {
+    assert.equal(pickFromUrl(notPickable)?.kind, notPickable.includes('#History') ? 'article' : undefined,
+      `${notPickable} should not name a placeable thing`);
+  }
+});

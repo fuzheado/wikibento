@@ -865,7 +865,7 @@ case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'IaBookCard': return <IaBookCard data={data} />;
     case 'DocumentReaderCard': return <DocumentReaderCard data={data} />;
 
-    case 'WikiBoxCard': return <WikiBoxCard data={data} onSelect={onSelect} />;
+    case 'WikiBoxCard': return <WikiBoxCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
     // The 360° panorama had a component and a registry entry but NO case here, so every panorama card fell
     // through to `default: StatCard` and rendered an empty "—" (found 2026-09-18 by the demo sweep's
     // "shows no value" check, on the full-catalog board). A renderer that is defined but unreachable is invisible
@@ -2672,7 +2672,7 @@ function TimelineCard({ data }) {
  *    the document rather than in a sandboxed frame: a widget that scrolls or clips is not a widget.
  */
 
-function WikiBoxCard({ data, onSelect }) {
+function WikiBoxCard({ data, onSelect, picking, onPickItem }) {
   const html = (data && data.html) || '';
   const css = (data && data.css) || '';
   // `new tab` is the default and needs no code: the anchors carry target="_blank". The other two modes make the
@@ -2680,9 +2680,22 @@ function WikiBoxCard({ data, onSelect }) {
   const linkAction = (data && data.linkAction) || 'new tab';
   const sendInstead = linkAction === 'send to the board' || linkAction === 'both';
   const handleClick = (event) => {
-    if (!sendInstead || !onSelect) return;
     const anchor = event.target && event.target.closest ? event.target.closest('a') : null;
     if (!anchor) return;
+    // The pick brush wins over the link's own behaviour: while it is armed, clicking a link inside the box places a
+    // card for what that link POINTS AT instead of following it. That is the point of reading a page in a card — the
+    // content becomes the menu (Andrew, 2026-09-24). The sanitiser has already made these hrefs absolute, and
+    // pickFromUrl reads the kind off them: a Wikipedia article, or a Commons file. Anything else — a category, a
+    // template, an anchor, another site — is not something the vocabulary can place, so the link stays a link.
+    if (picking && onPickItem && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      const item = pickFromUrl(anchor.getAttribute('href'));
+      if (item) {
+        event.preventDefault();
+        onPickItem(item);
+        return;
+      }
+    }
+    if (!sendInstead || !onSelect) return;
     const value = boxLinkSelection(anchor.getAttribute('href'), anchor.textContent, { project: data.project });
     if (!value) return;
     if (linkAction === 'send to the board') event.preventDefault();   // `both` also opens the tab

@@ -4992,6 +4992,30 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-122 · A link inside a rendered box or page did not respond to the pick brush — **done + verified 2026-09-24** (reported by Andrew)
+
+> **The report.** *"When Picker mode has been selected and you are clicking on a blue hyperlink, it is not loading that
+> target web page, but instead adding a new widget as defined by the pull down menu."* — i.e. reading content inside a
+> card should make that content the menu, and it did not: a click followed the link.
+>
+> **Why.** `WikiBoxCard` already intercepts clicks, but only for its *selection channel* (ISSUE-91): with the default
+> `linkAction: 'new tab'` the handler returns immediately and the anchor does what anchors do. The pick brush is a
+> different verb, and nothing had claimed the click for it.
+>
+> **The fix.** The box's click handler now gives the brush priority: while it is armed, a click on a link inside the
+> content places a card for what that link **points at** instead of following it. Modifier-clicks still open a tab, as
+> everywhere else in pick mode. The sanitiser had already made these hrefs absolute (`boxWikiHtml` rewrites `/wiki/…`),
+> so the kind is read off the URL by `pickFromUrl` — a Wikipedia article, or a Commons file.
+>
+> **Two rules the work exposed.** A `File:` link is a file on **any** Wikimedia wiki, not only on Commons: the box's own
+> links are local ones (`en.wikipedia.org/wiki/File:…`), so without that the most useful links in a page were the dead
+> ones. And a section link (`…/Kohat#History`) names the *page* — a card for "Kohat#History" would ask the API for a
+> title that does not exist.
+>
+> **Verified** in the built app: with Article Excerpt armed, clicking a link in the dashboard's Wikipedia Box placed a
+> card (`42 → 43`, "🖌 Added Article Excerpt: 2026 Kohat attack") and opened **no** tab (browser pages 1 → 1). That is
+> now a check in `npm run smoke:pick` (11 checks), alongside a unit test for the File:-anywhere and fragment rules.
+
 ## ISSUE-121 · Story captions showed wikitext — **done + verified 2026-09-24** (reported by Andrew)
 
 > **The report.** *"Sphinx, Greece, {{circa|530 BCE}}"* — reported right after the mode shipped.

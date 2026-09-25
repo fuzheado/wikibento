@@ -72,8 +72,14 @@ export function pickFromUrl(url) {
   const [, lang, family, raw] = m;
   let title;
   try { title = decodeURIComponent(raw).replace(/_/g, ' '); } catch { title = raw.replace(/_/g, ' '); }
+  // A link into a section (`…/Kohat#History`) names the page, not the fragment: a card for "Kohat#History" would ask
+  // the API for a title that does not exist.
+  title = title.split('#')[0].trim();
   const project = `${lang}.${family}`;
-  if (family === 'wikimedia' && /^file:/i.test(title)) {
+  // A `File:` link is a file wherever it is linked from — the box's own links are local ones
+  // (en.wikipedia.org/wiki/File:…), and a local file page is a pointer to the Commons file in all but a handful of
+  // cases. The project stays the one the link came from, which is the honest answer to "where did this come from".
+  if (/^file:/i.test(title) && (family === 'wikimedia' || family === 'wikipedia')) {
     const value = 'File:' + title.slice(5);
     return { kind: 'commons-file', value, label: value.slice(5), project };
   }

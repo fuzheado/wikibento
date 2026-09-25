@@ -2974,7 +2974,9 @@ body[data-print-mode='document'] .react-grid-layout {
 .app.picking .toppages-row,
 .app.picking .cim-top-file,
 .app.picking .sample-strip .sample-thumb,
-.app.picking .ranking-link {
+.app.picking .ranking-link,
+.app.picking .wikibox-content a,
+.app.picking .wikibox a {
   cursor: crosshair;
 }
 
@@ -3122,6 +3124,15 @@ body[data-print-mode='document'] .react-grid-layout {
 
 /* Armed for picking, a panel is a target like any other row or tile. */
 .app.picking .story-panel { outline: 2px dashed var(--accent, #6b8afd); outline-offset: -2px; cursor: crosshair; }
+
+/* A box or page can hold hundreds of links; outlining them all would be noise. The pointer says "pickable", and the
+   hover says "this one" — which is enough, and keeps the content readable while the brush is armed. */
+.app.picking .wikibox a:hover,
+.app.picking .wikibox-content a:hover {
+  outline: 2px dashed var(--accent, #6b8afd);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--accent, #6b8afd) 14%, transparent);
+}
 
 @media (max-width: 700px) {
   .story-split, .story-split.story-reverse { flex-direction: column; }

@@ -296,6 +296,36 @@ try {
     ? ok(`a Wiki Page card spawns from an article row (${w0} → ${w1}): "${wmsg}"`)
     : bad(`Wiki Page from an article row: ${w0} → ${w1}, toast "${wmsg}"`);
 
+  // 2e. A link inside a rendered box or page is a pick target too (ISSUE-122): reading content in a card should make
+  // that content the menu, so a click places a card for what the link POINTS AT instead of following it.
+  {
+    const bp = await freshPage();
+    await bp.goto(`${base}/?config=/dashboard.json`, { waitUntil: 'domcontentloaded' });
+    await bp.waitForSelector('[data-widget-id="catalog-wikibox"] a', { timeout: 90000 });
+    await bp.waitForTimeout(2000);
+    const target = await bp.evaluate(() => {
+      for (const a of document.querySelectorAll('[data-widget-id="catalog-wikibox"] a')) {
+        const h = a.getAttribute('href') || '';
+        if (/^https?:\/\/[a-z-]+\.wikipedia\.org\/wiki\//i.test(h) && !/\/wiki\/(File|Category|Talk|Special|User|Template|Portal|Wikipedia|Help|Draft|Module):/i.test(h)) return h;
+      }
+      return null;
+    });
+    if (!target) bad('no article link inside the Wikipedia Box to test with');
+    else {
+      const b0 = await cards(bp);
+      const tabs0 = bp.context().pages().length;
+      await arm(bp, ARTICLE_BRUSH);
+      await bp.locator(`[data-widget-id="catalog-wikibox"] a[href="${target}"]`).first().click();
+      await bp.waitForTimeout(2500);
+      const b1 = await cards(bp);
+      const tabs1 = bp.context().pages().length;
+      (b1 === b0 + 1 && tabs1 === tabs0)
+        ? ok(`a link inside the Wikipedia Box places a card instead of following itself (${b0} → ${b1}, tabs ${tabs1})`)
+        : bad(`box link: cards ${b0} → ${b1}, tabs ${tabs0} → ${tabs1}`);
+    }
+    await bp.close();
+  }
+
   // ── the Commons-file half, on a board that is mostly galleries ────────────────────────────────────────────
   const gp = await freshPage();
   await gp.goto(`${base}/?config=/gallery-demo.json`, { waitUntil: 'domcontentloaded' });
