@@ -126,6 +126,24 @@ try {
   (p1 > 5 && p2 > p1) ? ok(`the progress bar tracks the scroll (${p1}% → ${p2}%)`) : bad(`progress bar: ${p1} → ${p2}`);
 
   errs.length ? bad(`errors: ${errs[0]}`) : ok('0 page errors and 0 console errors');
+
+  // The demo board is a shipped artifact — `?config=/story-demo.json` — so it is checked rather than assumed:
+  // a gallery config that drifts out of story mode would leave a grid where the board promises a story.
+  const demo = await ctx.newPage();
+  const demoErrs = [];
+  demo.on('pageerror', (e) => demoErrs.push(String(e.message).slice(0, 110)));
+  await demo.goto(`${base}/?config=/story-demo.json`, { waitUntil: 'domcontentloaded' });
+  await demo.waitForSelector('.story-panel', { timeout: 120000 });
+  await demo.waitForTimeout(4000);
+  const d = await demo.evaluate(() => ({
+    cards: document.querySelectorAll('[data-widget-id]').length,
+    panels: document.querySelectorAll('.story-panel').length,
+    lede: /An article as a story/.test(document.body.innerText),
+  }));
+  (d.panels >= 60 && d.lede && demoErrs.length === 0)
+    ? ok(`the demo board (?config=/story-demo.json) is a story: ${d.cards} cards, ${d.panels} panels, lede rendered`)
+    : bad(`demo board: ${JSON.stringify(d)}, errors ${demoErrs[0] || 'none'}`);
+  await demo.screenshot({ path: '/tmp/story-demo-board.png' });
   console.log('  screenshots: /tmp/story-hero.png · /tmp/story-mid.png · /tmp/story-late.png');
 } catch (e) {
   bad('harness: ' + String(e.message).slice(0, 150));
