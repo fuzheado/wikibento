@@ -144,6 +144,27 @@ try {
     ? ok(`the demo board (?config=/story-demo.json) is a story: ${d.cards} cards, ${d.panels} panels, lede rendered`)
     : bad(`demo board: ${JSON.stringify(d)}, errors ${demoErrs[0] || 'none'}`);
   await demo.screenshot({ path: '/tmp/story-demo-board.png' });
+  await demo.close();
+
+  // The presentation path: a story given the whole screen. No third view mode was added for this — kiosk and lean are
+  // the axes — so the combination is an invariant: with the chrome gone, the panels must still be there.
+  const kiosk = await ctx.newPage();
+  const kioskErrs = [];
+  kiosk.on('pageerror', (e) => kioskErrs.push(String(e.message).slice(0, 110)));
+  kiosk.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|Content Security Policy|violates the following|Blocked autofocusing/.test(m.text())) kioskErrs.push('console: ' + m.text().slice(0, 110)); });
+  await kiosk.goto(`${base}/?config=/story-demo.json&kiosk=1`, { waitUntil: 'domcontentloaded' });
+  await kiosk.waitForSelector('.story-panel', { timeout: 120000 });
+  await kiosk.waitForTimeout(4000);
+  const k = await kiosk.evaluate(() => ({
+    panels: document.querySelectorAll('.story-panel').length,
+    chrome: document.querySelectorAll('.app-actions button').length,
+    height: document.querySelector('.story-scroll')?.clientHeight || 0,
+  }));
+  (k.panels >= 60 && k.chrome === 0 && kioskErrs.length === 0)
+    ? ok(`kiosk: ${k.panels} panels with no editing chrome, in a ${k.height}px column`)
+    : bad(`kiosk: ${JSON.stringify(k)}, errors ${kioskErrs[0] || 'none'}`);
+  await kiosk.screenshot({ path: '/tmp/story-kiosk.png' });
+  console.log('  screenshots: /tmp/story-demo-board.png · /tmp/story-kiosk.png');
   console.log('  screenshots: /tmp/story-hero.png · /tmp/story-mid.png · /tmp/story-late.png');
 } catch (e) {
   bad('harness: ' + String(e.message).slice(0, 150));
