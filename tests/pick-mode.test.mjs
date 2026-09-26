@@ -4,7 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { KIND_IDS, kindFields, brushableTypes, typesForKind, brushConfig, alreadyPlaced } from '../src/lib/pickMode.js';
-import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS, minimalConfig, aOrAn, acceptedKindsLabel, kindsAccepting } from '../src/lib/pickMode.js';
+import { projectFromUrl, pickFromUrl, PICKABLE_RENDERERS, minimalConfig, aOrAn, acceptedKindsLabel, kindsAccepting, brushableTypes as brushable } from '../src/lib/pickMode.js';
 const registry = WIDGET_TYPES;
 
 /**
@@ -213,4 +213,22 @@ test('a File: link is a file on any Wikimedia wiki, not only on Commons', () => 
     assert.equal(pickFromUrl(notPickable)?.kind, notPickable.includes('#History') ? 'article' : undefined,
       `${notPickable} should not name a placeable thing`);
   }
+});
+
+// ISSUE-123 — a Wikipedia Box can render a PAGE, so it must be pickable: this is the loop Andrew asked for
+// ("pick article names to feed wikiBox and load them"). The only thing that was missing was a field declaring what
+// the widget consumes; the selector is then set by brushConfig from the field's own showIf (the ISSUE-117 rule).
+test('the Wikipedia Box is brushable, and picking an article fills its page field', () => {
+  const box = WIDGET_TYPES.wikiBox;
+  assert.ok(brushableTypes(WIDGET_TYPES).some((t) => t.type === 'wikiBox'), 'wikiBox is offered in the pick menu');
+  assert.deepEqual(kindFields(box).map((k) => `${k.field.key}→${k.kind}`), ['page→page']);
+  assert.ok(typesForKind('page', WIDGET_TYPES).some((t) => t.type === 'wikiBox'));
+  const cfg = brushConfig(box, 'article', 'Marie Curie', { project: 'en.wikipedia' });
+  assert.equal(cfg.source, 'Page', 'the source selector follows the picked kind');
+  assert.equal(cfg.page, 'Marie Curie');
+  assert.equal(cfg.project, 'en.wikipedia');
+  // A page pick fills the same field, and the other sources' defaults do not ride along.
+  const pagePick = brushConfig(box, 'page', 'Portal:Contents');
+  assert.equal(pagePick.page, 'Portal:Contents');
+  assert.equal(pagePick.box, undefined, 'the template field is not written for a page pick');
 });

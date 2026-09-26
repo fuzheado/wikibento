@@ -76,6 +76,62 @@ function hostFor(project, { mobile = false } = {}) {
 }
 
 /** The `action=parse` URL for a transclusion. `origin=*` because this is called straight from the browser. */
+/**
+ * A PAGE, rather than a transclusion of a template (ISSUE-123). Same endpoint, same response shape, same sanitiser —
+ * only the addressing differs: `page=<title>` instead of `text={{<template>}}`.
+ *
+ * `section` is the parse API's own index: `0` is the lead (measured on the Met article: 33 KB of HTML and 107
+ * clickable links, against 880 KB and 3,178 for the whole page), a number is a section, and blank or `all` means the
+ * whole page. A heading NAME is resolved to its index by the caller, because that needs a second call.
+ */
+export function pageApiUrl({ project = 'en.wikipedia', page, section } = {}) {
+  const title = String(page ?? '').trim();
+  if (!title) throw new Error('no page title');
+  if (/[\n\r]/.test(title)) throw new Error('a page title cannot span lines');
+  if (title.length > 300) throw new Error('that page title is too long');
+  const base = `https://${hostFor(project)}/w/api.php`;
+  const q = new URLSearchParams({
+    action: 'parse',
+    page: title,
+    prop: 'text',
+    formatversion: '2',
+    origin: '*',
+    format: 'json',
+  });
+  // Blank is the LEAD, not the whole page: 33 KB and 107 clickable links against 880 KB and 3,178 (measured on the Met
+  // article). `all` is the escape hatch for the whole page.
+  const sec = String(section ?? '').trim();
+  if (sec.toLowerCase() !== 'all') q.set('section', sec || '0');
+  return `${base}?${q.toString()}`;
+}
+
+/** The section list URL, for turning a heading name into the index the parse API wants. */
+export function pageSectionsApiUrl({ project = 'en.wikipedia', page } = {}) {
+  const base = `https://${hostFor(project)}/w/api.php`;
+  const q = new URLSearchParams({
+    action: 'parse', page: String(page ?? '').trim(), prop: 'sections',
+    formatversion: '2', origin: '*', format: 'json',
+  });
+  return `${base}?${q.toString()}`;
+}
+
+/**
+ * A heading name → the section index the parse API uses. Pure, because it is the part worth testing: matching is
+ * case-insensitive and whitespace-tolerant, a number passes through, and `all`/blank means the whole page.
+ * Returns `{ index }`, `{ index: null }` for the whole page, or `{ error }` with the names that ARE on the page —
+ * a refusal that names the alternatives, which is what the pick brush's refusals learned to do.
+ */
+export function resolveSectionIndex(sections, wanted) {
+  const raw = String(wanted ?? '').trim();
+  if (!raw || raw.toLowerCase() === 'all') return { index: null };
+  if (/^\d+$/.test(raw)) return { index: raw };
+  const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const list = sections || [];
+  const hit = list.find((s) => norm(s.line) === norm(raw));
+  if (hit) return { index: String(hit.index) };
+  return { index: null, error: `no section called "${raw}"`, names: list.map((s) => s.line).filter(Boolean).slice(0, 12) };
+}
+
 export function boxApiUrl({ project = 'en.wikipedia', box, mobile = false } = {}) {
   const base = `https://${hostFor(project, { mobile })}/w/api.php`;
   const q = new URLSearchParams({

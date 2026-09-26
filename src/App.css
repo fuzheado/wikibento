@@ -3143,3 +3143,29 @@ body[data-print-mode='document'] .react-grid-layout {
   .story-scroll { scroll-behavior: auto; }
   .story-progress span { transition: none; }
 }
+
+/* ── ISSUE-123 · A page rendered in a card ───────────────────────────────────────────────────────────────
+   Only TemplateStyles travel with a parse, so a page arrives with its structure and none of Wikipedia's skin. These
+   rules do the skin's job for the elements an article actually uses, in the app's own tokens, so a page reads as a
+   document rather than as unstyled HTML. Chrome that is navigation rather than content — navboxes, edit links — is
+   hidden: that is presentation, not data, and the same family Wikipedia strips for phones. */
+.wikibox-body { line-height: 1.55; font-size: 0.9rem; }
+.wikibox-body img { max-width: 100%; height: auto; }
+.wikibox-body figure, .wikibox-body .thumb { float: right; clear: right; margin: 0 0 0.7rem 1rem; max-width: 100%; }
+.wikibox-body figure img, .wikibox-body .thumb img { border: 1px solid var(--border); border-radius: var(--radius-sm, 4px); }
+.wikibox-body figcaption, .wikibox-body .thumbcaption { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+.wikibox-body table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 0.6rem 0; display: block; overflow-x: auto; }
+.wikibox-body th, .wikibox-body td { border: 1px solid var(--border); padding: 0.3rem 0.5rem; text-align: left; vertical-align: top; }
+.wikibox-body th { background: var(--surface-hover); font-weight: 600; }
+.wikibox-body .infobox { float: right; width: min(17rem, 45%); margin: 0 0 0.8rem 1rem; }
+.wikibox-body h2, .wikibox-body h3, .wikibox-body h4 { margin: 1.1rem 0 0.4rem; line-height: 1.25; }
+.wikibox-body h2 { font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+.wikibox-body h3 { font-size: 1rem; }
+.wikibox-body p { margin: 0.55rem 0; }
+.wikibox-body ul, .wikibox-body ol { margin: 0.5rem 0 0.5rem 1.2rem; }
+.wikibox-body li { margin: 0.15rem 0; }
+.wikibox-body sup.reference { font-size: 0.65rem; }
+.wikibox-body ol.references { font-size: 0.72rem; color: var(--text-dim); }
+.wikibox-body .hatnote, .wikibox-body .ambox, .wikibox-body .mbox-text-span { font-style: italic; color: var(--text-dim); }
+.wikibox-body .navbox, .wikibox-body .metadata, .wikibox-body .sistersitebox, .wikibox-body .mw-editsection { display: none; }
+.wikibox-meta { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.7rem; }

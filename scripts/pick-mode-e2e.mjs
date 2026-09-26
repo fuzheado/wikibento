@@ -204,6 +204,30 @@ try {
     : bad(`gallery spawn: ${s1} → ${s2} → ${s3}, toast "${t2b}" — expected the card for "${secondTitle}"`);
   await page.screenshot({ path: '/tmp/pick-two-galleries.png' });
 
+  // 2f. The loop Andrew asked for (ISSUE-123): with the Wikipedia Box as the brush, clicking an ARTICLE places a card
+  // that renders THAT PAGE. The widget became brushable only because its page field declares kind: 'page', and the
+  // source selector sets itself from the field's own showIf (the ISSUE-117 rule) — so this check covers the picker,
+  // the registry annotation and the page fetch in one go.
+  {
+    const wp = await freshPage();
+    await wp.goto(`${base}/?config=/dashboard.json`, { waitUntil: 'domcontentloaded' });
+    await wp.waitForSelector('.article-list-row', { timeout: 90000 });
+    const w0 = await cards(wp);
+    await arm(wp, 'Wikipedia Box');
+    await wp.locator('.article-list-row').first().click();
+    await wp.waitForSelector('.wikibox-body', { timeout: 60000 }).catch(() => {});
+    await wp.waitForTimeout(3000);
+    const w1 = await cards(wp);
+    const meta = (await wp.locator('.wikibox-meta').last().textContent().catch(() => ''))?.trim() || '';
+    const body = await wp.locator('.wikibox-body').last().textContent().catch(() => '');
+    (w1 === w0 + 1 && body && body.trim().length > 200 && /lead|characters/.test(meta))
+      ? ok(`a Wikipedia Box page card spawns from an article row (${w0} → ${w1}): "${meta}"`)
+      : bad(`box page card: ${w0} → ${w1}, meta "${meta}", content ${String(body).trim().length} chars`);
+    await wp.screenshot({ path: '/tmp/pick-page-box.png' });
+    wp.errs.length ? bad(`errors on the box-page check: ${wp.errs[0]}`) : ok('0 errors on the box-page check');
+    await wp.close();
+  }
+
   // 2c. The other publishers (ISSUE-114's second pass): a ranked article row, a CIM file row, and a generic
   // ranking row whose own link declares what it is. All three live on this board.
   await arm(page, ARTICLE_BRUSH);
@@ -249,7 +273,12 @@ try {
         ? ok(`an expanded top-pages row places a card (${t0} → ${t1}): "${tmsg}"`)
         : bad(`toppages row: ${t0} → ${t1}, toast "${tmsg}"`);
       await pb.screenshot({ path: '/tmp/pick-expanded-row.png' });
-    } else bad('the imported board has no .toppages-row — is topPages.showExpanded reaching the renderer?');
+    } else {
+      // The row needs pageviews to arrive; under repeated runs that API answers 429 and no row can exist. Say which it
+      // is rather than reporting a broken renderer either way.
+      const msg = await toast(pb);
+      bad(`the imported board has no .toppages-row (upstream rows never arrived — last toast: "${msg}")`);
+    }
     pb.errs.length ? bad(`errors on the probe board: ${pb.errs[0]}`) : ok('0 errors on the probe board');
     await pb.close();
   }

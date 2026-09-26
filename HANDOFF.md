@@ -27,14 +27,14 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-g7rlMY3V.js` (+ `index-DofGHWbz.css`) |
+| production bundle | `index-DqSsco_i.js` (+ `index-BCZUdYtv.css`) |
 | deployed | 2026-09-24 — **pick mode, and the two bugs it found** (ISSUE-114/117/118): 🖌 **Pick ▾** arms a widget type and each click on a row or tile places a card for that item; four more renderers publish (a row whose own link is a Wikipedia article or a Commons file declares its own kind); and two reported refusals were fixed — a second item of the same kind was called a duplicate (the dedupe compared fields the pick was not about), and an article was refused by the Wiki Page brush because the kind vocabulary is a hierarchy, not a set of labels. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🎞 **Story mode** (ISSUE-119) — any gallery can present an article's images as one continuous scroll, each panel chosen by the image's own shape, with the article's sections as chapters; `?kiosk=1` with one tall card is the way to show it. Ported from the Met/Google-Arts-&-Culture prototype, verified 7/7 by `npm run smoke:story`. · 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
+| newest capabilities | 📰 **A wiki page in a card, and the picker feeds it** (ISSUE-123) — the Wikipedia Box renders any page by title (the lead, a section by number or heading, or all of it), styled for reading; and because its page field declares a kind, the pick menu now offers the box, so clicking an article link with that brush armed places a card rendering that article. `?config=/wiki-page-demo.json` · 🎞 **Story mode** (ISSUE-119) — any gallery can present an article's images as one continuous scroll, each panel chosen by the image's own shape, with the article's sections as chapters; `?kiosk=1` with one tall card is the way to show it. Ported from the Met/Google-Arts-&-Culture prototype, verified 7/7 by `npm run smoke:story`. · 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one

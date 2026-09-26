@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "widgets": [
+    {
+      "id": "pagebox-note",
+      "widgetType": "markdown",
+      "config": {
+        "text": "## \ud83d\udcf0 A wiki page in a card\n\nA **Wikipedia Box** can render a **page**, not just a template: set **Render \u2192 A page**, name it, and choose how much of it to show \u2014 the **lead** by default (light and dense with links), a **section by number or heading name**, or **all** of it. The page comes with its tables, images and references, styled by the app rather than by Wikipedia's skin, and the card's footer says exactly what it is showing.\n\n**Then pick from it.** Load a page or a box, arm **\ud83d\udd8c Pick \u2192 Wikipedia Box** (or *Article Excerpt*, *Image Gallery*\u2026), and click the blue links **inside** the card: each click places a card for what you clicked, without following the link. That is the loop this mode exists for \u2014 read a page, spawn the widgets you want from it.\n\nNothing here needs a `{{:colon}}` transclusion: *Render \u2192 A page* addresses the page by title directly.",
+        "allowExternalImages": false
+      }
+    },
+    {
+      "id": "pagebox-met",
+      "widgetType": "wikiBox",
+      "config": {
+        "source": "Page",
+        "page": "Metropolitan Museum of Art",
+        "section": "",
+        "project": "en.wikipedia",
+        "refreshSeconds": 3600
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "pagebox-note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 5,
+      "minW": 3,
+      "minH": 2
+    },
+    {
+      "i": "pagebox-met",
+      "x": 1,
+      "y": 5,
+      "w": 10,
+      "h": 12,
+      "minW": 3,
+      "minH": 5
+    }
+  ]
+}

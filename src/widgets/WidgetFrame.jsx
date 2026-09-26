@@ -2720,6 +2720,9 @@ function WikiBoxCard({ data, onSelect, picking, onPickItem }) {
       {css ? <style dangerouslySetInnerHTML={{ __html: css }} /> : null}
       {/* eslint-disable-next-line react/no-danger -- MediaWiki-sanitised, then allowlisted by src/lib/wikiBox.js */}
       <div className="mw-parser-output wikibox-body" onClick={handleClick} dangerouslySetInnerHTML={{ __html: html }} />
+        {/* A page card says what it is showing — which part of which page, and how big — because "the lead" and "the
+            whole page" look identical until the reader has scrolled for a while (ISSUE-123). */}
+        {data.meta ? <div className="wikibox-meta">{data.meta.join(' · ')}</div> : null}
       {data.notice ? (
         <div className="wikibox-note" title="Some Main Page wrappers only render their box in the Main Page context, and return a notice anywhere else.">
           ⓘ the template returned a notice, not its box — some boxes need a dated subpage (⚙)

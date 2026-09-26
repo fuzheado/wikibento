@@ -13,7 +13,8 @@ import {
   parseSiteMatrix, packProjects, readPackedProjects, PROJECTS_CACHE_KEY, SITEMATRIX_URL,
 } from '../lib/projects';
 import {
-  boxApiUrl, parseBoxResponse, splitBoxHtml, prepareBoxHtml, filterScopedCss, boxWikiBase,
+  boxApiUrl, pageApiUrl, pageSectionsApiUrl, resolveSectionIndex,
+  parseBoxResponse, splitBoxHtml, prepareBoxHtml, filterScopedCss, boxWikiBase,
   boxPageUrl, safeCssForStyleTag, boxLooksLikeNotice, expandBoxTokens,
   boxWasStrippedForMobile, boxRelayUrl,
 } from '../lib/wikiBox.js';
@@ -2929,7 +2930,62 @@ async function fetchBoxThroughRelay(apiUrl) {
   }
 }
 
-export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', date } = {}) {
+/**
+ * A page, rather than a transclusion of a template (ISSUE-123) — the same endpoint, response shape and sanitiser as a
+ * box, addressed by title instead of by `{{…}}`, so nobody has to know the colon form.
+ *
+ * `section` may be blank (the lead — measured on the Met article: 33 KB and 107 clickable links, against 880 KB and
+ * 3,178 for the whole page), a section number, a heading NAME (resolved with one extra call), or `all`. A name that
+ * matches nothing is refused with the names that are on the page, the way the pick brush's refusals learned to name
+ * the alternative.
+ */
+export function fetchWikiPageBox({ project = 'en.wikipedia', page = '', section = '' } = {}) {
+  const title = String(page || '').trim();
+  if (!title) return Promise.reject(new Error('Name a page to render, e.g. "Metropolitan Museum of Art"'));
+  // Blank is the lead — see pageApiUrl. `all` asks for the whole page.
+  return wikiBoxCache.get(`wiki-page:${project}:${title}:${section}`, async () => {
+    let wanted = String(section ?? '').trim();
+    const needsLookup = wanted && wanted.toLowerCase() !== 'all' && !/^\d+$/.test(wanted);
+    if (needsLookup) {
+      const listing = await fetchJSON(pageSectionsApiUrl({ project, page: title }));
+      const resolved = resolveSectionIndex(listing?.parse?.sections || [], wanted);
+      if (resolved.error) {
+        throw new Error(`${resolved.error} — this page has: ${(resolved.names || []).join(', ')}`);
+      }
+      wanted = resolved.index;
+    }
+    const apiUrl = pageApiUrl({ project, page: title, section: wanted });
+    // The same retry the boxes use: Wikipedia strips the .navbox family for phones, and the deployment relay can ask
+    // without that. A page's lead has no navboxes, but the whole page does.
+    let html = parseBoxResponse(await fetchJSON(apiUrl));
+    let stripped = boxWasStrippedForMobile(html);
+    let relayUsed = false;
+    if (stripped) {
+      const relayed = await fetchBoxThroughRelay(apiUrl);
+      if (relayed) { html = relayed; relayUsed = true; stripped = boxWasStrippedForMobile(html); }
+    }
+    const { styles, body } = splitBoxHtml(html);
+    const rendered = prepareBoxHtml(body, { wikiBase: boxWikiBase({ project }) });
+    const plain = rendered.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return {
+      project,
+      page: title,
+      mode: 'page',
+      sectionLabel: String(wanted ?? '').toLowerCase() === 'all' || wanted === null ? 'the whole page' : (String(wanted) === '0' || wanted === '' ? 'the lead' : `section ${wanted}`),
+      chars: plain.length,
+      links: (rendered.match(/<a /g) || []).length,
+      html: rendered,
+      css: safeCssForStyleTag(filterScopedCss(styles.join('\n'))),
+      link: `https://${boxWikiBase({ project }).replace(/^https?:\/\//, '')}/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`,
+      looks: styles.length > 0,
+      notice: false,
+      mobileStripped: stripped && !relayUsed ? true : false,
+    };
+  });
+}
+
+export function fetchWikiBox({ project = 'en.wikipedia', box = 'In the news', date, source = 'Template', page = '', section = '' } = {}) {
+  if (source === 'Page') return fetchWikiPageBox({ project, page, section });
   // `{date}`-style tokens are expanded before the name becomes a transclusion, so a dated box (POTD, the
   // selected anniversaries page) stays current without anyone editing the board — see expandBoxTokens.
   const name = expandBoxTokens(String(box || '').trim(), date ? new Date(date) : new Date()).trim();

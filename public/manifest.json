@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-25T18:38:45.571Z",
+ "generatedAt": "2026-09-26T03:34:28.433Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -1332,8 +1332,8 @@
    "id": "wikiBox",
    "name": "Wikipedia Box",
    "icon": "📰",
-   "description": "Render a Wikipedia template faithfully — the Main Page boxes (In the news, Did you know, On this day, Today’s featured article, Picture of the day) or any other template",
-   "dataSource": "Action API parse of the transclusion (HTML + TemplateStyles in one call, CORS ✓)",
+   "description": "Render a Wikipedia page or a template faithfully — the Main Page boxes (In the news, Did you know, On this day, Today’s featured article, Picture of the day) or any other template",
+   "dataSource": "Action API parse — a transclusion (HTML + TemplateStyles, one call) or a page by title, whole or one section",
    "category": "Content & Embeds",
    "type": "stat",
    "intensity": "low",
@@ -1342,6 +1342,29 @@
    "nodeKind": "display",
    "consumesSource": false,
    "configFields": [
+    {
+     "key": "source",
+     "type": "select",
+     "label": "Render",
+     "options": [
+      "Template",
+      "Page"
+     ]
+    },
+    {
+     "key": "page",
+     "type": "text",
+     "label": "Page",
+     "hint": "Any page — an article, a portal, a Wikipedia: page. Its own tables, images and references come with it, styled by the app rather than by Wikipedia\\u2019s skin.",
+     "placeholder": "Metropolitan Museum of Art"
+    },
+    {
+     "key": "section",
+     "type": "text",
+     "label": "Part of the page",
+     "hint": "Blank = the lead (light and link-rich) · a section number · a heading name like \"Collections\" · all = the whole page (large).",
+     "placeholder": "the lead"
+    },
     {
      "key": "box",
      "type": "text",
@@ -1376,6 +1399,9 @@
     }
    ],
    "defaults": [
+    "source",
+    "page",
+    "section",
     "box",
     "project",
     "refreshSeconds"

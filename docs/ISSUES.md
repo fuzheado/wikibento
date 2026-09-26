@@ -4992,6 +4992,34 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-123 · The Wikipedia Box renders a page, and the pick brush can feed it — **done + verified 2026-09-24** (requested by Andrew)
+
+> **The ask.** *"A widget like wikiBox that can load a page without `{{:pagename}}`"*, and then *"that would allow the
+> picker to work on picking article names to feed wikiBox and load them"*. Both are now true.
+>
+> **Page mode.** The widget's same endpoint, response shape and sanitiser — addressed by title (`page=<title>`) instead
+> of by transclusion (`text={{<template>}}`), so nobody has to know the colon form. `source: Template | Page`, both
+> defaulting to what every existing board already is. `section` is blank (the **lead**), a number, a heading **name**
+> (resolved with one extra call against `prop=sections`), or `all`. The measured reason for that default: the Met
+> article's lead is **33 KB of HTML and 107 clickable links**, against **880 KB and 3,178** for the whole page. The card
+> prints what it is showing — *"the lead · 4,972 characters · 77 links"* — because "the lead" and "the whole page" look
+> identical until the reader has scrolled for a while.
+>
+> **A reader stylesheet**, scoped to the content. Only TemplateStyles travel with a parse, so a page arrives with its
+> structure and none of Wikipedia's skin; tables, thumbs and figures, references, hatnotes and headings are styled with
+> the app's own tokens instead. Navboxes, edit links and metadata plates are hidden as chrome — presentation, not data,
+> and the same family Wikipedia itself strips for phones. No scripts, the existing allowlist, scoped CSS only.
+>
+> **The picker loop, which needed one annotation.** `wikiBox` appeared in no pick menu because none of its fields
+> declared a `kind`. Its new `page` field declares `kind: 'page'` — and that is the whole fix: the menu offers the
+> widget (17 types now, from 16), and because `article ⊂ page` (ISSUE-118's hierarchy), clicking an **article** link
+> fills the page field and sets `source: 'Page'` from the field's own `showIf` (the ISSUE-117 rule). Verified end to
+> end in the built app: **arm Wikipedia Box, click an article row → a card rendering that article's lead**
+> (`42 → 43`), which is `smoke:pick`'s check 22 of 22.
+>
+> **Also fixed on the way:** a link inside a rendered box or page had not responded to the brush at all (ISSUE-122),
+> and a `#section` fragment in a link was being carried into the value where the API cannot resolve it.
+
 ## ISSUE-122 · A link inside a rendered box or page did not respond to the pick brush — **done + verified 2026-09-24** (reported by Andrew)
 
 > **The report.** *"When Picker mode has been selected and you are clicking on a blue hyperlink, it is not loading that

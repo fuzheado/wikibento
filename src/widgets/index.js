@@ -73,6 +73,15 @@ const pageviewsMode = (config) => (config && config.displayMode === 'trend' ? 't
  * gallery but includes the caption-less <gallery> images and wants chapters, because a story needs every image the
  * article shows and needs its spine.
  */
+const BOX_SOURCE_DEFAULT = 'Template';
+/**
+ * The Wikipedia Box's source, resolved in ONE place — `fetch`, `transform` and the card's label all branch on it, and
+ * the pageviews lesson above is what an absent value read three ways costs. `Page` renders a page's own content, with
+ * no `{{:…}}` transclusion to know about (ISSUE-123); `Template` is what the widget started as and stays the default,
+ * so every existing board behaves exactly as before.
+ */
+const boxSource = (config) => (config && config.source === 'Page' ? 'Page' : BOX_SOURCE_DEFAULT);
+
 const GALLERY_MODE_DEFAULT = 'grid';
 const galleryMode = (config) => {
   const m = config && config.displayMode;
@@ -1423,20 +1432,34 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Wikipedia Box',
     icon: '📰',
-    description: 'Render a Wikipedia template faithfully — the Main Page boxes (In the news, Did you know, On this day, Today’s featured article, Picture of the day) or any other template',
-    labelFromConfig: (c) => (c.box || '').trim() || 'Wikipedia box',
+    description: 'Render a Wikipedia page or a template faithfully — the Main Page boxes (In the news, Did you know, On this day, Today’s featured article, Picture of the day) or any other template',
+    labelFromConfig: (c) => ((boxSource(c) === 'Page' ? c.page : c.box) || '').trim() || 'Wikipedia box',
     defaults: {
+        source: 'Template',   // 'Template' | 'Page'
+        page: 'Metropolitan Museum of Art',
+        section: '',          // blank = the lead · a number · a heading name · 'all'
       box: 'In the news',
       project: 'en.wikipedia',
       refreshSeconds: 600,
     },
     renderer: 'WikiBoxCard',
-    fetch: (config) => fetchWikiBox({ project: config.project, box: config.box }),
+    fetch: (config) => fetchWikiBox({
+        project: config.project, box: config.box,
+        source: boxSource(config), page: config.page, section: config.section,
+      }),
     // The fetcher already returns exactly what the card renders (html + its own scoped css + the credit link),
     // so the transform is the identity — the same convention as the other cards that shape in the fetcher.
     // The card needs to know how to treat a click, and `transform` is where config becomes data.
-    transform: (data, config) => ({ ...data, linkAction: (config && config.linkAction) || 'new tab' }),
-    dataSource: 'Action API parse of the transclusion (HTML + TemplateStyles in one call, CORS ✓)',
+      transform: (data, config) => ({
+        ...data,
+        linkAction: (config && config.linkAction) || 'new tab',
+        // What the card is showing, for a page: the repo's rule is that a subtitle counts what IS shown and names the
+        // pool. The numbers come from the fetcher, so they describe the bytes that actually arrived.
+        meta: data.mode === 'page'
+          ? [data.sectionLabel || 'the lead', `${(data.chars || 0).toLocaleString()} characters`, `${data.links || 0} links`]
+          : null,
+      }),
+      dataSource: 'Action API parse — a transclusion (HTML + TemplateStyles, one call) or a page by title, whole or one section',
     // Two channels (ISSUE-91): `items` is what the box contains — a box stops being a dead end and can feed
     // Filter Lines / Line Count / Speaker — and `selection` is what the reader clicked, published by the card
     // when linkAction says so. A widget that names its channels returns `{ channel: value }` from `emit`.
@@ -1444,7 +1467,15 @@ export const WIDGET_TYPES = {
     outputs: { items: 'lines', selection: 'value' },
     primary: 'items',
     configFields: [
-      { key: 'box', label: 'Template', type: 'text', placeholder: 'In the news',
+        { key: 'source', label: 'Render', type: 'select', options: [
+          { value: 'Template', label: 'A template (the Main Page boxes)' },
+          { value: 'Page', label: 'A page (any wiki page)' },
+        ]},
+        { key: 'page', label: 'Page', kind: 'page', type: 'text', showIf: { source: 'Page' }, placeholder: 'Metropolitan Museum of Art',
+          hint: 'Any page — an article, a portal, a Wikipedia: page. Its own tables, images and references come with it, styled by the app rather than by Wikipedia\u2019s skin.' },
+        { key: 'section', label: 'Part of the page', type: 'text', showIf: { source: 'Page' }, placeholder: 'the lead',
+          hint: 'Blank = the lead (light and link-rich) · a section number · a heading name like "Collections" · all = the whole page (large).' },
+      { key: 'box', label: 'Template', type: 'text', showIf: { source: 'Template' }, placeholder: 'In the news',
         hint: 'In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}' },
       { key: 'project', label: 'Wiki', type: 'project', placeholder: 'en.wikipedia', hint: 'A project name (en.wikipedia) or a full host' },
       { key: 'linkAction', label: 'Links in the box', type: 'select', options: [
@@ -1453,7 +1484,7 @@ export const WIDGET_TYPES = {
         { value: 'both', label: 'Both' },
       ], default: 'new tab',
         hint: '"send to the board" publishes the clicked page title on this box\u2019s selection channel — wire another widget to it with {{widget:' + "this-box" + '#selection}}' },
-      { key: 'date', label: 'Date (blank = today)', type: 'text', placeholder: 'today',
+      { key: 'date', label: 'Date (blank = today)', type: 'text', showIf: { source: 'Template' }, placeholder: 'today',
         hint: 'For dated boxes. The name may use {date} {year} {month} {monthname} {day} — e.g. POTD/{date}, or Wikipedia:Selected anniversaries/{monthname} {day}' },
     ],
     defaultLayout: { w: 4, h: 9, minW: 3, minH: 5 },

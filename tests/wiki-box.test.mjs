@@ -20,6 +20,7 @@ import {
   rewriteBoxUrls, sanitizeBoxHtml, prepareBoxHtml, filterScopedCss, isAllowedBoxAsset, boxLines,
   expandBoxTokens, boxLooksLikeNotice, openBoxLinksNewTab, boxLinkTarget, boxLinkSelection,
 } from '../src/lib/wikiBox.js';
+import { pageApiUrl, pageSectionsApiUrl, resolveSectionIndex } from '../src/lib/wikiBox.js';
 
 // ── the transclusion trick ────────────────────────────────────────────────────────────────────────
 
@@ -368,4 +369,31 @@ test('wikiBox: the relay URL is a pure function of the API URL', () => {
   assert.equal(decodeURIComponent(relay.split('url=')[1]), api, 'round trip');
   assert.equal(boxRelayUrl(''), '');
   assert.equal(boxRelayUrl(null), '');
+});
+
+// ISSUE-123 — the page side of the Wikipedia Box. Measured on the Met article: the lead is 33 KB of HTML and 107
+// clickable links against 880 KB and 3,178 for the whole page, which is why "blank" means the lead.
+test('a page URL addresses a title, with or without a section', () => {
+  const whole = pageApiUrl({ project: 'en.wikipedia', page: 'Metropolitan Museum of Art' });
+  assert.match(whole, /action=parse/);
+  assert.match(whole, /page=Metropolitan\+Museum\+of\+Art/);
+  assert.match(whole, /section=0/, 'no section means THE LEAD — 33 KB, 107 links, against 880 KB and 3,178 for the page');
+  assert.match(pageApiUrl({ project: 'en.wikipedia', page: 'X', section: '0' }), /section=0/);
+  assert.equal(/section=/.test(pageApiUrl({ project: 'en.wikipedia', page: 'X', section: 'all' })), false);
+  assert.match(pageApiUrl({ project: 'en.wikipedia', page: 'X', section: '  ' }), /section=0/, 'whitespace is the lead too');
+  assert.throws(() => pageApiUrl({ project: 'en.wikipedia', page: '  ' }), /page title/);
+  assert.match(pageSectionsApiUrl({ project: 'de.wikipedia', page: 'X' }), /de\.wikipedia\.org/);
+});
+
+test('a heading name resolves to the index the parse API wants — or refuses with the names it has', () => {
+  const sections = [{ index: '1', line: 'Collections' }, { index: '5', line: 'Asian art' }];
+  assert.equal(resolveSectionIndex(sections, 'asian art').index, '5', 'matching ignores case');
+  assert.equal(resolveSectionIndex(sections, '  Asian Art  ').index, '5', 'and surrounding whitespace');
+  assert.equal(resolveSectionIndex(sections, '3').index, '3', 'a number passes through');
+  assert.equal(resolveSectionIndex(sections, '').index, null, 'blank is the whole page');
+  assert.equal(resolveSectionIndex(sections, 'all').index, null);
+  const miss = resolveSectionIndex(sections, 'Egyptian art');
+  assert.equal(miss.index, null);
+  assert.match(miss.error, /no section called "Egyptian art"/);
+  assert.deepEqual(miss.names, ['Collections', 'Asian art'], 'the refusal names the alternatives');
 });
