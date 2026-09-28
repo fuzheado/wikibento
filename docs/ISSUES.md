@@ -4992,6 +4992,25 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-125 · A WebKit page error: `FileReader.readAsBinaryString` given a non-Blob — **open** (low; found by the demos sweep, 2026-09-24)
+
+> **What was seen.** Sweeping every demo board against production, `dashboard.json` in WebKit logged one pageerror
+> that is not browser noise and not upstream:
+>
+> ```
+> PAGEERROR: Argument 1 ('blob') to FileReader.readAsBinaryString must be an instance of Blob
+> ```
+>
+> **Why it is filed rather than suppressed.** The rest of that row's errors were the report-only CSP and
+> cross-origin-refusal class (now notes — see ISSUE-115 and the sweep's benign list); this one is a JavaScript error
+> from our own code, so it stays fatal in the sweep and is being tracked. The likely candidates are the paths that
+> hand a fetched or cross-origin value to a `FileReader` — the CORS-image PNG export (ISSUE-80) or the document
+> readers — but that is a hypothesis, not a measurement, and the next step is to reproduce it in WebKit on that board
+> and read the stack.
+>
+> **Not a blocker:** the board renders all 42 of its cards and nothing user-visible failed in the run. It is recorded
+> because a real error inside a green-looking sweep is exactly the thing an honest sweep exists to surface.
+
 ## ISSUE-124 · An article's gallery showed images but not video — **done + verified 2026-09-24** (asked by Andrew)
 
 > **The question.** *"Is there a reason why a gallery widget that shows images from an article doesn't show video? How

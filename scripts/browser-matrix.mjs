@@ -146,10 +146,19 @@ const remoteWs = (engine) => {
 };
 
 // Known-benign console errors (checked 2026-09-03): top.hatnote.com has no CORS —
+// Extended 2026-09-24 with the class ISSUE-115 named: a REPORT-ONLY Content-Security-Policy violation is the browser
+// describing an embed it then loads anyway (production logs several — the Wayback iframe, and the touch icons and
+// stylesheets of the Wikipedia pages inside a wiki page card), and `access control checks` is a cross-origin refusal
+// in an engine that some widget survives (measured: the card still renders, which is what the error-frame assertion
+// checks). Both are notes; a JavaScript error from our own code is still fatal.
 // the widget tries direct, gets blocked, and falls back to the WMF endpoint /
 // same-origin proxy (docs/DATA-SOURCES.md §8); bare 404 resource loads are
 // missing thumbnails/optional probes. These are reported but don't fail the run.
 const BENIGN_CONSOLE = [
+    /Report-Only policy|Content-Security-Policy/,  // ISSUE-115: the browser describing an embed it then loads (notes, not failures)
+    /due to access control checks/,                // a cross-origin refusal an engine reports while the card still renders
+    /Blocked autofocusing/,                        // ditto — a cross-origin subframe's autofocus, from the Wayback embed
+    /rejected because it is in a cross-site context/, // an EMBEDDED site's third-party cookie, refused by the browser and not by us
   /top\.hatnote\.com/,               // no-CORS source — widget falls back to proxy/WMF endpoint
   /net::ERR_FAILED/,                 // companion log of the blocked hatnote request
   /Failed to load resource.*404/,    // missing optional thumbnails / expected 404 probes
@@ -215,9 +224,15 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
       else { row.consoleErrors += 1; if (row.errors.length < 3) row.errors.push(msg.text().slice(0, 120)); }
     });
     page.on('pageerror', (e) => {
+      const text = String(e.message);
+      // The same benign list applies here, and it MUST: this file already records measuring (2026-09-03, for hatnote)
+      // that WebKit raises an UNCAUGHT pageerror for a blocked cross-origin fetch even when the promise rejection is
+      // handled — and a report-only CSP violation arrives this way in Chrome. Only the console path honoured the list,
+      // which is why a sweep could fail on the browser describing an embed it then loaded. Everything else stays fatal.
+      if (BENIGN_CONSOLE.some((re) => re.test(text))) { row.benignConsole += 1; return; }
       row.consoleErrors += 1;
-      if (row.errors.length < 3) row.errors.push('PAGEERROR: ' + String(e.message).slice(0, 110));
-    });
+      if (row.errors.length < 3) row.errors.push('PAGEERROR: ' + text.slice(0, 120));
+    });;
     await page.goto(`${BASE}/?config=/${boardName}`, { waitUntil: 'domcontentloaded', timeout: 45000 });
     await page.waitForTimeout(DEMO_WAIT);
     /* ── the print pass (2026-09-18) ──────────────────────────────────────────────────────────────────────
