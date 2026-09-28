@@ -938,7 +938,11 @@ export const WIDGET_TYPES = {
         const includeAll = !!config.includeAll;
         const groupBy = config.groupBy === 'section' || config.groupBy === 'gallery' ? config.groupBy : 'none';
         const n = rows.length;
-        const parts = [`${n} image${n === 1 ? '' : 's'}`];
+        // The subtitle counts what the card SHOWS (the repo's rule), so a gallery that now includes video says so.
+        const nVideos = rows.filter((r) => r.mediaType === 'video').length;
+        const nImages = n - nVideos;
+        const parts = [`${nImages} image${nImages === 1 ? '' : 's'}`];
+        if (nVideos) parts.push(`· ${nVideos} video${nVideos === 1 ? '' : 's'}`);
         if (includeAll) {
           if (data.dropped) parts.push(`· ${data.dropped} filtered (tiny)`);
           if (data.decorative) parts.push(`· ${data.decorative} decorative hidden`);

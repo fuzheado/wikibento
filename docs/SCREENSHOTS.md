@@ -11,6 +11,14 @@ All captured from a desktop browser at ~3350 px wide — **2026-09-10** except t
 
 ---
 
+## `wikibento-2026-09-24-gallery-video-tiles.png` — video in a gallery, as a poster with a ▶ (ISSUE-124)
+
+![A gallery of the Axel jump article: six image tiles and three video tiles with play badges](screenshots/wikibento-2026-09-24-gallery-video-tiles.png)
+
+`?config=` a gallery on **Axel jump** with *All images* on: the three `.webm` videos the article shows, each as its
+API-rendered poster with a play badge and a link to the Commons file page — *"6 images · 3 videos · 1 filtered (tiny)"*.
+The grid downloads posters, not video.
+
 ## `wikibento-2026-09-24-story-mode.png` — an article as a continuous scroll (ISSUE-119)
 
 ![Story mode: chapter dividers and shape-chosen panels](screenshots/wikibento-2026-09-24-story-mode.png)

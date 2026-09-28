@@ -3169,3 +3169,15 @@ body[data-print-mode='document'] .react-grid-layout {
 .wikibox-body .hatnote, .wikibox-body .ambox, .wikibox-body .mbox-text-span { font-style: italic; color: var(--text-dim); }
 .wikibox-body .navbox, .wikibox-body .metadata, .wikibox-body .sistersitebox, .wikibox-body .mw-editsection { display: none; }
 .wikibox-meta { margin-top: 0.5rem; padding-top: 0.4rem; border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.7rem; }
+
+/* ── ISSUE-124 · Video tiles ─────────────────────────────────────────────────────────────────────────────
+   A video arrives with a poster (the API renders a still) but no motion, so the tile says what it is with a play
+   badge and links to the file page, where it plays. Nothing downloads until the reader asks for it. */
+.gallery-item.is-video, .gallery-list-item.is-video { position: relative; }
+.gallery-play {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  background: rgb(0 0 0 / 0.55); color: #fff; font-size: 0.85rem; line-height: 2.2rem; text-align: center;
+  padding-left: 0.15rem;                 /* the glyph’s own optical centre, not the box’s */
+  pointer-events: none; box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+}

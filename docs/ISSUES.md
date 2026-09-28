@@ -4992,6 +4992,34 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-124 · An article's gallery showed images but not video — **done + verified 2026-09-24** (asked by Andrew)
+
+> **The question.** *"Is there a reason why a gallery widget that shows images from an article doesn't show video? How
+> hard would it be?"* — and the answer was one line: `selectGalleryCandidates` kept `it.type === 'image'` and dropped
+> everything else, so videos never reached a renderer. Measured on "Axel jump": media-list returns **10 items — 7
+> images and 3 video** — and all three videos are **captioned**, so they passed every other rule. The type filter was
+> the only thing excluding them.
+>
+> **What was already there.** The same `imageinfo` batch the fetcher already makes describes a video completely:
+> **1920×1080** (so `minSize` and the shape rules work unchanged), a **poster** (`thumburl`, a `.jpg` still the API
+> renders), and **`responsiveUrls`** (so the srcset machinery works on a video poster exactly as on an image). Nothing
+> new is downloaded for the grid: the poster, not the video.
+>
+> **The change.** Video items are candidates wherever images are (`selectGalleryCandidates`), the dimensions batch
+> gained `url` and a width so a video's poster has a source, the row carries `mediaType` and — for a video — the
+> poster's retina URLs, the tile draws a ▶ badge, and the subtitle counts both. Verified in the built app on that
+> article: **9 tiles (6 images · 3 videos), 3 badges, no broken posters**, subtitle *"6 images · 3 videos · 1 filtered
+> (tiny)"*.
+>
+> **Decisions, so they can be revisited.** Videos arrive under the *existing* caption/decorative rules rather than
+> behind a new flag. **Story mode stays images-only** (`videos: false` at its call site), because its panels, verified
+> counts and checks are about images; a video poster panel is a follow-up. **Audio stays out** — it has no still worth
+> putting in a grid, and the Media Player is its home. And a video tile links to its Commons file page, where it
+> plays: inline playback is v2, and the app already has the pieces (`videoinfo` derivatives, measured as 240p/480p/
+> 1080p vp9 webm, in the Media Player widget).
+>
+> The pick path needed no change at all: a video is a `commons-file`, so a picked video already spawns a card.
+
 ## ISSUE-123 · The Wikipedia Box renders a page, and the pick brush can feed it — **done + verified 2026-09-24** (requested by Andrew)
 
 > **The ask.** *"A widget like wikiBox that can load a page without `{{:pagename}}`"*, and then *"that would allow the

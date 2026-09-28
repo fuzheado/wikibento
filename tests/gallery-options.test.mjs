@@ -275,3 +275,24 @@ test('the split side alternates, and only a split advances it', () => {
   assert.deepEqual(seq.map((p) => p.index), ['01', '02', '03', '04']);
   assert.deepEqual(storyPanelCounts(seq), { split: 3, full: 1 });
 });
+
+// ISSUE-124 — video tiles. Measured on "Axel jump": media-list gives 10 items, 3 of them video, and all three are
+// captioned — so they pass the gallery's existing caption rule and only the type filter was excluding them.
+test('video items are gallery candidates, audio is not, and the story can opt out', () => {
+  const items = [
+    { title: 'File:A.jpg', type: 'image', caption: { html: 'An image' } },
+    { title: 'File:B.webm', type: 'video', caption: { html: 'A video' } },
+    { title: 'File:C.ogg', type: 'audio', caption: { html: 'A sound' } },
+    { title: 'File:D.webm', type: 'video' },
+    { title: 'File:Flag of E.svg', type: 'image' },
+  ];
+  const defaultSel = selectGalleryCandidates(items, { includeAll: false });
+  assert.deepEqual(defaultSel.kept.map((i) => i.title), ['File:A.jpg', 'File:B.webm'],
+    'captioned media only, and a captioned video is media');
+  const all = selectGalleryCandidates(items, { includeAll: true, hideDecorative: true });
+  assert.deepEqual(all.kept.map((i) => i.title), ['File:A.jpg', 'File:B.webm', 'File:D.webm'],
+    'a caption-less video is not decorative; a caption-less flag is dropped by name');
+  assert.equal(all.decorative, 1);
+  const story = selectGalleryCandidates(items, { includeAll: true, videos: false });
+  assert.deepEqual(story.kept.map((i) => i.title), ['File:A.jpg'], 'the story stays images-only');
+});

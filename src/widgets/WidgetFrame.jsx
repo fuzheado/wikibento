@@ -1780,8 +1780,9 @@ function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
       tiles.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
     }
     tiles.push(
-      <a key={img.title || `img-${i}`} className="gallery-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
+      <a key={img.title || `img-${i}`} className={`gallery-item${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl} target="_blank" rel="noopener noreferrer"
         onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
+        {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         {sizes ? (
   <img className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
               sizes={sizes} alt={img.caption || img.title} loading="lazy" decoding="async" style={{ objectFit: fit }} />
@@ -2041,8 +2042,9 @@ function GalleryListCard({ data, onSelect, picking, onPickItem }) {
       items.push(<div key={`grp-${img.group.key}`} className="gallery-group-header">{img.group.label}</div>);
     }
     items.push(
-      <a key={img.title || `img-${i}`} className="gallery-list-item" href={img.fileUrl} target="_blank" rel="noopener noreferrer"
+      <a key={img.title || `img-${i}`} className={`gallery-list-item${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl} target="_blank" rel="noopener noreferrer"
         onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)}>
+        {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         <img className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes="90px" alt={img.caption || img.title} loading="lazy" decoding="async" />
         <div className="gallery-list-body">

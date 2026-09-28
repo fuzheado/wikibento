@@ -1385,19 +1385,28 @@ export function isDecorativeImageTitle(title) {
 }
 
 /**
- * Pick which media-list items survive the gallery's image selection.
- * Default (includeAll off) keeps ONLY captioned type=image items — the
- * historical "significant images" behavior. With includeAll on, every
- * type=image item with a title is a candidate; caption-less decorative
- * files (flags, coats of arms, logos, locator maps …) are additionally
- * dropped when hideDecorative is on (the default) — captioned items are
- * never decorative-filtered. Returns { kept, decorative } where decorative
- * counts the caption-less items dropped by the heuristic.
+ * Pick which media-list items survive the gallery's media selection.
+ * Default (includeAll off) keeps ONLY captioned items of a media type we can
+ * draw — the historical "significant images" behavior, now including videos
+ * (ISSUE-124: measured on "Axel jump", 10 items of which 3 are video, all three
+ * captioned). With includeAll on, every titled image or video is a candidate;
+ * caption-less decorative files (flags, coats of arms, logos, locator maps …)
+ * are additionally dropped when hideDecorative is on (the default) — captioned
+ * items are never decorative-filtered. `videos: false` restores the old
+ * images-only selection for callers whose presentation is about images (the
+ * story). Returns { kept, decorative } where decorative counts the caption-less
+ * items dropped by the heuristic.
  */
-export function selectGalleryCandidates(items, { includeAll = false, hideDecorative = true } = {}) {
+export function selectGalleryCandidates(items, { includeAll = false, hideDecorative = true, videos = true } = {}) {
   const out = { kept: [], decorative: 0 };
   for (const it of items || []) {
-    if (!it || it.type !== 'image' || !it.title) continue; // non-images + title-less stubs
+    if (!it || !it.title) continue;                       // title-less stubs
+    // Images, and — since 2026-09-24 (ISSUE-124) — videos: an article's gallery should show what the article shows,
+    // and a video is a tile like any other once you have its poster. Audio and the other embed types are not: they
+    // have no still worth putting in a grid, and the Media Player is their home. The story passes `videos: false`,
+    // because its panel rules and verified counts are about images.
+    const isVideo = it.type === 'video';
+    if (it.type !== 'image' && !(videos && isVideo)) continue;
     const captioned = !!(it.caption && it.caption.html);
     if (!includeAll && !captioned) continue;
     if (includeAll && !captioned && hideDecorative && isDecorativeImageTitle(it.title)) {
@@ -1539,7 +1548,7 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
     if (e.message?.startsWith('HTTP 404')) throw new Error(`Article not found: ${article}`);
     throw new Error(`Gallery fetch failed: ${e.message}`);
   }
-  const { kept, decorative } = selectGalleryCandidates(list?.items, { includeAll, hideDecorative });
+  const { kept, decorative } = selectGalleryCandidates(list?.items, { includeAll, hideDecorative, videos: !story });
   if (!kept.length) return { article, rows: [], total: 0, dropped: 0, decorative, includeAll, groupBy };
 
   // Authoritative dimensions + mime via batched imageinfo (50 titles/call).
@@ -1549,7 +1558,9 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
       action: 'query',
       prop: 'imageinfo',
       titles: kept.slice(i, i + 50).map((it) => it.title).join('|'),
-      iiprop: 'size|mime',
+      // `url` and a width too: a video item carries no srcset at all, so its poster comes from this call (ISSUE-124).
+      iiprop: 'url|size|mime',
+      iiurlwidth: '330',
       format: 'json',
       formatversion: '2',
       origin: '*',
@@ -1558,7 +1569,7 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
       const d = await fetchJSON(`https://${project}.org/w/api.php?${params}`);
       for (const p of d?.query?.pages || []) {
         const ii = p.imageinfo?.[0];
-        if (ii) info[fileKey(p.title)] = { width: ii.width, height: ii.height, mime: ii.mime };
+        if (ii) info[fileKey(p.title)] = { width: ii.width, height: ii.height, mime: ii.mime, thumbUrl: ii.thumburl, responsive: ii.responsiveUrls };
       }
     } catch { /* dimension filter is best-effort */ }
   }
@@ -1570,9 +1581,12 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
   for (const it of kept) {
     const dim = info[fileKey(it.title)];
     if (dim && (dim.width < min || dim.height < min)) { dropped++; continue; }
-    const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
-    const thumbUrl = cleanThumbUrl(src?.src);
-    if (!thumbUrl) { dropped++; continue; }
+      const src = it.srcset?.find((s) => s.scale === '1x') || it.srcset?.[0];
+      // A video has `sources`, not `srcset`, so its poster comes from the imageinfo batch above; an image keeps the
+      // rendition media-list chose, which is what the srcset measurements were taken against.
+      const thumbUrl = cleanThumbUrl(src?.src) || cleanThumbUrl(dim?.thumbUrl);
+      if (!thumbUrl) { dropped++; continue; }
+      const mediaType = it.type === 'video' ? 'video' : 'image';
     const caption = tidyCaption(stripHtml(it.caption?.html || ''));
     rows.push({
       title: it.title.replace(/^File:/, '').replace(/_/g, ' '),
@@ -1580,6 +1594,8 @@ export async function fetchArticleGallery(article, project = 'en.wikipedia', min
       caption,
       showFileName: includeAll && !caption, // renderer shows the file name under caption-less tiles
       thumbUrl,
+      mediaType,
+      responsive: it.srcset ? undefined : dim?.responsive,
       width: dim?.width,
       height: dim?.height,
       sectionId: it.section_id ?? 0,
