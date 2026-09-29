@@ -28,13 +28,13 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-DgOLeJly.js` (+ `index-DwlPRPQv.css`) |
-| deployed | 2026-09-24 — **pick mode, and the two bugs it found** (ISSUE-114/117/118): 🖌 **Pick ▾** arms a widget type and each click on a row or tile places a card for that item; four more renderers publish (a row whose own link is a Wikipedia article or a Commons file declares its own kind); and two reported refusals were fixed — a second item of the same kind was called a duplicate (the dedupe compared fields the pick was not about), and an article was refused by the Wiki Page brush because the kind vocabulary is a hierarchy, not a set of labels. |
+| deployed | 2026-09-24 — **pick mode, a page in a card, story mode, video tiles** (ISSUE-114/115–125). 🖌 **Pick ▾** arms a widget type and every click on something clickable places a card for it — rows, tiles, ranking links, and **links inside a rendered box or page** (ISSUE-122). Four bugs surfaced in a day of using it and all four are fixed: a second item of the same kind was called a duplicate, an article was refused by the Wiki Page brush, a spawned config kept every source's defaults, and gallery captions showed wikitext. The 📰 Box renders any **page** by title (ISSUE-123), the Gallery shows **video** as poster tiles (ISSUE-124), and any gallery can present an article as a **continuous scroll** (ISSUE-119). |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 📰 **A wiki page in a card, and the picker feeds it** (ISSUE-123) — the Wikipedia Box renders any page by title (the lead, a section by number or heading, or all of it), styled for reading; and because its page field declares a kind, the pick menu now offers the box, so clicking an article link with that brush armed places a card rendering that article. `?config=/wiki-page-demo.json` · 🎞 **Story mode** (ISSUE-119) — any gallery can present an article's images as one continuous scroll, each panel chosen by the image's own shape, with the article's sections as chapters; `?kiosk=1` with one tall card is the way to show it. Ported from the Met/Google-Arts-&-Culture prototype, verified 7/7 by `npm run smoke:story`. · 🖌 **Pick mode** (ISSUE-114) — a power-user verb beside **+ Add Widget**: choose a widget type once ("Article Excerpt", "Gallery", "Wiki Page"…), then click items in the cards you are already reading. The brush persists across clicks, the toast names the item and offers Undo, and the menu offers only types that can consume what you clicked. |
+| newest capabilities | 🎬 **Video in the gallery** (ISSUE-124) — an article's videos appear as API-rendered posters with a ▶ badge, no video bytes until you click through · 📰 **a wiki page in a card, and the picker feeds it** (ISSUE-123) — the Box renders any page by title (the lead, a section, or all), and because its page field declares a kind the pick menu offers the box · 🎞 **story mode** (ISSUE-119) — an article as one continuous scroll, each panel chosen by the image's own shape |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -63,7 +63,7 @@ Gallery).
 | `npm run smoke:story` | story mode end to end — a story card for a real article pasted in through ⬆ Import: the panel mix (a mix dominated by one kind means the shape data never arrived), caption coverage, chapters, the progress bar, and screenshots |
 | `npm run smoke:pick` | pick mode end to end in a real browser — arm a brush, place a card from a row, refuse a twin, Undo it, the kind gate, and each publisher: 19 checks, against the built app or against production with `--base` |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
-| `npm run test:browsers:demos` | **every demo board** (19 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
+| `npm run test:browsers:demos` | **every demo board** (21 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
@@ -429,6 +429,11 @@ actually broken or unfinished today:
   warnings from the Wikipedia pages inside the wiki-page box (touch icons, a stylesheet, a blocked autofocus). Nothing is
   blocked and the cards render — filed because the console looks alarming, and both browser checks now treat it as a note.
 - **ISSUE-116** — `/api/petscan` answered **502** twice while verifying a deploy. The proxy and PetScan both answer when
+- **ISSUE-120** — a shared board's *"Viewing a shared board"* notice with its two buttons appears in `?kiosk=1`, a mode
+  whose promise is that editing affordances are gone (Esc already exits kiosk). A design question, filed with options.
+- **ISSUE-125** — one genuine JavaScript error in WebKit, found by the demos sweep and left fatal there:
+  `Argument 1 ('blob') to FileReader.readAsBinaryString must be an instance of Blob`. Most likely the CORS-image PNG
+  export or a document reader handing a cross-origin value to a `FileReader`; a hypothesis for the next session.
   asked directly, so it is intermittent and most likely an upstream timeout; recorded rather than guessed at.
 
 - ~~**Reset doesn't stick on a URL-loaded board.**~~ **Fixed 2026-09-15** — and it was the visible
@@ -501,6 +506,20 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
+- **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
+  open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
+  WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move
+  between runs. Fix the policy, not the symptoms: the sweep now treats a report-only CSP note and a cross-origin
+  refusal as notes, on pageerrors as well as console lines.
+- **The story's footer count needs re-aiming** (small): it reports how many captions the *join* filled, and since
+  ISSUE-121 the wikitext path supplies them first, so it reads 0. Either count what was rendered instead, or drop it.
+- **Video, v2 — click to play inline.** v1 (shipped) draws a poster and links to the Commons file page; the app
+  already has the pieces for playing in place (`videoinfo` derivatives: 240p/480p/1080p vp9 webm, used by the Media
+  Player card). Audio stays out of the gallery by decision.
+- **Story mode could take video panels** — deliberately left images-only in ISSUE-124 so its verified counts (93
+  panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
+- **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
+  usually transcluded rather than linked, so there is little in content to click.
    - **ISSUE-96 — finish the emitter audit.** 12 of 41 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every

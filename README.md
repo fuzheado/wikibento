@@ -69,7 +69,7 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 |---|---|
 | **Articles (5)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (5)** | 🖼️ Gallery (an article, a Commons gallery page, a wiki category, or a pasted list) · 🖼️ File Usage Map · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
+| **Files & Media (5)** | 🖼️ Gallery (an article — images **and video** — a Commons gallery page, a wiki category, or a pasted list) · 🖼️ File Usage Map · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (8)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page · 📰 Wikipedia Box |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
@@ -95,6 +95,12 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   the side. Set **Display → Story** on any gallery and point it at an article, or open [`?config=/story-demo.json`](https://wikibento.toolforge.org/?config=/story-demo.json).json` (Gallery, Images come from
   *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
   a single tall card is the whole screen, which is the way to show it to a room.
+- **A wiki page in a card** — the 📰 **Wikipedia Box** renders **any page by title**, not only a Main Page template:
+  choose the **lead** (light, and dense with links), a section by number or heading name, or the whole page. Its own
+  tables, images and references come with it — styled by the app rather than by Wikipedia's skin — and the card's footer
+  says what it is showing. Then **pick from it**: arm a brush and click the blue links *inside* the card, and each click
+  places a card for what you clicked instead of following the link. That loop is the reason the mode exists; open
+  [`?config=/wiki-page-demo.json`](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) to watch it.
 - **Pick mode** — 🖌 **Pick ▾** arms a brush: choose a widget type, then click items inside the cards you are
   already reading and each click places a card for that item. One click, one card, named in the toast; the same
   item twice refuses rather than making a twin; **Undo** takes it back off. It is a second, power-user verb
