@@ -506,20 +506,20 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
-- **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
-  open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
-  WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move
-  between runs. Fix the policy, not the symptoms: the sweep now treats a report-only CSP note and a cross-origin
-  refusal as notes, on pageerrors as well as console lines.
-- **The story's footer count needs re-aiming** (small): it reports how many captions the *join* filled, and since
-  ISSUE-121 the wikitext path supplies them first, so it reads 0. Either count what was rendered instead, or drop it.
-- **Video, v2 — click to play inline.** v1 (shipped) draws a poster and links to the Commons file page; the app
-  already has the pieces for playing in place (`videoinfo` derivatives: 240p/480p/1080p vp9 webm, used by the Media
-  Player card). Audio stays out of the gallery by decision.
-- **Story mode could take video panels** — deliberately left images-only in ISSUE-124 so its verified counts (93
-  panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
-- **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
-  usually transcluded rather than linked, so there is little in content to click.
+   - **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
+     open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
+     WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move
+     between runs. Fix the policy, not the symptoms: the sweep now treats a report-only CSP note and a cross-origin
+     refusal as notes, on pageerrors as well as console lines.
+   - **The story's footer count needs re-aiming** (small): it reports how many captions the *join* filled, and since
+     ISSUE-121 the wikitext path supplies them first, so it reads 0. Either count what was rendered instead, or drop it.
+   - **Video, v2 — click to play inline.** v1 (shipped) draws a poster and links to the Commons file page; the app
+     already has the pieces for playing in place (`videoinfo` derivatives: 240p/480p/1080p vp9 webm, used by the Media
+     Player card). Audio stays out of the gallery by decision.
+   - **Story mode could take video panels** — deliberately left images-only in ISSUE-124 so its verified counts (93
+     panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
+   - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
+     usually transcluded rather than linked, so there is little in content to click.
    - **ISSUE-96 — finish the emitter audit.** 12 of 41 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
