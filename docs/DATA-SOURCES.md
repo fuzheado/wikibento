@@ -196,9 +196,9 @@ GET https://wikistats.wmcloud.org/api.php?action=dump&table=wikipedias&format=cs
 
 ---
 
-## 5. File Usage Map — Commons API `globalusage`
+## 5. File Usage by Wiki — Commons API `globalusage`
 
-**Widget:** File Usage Map · **Fetcher:** `fetchFileUsage(filename, topN)`
+**Widget:** File Usage by Wiki · **Fetcher:** `fetchFileUsage(filename, topN)`
 
 ```
 GET https://commons.wikimedia.org/w/api.php?action=query&prop=globalusage|imageinfo&titles=File:{name}&gulimit=500&iiprop=url|size|extmetadata&iiurlwidth=480&format=json&origin=*
@@ -660,7 +660,7 @@ right paradigm — coding benchmarks are not.
 - **Density limits:** over 1,000 chars the card warns (*"dense — scan from a larger card, or print it"*); over 1,500 chars it refuses to render a code and suggests a short link (`w.wiki`) or a narrower URL. Real payloads: a short link (21 chars) is 25×25 modules, a Commons category URL (82) is 37×37, a board `?config=` permalink (138) is 49×49.
 - **Verified live (2026-09-10, built dist + Chromium):** four cards on one board — fixed link, `{{target}}` board-param-driven, empty, and 1,600-char over-cap. Both rendered codes **decoded from pixels with an independent decoder** (OpenCV `QRCodeDetector`): the fixed link → `https://w.wiki/QRtest`, the param card → the *interpolated* Commons category URL; a ~1% white smear still decoded at EC H. **Save SVG** downloaded a byte-identical standalone file (5,975 bytes, quiet zone included).
 
-## 27. Internet Archive item — metadata + engagement views (CORS ✓, no key) **Widget:** IA Item · **Fetcher:** `fetchIaItem(identifier)`
+## 27. Internet Archive item — metadata + engagement views (CORS ✓, no key) **Widget:** IA Item Stats · **Fetcher:** `fetchIaItem(identifier)`
 
 - **Verified live 2026-09-10** from a browser origin (`Originn`-signed probe), all `Access-Control-Allow-Origin: *`:
   - `https://archive.org/metadata/{id}` — 200, **324 ms**, 6.7 KB → `{metadata:{identifier,title,creator,year,mediatype,collection,description}, files[], files_count, item_size, is_dark}`.

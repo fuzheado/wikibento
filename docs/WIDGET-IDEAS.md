@@ -186,7 +186,7 @@ fetched into memory or proxied through Toolforge.
 
 ## Tier 2 — GLAM & Impact (2026-08-12 brainstorm: the "money" widgets)
 
-> The clearest path to adoption and funding — institutions with budgets and reporting needs. ✅ Already shipped: GLAM Category Usage (GLAMorgan-style), File Usage Map, Commons Impact Metrics via GLAM widget.
+> The clearest path to adoption and funding — institutions with budgets and reporting needs. ✅ Already shipped: GLAM Category Usage (GLAMorgan-style), File Usage by Wiki, Commons Impact Metrics via GLAM widget.
 
 ### Commons Gallery
 
@@ -320,7 +320,7 @@ per-article assessment widget to complete the WikiProject Monitor pack.
 
 | # | Faebot report (per project) | WikiBento widget | Feasibility | Notes |
 |---|---|---|---|---|
-| 1 | **Top 24 most used files** (usage across wikis, with thumbs — verified: Wellcome top = 338 usages) | **File Usage Map — already shipped**; add a bucket variant: top-N files by usage count across a whole category | S | The GLAM widget already computes per-file usage counts internally (`fileStats`) — a "Top used files" ranking (sorted by # of using pages instead of views) is a small transform/filmstrip addition |
+| 1 | **Top 24 most used files** (usage across wikis, with thumbs — verified: Wellcome top = 338 usages) | **File Usage by Wiki — already shipped**; add a bucket variant: top-N files by usage count across a whole category | S | The GLAM widget already computes per-file usage counts internally (`fileStats`) — a "Top used files" ranking (sorted by # of using pages instead of views) is a small transform/filmstrip addition |
 | 2 | **Top 24 most edited file pages** | **Recently edited files in category** (last-edit timestamp per file) | S | ⚠️ the Action API has no per-page edit-count property — use batched `prop=revisions&rvlimit=1&rvprop=timestamp` over `categorymembers` (50/call) and rank by recency; captures the same "files needing attention" spirit |
 | 3 | **Top 100 most populated categories** used by the bucket's files (verified: "Artworks without Wikidata item (97,327)") | **Category population** — which categories the bucket's files populate | M | Walk the bucket (`collectCategoryFiles` exists) + batched `prop=categories` (50/call) → aggregate counts; RankingCard. The "where did my uploads land" report |
 | 4 | **Top 24 largest files by resolution** | **Largest files in category** | S–M | `categorymembers` + batched `prop=imageinfo&iiprop=size` → sort by width×height; show dimensions + thumb |
@@ -342,7 +342,7 @@ editors) — a drop-in replacement for the twice-daily bot reports, live.
 
 | Tool (verified status) | What it shows | WikiBento mapping | Effort |
 |---|---|---|---|
-| **GLAMorous** (alive @ glamtools) | Which projects use a category's files — per-project + per-file breakdowns; mode: category / **user uploads** / page / **PagePile**; depth, negative cats, article-space-only filter | **Shipped**: File Usage Map + GLAM widget cover the core. Missing pieces: per-file **daily pageview chart** (the tool's "daily views" tab — a BaGLAMa-style trend, see below) and the **user-uploads mode** (a file list from `list=allimages&auuser=` — new input type) | S–M |
+| **GLAMorous** (alive @ glamtools) | Which projects use a category's files — per-project + per-file breakdowns; mode: category / **user uploads** / page / **PagePile**; depth, negative cats, article-space-only filter | **Shipped**: File Usage by Wiki + GLAM widget cover the core. Missing pieces: per-file **daily pageview chart** (the tool's "daily views" tab — a BaGLAMa-style trend, see below) and the **user-uploads mode** (a file list from `list=allimages&auuser=` — new input type) | S–M |
 | **BaGLAMa** (part of glamtools) | Monthly pageviews of pages that use a category's files, **over time** (long-term trends on pre-computed data) | Already listed in Tier 2 ("BaGLAMa-style tracker"): the GLAM widget does single-month; the over-time version needs CIM snapshot archiving or a scheduled monthly fetch (Toolforge cron) | M–L |
 | **Treeviews** | Monthly pageviews for a **category tree** | **New widget: category-tree pageviews** — aggregate per-article pageviews over a bounded tree walk (the GLAM widget already walks trees); single-month, live | M |
 | **Unused files** | Files in a category **not used on any wiki** | **New widget: unused files** — trivially computable with the existing `fetchBatchedUsage` (empty `globalusage` = unused); render as a worklist with thumbs + random sample | S |

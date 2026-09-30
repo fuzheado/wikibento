@@ -339,7 +339,7 @@ export const WIDGET_TYPES = {
     id: 'fileUsage',
     category: 'Files & Media', intensity: 'low',
 
-    timeScope: 'point',    name: 'File Usage Map',
+    timeScope: 'point',    name: 'File Usage by Wiki',
     icon: '🖼️',
     description: 'How many wikis use a Commons file, with top breakdown',
     labelFromConfig: (c) => c.filename?.replace(/^File:\s*/i, ''),
@@ -1967,7 +1967,7 @@ export const WIDGET_TYPES = {
     id: 'iaItem',
     category: 'Web & History', intensity: 'low',
     timeScope: 'point',
-    name: 'IA Item',
+    name: 'IA Item Stats',
     icon: '📦',
     description: 'An Internet Archive item by identifier — title, creator, year, collection, file count and size, all-time + 30-day + 7-day views (IA engagement, updated daily), thumbnail, and a link to its details page',
     defaultLayout: { w: 6, h: 5, minW: 3, minH: 3 },

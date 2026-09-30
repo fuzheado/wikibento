@@ -38,7 +38,7 @@ hashed for change detection. Four shapes travel:
 | lines | `Weddell Sea\nBaltic Sea\n…` | Text List, Filter Lines, a Wikipedia box's **items** |
 | prose | `Grace Coolidge (1879–1957) was…` | Article Excerpt |
 | a **reference** | `enwiki:Weddell Sea` | a Wikipedia box's **selection**, a document reader's page |
-| a URL | `https://archive.org/details/…` | IA Item, IA Book |
+| a URL | `https://archive.org/details/…` | IA Item Stats, IA Book |
 
 **References are the newest and the most useful** (ISSUE-92). A title alone does not say *which wiki* it is on, and
 "Weddell Sea" exists on many — so a card that publishes a page publishes `enwiki:Weddell Sea`, and a consumer that

@@ -71,12 +71,12 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 |---|---|
 | **Articles (5)** | 📊 Article Pageviews · 📄 Article Excerpt · 🕓 Edit History · 🏅 Article Quality (ORES) · 🧭 WikiProject Assessment |
 | **Categories & GLAM (11)** | 📁 Category Size · 📈 GLAM Category Usage · and nine **CIM** widgets: snapshot, views over time, top files / wikis / pages / editors, global leaderboard, file spotlight, file traffic |
-| **Files & Media (5)** | 🖼️ Gallery (an article — images **and video** — a Commons gallery page, a wiki category, or a pasted list) · 🖼️ File Usage Map · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
+| **Files & Media (5)** | 🖼️ Gallery (an article — images **and video** — a Commons gallery page, a wiki category, or a pasted list) · 🖼️ File Usage by Wiki · 🌐 360° Panorama Viewer · 🎬 Video / Media Player · 📄 Document Reader |
 | **Rankings & Platforms (4)** | 🔗 External Link Count · 🌐 Wiki Stats · 🏆 Top 10 Wikipedias · 🔥 Top Wikipedia Articles |
 | **Content & Embeds (8)** | 🎛️ Board Controls · 📝 Text / Markdown · 🔳 QR Code · 🔊 Speaker · 🌐 Translator (MinT) · 📋 Article List · 📄 Wiki Page · 📰 Wikipedia Box |
 | **Queries & Power (1)** | 🧠 SPARQL Query (WDQS · QLever · Humaniki) |
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
-| **Web & History (3)** | 📦 Internet Archive Item · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
+| **Web & History (3)** | 📦 IA Item Stats · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
 All 32 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 

@@ -181,7 +181,7 @@ Ranked by (value × cheapness) ÷ risk. Sizes are rough: S ≈ an afternoon, M �
 | 4 | **🎧 IA Audio** | `iaAudio` | M | one recording with inline playback and its spectrogram | `metadata` (mp3 / 64 kb / ogg / flac) + `<audio>` + `_spectrogram.png` |
 | 5 | **🗂️ IA Collection** | `iaCollection` | M | a collection's holdings: child count, mediatype breakdown, top items | 1 × `scrape …&total_only=true` for the count (34 bytes) + per-mediatype counts + one `advancedsearch` for top items; **the collection's own metadata has no children** |
 | 6 | **🔍 IA Search** | `iaSearch` | S–M | free-text search across the archive, with thumbnail, year, mediatype and download count | `advancedsearch` (≤10,000 reachable) + `services/img` thumbnails (display-only) |
-| 7 | **📈 IA Item Views** | `iaViews` | S | an item's engagement over time (already item 2 of ISSUE-25) | `be-api…/views/v1/detail/item/{id}/{start}/{end}` — **5.8 s / 48 KB: cache hard, refresh rarely** |
+| 7 | **📈 IA Item Views Over Time** | `iaViews` | S | an item's engagement over time (already item 2 of ISSUE-25) | `be-api…/views/v1/detail/item/{id}/{start}/{end}` — **5.8 s / 48 KB: cache hard, refresh rarely** |
 | 8 | **🖼️ IA Images** | `iaImages` | S | an image-search gallery (posters, plates, photographs) | `advancedsearch` + `services/img`; **no export** (canvas-tainted) |
 | 9 | **📺 IA TV News** | `iaTvNews` | M–L | caption hits with timestamps → clip cards that deep-link into the player | TVNA search is **proxy-gated and non-JSON**, and one broadcast is ~350 MB; **or** GDELT TV (CORS ✅ but 11.5 s). Rank it last, and cache it hard |
 
@@ -245,5 +245,5 @@ Worth designing in from the start, because IA splits cleanly:
 Then the already-planned search/collection/views cards, then TV news last.
 
 **Decided:** they belong on one board — `?config=/internet-archive-demo.json` exists as of 2026-09-15,
-with both built cards on it and one IA Item card per media type that the next three will render (a film,
+with both built cards on it and one IA Item Stats card per media type that the next three will render (a film,
 a concert, an audiobook, a course collection). It grows a card per widget rather than changing shape.

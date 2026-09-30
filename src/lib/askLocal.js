@@ -24,12 +24,12 @@ const tokenize = (s) => (s || '').toLowerCase().split(/[^a-z0-9]+/).filter((t) =
 // Specific intents first; keyword scoring is the generic fallback.
 const INTENT_PATTERNS = [
   { re: /random.{0,30}(photo|image|picture)/, w: 'categorySize', config: { category: 'Example' }, reason: 'Category Size shows the category breakdown and samples random photos from it.' },
-  { re: /(how|often|where).{0,40}(file|image|photo).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage Map shows which wikis and pages use a file.' },
-  { re: /(how|often).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage Map shows which wikis and pages use a file.' },
+  { re: /(how|often|where).{0,40}(file|image|photo).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage by Wiki shows which wikis and pages use a file.' },
+  { re: /(how|often).{0,30}(used|usage)/, w: 'fileUsage', reason: 'File Usage by Wiki shows which wikis and pages use a file.' },
   { re: /(links?|linking).{0,30}(domain|example\.|site|pages?)/, w: 'linkcount', reason: 'External Link Count counts pages linking to a domain.' },
   { re: /(playlist|play|watch|video).{0,30}(video|audio|file)/, w: 'mediaPlayer', reason: 'Media Player plays Commons video/audio — one file or a jukebox playlist.' },
   { re: /(how many|count).{0,50}(articles|edits|users).{0,30}(wikipedia|edition|german|french|spanish|language)/, w: 'wikistats', reason: 'Wiki Stats shows aggregate article/edit/user counts for a language edition.' },
-  { re: /internet archive|archive\.org\/details|ia item/, w: 'iaItem', reason: 'IA Item shows an Internet Archive item by identifier — metadata, file count/size and all-time/30-day/7-day views.' },
+  { re: /internet archive|archive\.org\/details|ia item/, w: 'iaItem', reason: 'IA Item Stats shows an Internet Archive item by identifier — metadata, file count/size and all-time/30-day/7-day views.' },
   { re: /(archive|snapshot|wayback)/, w: 'waybackGallery', reason: 'Wayback Snapshot Gallery shows archived captures of a website at chosen dates.' },
   { re: /panorama|360/, w: 'panorama360', reason: 'Panorama Viewer renders an equirectangular Commons file as a 360° view.' },
   { re: /3d|three.dimension|model/, w: 'panorama360', reason: 'Panorama Viewer is the closest current fit for 3D-like content (a 360° panorama).' },

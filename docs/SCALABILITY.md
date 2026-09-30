@@ -11,7 +11,7 @@ and categories**, with batching mechanics verified against the live APIs on
 | Data source | Current cost | Batchable? | At scale (hundreds of assets) |
 |---|---|---|---|
 | **categoryinfo** (Category Size) | 1 call / category | ✅ **multi-title**: `titles=A\|B\|C\|D` (≤ 50 titles per request) | 500 categories → **10 calls** instead of 500. Verified: 3 categories in 1 call. Missing categories return `missing` pages — handle gracefully |
-| **globalusage** (File Usage Map) | 1 call / file, `gulimit=500` | ✅ multi-title (≤ 50 titles) | 100 files → 2 calls. ⚠️ Response size scales as `titles × gulimit` — 50 × 500 entries is a heavy payload; in batch mode lower `gulimit` (100–200) or accept truncation |
+| **globalusage** (File Usage by Wiki) | 1 call / file, `gulimit=500` | ✅ multi-title (≤ 50 titles) | 100 files → 2 calls. ⚠️ Response size scales as `titles × gulimit` — 50 × 500 entries is a heavy payload; in batch mode lower `gulimit` (100–200) or accept truncation |
 | **imageinfo** (thumbnail + caption) | rides the fileUsage call | ✅ multi-title + `iiurlwidth` | Combine with globalusage in the same multi-title query (`prop=globalusage\|imageinfo`) |
 | **pageviews** (RESTBase) | 1 call / article | ❌ **no batch endpoint** for arbitrary article sets (RESTBase `top` only covers most-viewed lists) | Parallelize with a concurrency cap + cache. For very large sets, aggregate server-side or use dumps |
 | **exturlusage** (Link Count) | 1–3 **sequential** calls / domain (pagination) | ❌ one domain per query | Parallelize domains (cap ~4–6 concurrent), cache with TTL. Counts are capped at 5,000 anyway — for exact counts at scale, prefer an enwiki **database replica** query on `el_index` (server-side only) |

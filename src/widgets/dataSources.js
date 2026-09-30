@@ -2890,7 +2890,7 @@ export function shapeIaBook(meta, manifest, identifier) {
     links: bookLinks(meta, id),
     // A text-only item (Gutenberg-style) has no leaves at all: the card says so and offers the text
     // rather than showing an empty viewer.
-    notice: pages.length ? '' : 'This item has no page images — it is text, not a scan. Open the OCR text below, or use the IA Item card.',
+    notice: pages.length ? '' : 'This item has no page images — it is text, not a scan. Open the OCR text below, or use the IA Item Stats card.',
   };
 }
 

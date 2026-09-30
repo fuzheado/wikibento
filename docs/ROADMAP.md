@@ -24,7 +24,7 @@ Spike alert (the killer widget)                 →  makes it shareable / PR-wor
   the hero, screenshot-able feature (newsroom / GLAM "suddenly famous" moments).
 
 Tiers 2–5 (GLAM, Article, Live, Community) are detailed in WIDGET-IDEAS.md; many
-Tier-2 GLAM widgets already ship (GLAM Category Usage, File Usage Map).
+Tier-2 GLAM widgets already ship (GLAM Category Usage, File Usage by Wiki).
 
 ## Phase 0 — Quick Wins (½ day, no new features)
 

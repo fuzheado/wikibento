@@ -17,7 +17,7 @@
       "id": "markdown",
       "widgetType": "markdown",
       "config": {
-        "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** \u2014 add widgets, drag them around, and share your board with a link.\n\n- \ud83d\udcca **Article Pageviews** \u2014 30-day traffic\n- \ud83c\udfc6 **Top 10 Wikipedias** \u2014 biggest language editions\n- \ud83d\uddbc\ufe0f **File Usage Map** \u2014 where a Commons file is used\n\n> Edit any widget with \u2699. Export/import your board as JSON, or share it via \ud83d\udd17.",
+        "text": "# Welcome to WikiBento\n\nA drag-and-drop dashboard for **Wikimedia** \u2014 add widgets, drag them around, and share your board with a link.\n\n- \ud83d\udcca **Article Pageviews** \u2014 30-day traffic\n- \ud83c\udfc6 **Top 10 Wikipedias** \u2014 biggest language editions\n- \ud83d\uddbc\ufe0f **File Usage by Wiki** \u2014 where a Commons file is used\n\n> Edit any widget with \u2699. Export/import your board as JSON, or share it via \ud83d\udd17.",
         "refreshSeconds": 86400
       }
     },

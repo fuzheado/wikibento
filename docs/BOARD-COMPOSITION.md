@@ -246,7 +246,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 
 ### 1.3 Files & Media (4 widgets)
 
-#### `fileUsage` — File Usage Map
+#### `fileUsage` — File Usage by Wiki
 - **dataSource:** Commons API `globalusage` + `imageinfo`
 - **configFields:**
   - `filename` (text, placeholder `Example.jpg`)
@@ -493,7 +493,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 
 ### 1.8 Web & History (2 widgets)
 
-#### `iaItem` — IA Item
+#### `iaItem` — IA Item Stats
 - **dataSource:** `archive.org/metadata/{id}` + `be-api.us.archive.org/views/v1/short/{id}` (both CORS `*`, no key; verified 2026-09-10)
 - **configFields:**
   - `identifier` (text — the last part of an `archive.org/details/…` URL)

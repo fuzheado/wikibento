@@ -309,6 +309,62 @@ check('every ISSUE heading has a unique number', () => {
   return `${seen.size} issues, all unique`;
 });
 
+/** Names a widget used to have. Kept so that a rename can be *finished* rather than half-done — the drift that made
+ *  this necessary: "File Usage Map" (there is no map; it is a per-wiki ranking) and "Internet Archive Item" in the
+ *  README versus "IA Item" in the registry. A fossil name is a widget a reader cannot look up. */
+const RETIRED_WIDGET_NAMES = [
+  { pattern: /File Usage Map/g, now: 'File Usage by Wiki' },
+  { pattern: /Internet Archive Item/g, now: 'IA Item Stats' },
+  { pattern: /\bIA Item\b(?! Stats| Views)/g, now: 'IA Item Stats' },
+];
+/** Dated records keep their wording on purpose: they state what was true at the time. Everything else uses today's. */
+const DATED_RECORDS = new Set([
+  'docs/ISSUES.md', 'docs/DEPLOYMENTS.md', 'docs/SCREENSHOTS.md', 'docs/VERIFIED-WORKING.md',
+  'docs/BUG-REPORT-ios-safari-fetch.md', 'docs/WHY-WIKIBENTO.md', 'docs/AGENT-MEMO.md',
+]);
+
+check('every widget is called the same thing in the catalog as in the registry', () => {
+  // The registry's `name` is what the ⚙ panel and the Add-widget menu show, so the catalog has to agree — and the
+  // README's summary rows are checked by the retired-names rule below, which is where that drift actually appears.
+  const catalogDoc = read('docs/WIDGET-CATALOG.md');
+  const missing = registry.filter((w) => !catalogDoc.includes(w.name)).map((w) => `${w.id} → "${w.name}"`);
+  if (missing.length) {
+    fail(`the widget catalog does not use the registry's name for: ${missing.join(' · ')}`
+      + ' — the registry name is what the app shows, so the catalog has to match it');
+  }
+  return `${REGISTRY} names, all present in the catalog`;
+});
+
+check('retired widget names are gone from the current-state docs', () => {
+  const files = ['README.md', 'HANDOFF.md',
+    ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)]
+    .filter((f) => !DATED_RECORDS.has(f));
+  const hits = [];
+  for (const f of files) {
+    const text = read(f);
+    for (const { pattern, now } of RETIRED_WIDGET_NAMES) {
+      const found = text.match(pattern);
+      if (found) hits.push(`${f}: ${found.length}× "${found[0]}" → "${now}"`);
+    }
+  }
+  // Source and boards are never dated records, so they are scanned unconditionally — this is where the drift hid:
+  // the Ask matcher's own suggestion text and the full-catalog board's welcome both still said "File Usage Map"
+  // after the docs were clean, and both are strings a reader sees.
+  const codeFiles = [
+    ...readdirSync(join(ROOT, 'src'), { recursive: true }).filter((f) => /\.(js|jsx)$/.test(f)).map((f) => `src/${f}`),
+    ...readdirSync(join(ROOT, 'public')).filter((f) => f.endsWith('.json')).map((f) => `public/${f}`),
+  ];
+  for (const f of codeFiles) {
+    const text = read(f);
+    for (const { pattern, now } of RETIRED_WIDGET_NAMES) {
+      const found = text.match(pattern);
+      if (found) hits.push(`${f}: ${found.length}× "${found[0]}" → "${now}"`);
+    }
+  }
+  if (hits.length) fail(`widgets are called by old names outside the dated records: ${hits.join(' · ')}`);
+  return `${files.length} docs + ${codeFiles.length} source/board files, none using a retired name`;
+});
+
 check('every demo board on disk is linked from the README and the hub', () => {
   // A board can exist, work, be listed in the hub — and be missing from the README, which is exactly what happened
   // to the page-picker demo (added one day, gone the next after a merge). Nothing watched this, so it drifted.

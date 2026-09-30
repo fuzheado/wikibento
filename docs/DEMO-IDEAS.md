@@ -348,7 +348,7 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | `cimTopPages` | CIM Top Pages — pages using the files |
 | `cimTopEditors` | CIM Top Editors — top contributors |
 | `cimLeaderboard` | CIM Global Leaderboard — top 100 categories |
-| `fileUsage` | File Usage Map — cross-wiki usage |
+| `fileUsage` | File Usage by Wiki — cross-wiki usage |
 | `listSource` | Text List — entry point for curated lists |
 | `filterLines` | Filter Lines — refine a list |
 | `articleList` | Article List — clickable rows with thumbnails |
