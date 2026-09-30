@@ -28,7 +28,7 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-D-F-_7i9.js` (+ `index-CNhDEjEm.css`) |
-| deployed | 2026-09-29 (later still) — **two widgets renamed, and the rule that keeps names honest** (ISSUE-128). `File Usage Map` → **File Usage by Wiki** (there is no map) and `IA Item` → **IA Item Stats** (`Snapshot` was taken — it means screenshot here — and `Stats` says numbers, not a player). Registry `name` is the source of truth; ids never change. Two new docs-facts checks now fail a build that leaves an old name in a current-state doc, in `src/`, or in a board. |
+| deployed | 2026-09-29 (later still) — **widget names, and the rule that keeps them honest** (ISSUE-128). The registry `name` is what the ⚙ panel and the Add-widget menu show, and it is now the source of truth: two widgets were called one thing in the app and another in the docs, so **File Usage by Wiki** ("it is a per-wiki ranking; there is no map") and **IA Item Stats** ("Snapshot" already means screenshot here) are their names, with the story of the rename in `DEPLOYMENTS.md` and ISSUE-128. Widget **ids never change**. Two new `docs-facts` checks fail a build that leaves a retired name in a current-state doc, in `src/`, or in a board — they caught the first draft of this very row. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
