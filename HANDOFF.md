@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-DgOLeJly.js` (+ `index-DwlPRPQv.css`) |
-| deployed | 2026-09-24 — **pick mode, a page in a card, story mode, video tiles** (ISSUE-114/115–125). 🖌 **Pick ▾** arms a widget type and every click on something clickable places a card for it — rows, tiles, ranking links, and **links inside a rendered box or page** (ISSUE-122). Four bugs surfaced in a day of using it and all four are fixed: a second item of the same kind was called a duplicate, an article was refused by the Wiki Page brush, a spawned config kept every source's defaults, and gallery captions showed wikitext. The 📰 Box renders any **page** by title (ISSUE-123), the Gallery shows **video** as poster tiles (ISSUE-124), and any gallery can present an article as a **continuous scroll** (ISSUE-119). |
+| production bundle | `index-B3EHGR7E.js` (+ `index-ghXnM5_T.css`) |
+| deployed | 2026-09-29 — **one image filling the box** (ISSUE-126): the Gallery can be a **single file drawn edge to edge**. `Display → Single image` plus **Image fit** (letterbox or fill crop) and **Frame → Bare** — which also removes the chrome on the 🎬 video player and the 🌐 panorama, so the media fills the card. Bare keeps a playlist's transport controls and any warning; the gallery's captions are a switch of their own. `public/image-tile-demo.json`. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
