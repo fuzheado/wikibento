@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-09-30T13:38:59.947Z",
- "widgetCount": 41,
+ "generatedAt": "2026-09-30T19:33:39.203Z",
+ "widgetCount": 42,
  "widgets": [
   {
    "id": "pageviews",
@@ -1639,6 +1639,72 @@
     "title",
     "showOverlap",
     "cardTheme",
+    "refreshSeconds"
+   ]
+  },
+  {
+   "id": "map",
+   "name": "Map",
+   "icon": "🗺️",
+   "description": "A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia's own map service at the card's own size, with our pin at the centre. No tiles and no map library: one image, which is why it also prints and exports.",
+   "dataSource": "Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki's own prop=coordinates",
+   "category": "Content & Embeds",
+   "type": "stat",
+   "intensity": "low",
+   "experimental": false,
+   "timeScope": "point",
+   "nodeKind": "display",
+   "consumesSource": false,
+   "configFields": [
+    {
+     "key": "place",
+     "type": "text",
+     "label": "Place",
+     "hint": "A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item.",
+     "placeholder": "48.8584, 2.2945 · Q64 · Eiffel Tower"
+    },
+    {
+     "key": "project",
+     "type": "project",
+     "label": "Project (for page titles)"
+    },
+    {
+     "key": "zoom",
+     "type": "number",
+     "label": "Zoom (1–19)"
+    },
+    {
+     "key": "lang",
+     "type": "text",
+     "label": "Map label language",
+     "hint": "A BCP-47 code, e.g. de, fr, ja. Blank follows your browser.",
+     "placeholder": "blank = your language",
+     "vocab": "bcp47"
+    },
+    {
+     "key": "imageFit",
+     "type": "select",
+     "label": "Fit",
+     "options": [
+      "cover",
+      "contain"
+     ]
+    },
+    {
+     "key": "showPin",
+     "type": "boolean",
+     "label": "Pin the place",
+     "hint": "The map service draws no marker of its own, so this one is ours — at the centre, which is the coordinate you asked for."
+    }
+   ],
+   "defaults": [
+    "place",
+    "project",
+    "zoom",
+    "lang",
+    "imageFit",
+    "showPin",
+    "edgeToEdge",
     "refreshSeconds"
    ]
   },

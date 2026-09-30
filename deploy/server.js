@@ -424,6 +424,23 @@ const PETSCAN_BUDGET_MAX = 30000; // client fileBudget ceiling (GLAM widget, mat
 const PETSCAN_TIMEOUT_MS = 60000;
 const PETSCAN_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) petscan-relay';
 
+
+// ── /api/staticmap: the Map widget's image relay (ISSUE-131) ──────────────────
+// The Kartographer static map service answers 200 to a request that identifies as Wikimedia and 403 with an HTML error
+// page to a browser-shaped one — which the browser then refuses outright as a cross-origin image
+// (`net::ERR_BLOCKED_BY_ORB`), showing a blank card with no clue why. A browser cannot set its own User-Agent; this
+// relay can, and its UA comes from the environment. Same reason /api/proxy exists for the parse and PetScan relays.
+//
+// Closed by construction: the client sends numbers and a two-letter language code and the relay builds the upstream
+// URL itself, so nothing here can be aimed at another host. Identical requests come from a small memory cache — the
+// widget asks on a size ladder, so "identical" is now common rather than rare.
+const STATICMAP_UPSTREAM = 'https://maps.wikimedia.org/img/osm-intl';
+const STATICMAP_UA = process.env.WIKIMEDIA_USER_AGENT
+  || 'WikiBento/0.1 (https://wikibento.toolforge.org/; User:Fuzheado) staticmap-relay';
+const STATICMAP_TTL_MS = 6 * 60 * 60 * 1000;
+const STATICMAP_MAX_ENTRIES = 60;
+const staticMapCache = new Map();
+
 // PetScan DB-name → Wikimedia domain (relay normalizes so the client's
 // wikiToProject keeps working unchanged). Returns the input when unknown.
 const WIKI_DB_TO_DOMAIN = [
@@ -560,6 +577,54 @@ const server = createServer(async (req, res) => {
       }
       return;
     }
+
+    // ── /api/staticmap: static map images for the Map widget ──
+    if (url.pathname === '/api/staticmap') {
+      const num = (name, min, max) => {
+        const v = Number(url.searchParams.get(name));
+        return Number.isFinite(v) && v >= min && v <= max ? v : null;
+      };
+      const z = num('z', 1, 19);
+      const lat = num('lat', -90, 90);
+      const lon = num('lon', -180, 180);
+      const w = num('w', 240, 2000);
+      const h = num('h', 180, 2000);
+      const lang = (url.searchParams.get('lang') || 'en').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'en';
+      if (z === null || lat === null || lon === null || w === null || h === null) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'z, lat, lon, w and h must be numbers in range' }));
+        return;
+      }
+      const key = `${z}/${lat.toFixed(6)}/${lon.toFixed(6)}/${w}x${h}/${lang}`;
+      const cached = staticMapCache.get(key);
+      if (cached && Date.now() - cached.at < STATICMAP_TTL_MS) {
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=21600', 'X-Staticmap': 'cache' });
+        res.end(cached.body);
+        return;
+      }
+      const upstream = `${STATICMAP_UPSTREAM},${z},${lat.toFixed(6)},${lon.toFixed(6)},${w}x${h}.png?lang=${lang}`;
+      try {
+        const r = await fetch(upstream, { headers: { 'User-Agent': STATICMAP_UA } });
+        const type = r.headers.get('content-type') || '';
+        // An error here is an HTML page, and passing that on as an image is precisely what makes a browser refuse the
+        // whole response (ORB) and show a blank card. Say what happened instead, in a type the client can read.
+        if (!r.ok || !type.startsWith('image/')) {
+          res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ error: `the map service answered ${r.status} (${type || 'no content type'})` }));
+          return;
+        }
+        const body = Buffer.from(await r.arrayBuffer());
+        if (staticMapCache.size >= STATICMAP_MAX_ENTRIES) staticMapCache.delete(staticMapCache.keys().next().value);
+        staticMapCache.set(key, { body, at: Date.now() });
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=21600', 'X-Staticmap': 'upstream' });
+        res.end(body);
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: `static map fetch failed: ${e.message}` }));
+      }
+      return;
+    }
+
 
     // ── /api/proxy: CORS-enabled fetch proxy (https GET only) ──
     // Two jobs now: sources that send no CORS headers (top.hatnote.com, the CIM allow list TSV), and asking

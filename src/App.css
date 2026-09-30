@@ -502,6 +502,27 @@ body {
 .widget-frame.edge-to-edge .media-card,
 .widget-frame.edge-to-edge .panorama-card,
 .widget-frame.edge-to-edge .wikipage-card { padding: 0; }
+/* ── Map (static, ISSUE-131) ─────────────────────────────────────────────────────────────────────────
+   The image is the card; the pin and the credit line sit on top of it. `contain` letterboxes (the whole map, nothing
+   cropped), `cover` fills — and either way the pin is at the element's centre, which is where `object-fit` puts the
+   image's own centre and therefore the coordinate we asked for. */
+.map-card { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; }
+.map-link { position: relative; display: block; width: 100%; height: 100%; }
+.map-img { display: block; width: 100%; height: 100%; object-fit: cover; background: var(--bg); }
+.map-card.is-contain .map-img { object-fit: contain; }
+/* One frame of empty card while the box is measured — `ResizeObserver` runs before paint, so it is never seen. */
+.map-skeleton { background: linear-gradient(100deg, var(--bg) 30%, rgba(255,255,255,0.03) 50%, var(--bg) 70%); }
+.map-pin {
+  position: absolute; left: 50%; top: 50%; width: 16px; height: 16px;
+  margin: -15px 0 0 -8px;                 /* the tip of the teardrop is the coordinate */
+  border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--accent); border: 2px solid #fff; box-shadow: 0 1px 5px rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+.map-credit { position: absolute; right: 4px; bottom: 3px; font-size: 9px; line-height: 1.5; padding: 0 4px; border-radius: 3px; background: rgb(0 0 0 / 0.55); }
+.map-credit a { color: #fff; text-decoration: none; }
+.map-credit a:hover { text-decoration: underline; }
+
 /* A card, full screen (⛶ in its title bar, or on the bar that fades in on an edge-to-edge card). The header stays,
    so the way out is where the way in was; the body keeps its own padding, because this is a bigger card, not a
    different one. An embedded viewer is the main beneficiary: its iframe gets the whole screen. */

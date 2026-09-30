@@ -360,3 +360,16 @@ model) reaching the card edges, a 📄 **Document Reader** on a 329-page Commons
 page-turn toolbar, zoom, thumbnail strip and the **link to the source** kept: chrome goes, controls and provenance
 stay. Hover any of them to bring its title bar back. Note that these four load remote viewers — a sleeping Toolforge
 tool and `iiif.archive.org` — so they take a while to paint.
+
+---
+
+## `wikibento-2026-09-29-map.png` — a map in a card (ISSUE-131)
+
+![An edge-to-edge map of the Eiffel Tower with a pin at its centre and OpenStreetMap credited](screenshots/wikibento-2026-09-29-map.png)
+
+🗺️ **A place, drawn at the size of the card.** The new Map widget takes a coordinate, a Wikidata item or a page title;
+this is `Q243` at zoom 15 with **Edge to edge** on, so there is no chrome at all. Three things to see: the **pin** is
+ours — the map service draws no marker of its own — and it lands exactly on the tower, which also confirms the service
+centres on the coordinate we pass; the **credit line** is part of the picture rather than the card's frame, because a
+licence is not decoration and edge-to-edge must not hide it; and there is no tiled map library anywhere in the card, which
+is why this prints and exports to PNG properly where Leaflet would not.

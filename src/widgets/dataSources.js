@@ -20,6 +20,7 @@ import {
 } from '../lib/wikiBox.js';
 import { fetchTextWithRetry } from '../lib/httpRetry';
 import { projectSite } from '../lib/reference';
+import { parsePlace } from '../lib/mapImage';
 import { SPARQL_ENDPOINTS } from '../lib/sparqlPresets';
 import { urlVariants } from '../lib/waybackTiles';
 import { pagesFromManifest, pageText, bookLinks, manifestUrl, searchHits, iiifImageTemplate } from '../lib/iaBook';
@@ -1845,6 +1846,80 @@ export async function fetchGalleryPage(page, { maxItems = 48, project = 'commons
  * instead of the 10–20 MB original. `equirectangular` = aspect ratio ≈ 2:1
  * (Pannellum also auto-reads Google Photo Sphere GPano XMP at render time).
  */
+/**
+ * The map widget's one fetch: a `place` → a coordinate, a name, and where they came from (ISSUE-131).
+ *
+ * `place` accepts what `parsePlace` accepts — `48.8584, 2.2945`, a Wikidata item (`Q64`), or a page title. A title is
+ * resolved the honest way round: ask the wiki first (`prop=coordinates`, with `redirects=1` so a page that has been
+ * renamed still lands — the ISSUE-113 lesson, and the reason this reads the wiki before Wikidata), then fall back to
+ * that page's item and its P625.
+ *
+ * A place that resolves to nothing is *told* to resolve to nothing, rather than quietly becoming `0, 0`: a missing
+ * coordinate isn't an error a map can show, it is a map of the Gulf of Guinea, which looks like a working card.
+ */
+export async function fetchMapPlace(place, project = 'en.wikipedia') {
+  const parsed = parsePlace(place);
+  const lang = labelLanguage(typeof navigator !== 'undefined' ? navigator.language : undefined);
+
+  if (parsed.kind === 'empty') throw new Error('Enter a place: a coordinate, a Wikidata item, or a page title');
+  if (parsed.kind === 'invalid') throw new Error(parsed.reason);
+  if (parsed.kind === 'coordinate') {
+    return { lat: parsed.lat, lon: parsed.lon, label: '', source: 'a coordinate you gave' };
+  }
+
+  if (parsed.kind === 'item') {
+    const coord = await fetchWikidataCoord(parsed.id);
+    if (!coord) throw new Error(`${parsed.id} has no coordinate (P625)`);
+    const labels = await fetchWikidataLabels([parsed.id], lang);
+    return { ...coord, label: labels?.[parsed.id] || parsed.id, source: 'Wikidata', item: parsed.id };
+  }
+
+  const site = projectSite(project);
+  const params = new URLSearchParams({
+    action: 'query',
+    titles: parsed.title,
+    redirects: '1',
+    prop: 'coordinates|pageprops',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`${wikiApiUrl(project)}?${params}`);
+  const page = data?.query?.pages?.[0];
+  const here = page?.coordinates?.[0];
+  if (here) return { lat: here.lat, lon: here.lon, label: page.title, source: `${site?.host || project}`, page: page.title };
+
+  const item = page?.pageprops?.wikibase_item;
+  if (item) {
+    const coord = await fetchWikidataCoord(item);
+    if (coord) {
+      const labels = await fetchWikidataLabels([item], lang);
+      return { ...coord, label: labels?.[item] || page?.title || item, source: `Wikidata (${item})`, item, page: page?.title };
+    }
+  }
+  throw new Error(
+    page?.missing
+      ? `No page called “${parsed.title}” on ${site?.host || project}`
+      : `“${parsed.title}” has no coordinate, and neither does its Wikidata item`,
+  );
+}
+
+/** P625 for one item. The Action API, not WDQS: this is a single-item lookup and the cheap path is the right one. */
+async function fetchWikidataCoord(qid) {
+  const params = new URLSearchParams({
+    action: 'wbgetentities',
+    ids: qid,
+    props: 'claims',
+    format: 'json',
+    formatversion: '2',
+    origin: '*',
+  });
+  const data = await fetchJSON(`https://www.wikidata.org/w/api.php?${params}`);
+  const claims = data?.entities?.[qid]?.claims?.P625 || [];
+  const value = claims.find((c) => c?.mainsnak?.datavalue?.value)?.mainsnak.datavalue.value;
+  return value && Number.isFinite(value.latitude) ? { lat: value.latitude, lon: value.longitude } : null;
+}
+
 export async function fetchPanoramaFile(filename, project = 'commons.wikimedia') {
   const title = String(filename || '').replace(/^File:\s*/i, '').replace(/ /g, '_');
   if (!title) throw new Error('Enter a Commons file name');

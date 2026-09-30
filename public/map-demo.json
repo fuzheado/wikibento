@@ -1,0 +1,45 @@
+{
+ "version": 1,
+ "widgets": [
+  {
+   "id": "map-note",
+   "widgetType": "markdown",
+   "config": {
+    "text": "## 🗺️ A map in a card\n\n**Place** takes any of three things:\n\n- a **coordinate** — `48.8584, 2.2945` (degrees and N/S/E/W are fine: `48.8584° N, 2.2945° E`)\n- a **Wikidata item** — `Q64` (Berlin)\n- a **page title** — `Brandenburg Gate`. A title is read from that wiki first, following redirects, and only then from its Wikidata item.\n\nThe map is drawn by **Wikimedia's own map service** at the size this card actually is, so it needs no tiles and no map library — and because it is one image it also **prints** and **exports to PNG** properly, where a tiled map would not. The service draws no marker of its own, so the **pin is ours**, at the centre — which is the coordinate you asked for. **Map label language** blank means your own browser's.\n\nSet **Frame → Edge to edge** for a chrome-free map, **⛶** in its title bar to fill the screen, and click the map to open the same place on **OpenStreetMap**."
+   }
+  },
+  {
+   "id": "map-berlin",
+   "widgetType": "map",
+   "config": { "place": "Q64", "project": "en.wikipedia", "zoom": 11, "lang": "", "imageFit": "cover", "showPin": true }
+  },
+  {
+   "id": "map-gate",
+   "widgetType": "map",
+   "config": { "place": "Brandenburg Gate", "project": "en.wikipedia", "zoom": 15, "lang": "", "imageFit": "cover", "showPin": true }
+  },
+  {
+   "id": "map-fuji",
+   "widgetType": "map",
+   "config": { "place": "35.3606, 138.7274", "zoom": 11, "lang": "ja", "imageFit": "cover", "showPin": true }
+  },
+  {
+   "id": "map-bare",
+   "widgetType": "map",
+   "config": { "place": "Q243", "zoom": 15, "lang": "", "imageFit": "cover", "showPin": true, "edgeToEdge": true }
+  },
+  {
+   "id": "map-letterbox",
+   "widgetType": "map",
+   "config": { "place": "Q90", "zoom": 12, "lang": "fr", "imageFit": "contain", "showPin": true }
+  }
+ ],
+ "layout": [
+  { "i": "map-note", "x": 0, "y": 0, "w": 5, "h": 8 },
+  { "i": "map-berlin", "x": 5, "y": 0, "w": 4, "h": 4 },
+  { "i": "map-gate", "x": 9, "y": 0, "w": 3, "h": 4 },
+  { "i": "map-fuji", "x": 5, "y": 4, "w": 3, "h": 4 },
+  { "i": "map-bare", "x": 8, "y": 4, "w": 4, "h": 4 },
+  { "i": "map-letterbox", "x": 0, "y": 8, "w": 4, "h": 4 }
+ ]
+}

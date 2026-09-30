@@ -4992,6 +4992,48 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-131 · The Map widget: a static map in a card, and the relay it turned out to need — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"Let's build Tier 1"* — the static Map widget from ISSUE-130: a place as a card, no Leaflet, no
+> tiles, drawn at the card's own size, printable and exportable.
+
+**What shipped.** A **🗺️ Map** widget (42nd type). `place` takes a coordinate (`48.8584, 2.2945`, or `48.8584° N,
+2.2945° E`), a Wikidata item (`Q64`), or a **page title** — and a title is resolved the honest way round: the wiki's own
+`prop=coordinates` first, following redirects, then that page's item's P625 (so a renamed page still lands — the ISSUE-113
+lesson). Under ⚙: zoom, fit (the gallery's own letterbox/fill-crop vocabulary), map-label language (BCP-47, blank = the
+reader's, and the manifest requires that `vocab` declaration), the pin, and **Edge to edge**.
+
+**The screenshot does the arguing:** `docs/screenshots/wikibento-2026-09-29-map.png` — an edge-to-edge map of the Eiffel
+Tower with our pin exactly on it (which also confirms the service centres on the coordinate we pass) and OpenStreetMap's
+credit line as part of the picture, not the chrome.
+
+**What the build found, and the reason this entry is long: the map service refuses browser-shaped requests.** Every direct
+check passed — `200 image/png` with `Access-Control-Allow-Origin: *`, `?lang=de` localising labels — because those checks
+used **this repository's Wikimedia User-Agent**, out of habit. In a real browser the cards showed nothing, with
+`net::ERR_BLOCKED_BY_ORB`. The service had answered **403 with an HTML error page**, and a browser refuses an HTML
+response to an image request: that is what Opaque Response Blocking is. The lesson is worth more than the widget: *check a
+service at the point of use, with the client's identity — a polite User-Agent in a curl command is a different client,
+and it can hide a refusal completely.*
+
+**So the card now asks our own server, not the map service.** `deploy/server.js` gained `/api/staticmap`, which builds
+the upstream URL itself from **numbers and a two-letter language** (there is no parameter that could point at another
+host), fetches with the environment's Wikimedia User-Agent, and streams the PNG back same-origin with a six-hour
+`Cache-Control` and a small memory cache. That is the same shape as the existing PetScan and parse relays, for the same
+reason they exist: **a page cannot set its own User-Agent; our server can.** It also means the whole thing is verifiable
+locally, which is how it was verified.
+
+**Being polite to a service whose terms ask for it.** Their terms say *"please respect our limited services and
+resources"* and forbid excessive downloading, and my first design was exactly that: a new URL per pixel of a resize. The
+service said so — it started answering 403 to everything while I was testing, and answered 200 again after ninety
+seconds. So: sizes land on a **ladder** (320…2000) so one card is one URL, the card requests **nothing until its box is
+measured** (the gallery's own pattern), and the relay caches. Measured in production: **five maps, five relay requests,
+one each.**
+
+**Left open, deliberately:** the header shows what you typed (`Q64`, not "Berlin") because the frame's title comes from
+`labelFromConfig` — showing the *resolved* place name would mean the frame consulting `data.title`, a small general
+change worth doing on its own; and if the relay ever fails the card shows a broken image rather than the relay's reason,
+which wants an image-level error state.
+
 ## ISSUE-130 · Maps: what we have, what the sources allow, and the tiered plan — **research done 2026-09-29** (asked by Andrew)
 
 > **What was asked.** *"Research what we have so far for including maps as a widget, and then perhaps look into what it

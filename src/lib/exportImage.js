@@ -132,7 +132,9 @@ const toDataUrl = (blob) => new Promise((resolve, reject) => {
  * Deliberately absent: `archive.org` (its `/download/` and `services/img` send no CORS, so those images
  * are display-only) and `web.archive.org` (same).
  */
-const CORS_IMAGE_HOSTS = ['iiif.archive.org', 'upload.wikimedia.org', 'thumb.wikimedia.org'];
+// `maps.wikimedia.org` added 2026-09-29 for the static Map widget: measured `Access-Control-Allow-Origin: *` on
+// both the static map image and the tiles, so a map card exports to PNG with a clean canvas.
+const CORS_IMAGE_HOSTS = ['iiif.archive.org', 'upload.wikimedia.org', 'thumb.wikimedia.org', 'maps.wikimedia.org'];
 
 /** The first `<img>` in the widget whose host we have measured to allow CORS — or null. */
 export function corsImageIn(node) {

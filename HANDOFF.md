@@ -27,9 +27,9 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-DIXcA-iy.js` (+ `index-BSxbD6_p.css`) |
-| deployed | 2026-09-29 (latest) — **⛶ full screen for one card, and a crop for embeds that draw their own chrome** (ISSUE-129). Every card has ⛶ in its title bar (and on the bar that fades in on an edge-to-edge card); it fullscreens that card by the browser API, so Escape always leaves. Measured on the Objectium embed: the iframe goes from 672×722 in the card to **1830×1220** full screen. The wiki page widget also gains **Crop the page’s own header**, off by default: it scales the embedded page and shifts it up so that page’s own header sits outside the card. On the Objectium card that takes the 3D viewport from ~64% to ~81% of the card. Both are in `public/edge-to-edge-demo.json`. |
-| registry | 41 widget types — 32 data-driven, 9 static |
+| production bundle | `index-BzNfz0s6.js` (+ `index-BKHxtDhx.css`) and `server.js` (the map relay) |
+| deployed | 2026-09-29 (latest) — **a map in a card** (ISSUE-131). The 🗺️ **Map** widget (42nd type) takes a coordinate, a Wikidata item or a page title and draws it with Wikimedia’s static map service at the card’s own size: our pin at the centre, OpenStreetMap’s credit line on the image, zoom / fit / label language / **Edge to edge**. The card asks **our own server** (`/api/staticmap` in `deploy/server.js`), not the service, because the service refuses browser-shaped requests with a 403 HTML page and the browser then refuses that as an image. `public/map-demo.json`. |
+| registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
@@ -520,7 +520,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
    - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
      usually transcluded rather than linked, so there is little in content to click.
-   - **ISSUE-96 — finish the emitter audit.** 12 of 41 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
+   - **ISSUE-96 — finish the emitter audit.** 12 of 42 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each

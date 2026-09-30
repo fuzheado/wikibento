@@ -45,6 +45,7 @@ import {
  fetchIaItem,
   wikistatsHost,
   fetchGalleryPage,
+  fetchMapPlace,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
 import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
@@ -89,6 +90,7 @@ const galleryMode = (config) => {
   return m === 'list' || m === 'story' || m === 'single' ? m : GALLERY_MODE_DEFAULT;
 };
 import { toLines, countOf } from '../lib/dataflow';
+import { staticMapUrl, osmUrl, placeSubtitle, clampZoom, mapLanguage, OSM_ATTRIBUTION } from '../lib/mapImage';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
 const NAMESPACE_LABELS = {
@@ -1814,6 +1816,58 @@ export const WIDGET_TYPES = {
     },
   },
 
+  map: {
+    id: 'map',
+    nodeKind: 'display',
+    category: 'Content & Embeds', intensity: 'low',
+
+    timeScope: 'point',    name: 'Map',
+    icon: '🗺️',
+    description: 'A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia\'s own map service at the card\'s own size, with our pin at the centre. No tiles and no map library: one image, which is why it also prints and exports.',
+    labelFromConfig: (c) => String(c.place || '').trim() || null,
+    defaults: {
+      place: 'Q64',          // a coordinate ('48.8584, 2.2945'), a Wikidata item, or a page title
+      project: 'en.wikipedia',
+      zoom: 13,
+      lang: '',              // blank = the reader's language
+      imageFit: 'cover',
+      showPin: true,
+      edgeToEdge: false,     // the card keeps its frame; see EDGE_TO_EDGE_FIELD
+      refreshSeconds: 86400, // a place does not move; the static-widget convention
+    },
+    renderer: 'MapCard',
+    dataSource: 'Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki\'s own prop=coordinates',
+    defaultLayout: { w: 5, h: 4, minW: 3, minH: 3 },
+    configFields: [
+      { key: 'place', label: 'Place', type: 'text', placeholder: '48.8584, 2.2945 · Q64 · Eiffel Tower', hint: 'A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item.' },
+      { key: 'project', label: 'Project (for page titles)', type: 'project' },
+      { key: 'zoom', label: 'Zoom (1–19)', type: 'number', min: 1, max: 19 },
+      { key: 'lang', label: 'Map label language', type: 'text', vocab: 'bcp47', placeholder: 'blank = your language', hint: 'A BCP-47 code, e.g. de, fr, ja. Blank follows your browser.' },
+      { key: 'imageFit', label: 'Fit', type: 'select', options: [
+        { value: 'cover', label: 'Fill crop' },
+        { value: 'contain', label: 'Letterbox (whole map, nothing cropped)' },
+      ] },
+      { key: 'showPin', label: 'Pin the place', type: 'boolean', hint: 'The map service draws no marker of its own, so this one is ours — at the centre, which is the coordinate you asked for.' },
+      EDGE_TO_EDGE_FIELD,
+    ],
+    fetch: (config) => fetchMapPlace(config.place, config.project),
+    transform: (data, config) => {
+      const at = placeSubtitle('', data.lat, data.lon);
+      return {
+        lat: data.lat,
+        lon: data.lon,
+        label: data.label || '',
+        source: data.source,
+        zoom: clampZoom(config.zoom),
+        // The map's labels follow the reader, not the wiki: a map is for the person looking at it.
+        lang: mapLanguage(config.lang || (typeof navigator !== 'undefined' ? navigator.language : '')),
+        fit: config.imageFit === 'contain' ? 'contain' : 'cover',
+        showPin: config.showPin !== false,
+        title: data.label || at,
+        subtitle: data.label ? `${at} · ${data.source}` : data.source,
+      };
+    },
+  },
   panorama360: {
     id: 'panorama360',
     category: 'Files & Media', intensity: 'low',

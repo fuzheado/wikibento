@@ -25,6 +25,7 @@ import { fetchProjectList, fetchIaBookSearch, fetchIaBookPageText, fetchWikisour
 import ProjectField, { FALLBACK_PROJECTS } from '../components/ProjectField';
 import PagedViewer from './PagedViewer';
 import { configFieldValue, fieldVisible } from '../lib/configFields';
+import { relayMapUrl, osmUrl, placeSubtitle, OSM_ATTRIBUTION, MAP_HI_DPI, legalMapSize } from '../lib/mapImage';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
@@ -873,6 +874,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
     case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
     case 'GallerySingleCard': return <GallerySingleCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
+    case 'MapCard': return <MapCard data={data} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
     case 'StoryCard': return <StoryCard data={data} picking={picking} onPickItem={onPickItem} />;
@@ -1826,6 +1828,89 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
           ? <span className="gallery-single-caption">{img.caption || img.title}</span>
           : null}
       </a>
+    </div>
+  );
+}
+
+/** Map (ISSUE-131) — a static map image, drawn by Wikimedia's map service at the card's own size, with our pin at the
+ *  centre and OpenStreetMap's credit line. Deliberately **not** Leaflet: one image needs no tiles, no library and no
+ *  policy of its own — and, the reason this was the first tier, it survives 🖨️ Print and ⛶ Export → PNG, where a tiled
+ *  map rasterises badly.
+ *
+ *  Two things the map service does not do, both verified by looking at what it returned: it draws no marker at the
+ *  centre, and it prints no attribution. The pin is therefore ours — and it is honest, because the centre *is* the
+ *  coordinate the fetch resolved — and the credit line is card content, so edge-to-edge does not hide it (a licence is
+ *  not decoration).
+ *
+ *  The image is requested at the size the card actually is, times 2 on a retina screen: the service renders any size,
+ *  so there is no need for a second asset or for downloading more than the card can show. Until the box is measured
+ *  the default size is used — a map at the wrong size is still the right map.
+ */
+function MapCard({ data }) {
+  const wrapRef = useRef(null);
+  const [box, setBox] = useState(null);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    // Quantised on purpose: a new size means a new URL, so an unquantised measurement would ask the map service for
+    // an image on every frame of a resize. Landing on the ladder makes most measurements a no-op (no state change, no
+    // new request), and the browser then reuses the one image it already has.
+    const measure = () => {
+      const dpr = allowHiDpi() ? MAP_HI_DPI : 1;
+      const w = legalMapSize(el.clientWidth * dpr, 240);
+      const h = legalMapSize(el.clientHeight * dpr, 180);
+      setBox((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Through our own relay, not the map service directly: the service refuses browser-shaped requests (see
+  // relayMapUrl). Same numbers, same ladder, one image per card.
+  const url = relayMapUrl({
+    lat: data.lat,
+    lon: data.lon,
+    zoom: data.zoom,
+    lang: data.lang,
+    width: box?.w || 800,
+    height: box?.h || 500,
+  });
+  const where = data.label || placeSubtitle('', data.lat, data.lon);
+  return (
+    <div className={`map-card${data.fit === 'contain' ? ' is-contain' : ''}`} ref={wrapRef}>
+      <a
+        className="map-link"
+        href={osmUrl(data.lat, data.lon, data.zoom)}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`${where} — open on OpenStreetMap`}
+      >
+        {/* Nothing is requested until the box has been measured. The gallery already does this for its tiles, and the
+            reason is the same one that made the size ladder necessary: asking at a default size first and then again at
+            the real size costs the map service a second image per card, which its terms ask us to avoid. */}
+        {box ? (
+        <img
+          className="map-img"
+          src={url}
+          alt={`Map of ${where}`}
+          /* The map service answers 403 to a request whose Referer is localhost (measured 2026-09-29), which
+             the browser then refuses as a cross-origin image — so a map was blank on any local dev server while
+             working in production. Sending no referrer at all is allowed by the service (also measured) and makes
+             the card behave the same in both places. */
+          referrerPolicy="no-referrer"
+          decoding="async"
+        />
+        ) : (
+          <div className="map-img map-skeleton" aria-hidden="true" />
+        )}
+        {data.showPin ? <span className="map-pin" aria-hidden="true" /> : null}
+      </a>
+      <span className="map-credit">
+        <a href={OSM_ATTRIBUTION.href} target="_blank" rel="noopener noreferrer">{OSM_ATTRIBUTION.text}</a>
+      </span>
     </div>
   );
 }
