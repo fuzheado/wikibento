@@ -379,14 +379,36 @@ editors) — a drop-in replacement for the twice-daily bot reports, live.
 > Kartographer itself — it replicates Kartographer's data services
 > client-side with CORS-enabled APIs.
 
-**Engine:** Leaflet (~42 KB) — the project's AGENTS.md already documents its
-pitfalls (`setView()` before tiles load or the map stays blank;
-`invalidateSize()` after dynamic containers). MapLibre GL if vector tiles
-are wanted later; kepler.gl (kepler-gl skill, SPARQL→GeoJSON) for
-analysis-grade maps. ⚠️ **Tile policy caveat:** Wikimedia's own tile servers
-(`maps.wikimedia.org`) are for Wikimedia projects — verify the current
-policy before using them in a standalone widget; OpenFreeMap (free, no key)
-or OSMF standard tiles (UA + attribution) are safe basemap defaults.
+**Engine:** Leaflet (~42 KB). ⚠️ The Leaflet pitfalls this section used to attribute to `AGENTS.md` are *not*
+documented there (checked 2026-09-29); they are real all the same — `setView()` before the tiles load leaves a blank
+map, and a dynamically sized container needs `invalidateSize()`. MapLibre GL if vector tiles are wanted later;
+kepler.gl (kepler-gl skill, SPARQL→GeoJSON) for analysis-grade maps.
+
+**✅ Tile policy — verified 2026-09-29, and the answer is yes for this tool.** Wikimedia's
+[Maps Terms of Use](https://foundation.wikimedia.org/wiki/Policy:Maps_Terms_of_Use) say Wikimedia Maps *"may not be
+used by third-party services outside of the Wikimedia projects"*, and then draw the line helpfully: *"you may build a
+tool for Wikipedia editors, but you may not use it for an unrelated app or business."* WikiBento is a tool for
+Wikimedians, so `maps.wikimedia.org` is permitted — with the respect they ask for (no bulk download, no prefetch,
+attribution). Measured the same day: tiles and the static image both answer **200** with
+`Access-Control-Allow-Origin: *`, and the tile server does not enforce a referrer. **OpenFreeMap** is the escape hatch
+if we ever need scale: no key, no registration, *"no limits on the number of map views or requests"*, vector tiles,
+self-hostable. **OSMF's standard tiles are the one to avoid as a default** — their policy permits light third-party
+use (valid referer, identifying User-Agent, visible attribution) but forbids bulk download and prefetch, so a public
+tool cannot promise to stay inside it.
+
+**The no-JavaScript map, which this section missed and which should come first.** Kartographer's static map service
+serves a styled PNG of a coordinate:
+
+```
+https://maps.wikimedia.org/img/osm-intl,{zoom},{lat},{lon},{width}x{height}.png?lang={code}
+```
+
+Verified 2026-09-29: **200**, `image/png`, **CORS `*`** (so it survives a canvas export → the 🖨️ print/PDF path and
+⛶ Export → PNG work, which a tiled Leaflet map would *not*), and `?lang=de` localises the labels — which matters, since
+this project has an i18n constitution. Two things it does **not** do, found by looking at the returned image rather
+than trusting the endpoint: it draws **no marker at the centre** and carries **no attribution text**. Both are ours to
+add, and both are cheap — the centre is the coordinate we passed, so a pin is an absolutely-positioned overlay we
+control, and the credit line is the caption-overlay pattern the gallery already uses.
 
 | Widget idea | Data source (verified) | Effort | Notes |
 |---|---|---|---|

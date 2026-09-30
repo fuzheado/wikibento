@@ -4992,6 +4992,60 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-130 · Maps: what we have, what the sources allow, and the tiered plan — **research done 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"Research what we have so far for including maps as a widget, and then perhaps look into what it
+> would take to support maps from the Wikimedia side, or from Open Street Maps."*
+
+**What we have today: a plan, no code.** There is **no map widget**. `docs/WIDGET-IDEAS.md` has a mapping section from
+2026-08-13 (eight candidate widgets, CORS claims, effort sizes), and `docs/ROADMAP.md` queues a *Map widget family*.
+Two things in that plan were stale or wrong on inspection, and both are now fixed there: it credited `AGENTS.md` with
+documenting Leaflet's pitfalls (it does not — the pitfalls are real, they were just never written down), and its
+⚠️ tile-policy caveat — *"verify before using them in a standalone widget"* — is now answered below.
+
+**The policy answer, which was the real open question.** Wikimedia's
+[Maps Terms of Use](https://foundation.wikimedia.org/wiki/Policy:Maps_Terms_of_Use): Wikimedia Maps *"may not be used by
+third-party services outside of the Wikimedia projects"* — and then draw the line where it matters for us: *"you may
+build a tool for Wikipedia editors, but you may not use it for an unrelated app or business."* **WikiBento is a tool for
+Wikimedians, so Wikimedia's maps are permitted**, subject to their light-use ask (no bulk download, no prefetch,
+attribution). OpenFreeMap is the scale escape hatch (no key, no registration, *"no limits on the number of map views or
+requests"*, vector, self-hostable). OSMF's own tiles are the one to avoid as a default: light third-party use is
+allowed with a valid referer, an identifying UA and visible attribution, but bulk download and prefetch are forbidden.
+
+**Every source verified live 2026-09-29** (nothing here is inherited from August):
+
+| source | what it gives | state |
+|---|---|---|
+| `maps.wikimedia.org/img/osm-intl,{z},{lat},{lon},{w}x{h}.png?lang=` | a styled **static** map PNG of a coordinate | 200 · `image/png` · **CORS `*`** · `?lang=de` localises labels |
+| `maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png` | raster tiles, Wikimedia's own style | 200 · `image/png` · CORS `*` · no referrer enforcement |
+| `maps.wikimedia.org/geoshape?getgeojson=1&ids=Q…` | Wikidata **geoshapes** as GeoJSON (P3896) | 200 · `application/vnd.geo+json` · CORS `*` · Tokyo = MultiPolygon |
+| Commons `list=geosearch` (+ `origin=*`) | **geotagged files near a point** | 200 · CORS `*` · found 3 files at the Eiffel Tower |
+| Commons `prop=coordinates` | coordinates for a batch of files | 200 · CORS `*` · batched |
+| WDQS `?item wdt:P625 ?coord` | coordinates from Wikidata | CORS ✅ (the SPARQL widget's existing path) |
+| Overpass `overpass-api.de` | OSM POIs by radius/filter | 200 · CORS `*` (only when an `Origin` is sent — the August note was right, and my first test was wrong) |
+| Nominatim | place name → coordinate | 200 · CORS `*` · 1 req/s policy |
+| `openstreetmap.org/export/embed.html?bbox=` | the whole OSM map in an iframe | 200 · no framing headers → embeddable **today** via the wiki page widget |
+
+**Two things the endpoint does not do, found by looking at the image rather than trusting the docs:** the static map
+draws **no marker** at the coordinate and carries **no attribution text**. Both become ours: the centre is the
+coordinate we passed, so the pin is an overlay we control, and the credit line is the caption-overlay pattern the
+gallery already uses. (`/img/` also gives a *static* asset, which is why the PRINT path matters here: a tiled Leaflet
+map rasterises poorly into 🖨️ Print or ⛶ Export → PNG, while this does it properly.)
+
+**The tiered plan, with the policy now settled:**
+- **Tier 1 — 🗺️ a static Map widget (~3–4 h), no new library.** Config: a place (Wikidata item / article), a bare
+  coordinate, or a board param; controls: zoom, fit (reusing `imageFit`'s letterbox/fill), language, and the pin. It
+  gets **edge to edge** for free, exports and prints correctly, and covers "show me where this is" — the majority of
+  what a board needs a map for.
+- **Tier 2 — the interactive family (~1–2 days).** Leaflet (vendored like Pannellum), then the already-specified
+  widgets: the **Commons category photo map** (with marker clustering *first*, per the roadmap), geoshapes as
+  polygons, Overpass "what's around here", and the SPARQL map renderer.
+- **Tier 3 — the extensions** already sketched in `WIDGET-IDEAS.md`: panorama pins that open the 360° viewer, a
+  map + gallery split, a density heatmap, a time-animated photo map, and the 3D globe.
+
+**Recommended first slice: Tier 1**, because it needs no library decision, no tiling, and no new policy position — and
+because it composes with what shipped this week (edge to edge, ⛶ full screen, ⛶ Export → PNG, 🖨️ Print).
+
 ## ISSUE-129 · ⛶ full screen for one card, and a crop for embeds that draw their own chrome — **done + verified 2026-09-29** (asked by Andrew)
 
 > **What was asked.** With an Objectium 3D model embedded in a card: *"Is there any way to access the 'full screen' view of
