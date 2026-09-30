@@ -346,3 +346,17 @@ the media on hover (or keyboard focus), carrying the instance chip `tile-cover` 
 ✕ Remove, with a gradient behind it so the buttons stay legible on a bright photograph. It is also the handle you drag
 the card by — as on every other card in the app. On a touchscreen, where nothing can be hovered, the bar stays faintly
 visible; in Present or Lean mode it is hidden outright, because a presentation is not an editing surface.
+
+---
+
+## `wikibento-2026-09-29-edge-to-edge-widgets.png` — Edge to edge beyond pictures (2026-09-29)
+
+![A QR code, an embedded 3D model, a Commons document and an Internet Archive book, all edge to edge](screenshots/wikibento-2026-09-29-edge-to-edge-widgets.png)
+
+**The same switch, four more kinds of content.** Left to right, top to bottom: a 🔳 **QR code** made as large as the
+card allows — the white panel is 320×320 with the code 300×300 inside it, because the quiet-zone margin is what a
+scanner needs, so edge to edge grows the code instead of stretching the panel — an 📄 **embedded page** (an Objectium 3D
+model) reaching the card edges, a 📄 **Document Reader** on a 329-page Commons PDF and an 📖 **IA Book**, both with their
+page-turn toolbar, zoom, thumbnail strip and the **link to the source** kept: chrome goes, controls and provenance
+stay. Hover any of them to bring its title bar back. Note that these four load remote viewers — a sleeping Toolforge
+tool and `iiif.archive.org` — so they take a while to paint.

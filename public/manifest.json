@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-30T12:42:12.863Z",
+ "generatedAt": "2026-09-30T12:46:12.329Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -476,6 +476,7 @@
     }
    ],
    "defaults": [
+    "edgeToEdge",
     "text",
     "ecLevel",
     "margin",
@@ -1464,9 +1465,14 @@
      "type": "text",
      "label": "Section anchor (optional)",
      "placeholder": "History"
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean"
     }
    ],
    "defaults": [
+    "edgeToEdge",
     "url",
     "page",
     "project",
@@ -1869,6 +1875,7 @@
     }
    ],
    "defaults": [
+    "edgeToEdge",
     "identifier",
     "spread",
     "refreshSeconds"
@@ -1928,6 +1935,7 @@
     }
    ],
    "defaults": [
+    "edgeToEdge",
     "file",
     "project",
     "spread",

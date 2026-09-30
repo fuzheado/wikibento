@@ -328,7 +328,8 @@ test('captions can be turned off, and every mode receives the switch', () => {
 });
 
 test('the media types declare the same Edge to edge switch, and it defaults to off', () => {
-  for (const id of ['gallery', 'mediaPlayer', 'panorama360']) {
+  // the three media types, plus the four whose content is a thing you look at (2026-09-29)
+  for (const id of ['gallery', 'mediaPlayer', 'panorama360', 'qrCode', 'documentReader', 'iaBook', 'wikiPage']) {
     const def = WIDGET_TYPES[id];
     assert.equal(def.defaults.edgeToEdge, false, `${id}: the card keeps its frame by default`);
     const f = def.configFields.find((x) => x.key === 'edgeToEdge');

@@ -500,7 +500,20 @@ body {
 .widget-frame.edge-to-edge .widget-body { padding: 0; }
 .widget-frame.edge-to-edge .gallery-card,
 .widget-frame.edge-to-edge .media-card,
-.widget-frame.edge-to-edge .panorama-card { padding: 0; }
+.widget-frame.edge-to-edge .panorama-card,
+.widget-frame.edge-to-edge .wikipage-card { padding: 0; }
+/* A QR code is square and needs its quiet zone, so edge to edge makes it as LARGE as the box allows rather than
+   stretching it: the wrap keeps its aspect ratio and its own margin (that margin is what a scanner needs), and the
+   card centres the result. Stretching it would grow the white panel and leave the code the same size. */
+.widget-frame.edge-to-edge .qr-card { justify-content: center; }
+.widget-frame.edge-to-edge .qr-code-wrap { flex: 0 1 auto; width: 100%; max-height: 100%; }
+
+/* The viewers' own frames: the page should reach the edges of its stage, and the stage the edges of the card. The
+   dark stage background stays — it is what a letterboxed page sits on, not a margin. What edge to edge does NOT
+   remove here is `.pv-head` and `.pv-toolbar`: the head carries the link to the source and the toolbar is how you
+   turn pages, and the rule for this mode is that chrome goes while controls and warnings stay. */
+.widget-frame.edge-to-edge .wikipage-iframe { border: none; border-radius: 0; }
+.widget-frame.edge-to-edge .pv-stage { border: none; border-radius: 0; }
 /* The card's own title goes as well — with the frame bare, the picture is the title. The subtitle goes with it
    EXCEPT when it is carrying a warning: the media player says "N not found" there, and hiding that would be the
    card quietly lying about what it is showing (the panorama's badge is kept for the same reason). */

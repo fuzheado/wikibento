@@ -54,7 +54,9 @@ test('qrCode: defaults are scannable-by-default (auto EC + 4-module quiet zone)'
 
 test('qrCode: config fields cover payload + encoding controls, with hints for Ask', () => {
   const fields = Object.fromEntries(def.configFields.map((f) => [f.key, f]));
-  assert.deepEqual(Object.keys(fields).sort(), ['caption', 'ecLevel', 'margin', 'text']);
+  // `edgeToEdge` is the card-appearance switch, not an encoding control — but this is the widget's field
+  // inventory, so it belongs in the list (2026-09-29).
+  assert.deepEqual(Object.keys(fields).sort(), ['caption', 'ecLevel', 'edgeToEdge', 'margin', 'text']);
   assert.equal(fields.text.type, 'textarea');
   assert.ok(fields.text.hint.includes('{{widget:id}}'), 'text field documents interpolation');
   assert.equal(fields.ecLevel.type, 'select');

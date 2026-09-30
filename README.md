@@ -47,6 +47,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📄 [Read a document](https://wikibento.toolforge.org/?config=/document-reader-demo.json) | a 329-page PDF and a DjVu read page by page — turn, zoom, jump, **facing pages** — beside an Internet Archive book (one reader, two archives), plus a small work transcribed on **Wikisource** whose page text appears with its proofreading grade (*Validated* — and *Not proofread (uncorrected OCR)* where that is the truth) |
 | 📰 [A wiki page in a card](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) | any wiki page rendered in a card — the lead, one section, or the whole thing — with its tables and images, and **every blue link a pick target** |
 | 🖌 [One image filling the box](https://wikibento.toolforge.org/?config=/image-tile-demo.json) | a single Commons file as an **edge-to-edge tile** — letterboxed or cropped, with the chrome switched off |
+| 🖼️ [Edge to edge](https://wikibento.toolforge.org/?config=/edge-to-edge-demo.json) | the switch that takes a card's chrome away — a QR code, a Commons document, an IA book, a wiki page |
 | 🎞 [Story mode](https://wikibento.toolforge.org/?config=/story-demo.json) | **one Wikipedia article as a continuous scroll** — its images and captions, the article's own chapters, and a panel per image chosen by that image's shape |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
@@ -100,7 +101,7 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   Single image**, and two switches decide the rest: **Image fit** (*Letterbox* shows the whole file, *Fill crop* covers
   the box) and the **Edge to edge** switch, which takes away the title bar, the padding and the card's own title so the picture
   reaches the edges. **Edge to edge** works on the 🎬 **Video / Media Player** too — its file line goes, and for a single file
-  its transport controls with it, while the video's own controls stay — and on the 🌐 **360° Panorama**. A gallery's
+  its transport controls with it, while the video's own controls stay — and on the 🌐 **360° Panorama**, the 🔳 **QR Code**, the 📄 **Document Reader**, the 📖 **IA Book** and the 📄 **Wiki Page**. A gallery's
   captions are a switch as well, so a tile can carry no text at all. Open
   [`?config=/image-tile-demo.json`](https://wikibento.toolforge.org/?config=/image-tile-demo.json) to see all four.
 - **A wiki page in a card** — the 📰 **Wikipedia Box** renders **any page by title**, not only a Main Page template:

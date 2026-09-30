@@ -1,0 +1,55 @@
+{
+ "version": 1,
+ "widgets": [
+  {
+   "id": "e2e-note",
+   "widgetType": "markdown",
+   "config": {
+    "text": "## 🖼️ Edge to edge\n\n**Edge to edge** is one switch in ⚙: it takes the card's own chrome away — the title bar fades in over the content when you hover, the padding goes, and the card's own title goes with it — so the thing *is* the card.\n\nIt is offered where the content is something you look at, not text or a table: the **Gallery** (including its Single image and Story modes), the **Video / Media Player**, the **360° Panorama**, and now the **QR Code**, the **Document Reader**, the **IA Book** and the **Wiki Page**.\n\nTwo rules hold, because chrome must never take information with it: a **warning** stays (the video player's *\"N not found\"* line), and a **control the content needs** stays (a playlist's transport; the page-turn toolbar and the source link on the readers below).\n\nHover any card here to bring its title bar back."
+   }
+  },
+  {
+   "id": "e2e-qr",
+   "widgetType": "qrCode",
+   "config": {
+    "text": "https://commons.wikimedia.org/wiki/Category:Featured_pictures",
+    "edgeToEdge": true,
+    "margin": 4
+   }
+  },
+  {
+   "id": "e2e-document",
+   "widgetType": "documentReader",
+   "config": {
+    "file": "File:The Three Hostages (1924).pdf",
+    "project": "commons.wikimedia",
+    "spread": "on",
+    "edgeToEdge": true
+   }
+  },
+  {
+   "id": "e2e-book",
+   "widgetType": "iaBook",
+   "config": {
+    "identifier": "goodytwoshoes00newyiala",
+    "spread": "on",
+    "edgeToEdge": true
+   }
+  },
+  {
+   "id": "e2e-page",
+   "widgetType": "wikiPage",
+   "config": {
+    "url": "https://objectium.toolforge.org/uploads/213",
+    "edgeToEdge": true
+   }
+  }
+ ],
+ "layout": [
+  { "i": "e2e-note", "x": 0, "y": 0, "w": 6, "h": 7 },
+  { "i": "e2e-qr", "x": 6, "y": 0, "w": 3, "h": 7 },
+  { "i": "e2e-page", "x": 9, "y": 0, "w": 3, "h": 7 },
+  { "i": "e2e-document", "x": 0, "y": 7, "w": 6, "h": 7 },
+  { "i": "e2e-book", "x": 6, "y": 7, "w": 6, "h": 7 }
+ ]
+}

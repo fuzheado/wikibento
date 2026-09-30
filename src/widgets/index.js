@@ -571,6 +571,7 @@ export const WIDGET_TYPES = {
     description: 'Turns any text or URL into a scannable QR code — a phone-readable bridge from a board, a printed handout or a kiosk screen to a Commons category, PetScan query, Wikidata item or board permalink. Encodes locally (ISO/IEC 18004): no shortener, no redirect, no analytics, no network',
     labelFromConfig: (c) => (c.caption || '').trim() || undefined,
     defaults: {
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       text: 'https://commons.wikimedia.org/wiki/Category:Featured_pictures_on_Wikimedia_Commons',
       ecLevel: 'auto',
       margin: 4,
@@ -610,6 +611,7 @@ export const WIDGET_TYPES = {
         hint: 'White border around the code. The spec asks for 4 modules — needed to scan a saved SVG on its own. Use 0 only inside an already-white padded container.',
       },
       { key: 'caption', label: 'Caption (optional)', type: 'text', placeholder: 'Scan for the Commons category' },
+      EDGE_TO_EDGE_FIELD,
     ],
     // No fetch — static: WidgetFrame renders transform(null, config). Encoding
     // is local, so a QR renders instantly and works offline / on a kiosk.
@@ -1535,6 +1537,7 @@ export const WIDGET_TYPES = {
       return u ? embedLabel(u) : (c.page || '').trim().replace(/_/g, ' ');
     },
     defaults: {
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       url: '',
       page: 'Help:Introduction',
       project: 'en.wikipedia',
@@ -1550,6 +1553,7 @@ export const WIDGET_TYPES = {
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
+      EDGE_TO_EDGE_FIELD,
     ],
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
     // send no X-Frame-Options / frame-ancestors, verified 2026-08-13).
@@ -1995,6 +1999,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
     labelFromConfig: (c) => (c.identifier || '').trim() || null,
     defaults: {
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       identifier: 'goodytwoshoes00newyiala',
       spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
       refreshSeconds: 86400,
@@ -2008,6 +2013,7 @@ export const WIDGET_TYPES = {
         { value: 'on', label: 'Two facing pages' },
         { value: 'off', label: 'One page at a time' },
       ], hint: 'A board can open a book in spread mode; the ▭ button on the card still overrides it for the reader (the board sets the default, the reader decides).' },
+      EDGE_TO_EDGE_FIELD,
     ],
     fetch: (config) => fetchIaBook(config.identifier),
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto', textPanel: (config && config.textPanel) || 'on' }),
@@ -2026,6 +2032,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
     labelFromConfig: (c) => (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null,
     defaults: {
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       file: 'File:The Three Hostages (1924).pdf',
       project: 'commons.wikimedia',
       spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
@@ -2046,6 +2053,7 @@ export const WIDGET_TYPES = {
         { value: 'on', label: 'Show it from the start (and keep it open as you turn pages)' },
         { value: 'off', label: 'Hidden until I press ¶' },
       ], hint: 'Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.' },
+      EDGE_TO_EDGE_FIELD,
     ],
     fetch: (config) => { const p = pageRef(config, 'file'); return fetchDocumentPages(p.title, p.projectConfig); },
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),

@@ -4992,6 +4992,48 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-127 · Edge to edge on the four types whose content is a thing you look at — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"Can you audit the widgets and recommend which ones also would be ideal to support a full bleed
+> mode? I would think that a gallery and the panorama viewer would be ideal too."*
+
+**The gallery and the panorama already had it** — both gained the switch in ISSUE-126, alongside the video player. So this
+became an audit of the other 38 types, on three tests: is the content a **thing** rather than text or a table; does it
+**bring its own controls**, so that losing our title bar does not strand anyone; and does filling the box **actually
+help**?
+
+**Tier 1, built here (4):** 🔳 **QR Code** (whose own description is *a bridge from a board, a printed handout or a kiosk
+screen*), 📄 **Document Reader**, 📖 **IA Book**, 📄 **Wiki Page** (an embedded page — or, as in the demo, a 3D model).
+Seven types now offer it, all through one shared field object.
+
+**Tier 2, deliberately not built:** the charts (`cimFileTraffic`, `cimTrend`, `sparql` in chart modes), `waybackGallery`
+(alpha), the big-number cards and `fileUsage`. These gain little *space*; they would gain a chrome-free data wall, which
+is a different feature and a separate decision.
+
+**Tier 3, and why:** text and tables (`markdown`, `wikiBox`, `excerpt`, `edithistory`, `quality`, `assessments`,
+`articleList`, `translate`, the `sparql` tables, the CIM rankings, the dataflow family) — the margins are the point.
+`boardControls` and `speaker` have nothing to fill a box with.
+
+**Two naming findings from the audit, not fixed here:**
+- 📦 **IA Item** reads like a player but renders a *stats snapshot* (`CimSnapshotCard`): title, creator, year, views.
+- 🖼️ **File Usage Map** has no map — it is a ranking of wikis using the file (`RankingCard`).
+
+**The rules the four new types had to keep** (the same two from ISSUE-126, applied per type):
+- **A warning keeps its line.** The QR card's *"dense — scan from a larger widget, or print it"* stays.
+- **A control the content needs keeps its place.** The readers keep their head line — which carries **the link to the
+  source** — and their page-turn toolbar, zoom and thumbnail strip. This is the one place the mode deliberately does not
+  remove everything: on a reader, "the card's title" and "the document's title" are different things, and the second is
+  provenance.
+- **A functional inset is not decoration.** The QR's white panel and its 10px margin are the **quiet zone** a scanner
+  needs, so edge to edge *grows the code* (a 320×320 panel holding a 300×300 code) rather than stretching the panel; the
+  readers keep their dark stage background, which is what a letterboxed page sits on.
+
+**Verified in the built app and in production:** chrome opacity 0 and body padding 0 on all four; the QR square at ratio
+1.00; the embedded page at 354×630 in a 356×632 card; both readers painting a real page image (250px) with no page
+errors. `public/edge-to-edge-demo.json`, linked from the README and the hub. A test caught the one thing this broke:
+`tests/qr-widget.test.mjs` asserts the QR's exact field inventory, so the appearance switch had to be declared there as
+a field rather than assumed invisible.
+
 ## ISSUE-126 · One image filling the box: the gallery's Single mode, a caption switch, and Frame → Bare — **done + verified 2026-09-29** (asked by Andrew)
 
 > **What was asked.** *"Is there a widget just to display one image that fully fills a widget, which can be either
