@@ -333,3 +333,16 @@ title bar and no padding (100% of the card), the same card in **letterbox** show
 image with **Frame → Card** kept — title bar, padding, and the caption as a gradient overlay that costs no height — and
 a **bare video** that also fills its card, native controls intact. The bottom row is one grid twice: captions on, and
 captions off. Verified in the built app; the card frame gives 91% and a fixed grid tile 28%, which is what "bare" buys.
+
+---
+
+## `wikibento-2026-09-29-bare-controls.png` — a bare card still has its controls (ISSUE-126)
+
+![A full-bleed image with the title bar fading in over it on hover](screenshots/wikibento-2026-09-29-bare-controls.png)
+
+**Hover the card and the bar comes back.** A bare card draws no chrome, which raised the obvious question the day it
+shipped — *"how do I get to the controls of them?"* The answer is this: the title bar is not deleted, it fades in over
+the media on hover (or keyboard focus), carrying the instance chip `tile-cover` and ⓘ About · ⚙ Configure · ↻ Refresh ·
+✕ Remove, with a gradient behind it so the buttons stay legible on a bright photograph. It is also the handle you drag
+the card by — as on every other card in the app. On a touchscreen, where nothing can be hovered, the bar stays faintly
+visible; in Present or Lean mode it is hidden outright, because a presentation is not an editing surface.

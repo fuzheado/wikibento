@@ -473,7 +473,29 @@ body {
    and each card's own inner padding another 16–20px. Hide the lot — and the ⏱ freshness stamp with them, since
    in a decorative tile it is the one thing that would sit ON the picture. Two precedents, not a new idea:
    `.markdown-card` has kept a flush body all along, and lean/kiosk already hide `.widget-header` outright. */
-.widget-frame.frame-bare .widget-header { display: none; }
+/* The header is NOT deleted in bare mode — it is the only route to ⓘ About, ⚙ Configure, ↻ Refresh, ✕ Remove and
+   the instance-name chip, so removing it outright made a bare card a poster you could look at but not edit. It
+   becomes an overlay instead: on hover (and on keyboard focus, so it is reachable without a mouse) the bar fades in
+   over the media, with a gradient behind it so the buttons stay legible on a bright photograph. Opening ⚙ does take
+   space — that panel is an in-flow flex child with its own scrollbar (ISSUE-54), not an overlay — so the media shrinks
+   while you are configuring, which is the honest behaviour rather than a panel floating over the picture. */
+.widget-frame.frame-bare { position: relative; }
+.widget-frame.frame-bare .widget-header {
+  position: absolute; inset: 0 0 auto 0; z-index: 3;
+  background: linear-gradient(rgb(0 0 0 / 0.75), rgb(0 0 0 / 0));
+  border-bottom: none;
+  opacity: 0; transition: opacity 140ms ease;
+}
+.widget-frame.frame-bare:hover .widget-header,
+.widget-frame.frame-bare:focus-within .widget-header { opacity: 1; }
+/* A touchscreen has no hover to reveal it with, so it stays — faintly — rather than being unreachable. Kiosk and
+   lean still hide the whole header outright, so a presentation is unaffected on a tablet. */
+@media (hover: none) {
+  .widget-frame.frame-bare .widget-header { opacity: 0.9; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .widget-frame.frame-bare .widget-header { transition: none; }
+}
 .widget-frame.frame-bare .widget-fetched { display: none; }
 .widget-frame.frame-bare .widget-body { padding: 0; }
 .widget-frame.frame-bare .gallery-card,
@@ -490,6 +512,10 @@ body {
    about chrome, not about removing function. One file → they go as well. */
 .widget-frame.frame-bare .media-meta { display: none; }
 .widget-frame.frame-bare .media-card.is-single .media-controls { display: none; }
+
+/* Kiosk/lean add 8px back to every body; a bare card promised the edges, so say so where it counts. */
+.kiosk .widget-frame.frame-bare .widget-body,
+.lean .widget-frame.frame-bare .widget-body { padding: 0; }
 
 /* The media stage's own black rounded box would otherwise sit inset inside a now-bare card. */
 .widget-frame.frame-bare .media-stage { border-radius: 0; }

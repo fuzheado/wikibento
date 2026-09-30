@@ -138,6 +138,37 @@ try {
       if (pageErrors.length) problems.push(`${board}: ${pageErrors[0]}`);
       console.log(`  ${cards && !pageErrors.length ? '✅' : '❌'} ${board.padEnd(30)} ${String(cards).padStart(3)} cards · ${pageErrors.length ? pageErrors[0] : 'no page errors'}`);
     }
+      // A bare card is the one card whose chrome is hidden by design — so the chrome has to come BACK, or it would be
+      // a picture you can look at but never configure, resize or remove. Asked by Andrew the day it shipped ("how do I
+      // get to the controls of them?"), and this is the guard that keeps the answer true.
+      try {
+        const probe = {
+          version: 1,
+          widgets: [{ id: 'bare-probe', widgetType: 'gallery', config: { from: 'list', files: 'File:The Earth seen from Apollo 17.jpg', displayMode: 'single', imageFit: 'cover', frame: 'bare', showCaptions: false } }],
+          layout: [{ i: 'bare-probe', x: 0, y: 0, w: 3, h: 5 }],
+        };
+        await page.goto(`${base}/?config=/demos.json`, { waitUntil: 'domcontentloaded' });
+        await page.getByRole('button', { name: /Import/ }).click();
+        await page.waitForSelector('.import-textarea', { timeout: TIMEOUT_MS });
+        await page.locator('.import-textarea').fill(JSON.stringify(probe));
+        await page.locator('.import-panel button.btn-primary').click();
+        await page.waitForSelector('.gallery-single-img', { timeout: TIMEOUT_MS });
+        const card = page.locator('[data-widget-id]').first();
+        const header = card.locator('.widget-header');
+        const atRest = await header.evaluate((el) => getComputedStyle(el).opacity);
+        await card.hover();
+        await page.waitForTimeout(400);
+        const onHover = await header.evaluate((el) => getComputedStyle(el).opacity);
+        await card.locator('.widget-btn[title="Configure"]').click();
+        await page.waitForTimeout(400);
+        const panel = await card.locator('.widget-config').isVisible().catch(() => false);
+        if (atRest !== '0') problems.push(`bare frame: title bar visible at rest (opacity ${atRest})`);
+        if (onHover !== '1') problems.push(`bare frame: title bar did not reveal on hover (opacity ${onHover})`);
+        if (!panel) problems.push('bare frame: the ⚙ panel does not open from the revealed bar');
+        console.log(`  ${atRest === '0' && onHover === '1' && panel ? '✅' : '❌'} ${'bare frame'.padEnd(30)} controls revealed on hover (${atRest} → ${onHover}) · ⚙ ${panel ? 'opens' : 'BLOCKED'}`);
+      } catch (e) {
+        problems.push(`bare frame: ${String(e.message || e).slice(0, 110)}`);
+      }
   } finally {
     await browser.close();
   }

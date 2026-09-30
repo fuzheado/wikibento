@@ -275,8 +275,7 @@ own **Video fit** does for a picture what Image fit does for a photo — *letter
 unasked is worse than bars.
 
 A gallery's **Show captions** switch turns the text off in every mode. In **Single image** a caption is an overlay on a
-gradient, so wanting one costs no height. Nothing else changed: a bare card is still draggable by its edge and still
-reaches its ⚙ panel from the board toolbar. Open `?config=/image-tile-demo.json` to see all of it on one board.
+gradient, so wanting one costs no height. **Nothing is lost by hiding the chrome.** The title bar does not disappear — it fades in *over* the media when you hover the card (or reach it with the keyboard), which is where ⓘ About, ⚙ Configure, ↻ Refresh, ✕ Remove and the instance-name chip live, and **drag a card by that bar** — the same handle every card in this app uses, which is why bare reveals it rather than deleting it On a touchscreen, where there is no hover to reveal it with, the bar stays faintly visible; in **Present** or **Lean** mode it is gone outright, because a presentation is not an editing surface. Open `?config=/image-tile-demo.json` to see all of it on one board.
 
 ## Story mode — the article as a continuous scroll (ISSUE-119)
 

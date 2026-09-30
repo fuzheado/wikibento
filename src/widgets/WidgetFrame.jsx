@@ -1789,10 +1789,16 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
   return (
     <div className="gallery-single" ref={wrapRef}>
       <a className={`gallery-single-link${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl}
+        /* An <a> and an <img> are natively draggable, and a bare card is one big link — so a drag across the picture
+           would otherwise start a browser drag *ghost* instead of doing nothing. This stops that. It does NOT make the
+           picture a layout handle: intent in this app has always been that a card moves by its title bar (measured
+           2026-09-29 — header drag 229px, content drag 0px, bare or not), which is exactly why a bare card reveals that
+           bar on hover. The video stage is deliberately untouched: a drag on a seek bar is a seek, not a layout move. */
+        draggable={false}
         target="_blank" rel="noopener noreferrer" onClick={onClick} title={img.caption || img.title}>
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         {sizes ? (
-          <img className="gallery-single-img" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
+          <img className="gallery-single-img" draggable={false} src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes={sizes} alt={img.caption || img.title} decoding="async" style={{ objectFit: fit }} />
         ) : (
           <div className="gallery-single-img" aria-hidden="true" />

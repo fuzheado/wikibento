@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-B3EHGR7E.js` (+ `index-ghXnM5_T.css`) |
-| deployed | 2026-09-29 — **one image filling the box** (ISSUE-126): the Gallery can be a **single file drawn edge to edge**. `Display → Single image` plus **Image fit** (letterbox or fill crop) and **Frame → Bare** — which also removes the chrome on the 🎬 video player and the 🌐 panorama, so the media fills the card. Bare keeps a playlist's transport controls and any warning; the gallery's captions are a switch of their own. `public/image-tile-demo.json`. |
+| production bundle | `index-BlCxPMq-.js` (+ `index-CWEKgJML.css`) |
+| deployed | 2026-09-29 (later) — **bare cards stay controllable** (ISSUE-126 follow-up). `Frame → Bare` no longer deletes the title bar: it fades in over the media on hover (or keyboard focus), carrying the instance chip and ⓘ ⚙ ↻ ✕, and it is the handle the card is dragged by. On a touchscreen it stays faintly visible; Present/Lean still hide it. Guarded in `npm test` through `scripts/smoke-built.mjs`. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
