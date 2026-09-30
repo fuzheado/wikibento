@@ -691,8 +691,8 @@ const server = createServer(async (req, res) => {
     // headers), so this endpoint follows the redirect server-side and returns
     // the final URL. The client then fetches via the Action API / direct fetch.
     if (url.pathname === '/api/resolve') {
-        const gate = relayCheck(req);
-        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const target = url.searchParams.get('url') || '';
       if (!/^https:\/\//i.test(target)) {
         res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -721,8 +721,8 @@ const server = createServer(async (req, res) => {
 
     // ── /api/staticmap: static map images for the Map widget ──
     if (url.pathname === '/api/staticmap') {
-        const gate = relayCheck(req);
-        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const num = (name, min, max) => {
         const v = Number(url.searchParams.get(name));
         return Number.isFinite(v) && v >= min && v <= max ? v : null;
@@ -791,8 +791,8 @@ const server = createServer(async (req, res) => {
     // returns { status, body } wrapped in JSON with ACAO: * so the app (or any
     // origin) can read it. Read-only, https-only.
     if (url.pathname === '/api/proxy') {
-        const gate = relayCheck(req);
-        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       if (req.method !== 'GET') {
         res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: 'GET only' }));
@@ -840,8 +840,8 @@ const server = createServer(async (req, res) => {
     // caps live here). Returns the normalized { source, files, usage, capped,
     // truncated } shape the widget's fetchGlamStats consumes.
     if (url.pathname === '/api/petscan') {
-        const gate = relayCheck(req);
-        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const origin = req.headers.origin;
       if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'origin not allowed' });
       const ip = ipOf(req);
