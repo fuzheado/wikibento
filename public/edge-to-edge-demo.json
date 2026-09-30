@@ -5,7 +5,7 @@
    "id": "e2e-note",
    "widgetType": "markdown",
    "config": {
-    "text": "## 🖼️ Edge to edge\n\n**Edge to edge** is one switch in ⚙: it takes the card's own chrome away — the title bar fades in over the content when you hover, the padding goes, and the card's own title goes with it — so the thing *is* the card.\n\nIt is offered where the content is something you look at, not text or a table: the **Gallery** (including its Single image and Story modes), the **Video / Media Player**, the **360° Panorama**, and now the **QR Code**, the **Document Reader**, the **IA Book** and the **Wiki Page**.\n\nTwo rules hold, because chrome must never take information with it: a **warning** stays (the video player's *\"N not found\"* line), and a **control the content needs** stays (a playlist's transport; the page-turn toolbar and the source link on the readers below).\n\nHover any card here to bring its title bar back."
+    "text": "## 🖼️ Edge to edge\n\n**Edge to edge** is one switch in ⚙: it takes the card's own chrome away — the title bar fades in over the content when you hover, the padding goes, and the card's own title goes with it — so the thing *is* the card.\n\nIt is offered where the content is something you look at, not text or a table: the **Gallery** (including its Single image and Story modes), the **Video / Media Player**, the **360° Panorama**, and now the **QR Code**, the **Document Reader**, the **IA Book** and the **Wiki Page**.\n\nTwo rules hold, because chrome must never take information with it: a **warning** stays (the video player's *\"N not found\"* line), and a **control the content needs** stays (a playlist's transport; the page-turn toolbar and the source link on the readers below).\n\nHover any card here to bring its title bar back — and **⛶** on that bar puts the card, not the board, full screen (Escape leaves). The embedded page above has the wiki page widget\u2019s **Crop the page\u2019s own header** on, because Objectium draws its own header and sidebar; it is a crop of that page, not a setting Objectium knows about."
    }
   },
   {
@@ -41,7 +41,8 @@
    "widgetType": "wikiPage",
    "config": {
     "url": "https://objectium.toolforge.org/uploads/213",
-    "edgeToEdge": true
+    "edgeToEdge": true,
+    "cropChrome": true
    }
   }
  ],

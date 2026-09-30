@@ -502,6 +502,20 @@ body {
 .widget-frame.edge-to-edge .media-card,
 .widget-frame.edge-to-edge .panorama-card,
 .widget-frame.edge-to-edge .wikipage-card { padding: 0; }
+/* A card, full screen (⛶ in its title bar, or on the bar that fades in on an edge-to-edge card). The header stays,
+   so the way out is where the way in was; the body keeps its own padding, because this is a bigger card, not a
+   different one. An embedded viewer is the main beneficiary: its iframe gets the whole screen. */
+.widget-frame:fullscreen { background: var(--surface); border-radius: 0; }
+.widget-frame:fullscreen .widget-body { padding: 12px; }
+.widget-frame.edge-to-edge:fullscreen .widget-body { padding: 0; }
+
+/* An embed that draws its own header and sidebar (Objectium's model page, a wiki page's skin) can be cropped out of
+   view: the card shows the page scaled and shifted so that chrome falls outside it. This is a CROP, not a setting the
+   site knows about — it assumes that page's chrome sits at the TOP and it will need revisiting if that layout changes.
+   It was written for Objectium's 3D viewer, where it is worth about 20% more canvas; the first attempt also shifted
+   horizontally to chase a sidebar and simply clipped the page's own title, so it does one thing now. Off by default. */
+.wikipage-iframe.is-cropped { transform: scale(1.22) translateY(-9%); transform-origin: 0 0; }
+
 /* A QR code is square and needs its quiet zone, so edge to edge makes it as LARGE as the box allows rather than
    stretching it: the wrap keeps its aspect ratio and its own margin (that margin is what a scanner needs), and the
    card centres the result. Stretching it would grow the white panel and leave the code the same size. */

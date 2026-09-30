@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-30T13:11:56.185Z",
+ "generatedAt": "2026-09-30T13:38:59.947Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -1467,6 +1467,12 @@
      "placeholder": "History"
     },
     {
+     "key": "cropChrome",
+     "type": "boolean",
+     "label": "Crop the page’s own header",
+     "hint": "Scales the embedded page up and shifts it so that page’s own header sits outside the card — a crop, not something the site knows about, so it depends on that page’s layout (written for the Objectium 3D viewer). Check it on the card."
+    },
+    {
      "key": "edgeToEdge",
      "type": "boolean"
     }
@@ -1477,6 +1483,7 @@
     "page",
     "project",
     "mobile",
+    "cropChrome",
     "fragment",
     "refreshSeconds"
    ]

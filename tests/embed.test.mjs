@@ -49,3 +49,14 @@ test('wikiPage: labelFromConfig shows the host for a URL, the page otherwise', (
   assert.equal(WIDGET_TYPES.wikiPage.labelFromConfig({ url: 'https://objectium.toolforge.org/uploads/213' }), 'objectium.toolforge.org');
   assert.equal(WIDGET_TYPES.wikiPage.labelFromConfig({ page: 'Albert_Einstein' }), 'Albert Einstein');
 });
+
+// ── the embed's own chrome, cropped (2026-09-29) ─────────────────────────────
+test('wikiPage: the crop switch reaches the card, and is off unless asked', () => {
+  const transform = WIDGET_TYPES.wikiPage.transform;
+  const base = { url: 'https://objectium.toolforge.org/uploads/213', url_set: true };
+  const on = transform({}, { url: 'https://objectium.toolforge.org/uploads/213', cropChrome: true });
+  assert.equal(on.cropChrome, true);
+  assert.equal(on.external, true, 'a custom URL stays sandboxed/external');
+  const off = transform({}, { url: 'https://objectium.toolforge.org/uploads/213' });
+  assert.equal(off.cropChrome, false, 'default: the page is shown as it is');
+});

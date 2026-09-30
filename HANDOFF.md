@@ -27,8 +27,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-D-F-_7i9.js` (+ `index-CNhDEjEm.css`) |
-| deployed | 2026-09-29 (later still) — **widget names, and the rule that keeps them honest** (ISSUE-128). The registry `name` is what the ⚙ panel and the Add-widget menu show, and it is now the source of truth: two widgets were called one thing in the app and another in the docs, so **File Usage by Wiki** ("it is a per-wiki ranking; there is no map") and **IA Item Stats** ("Snapshot" already means screenshot here) are their names, with the story of the rename in `DEPLOYMENTS.md` and ISSUE-128. Widget **ids never change**. Two new `docs-facts` checks fail a build that leaves a retired name in a current-state doc, in `src/`, or in a board — they caught the first draft of this very row. |
+| production bundle | `index-DIXcA-iy.js` (+ `index-BSxbD6_p.css`) |
+| deployed | 2026-09-29 (latest) — **⛶ full screen for one card, and a crop for embeds that draw their own chrome** (ISSUE-129). Every card has ⛶ in its title bar (and on the bar that fades in on an edge-to-edge card); it fullscreens that card by the browser API, so Escape always leaves. Measured on the Objectium embed: the iframe goes from 672×722 in the card to **1830×1220** full screen. The wiki page widget also gains **Crop the page’s own header**, off by default: it scales the embedded page and shifts it up so that page’s own header sits outside the card. On the Objectium card that takes the 3D viewport from ~64% to ~81% of the card. Both are in `public/edge-to-edge-demo.json`. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

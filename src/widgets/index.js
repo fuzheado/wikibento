@@ -1542,6 +1542,7 @@ export const WIDGET_TYPES = {
       page: 'Help:Introduction',
       project: 'en.wikipedia',
       mobile: false,       // true = the m. site (mobile skin)
+      cropChrome: false,   // embeds that draw their own header/sidebar (Objectium): crop them out of view
       fragment: '',        // optional #anchor
       refreshSeconds: 3600,
     },
@@ -1553,6 +1554,7 @@ export const WIDGET_TYPES = {
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'mobile', label: 'Mobile view (?useformat=mobile)', type: 'boolean' },
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
+      { key: 'cropChrome', label: 'Crop the page’s own header', type: 'boolean', hint: 'Scales the embedded page up and shifts it so that page’s own header sits outside the card — a crop, not something the site knows about, so it depends on that page’s layout (written for the Objectium 3D viewer). Check it on the card.' },
       EDGE_TO_EDGE_FIELD,
     ],
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
@@ -1568,7 +1570,7 @@ export const WIDGET_TYPES = {
       if (rawUrl) {
         const url = safeEmbedUrl(rawUrl);
         if (!url) return { url: null, page: '', project, error: 'Enter an http(s) URL' };
-        return { url, page: embedLabel(url), external: true };
+        return { url, page: embedLabel(url), external: true, cropChrome: !!config.cropChrome };
       }
       const page = String(ref.isRef ? ref.title : (config.page || '')).trim();
       if (!page) return { url: null, page: '', project };

@@ -262,6 +262,22 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
      *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
      *  consumer picks it up with `{{widget:id#selection}}` or by naming `id#selection` as its source. */
+    /** ⛶ — this card, full screen (2026-09-29). The browser's own API, so Escape always exits and the app has to
+     *  remember nothing; the point is an embedded viewer (the iframe gets the whole screen and its own app scales up)
+     *  or a single photograph. `fullscreenchange` is listened to rather than assumed, because Escape leaves silently. */
+    const [isFull, setIsFull] = useState(false);
+    useEffect(() => {
+      const onChange = () => setIsFull(document.fullscreenElement === cardRef.current);
+      document.addEventListener('fullscreenchange', onChange);
+      return () => document.removeEventListener('fullscreenchange', onChange);
+    }, []);
+    const toggleFullscreen = useCallback(() => {
+      const el = cardRef.current;
+      if (!el || typeof el.requestFullscreen !== 'function') return;
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+      else el.requestFullscreen().catch(() => {});
+    }, []);
+
     const handleSelect = useCallback((value) => {
       if (value === undefined || value === null || value === '') return;
       if (onOutput) onOutput(widget.id, value, 'selection');
@@ -577,6 +593,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             title={widget.config?.title}
           />
           <button className="widget-btn" onClick={() => load(true)} title="Refresh">↻</button>
+            <button
+              className="widget-btn"
+              onClick={toggleFullscreen}
+              title={isFull ? 'Exit full screen (Esc also works)' : 'This card, full screen'}
+            >{isFull ? '⛉' : '⛶'}</button>
           <button
             className="widget-btn widget-btn-remove"
             onClick={() => onRemove(widget.id)}
@@ -2875,7 +2896,7 @@ function WikiPageCard({ data }) {
   return (
     <div className="wikipage-card">
       <iframe
-        className="wikipage-iframe"
+        className={`wikipage-iframe${data.cropChrome ? ' is-cropped' : ''}`}
         src={data.url}
         title={data.page}
         referrerPolicy="no-referrer"
