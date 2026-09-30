@@ -450,7 +450,21 @@ if (LIVE) {
     }
     results.push({ name: LIVE_NAME, ok: true, detail: `${claimed} — matches production (HTTP 200)` });
   } catch (err) {
-    results.push({ name: LIVE_NAME, ok: false, detail: `could not verify against production: ${err.message}` });
+    // A dropped request is not a doc error, and this check has gone red on one (2026-09-29) while the docs were fine.
+    // Retry once, then say plainly that production could not be reached rather than pretending the docs mismatch.
+    try {
+      await new Promise((r) => setTimeout(r, 1500));
+      const retry = await fetch(PROD_URL);
+      const html2 = await retry.text();
+      const served2 = html2.match(/index-[A-Za-z0-9_-]+\.js/);
+      if (served2 && served2[0] === claimed) {
+        results.push({ name: LIVE_NAME, ok: true, detail: `${claimed} — matches production (on retry, HTTP ${retry.status})` });
+      } else {
+        results.push({ name: LIVE_NAME, ok: false, detail: `could not verify against production: ${err.message}; retry served ${served2 ? served2[0] : 'no bundle'}` });
+      }
+    } catch (err2) {
+      results.push({ name: LIVE_NAME, ok: false, detail: `could not reach production: ${err2.message} (docs not judged)` });
+    }
   }
 }
 
