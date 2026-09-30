@@ -257,6 +257,27 @@ brush is for.
 4. Click again on something new, and again. The brush **stays armed** — that is the point.
 5. Click **🖌 <type> ▾** to switch types, or **✕ Stop picking** to leave the mode.
 
+## Filling the box — one image, letterboxed or cropped (ISSUE-101, delivered by ISSUE-126)
+
+A gallery does not have to be a grid. Paste **one** `File:` name into **Images come from → A list of files I paste**, set
+**Display → Single image**, and the card *is* that file. Two switches then decide how it fills the box:
+
+| switch | what it does |
+|---|---|
+| **Image fit** | *Letterbox* — the whole file, with the card's own background around it. *Fill crop* — covers the box, cropping what does not fit. |
+| **Frame → Bare** | Takes away the title bar, the body padding and the card's own title, so the picture reaches the edges. |
+
+**Bare** is offered on the 🎬 **Video / Media Player** and the 🌐 **360° Panorama** as well, and means the same thing on
+each: the media is the card. On the player the file-name line goes, and for a single file its transport controls with it
+(the video's own controls stay); a *playlist* keeps its controls, because with more than one file they are the only way to
+reach the others, and a **"N not found"** note is a warning rather than decoration, so it keeps its line too. The video's
+own **Video fit** does for a picture what Image fit does for a photo — *letterbox* by default, since cropping a video
+unasked is worse than bars.
+
+A gallery's **Show captions** switch turns the text off in every mode. In **Single image** a caption is an overlay on a
+gradient, so wanting one costs no height. Nothing else changed: a bare card is still draggable by its edge and still
+reaches its ⚙ panel from the board toolbar. Open `?config=/image-tile-demo.json` to see all of it on one board.
+
 ## Story mode — the article as a continuous scroll (ISSUE-119)
 
 A gallery whose **Display** is **Story** stops being a grid and becomes one continuous scroll inside its card: the

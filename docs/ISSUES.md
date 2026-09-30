@@ -4892,7 +4892,7 @@ list with small namespaces collapsed into "Other"; namespace labels from the wik
 and distinct pages as a subtitle; and say "≥5,000" when the code's documented result cap bites instead
 of presenting a capped number as a total.
 
-## ISSUE-101 · Single Commons image tile: full-bleed decorative image — **open**
+## ISSUE-101 · Single Commons image tile: full-bleed decorative image — **delivered 2026-09-29 as a gallery display mode (ISSUE-126)**
 
 > **Renumbered 2026-09-18:** registered as ISSUE-78, which collided with *Lifeline*. The older
 > entry keeps 78 (it is referenced from `src/lib/timeline.js`, `src/widgets/WidgetFrame.jsx`,
@@ -4991,6 +4991,53 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 **A test changed on purpose.** `ask-validation` locked in a bug report where the model emitted `fileGallery` +
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
+
+## ISSUE-126 · One image filling the box: the gallery's Single mode, a caption switch, and Frame → Bare — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"Is there a widget just to display one image that fully fills a widget, which can be either
+> letterboxed or cropped to fill the whole widget? should this be just a simple form of the gallery widget? Either way,
+> I want to be able to turn off as much decoration on the gallery widget and the video widget, so that the image or
+> video fills up as much as the widget as possible."*
+
+**No new widget — and the thing that was missing was not a widget.** ISSUE-101 had proposed an `imageTile` type; but the
+gallery already sources a single file (`from: 'list'`, one pasted line) and already owns `imageFit` (letterbox / fill
+crop), so a type would have added a registry entry without adding a capability. What was actually missing was the
+**frame** and the **decoration**:
+
+- **`frame: 'card' | 'bare'`** — one shared `FRAME_FIELD` object, declared by the three media types (gallery, media
+  player, panorama), read by `WidgetFrame` exactly as `verticalAlign` already was, applied as `frame-bare`. Bare removes
+  the title bar (33px), the body padding (12px a side), each card's own inner padding (8–10px a side), the ⏱ freshness
+  stamp, and the card's own title/subtitle — for the media player, its file name and duration line as well. Two things
+  deliberately survive: a **playlist's transport controls** (with more than one file they are the only way to reach the
+  others — one file and they go too) and any **warning** (the player's "N not found" note keeps its line, because "bare"
+  is about chrome, not about hiding problems).
+- **`displayMode: 'single'`** — a fourth gallery mode, resolved inside `galleryMode()` like the other three. That
+  function exists precisely because an absent mode read three ways is how a card gets one mode's payload drawn by
+  another's renderer; adding a mode anywhere else is how this bug comes back. The card draws one row as the whole card:
+  no title, no subtitle, no caption block, and a caption, when asked for, is a gradient overlay (the story's `full`
+  panel precedent) so it costs no height.
+- **`showCaptions`** (gallery) — off in grid, list and single alike.
+- **`objectFit`** (media player) — contain (the default: never crop a picture unasked) or cover.
+
+**Measured in the built app** (Chromium, a probe board pasted through ⬆ Import — cards 356×632):
+
+| card | rendered image | fill |
+|---|---|---|
+| single + cover + bare | 354×630 | **100%** |
+| single + contain + bare | 354×630 (letterboxed inside) | 100% |
+| single + cover, **card** frame | 330×572 | 91% |
+| bare video | 354×630 | **100%** (84% until the media meta line was hidden too) |
+| grid, captions on / off | 217×150 tiles | 2 captions / **0** |
+
+**ISSUE-101 is delivered by this** — as a display mode rather than a type. Its two remaining ideas stay open in spirit:
+a focal point for deliberate cropping, and an attribution treatment for the ⓘ panel (the file page is still the
+click-through, and a picked tile still publishes `File:…`).
+
+**Tests:** `tests/gallery-options.test.mjs` gained four (mode dispatch for all four modes *and* the absent case, the
+caption switch reaching the transform, the shared frame field on all three media types, the video fit incl. a nonsense
+value); `tests/renderer-registry.test.mjs` gained the guard the registry was missing — it checked the `renderer:` key but
+not the renderers a **`getRenderer` returns**, which is the only way `GallerySingleCard` ever arrives. 659 tests, 0
+failures; docs-facts 9/9.
 
 ## ISSUE-125 · A WebKit page error: `FileReader.readAsBinaryString` given a non-Blob — **open** (low; found by the demos sweep, 2026-09-24)
 

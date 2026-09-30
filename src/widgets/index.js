@@ -71,7 +71,8 @@ const pageviewsMode = (config) => (config && config.displayMode === 'trend' ? 't
  * and `transform` all branch on it, so an absent value read three ways is how a card gets one mode's payload drawn by
  * another mode's renderer. `story` (ISSUE-119) is the continuous-scroll presentation; it fetches like the article
  * gallery but includes the caption-less <gallery> images and wants chapters, because a story needs every image the
- * article shows and needs its spine.
+ * article shows and needs its spine. `single` (2026-09-30) draws one file edge to edge — ISSUE-101's image tile,
+ * which needed no new source (the gallery already takes one pasted file) and no new fit switch (it has `imageFit`).
  */
 const BOX_SOURCE_DEFAULT = 'Template';
 /**
@@ -85,7 +86,7 @@ const boxSource = (config) => (config && config.source === 'Page' ? 'Page' : BOX
 const GALLERY_MODE_DEFAULT = 'grid';
 const galleryMode = (config) => {
   const m = config && config.displayMode;
-  return m === 'list' || m === 'story' ? m : GALLERY_MODE_DEFAULT;
+  return m === 'list' || m === 'story' || m === 'single' ? m : GALLERY_MODE_DEFAULT;
 };
 import { toLines, countOf } from '../lib/dataflow';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
@@ -163,6 +164,21 @@ function safeEmbedUrl(raw) {
 function embedLabel(raw) {
   try { return new URL(raw).hostname.replace(/^www\./, ''); } catch { return String(raw || '').slice(0, 40); }
 }
+
+/** The frame's own appearance, as opposed to the data's: `bare` drops the title bar and the padding so a
+ *  single image or a video can fill the box edge to edge. Declared per type — like `verticalAlign` — because
+ *  only the media types have something worth filling a box with. One object, so the three media types cannot
+ *  drift apart in wording or options. */
+const FRAME_FIELD = {
+  key: 'frame', label: 'Frame', type: 'select',
+  hint: 'Bare removes the title bar and the body padding, so the media reaches the edges of the box.',
+  options: [
+    { value: 'card', label: 'Card (title bar + padding)' },
+    { value: 'bare', label: 'Bare (edge to edge)' },
+  ],
+};
+
+const FRAME_DEFAULT = 'card';
 
 export const WIDGET_TYPES = {
   pageviews: {
@@ -812,7 +828,9 @@ export const WIDGET_TYPES = {
       page: 'The Venetian Macao',
       category: 'Featured pictures',
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
-      displayMode: 'grid',   // 'grid' | 'list' | 'story'   // 'grid' | 'list'
+      displayMode: 'grid',   // 'grid' | 'list' | 'story' | 'single'
+      showCaptions: true,    // off leaves the image alone: no caption under a tile, no overlay in single mode
+      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
       iconSize: 'medium',
       imageFit: 'contain',
       order: 'listed',       // list/category: 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
@@ -825,7 +843,15 @@ export const WIDGET_TYPES = {
       refreshSeconds: 3600,
     },
     renderer: 'GalleryGridCard',
-    getRenderer: (config) => (galleryMode(config) === 'list' ? 'GalleryListCard' : galleryMode(config) === 'story' ? 'StoryCard' : 'GalleryGridCard'),
+    // `galleryMode` resolves the display mode in ONE place, so the fetch, the renderer and the transform
+    // cannot disagree about it (the absent-displayMode bug that function was written for).
+    getRenderer: (config) => {
+      const mode = galleryMode(config);
+      if (mode === 'list') return 'GalleryListCard';
+      if (mode === 'story') return 'StoryCard';
+      if (mode === 'single') return 'GallerySingleCard';
+      return 'GalleryGridCard';
+    },
     dataSource: 'four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)',
     configFields: [
       { key: 'from', label: 'Images come from', type: 'select', options: [
@@ -861,16 +887,19 @@ export const WIDGET_TYPES = {
         { value: 'grid', label: 'Grid (captions below)' },
         { value: 'list', label: 'List (thumb left, caption right)' },
         { value: 'story', label: 'Story (continuous scroll — each image\'s shape picks its panel)' },
+        { value: 'single', label: 'Single image (the first image fills the box)' },
       ]},
       { key: 'iconSize', label: 'Grid size', type: 'select', options: [
         { value: 'small', label: 'Small' },
         { value: 'medium', label: 'Medium' },
         { value: 'large', label: 'Large' },
       ]},
-      { key: 'imageFit', label: 'Grid image fit', type: 'select', options: [
+      { key: 'imageFit', label: 'Image fit', type: 'select', options: [
         { value: 'contain', label: 'Letterbox (always show whole image)' },
-        { value: 'cover', label: 'Fill crop (square crop)' },
-      ]},
+        { value: 'cover', label: 'Fill crop' },
+      ], hint: 'Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.' },
+      { key: 'showCaptions', label: 'Show captions', type: 'boolean', hint: 'Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes.' },
+      FRAME_FIELD,
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500,
         hint: 'A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs.' },
       { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
@@ -930,6 +959,7 @@ export const WIDGET_TYPES = {
       const common = {
         size: config.iconSize || 'medium',
         fit: config.imageFit || 'contain',
+        showCaptions: config.showCaptions !== false,
         selectable: (config.linkAction || 'new tab') !== 'new tab',
         linkAction: config.linkAction || 'new tab',
       };
@@ -1792,6 +1822,7 @@ export const WIDGET_TYPES = {
       filename: "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
       project: 'commons.wikimedia',
       autoRotate: false,
+      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
       refreshSeconds: 3600,
     },
     renderer: 'PanoramaCard',
@@ -1800,6 +1831,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
       { key: 'filename', label: 'Commons file (360° / equirectangular)', kind: 'commons-file', type: 'text', placeholder: 'File:Example 360.jpg' },
+      FRAME_FIELD,
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'autoRotate', label: 'Auto-rotate', type: 'boolean' },
     ],
@@ -1833,6 +1865,8 @@ export const WIDGET_TYPES = {
       shuffle: false,
       autoplay: false,
       showDescription: true,
+      objectFit: 'contain',  // 'contain' (letterbox — never crop the picture) | 'cover' (fills the box)
+      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
       annotation: '',
       refreshSeconds: 3600,
     },
@@ -1857,6 +1891,11 @@ export const WIDGET_TYPES = {
       { key: 'shuffle', label: 'Shuffle order', type: 'boolean' },
       { key: 'autoplay', label: 'Autoplay (browsers need one click first)', type: 'boolean' },
       { key: 'showDescription', label: 'Show Commons description (now playing)', type: 'boolean' },
+      { key: 'objectFit', label: 'Video fit', type: 'select', options: [
+        { value: 'contain', label: 'Letterbox (never crop the picture)' },
+        { value: 'cover', label: 'Fill crop (fills the box)' },
+      ]},
+      FRAME_FIELD,
       { key: 'annotation', label: 'Your annotation (Markdown)', type: 'textarea', rows: 3, placeholder: 'Free-form caption for this board — **bold**, [links](https://…), credit lines…' },
     ],
     fetch: (config) => fetchMediaPlaylist(config.files),
@@ -1864,6 +1903,7 @@ export const WIDGET_TYPES = {
       title: 'Media player',
       subtitle: `${data.rows.length} file${data.rows.length === 1 ? '' : 's'} · ${data.missing ? `${data.missing} not found · ` : ''}${data.rows.filter((r) => r.mediaType === 'video').length} video, ${data.rows.filter((r) => r.mediaType === 'audio').length} audio`,
       showDescription: config.showDescription !== false,
+      objectFit: config.objectFit === 'cover' ? 'cover' : 'contain',
       annotation: (config.annotation || '').trim(),
       rows: data.rows,
       mediaType: config.mediaType || 'auto',

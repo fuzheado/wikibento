@@ -28,6 +28,22 @@ test('every renderer named in the widget registry is defined', () => {
   assert.deepEqual(missing, [], `registry points at renderers that do not exist: ${missing.join(', ')}`);
 });
 
+/**
+ * The same guard, one indirection further: `getRenderer` returns a renderer NAME rather than naming one in the
+ * `renderer` key, so a component that only ever arrives that way — GallerySingleCard, TrendCard — was never
+ * checked by the test above. That is exactly where the next missing-component bug would hide.
+ */
+test('every renderer a getRenderer can return is defined too', () => {
+  const registry = read('src/widgets/index.js');
+  const frame = read('src/widgets/WidgetFrame.jsx');
+  // Every `'…Card'` string literal, which covers both spellings a getRenderer uses — `return 'X'` and the
+  // ternary `(mode === 'trend' ? 'TrendCard' : 'StatCard')` — since the point is the NAME, not the syntax.
+  const names = [...new Set([...registry.matchAll(/'([A-Za-z][A-Za-z0-9_]*Card)'/g)].map((m) => m[1]))];
+  assert.ok(names.length >= 10, `expected the registry to name many renderers, found ${names.length}`);
+  const missing = names.filter((name) => !new RegExp(`function\\s+${name}\\s*\\(`).test(frame));
+  assert.deepEqual(missing, [], `getRenderer points at renderers that do not exist: ${missing.join(', ')}`);
+});
+
 test('every renderer the content dispatcher switches on is defined too', () => {
   const frame = read('src/widgets/WidgetFrame.jsx');
   const cases = [...new Set([...frame.matchAll(/case\s+'([A-Za-z0-9_]+)':\s*return\s*</g)].map((m) => m[1]))];

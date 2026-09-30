@@ -1,0 +1,67 @@
+{
+ "version": 1,
+ "widgets": [
+  {
+   "id": "tile-note",
+   "widgetType": "markdown",
+   "config": {
+    "text": "## 🖼️ One image, filling the box\n\nThe **Gallery** can show a single file — paste one line into **Images come from → A list of files I paste** — and **Display → Single image** draws just that file. Two switches then decide how it fills its card:\n\n- **Image fit** — *Letterbox* shows the whole file, *Fill crop* covers the box edge to edge.\n- **Frame → Bare** — takes the title bar, the padding and the card's own title away, so the picture reaches the edges. On the video beside it, the same setting removes the player's file line and (for one file) its transport, leaving the video and its native controls.\n\nThe tiles beside this note are the same two switches: **cover**, **letterbox**, a **bare video**, and a grid with **Show captions off**. Click any tile to open its Commons file page."
+   }
+  },
+  {
+   "id": "tile-cover",
+   "widgetType": "gallery",
+   "config": {
+    "from": "list",
+    "files": "File:The Earth seen from Apollo 17.jpg",
+    "displayMode": "single",
+    "imageFit": "cover",
+    "frame": "bare",
+    "showCaptions": false,
+    "linkAction": "new tab"
+   }
+  },
+  {
+   "id": "tile-letterbox",
+   "widgetType": "gallery",
+   "config": {
+    "from": "list",
+    "files": "File:Albert Einstein Head.jpg",
+    "displayMode": "single",
+    "imageFit": "contain",
+    "frame": "bare",
+    "showCaptions": false,
+    "linkAction": "new tab"
+   }
+  },
+  {
+   "id": "tile-video",
+   "widgetType": "mediaPlayer",
+   "config": {
+    "files": "File:2025 Skate America Jason Brown 3A.webm",
+    "objectFit": "cover",
+    "frame": "bare",
+    "showDescription": false
+   }
+  },
+  {
+   "id": "tile-captions-off",
+   "widgetType": "gallery",
+   "config": {
+    "from": "list",
+    "files": "File:The Earth seen from Apollo 17.jpg\nFile:Albert Einstein Head.jpg\nFile:Cathedral of Learning at dusk.jpg",
+    "displayMode": "grid",
+    "iconSize": "medium",
+    "showCaptions": false,
+    "linkAction": "new tab"
+   }
+  }
+ ],
+ "layout": [
+  { "i": "tile-note", "x": 0, "y": 0, "w": 6, "h": 6 },
+  { "i": "tile-cover", "x": 6, "y": 0, "w": 3, "h": 6 },
+  { "i": "tile-letterbox", "x": 9, "y": 0, "w": 3, "h": 6 },
+  { "i": "tile-video", "x": 0, "y": 6, "w": 6, "h": 6 },
+  { "i": "tile-captions-off", "x": 6, "y": 6, "w": 6, "h": 6 }
+ ]
+}

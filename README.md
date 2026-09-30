@@ -46,6 +46,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
 | 📄 [Read a document](https://wikibento.toolforge.org/?config=/document-reader-demo.json) | a 329-page PDF and a DjVu read page by page — turn, zoom, jump, **facing pages** — beside an Internet Archive book (one reader, two archives), plus a small work transcribed on **Wikisource** whose page text appears with its proofreading grade (*Validated* — and *Not proofread (uncorrected OCR)* where that is the truth) |
 | 📰 [A wiki page in a card](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) | any wiki page rendered in a card — the lead, one section, or the whole thing — with its tables and images, and **every blue link a pick target** |
+| 🖌 [One image filling the box](https://wikibento.toolforge.org/?config=/image-tile-demo.json) | a single Commons file as a **full-bleed tile** — letterboxed or cropped, with the chrome switched off |
 | 🎞 [Story mode](https://wikibento.toolforge.org/?config=/story-demo.json) | **one Wikipedia article as a continuous scroll** — its images and captions, the article's own chapters, and a panel per image chosen by that image's shape |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
@@ -95,6 +96,13 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   the side. Set **Display → Story** on any gallery and point it at an article, or open [`?config=/story-demo.json`](https://wikibento.toolforge.org/?config=/story-demo.json).json` (Gallery, Images come from
   *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
   a single tall card is the whole screen, which is the way to show it to a room.
+- **Filling the box** — a gallery can be **one file filling its card**. Paste a single `File:` name, set **Display →
+  Single image**, and two switches decide the rest: **Image fit** (*Letterbox* shows the whole file, *Fill crop* covers
+  the box) and **Frame → Bare**, which takes away the title bar, the padding and the card's own title so the picture
+  reaches the edges. **Bare** works on the 🎬 **Video / Media Player** too — its file line goes, and for a single file
+  its transport controls with it, while the video's own controls stay — and on the 🌐 **360° Panorama**. A gallery's
+  captions are a switch as well, so a tile can carry no text at all. Open
+  [`?config=/image-tile-demo.json`](https://wikibento.toolforge.org/?config=/image-tile-demo.json) to see all four.
 - **A wiki page in a card** — the 📰 **Wikipedia Box** renders **any page by title**, not only a Main Page template:
   choose the **lead** (light, and dense with links), a section by number or heading name, or the whole page. Its own
   tables, images and references come with it — styled by the app rather than by Wikipedia's skin — and the card's footer

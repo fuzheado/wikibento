@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-26T03:34:28.433Z",
+ "generatedAt": "2026-09-30T03:34:11.485Z",
  "widgetCount": 41,
  "widgets": [
   {
@@ -745,7 +745,8 @@
      "options": [
       "grid",
       "list",
-      "story"
+      "story",
+      "single"
      ]
     },
     {
@@ -761,11 +762,18 @@
     {
      "key": "imageFit",
      "type": "select",
-     "label": "Grid image fit",
+     "label": "Image fit",
+     "hint": "Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.",
      "options": [
       "contain",
       "cover"
      ]
+    },
+    {
+     "key": "showCaptions",
+     "type": "boolean",
+     "label": "Show captions",
+     "hint": "Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes."
     },
     {
      "key": "maxItems",
@@ -792,6 +800,8 @@
     "category",
     "files",
     "displayMode",
+    "showCaptions",
+    "frame",
     "iconSize",
     "imageFit",
     "order",
@@ -1648,12 +1658,17 @@
      "key": "autoRotate",
      "type": "boolean",
      "label": "Auto-rotate"
+    },
+    {
+     "key": "frame",
+     "type": "select"
     }
    ],
    "defaults": [
     "filename",
     "project",
     "autoRotate",
+    "frame",
     "refreshSeconds"
    ]
   },
@@ -1721,6 +1736,15 @@
      "label": "Show Commons description (now playing)"
     },
     {
+     "key": "objectFit",
+     "type": "select",
+     "label": "Video fit",
+     "options": [
+      "contain",
+      "cover"
+     ]
+    },
+    {
      "key": "annotation",
      "type": "textarea",
      "label": "Your annotation (Markdown)",
@@ -1735,6 +1759,8 @@
     "shuffle",
     "autoplay",
     "showDescription",
+    "objectFit",
+    "frame",
     "annotation",
     "refreshSeconds"
    ]

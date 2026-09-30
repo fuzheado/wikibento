@@ -467,6 +467,38 @@ body {
 .widget-body.v-align-top > * { width: 100%; }
 .widget-body.v-align-center { align-items: center; }
 
+/* ── Frame: Bare — the card chrome gets out of the way ──────────────────────────────────────────────
+   Declared per widget (`frame: 'card' | 'bare'`), read by WidgetFrame, applied here. The point is a single
+   image, a video or a panorama filling the box it was given: the title bar costs 33px, the body padding 24px,
+   and each card's own inner padding another 16–20px. Hide the lot — and the ⏱ freshness stamp with them, since
+   in a decorative tile it is the one thing that would sit ON the picture. Two precedents, not a new idea:
+   `.markdown-card` has kept a flush body all along, and lean/kiosk already hide `.widget-header` outright. */
+.widget-frame.frame-bare .widget-header { display: none; }
+.widget-frame.frame-bare .widget-fetched { display: none; }
+.widget-frame.frame-bare .widget-body { padding: 0; }
+.widget-frame.frame-bare .gallery-card,
+.widget-frame.frame-bare .media-card,
+.widget-frame.frame-bare .panorama-card { padding: 0; }
+/* The card's own title goes as well — with the frame bare, the picture is the title. The subtitle goes with it
+   EXCEPT when it is carrying a warning: the media player says "N not found" there, and hiding that would be the
+   card quietly lying about what it is showing (the panorama's badge is kept for the same reason). */
+.widget-frame.frame-bare .ranking-title { display: none; }
+.widget-frame.frame-bare .media-card:not(.has-missing) .ranking-subtitle { display: none; }
+
+/* The media player's file-name/duration line is its title in the same sense, so it goes too. The transport
+   controls stay for a PLAYLIST: with more than one file they are the only way to reach the others, and bare is
+   about chrome, not about removing function. One file → they go as well. */
+.widget-frame.frame-bare .media-meta { display: none; }
+.widget-frame.frame-bare .media-card.is-single .media-controls { display: none; }
+
+/* The media stage's own black rounded box would otherwise sit inset inside a now-bare card. */
+.widget-frame.frame-bare .media-stage { border-radius: 0; }
+/* States still need breathing room once the padding has gone — an error message is not a picture. */
+.widget-frame.frame-bare .widget-empty,
+.widget-frame.frame-bare .widget-error,
+.widget-frame.frame-bare .widget-loading { padding: 12px; }
+
+
 /* Markdown card fills the body; frame keeps it scrollable */
 .widget-body:has(.markdown-card) {
   align-items: stretch;
@@ -1468,6 +1500,21 @@ body {
 .gallery-list-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .gallery-list-caption { font-size: 11px; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gallery-list-file { font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── Gallery: Single — one file filling the box (ISSUE-101, delivered as a display mode) ─────────────
+   The gallery already sources a single file (`from: 'list'`, one line) and already owns `imageFit`, so the mode
+   only had to stop decorating: no title, no subtitle, no caption block, and `imageFit` deciding letterbox vs
+   crop. Without the frame's Bare option the picture fills the card's body; with it, the card. */
+.gallery-single { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; }
+.gallery-single-link { position: relative; display: block; width: 100%; height: 100%; }
+.gallery-single-img { display: block; width: 100%; height: 100%; background: var(--bg); }
+/* The caption is an overlay, so having one costs no height — the same treatment as the story's `full` panel. */
+.gallery-single-caption {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px;
+  font-size: 11px; line-height: 1.35; color: #fff;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.8));
+}
+
 
 /* ── 360° Panorama Viewer ───────────────────────────────── */
 .panorama-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }

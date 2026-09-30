@@ -296,3 +296,53 @@ test('video items are gallery candidates, audio is not, and the story can opt ou
   const story = selectGalleryCandidates(items, { includeAll: true, videos: false });
   assert.deepEqual(story.kept.map((i) => i.title), ['File:A.jpg'], 'the story stays images-only');
 });
+
+// ── Single image + decoration off (2026-09-30) ──────────────────────────────
+// ISSUE-101 asked for an `imageTile` widget that fills its box. The answer turned out to be that the gallery
+// already sources a single file (`from: 'list'`, one line) and already owns `imageFit` (letterbox vs crop), so
+// what was actually missing was the frame and the decoration. These pin the mode's dispatch and the switches.
+test('single: one file fills the box, and the mode is resolved through galleryMode', () => {
+  const modeField = galleryDef.configFields.find((f) => f.key === 'displayMode');
+  assert.deepEqual(modeField.options.map((o) => o.value), ['grid', 'list', 'story', 'single']);
+  // `getRenderer` is a function now: the mode is resolved in ONE place, so the four modes cannot drift apart
+  assert.equal(galleryDef.getRenderer({ displayMode: 'single' }), 'GallerySingleCard');
+  assert.equal(galleryDef.getRenderer({ displayMode: 'grid' }), 'GalleryGridCard');
+  assert.equal(galleryDef.getRenderer({ displayMode: 'list' }), 'GalleryListCard');
+  assert.equal(galleryDef.getRenderer({ displayMode: 'story' }), 'StoryCard');
+  // an absent displayMode lands back on the grid — the bug that made galleryMode a single function
+  assert.equal(galleryDef.getRenderer({}), 'GalleryGridCard');
+  assert.equal(galleryDef.getRenderer({ displayMode: 'nonsense' }), 'GalleryGridCard');
+  // a single pasted file is the source, and imageFit is the letterbox-or-crop switch
+  assert.ok(galleryDef.configFields.find((f) => f.key === 'from').options.some((o) => o.value === 'list'));
+  assert.deepEqual(galleryDef.configFields.find((f) => f.key === 'imageFit').options.map((o) => o.value), ['contain', 'cover']);
+});
+
+test('captions can be turned off, and every mode receives the switch', () => {
+  assert.equal(galleryDef.defaults.showCaptions, true);
+  assert.ok(galleryDef.configFields.some((f) => f.key === 'showCaptions' && f.type === 'boolean'));
+  const row = { title: 'File:A.jpg', caption: 'A', mediaType: 'image', thumbUrl: 'x', group: null };
+  const base = { ...galleryDef.defaults, from: 'list', files: 'File:A.jpg' };
+  assert.equal(transform({ rows: [row] }, base).showCaptions, true, 'absent means on: old boards keep their captions');
+  assert.equal(transform({ rows: [row] }, { ...base, showCaptions: false }).showCaptions, false);
+  assert.equal(transform({ rows: [row] }, { ...base, showCaptions: false, displayMode: 'single' }).showCaptions, false);
+});
+
+test('the three media types declare the same Frame field, and it defaults to the card', () => {
+  for (const id of ['gallery', 'mediaPlayer', 'panorama360']) {
+    const def = WIDGET_TYPES[id];
+    assert.equal(def.defaults.frame, 'card', `${id}: needs a frame default`);
+    const f = def.configFields.find((x) => x.key === 'frame');
+    assert.ok(f, `${id}: must declare the frame field`);
+    assert.deepEqual(f.options.map((o) => o.value), ['card', 'bare'], `${id}: both frame options`);
+  }
+});
+
+test('the media player can letterbox or crop its picture, and never crops by default', () => {
+  const def = WIDGET_TYPES.mediaPlayer;
+  assert.equal(def.defaults.objectFit, 'contain', 'a video is not a decorative tile: never crop it unasked');
+  assert.deepEqual(def.configFields.find((f) => f.key === 'objectFit').options.map((o) => o.value), ['contain', 'cover']);
+  const data = { rows: [], missing: 0 };
+  assert.equal(def.transform(data, { ...def.defaults }).objectFit, 'contain');
+  assert.equal(def.transform(data, { ...def.defaults, objectFit: 'cover' }).objectFit, 'cover');
+  assert.equal(def.transform(data, { ...def.defaults, objectFit: 'nonsense' }).objectFit, 'contain');
+});

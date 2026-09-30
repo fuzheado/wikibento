@@ -320,3 +320,16 @@ when an editor changes the box, these cards change with it. Two of them are date
 to **send to the board**, so clicking **Weddell Sea** publishes the page title on the box's `selection` channel. The
 page viewer on the right loads that article, and the Value Display card underneath shows the exact string that
 travelled. Nothing is hard-wired on the consumer side: `{{widget:click-seas#selection}}` is all it takes.
+
+---
+
+## `wikibento-2026-09-29-image-tile.png` — one image filling the box (ISSUE-126)
+
+![Four tiles: a full-bleed Earth, a letterboxed portrait, a bare video and a caption-less grid](screenshots/wikibento-2026-09-29-image-tile.png)
+
+🖌 **The frame, not the widget.** The gallery already sourced a single file and already owned *Image fit*, so all that
+was missing was a way to get the chrome out of the way. Left to right: **cover** filling its card edge to edge with no
+title bar and no padding (100% of the card), the same card in **letterbox** showing the whole portrait, the identical
+image with **Frame → Card** kept — title bar, padding, and the caption as a gradient overlay that costs no height — and
+a **bare video** that also fills its card, native controls intact. The bottom row is one grid twice: captions on, and
+captions off. Verified in the built app; the card frame gives 91% and a fixed grid tile 28%, which is what "bare" buys.

@@ -253,6 +253,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       || WIDGET_TYPES[widget.widgetType]?.defaults?.verticalAlign
       || null;
 
+      // The frame's own appearance (2026-09-30). `bare` drops the title bar and the body padding so a single
+      // image, a video or a panorama fills the box. Same shape as vAlign just above — resolved config, then the
+      // registry default, applied as a class — because the frame is the only component that knows what chrome
+      // a card carries.
+      const frame = resolvedConfig.frame
+        || WIDGET_TYPES[widget.widgetType]?.defaults?.frame
+        || 'card';
+
     /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
      *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
      *  consumer picks it up with `{{widget:id#selection}}` or by naming `id#selection` as its source. */
@@ -541,7 +549,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   };
 
   return (
-    <div className="widget-frame" ref={cardRef}>
+      <div className={`widget-frame${frame === 'bare' ? ' frame-bare' : ''}`} ref={cardRef}>
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
@@ -845,6 +853,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
     case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
+    case 'GallerySingleCard': return <GallerySingleCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
     case 'StoryCard': return <StoryCard data={data} picking={picking} onPickItem={onPickItem} />;
@@ -1757,6 +1766,45 @@ function pickLinkClick(url, onPickItem) {
   return item ? pickClick(item, onPickItem) : undefined;
 }
 
+/** Single: one file filling the box — ISSUE-101's "image tile", which turned out to be a gallery display mode
+ *  rather than a widget of its own. The gallery already sources a single file (`from: 'list'`, one line) and
+ *  already owns `imageFit` (letterbox vs crop), so the only missing pieces were the frame and the decoration:
+ *  this card prints no title, no subtitle and no caption block — the image IS the widget — and the frame's own
+ *  Bare option takes the chrome away so the picture can reach the edges.
+ *  The caption, when it is wanted, is an overlay on a gradient (the story's `full` panel already does this), so
+ *  it costs no height. A video's poster keeps its ▶ badge. */
+function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
+  const wrapRef = useRef(null);
+  const measured = useContentWidth(wrapRef);
+  const hiDpi = allowHiDpi();
+  const fit = data.fit || 'contain';
+  const img = (data.rows || [])[0];
+  if (!img) return <div className="widget-empty">{data.emptyText || 'No image found'}</div>;
+  const onClick = picking
+    ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem)
+    : galleryTileClick(data, img, onSelect);
+  // srcset and `sizes` arrive together and only once the box has been measured — the grid's lesson (ISSUE-109):
+  // with width descriptors and no `sizes`, a browser assumes 100vw and fetches a rendition it then replaces.
+  const sizes = measured ? `${measured}px` : undefined;
+  return (
+    <div className="gallery-single" ref={wrapRef}>
+      <a className={`gallery-single-link${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl}
+        target="_blank" rel="noopener noreferrer" onClick={onClick} title={img.caption || img.title}>
+        {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
+        {sizes ? (
+          <img className="gallery-single-img" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
+            sizes={sizes} alt={img.caption || img.title} decoding="async" style={{ objectFit: fit }} />
+        ) : (
+          <div className="gallery-single-img" aria-hidden="true" />
+        )}
+        {data.showCaptions !== false && (img.caption || img.title)
+          ? <span className="gallery-single-caption">{img.caption || img.title}</span>
+          : null}
+      </a>
+    </div>
+  );
+}
+
 function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
   const size = data.size || 'medium';
   const gridRef = useRef(null);
@@ -1792,7 +1840,7 @@ function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
           // browser then replaces (measured: 63 requests for 36 tiles at DPR2).
           <div className="gallery-thumb" aria-hidden="true" />
         )}
-        {(img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}
+        {data.showCaptions !== false && (img.caption || img.showFileName) && <span className="gallery-caption">{img.caption || img.title}</span>}
       </a>
     );
   }
@@ -2047,10 +2095,12 @@ function GalleryListCard({ data, onSelect, picking, onPickItem }) {
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         <img className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes="90px" alt={img.caption || img.title} loading="lazy" decoding="async" />
-        <div className="gallery-list-body">
-          <span className="gallery-list-caption">{img.caption || img.title}</span>
-          <span className="gallery-list-file">{img.title}</span>
-        </div>
+        {data.showCaptions !== false && (
+          <div className="gallery-list-body">
+            <span className="gallery-list-caption">{img.caption || img.title}</span>
+            <span className="gallery-list-file">{img.title}</span>
+          </div>
+        )}
       </a>
     );
   }
@@ -2376,13 +2426,13 @@ function MediaPlayerCard({ data }) {
   };
 
   return (
-    <div className="media-card">
+    <div className={`media-card${data.missing ? ' has-missing' : ''}${single ? ' is-single' : ''}`}>
       <div className="ranking-title" title={data.title}>{data.title}</div>
       <div className="ranking-subtitle">{data.subtitle}</div>
       <div className="media-stage">
         {isAudio
           ? <audio key={playUrl} {...mediaProps} className="media-audio" />
-          : <video key={playUrl} {...mediaProps} className="media-video" />}
+          : <video key={playUrl} {...mediaProps} className="media-video" style={{ objectFit: data.objectFit || 'contain' }} />}
         {showStart && (
           <button
             className="media-start"
