@@ -4992,6 +4992,74 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-129 · ⛶ full screen for one card, and a crop for embeds that draw their own chrome — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** With an Objectium 3D model embedded in a card: *"Is there any way to access the 'full screen' view of
+> the model so it fills up the widget on load?"* — and, once the chrome turned out to belong to Objectium, *"I'm not
+> interested in touching Objectium so I think C is OK for now."*
+
+**What was ruled out, with evidence, so nobody re-litigates it.** Objectium has **no embed route and no fullscreen route**
+(read from its own `routes/web.php`: `/uploads/{id}`, `/file`, `/thumbnail`); its model page gives the canvas **673×558 of a
+1280×800 window**; and a cross-origin iframe cannot be reached into. We are not the blocker — the wiki page widget already
+passes `allow="fullscreen"` and `allow-presentation` to external embeds.
+
+**Built (option C), both measured in production:**
+
+1. **⛶ — this card, full screen.** A button in every card's title bar, and therefore on the bar that fades in on an
+   edge-to-edge card. The browser's own API, so `Escape` always leaves and the app remembers nothing; `fullscreenchange` is
+   listened to rather than assumed, because Escape leaves silently. Measured on the Objectium embed: the iframe goes from
+   **672×722** inside the card to **1830×1220** full screen.
+2. **Crop the page's own header** (wiki page widget, off by default): the embedded page is scaled 1.22× and shifted up so
+   that page's own header falls outside the card. On the Objectium card the 3D viewport goes from ~64% to **~81%** of the
+   card. Labelled in ⚙ as *a crop of that page, not something the site knows about*, because that is exactly what it is.
+
+**Two things the first attempts got wrong, and what caught them.** The crop initially shifted sideways as well, to chase
+Objectium's sidebar: a **screenshot** showed the page's own title clipped to "pirit of St. Louis". Anchoring the scale at the
+centre instead clipped both edges for the same reason, so it is anchored top-left and does one thing now. Separately, its ⚙
+hint shipped with a literal `\u2019` in it, because the escape went into the JavaScript string twice — the docs gate reads
+prose, not hints.
+
+**Not built (option B: render the model ourselves with `<model-viewer>`), and what it would take:**
+- **No special software.** `model-viewer` is a web component — one JS file, WebGL, no plugin, no build step — and this repo
+  already vendors a comparable third-party viewer (Pannellum, in `src/vendor/` behind a lazy loader), so the pattern exists.
+- **The blocker is transport, not the viewer.** `/uploads/{id}/file` serves `model/gltf-binary` with **no
+  `Access-Control-Allow-Origin`**, so a browser cannot fetch it; and `/api/proxy` cannot stand in because it reads the
+  response with `r.text()` and returns `{status, body}` as JSON, which would mangle binary.
+- So B is one **new streaming server route** (~45 min: https-only, host allowlist, the right content type, long cache
+  headers, ideally a disk cache) plus a **🧊 3D Model** widget (~1.5–2 h — a new *kind*, since what it accepts is a model and
+  not a page) plus docs and a demo: about **half a day**, with no Objectium change.
+- **The number that matters most:** the model is **7.9 MB** and Objectium served it at about **190 KB/s** — **40+ seconds**.
+  A server-side cache would make every later view instant, and `/uploads/{id}/thumbnail` (a PNG, and an `<img>` needs no
+  CORS) is a ready-made poster for the wait.
+
+## ISSUE-128 · Widget names: File Usage by Wiki, IA Item Stats — and a check that keeps names honest — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"We should keep widget naming coherent and consistent as much as possible during our development
+> and not wait on fixing them. What might you suggest for IA Item name instead? IA item stat? Or something else? File
+> Usage Map might be better named File Usage Report?"*
+
+**Both instincts were right, with one adjustment each.** `File Usage Map` → **File Usage by Wiki** (not *Report*: it is a
+per-wiki ranking table and nothing else in this catalog is a report; "Map" was a fossil) and `IA Item` → **IA Item Stats**
+(not *Snapshot*: that word already means **screenshot** here — Wayback Snapshot Gallery — and "Stats" matches `Wiki Stats`
+and says *numbers, not a player*, which is the confusion being fixed). A *third* rename came out of the sweep: the proposed
+`IA Item Views` became **IA Item Views Over Time**, since it would have been confusable with IA Item Stats and it now
+matches `CIM Views Over Time`. Registry `name` is what the app shows and the source of truth; widget **ids** are wire format
+and never change.
+
+**The part that matters more than the two renames — two new `docs-facts` checks:**
+1. every registry name must appear in the widget catalog (the authoritative list); and
+2. no **retired** name may appear in a current-state doc — or in `src/` or in a board. Dated records (`ISSUES`,
+   `DEPLOYMENTS`, `SCREENSHOTS`, `VERIFIED-WORKING`, the iOS bug report, `WHY-WIKIBENTO`) are exempt on purpose.
+
+Check 2 immediately found four reader-visible strings nothing had watched: the **Ask matcher's own suggestion text**, a hint
+in `widgets/dataSources.js`, and the full-catalog and IA demo boards' welcome text. It also caught one occurrence missed by
+hand, and then caught **its own author** — the first draft of HANDOFF's deployed row named both old names, and HANDOFF is a
+current-state document. That was the check being right, and the fix was this repo's own rule: the rename *history* belongs in
+`DEPLOYMENTS.md` and here; HANDOFF states only what is true now.
+
+**Verified in production** by searching the Add-widget panel: *"IA Item"* finds `IA Item Stats`, *"File Usage"* finds
+`File Usage by Wiki`.
+
 ## ISSUE-127 · Edge to edge on the four types whose content is a thing you look at — **done + verified 2026-09-29** (asked by Andrew)
 
 > **What was asked.** *"Can you audit the widgets and recommend which ones also would be ideal to support a full bleed

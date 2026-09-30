@@ -365,6 +365,27 @@ check('retired widget names are gone from the current-state docs', () => {
   return `${files.length} docs + ${codeFiles.length} source/board files, none using a retired name`;
 });
 
+check('every ISSUE number the docs cite has an entry', () => {
+  // The existing check watched that headings were UNIQUE — not that the numbers people cite exist at all. On
+  // 2026-09-29 two numbers (128, 129) were referenced from HANDOFF, DEPLOYMENTS and two commit messages for hours
+  // before either was filed, and nothing noticed. A citation to an issue that does not exist reads as a dead link to
+  // anyone who goes looking, and as evidence of work to anyone who does not.
+  const defined = new Set([...read('docs/ISSUES.md').matchAll(/^## ISSUE-(\d+)/gm)].map((m) => m[1]));
+  const files = ['README.md', 'HANDOFF.md',
+    ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)];
+  const dangling = new Map();
+  for (const f of files) {
+    for (const m of read(f).matchAll(/\bISSUE-(\d+)\b/g)) {
+      if (defined.has(m[1])) continue;
+      dangling.set(m[1], [...(dangling.get(m[1]) || []), f]);
+    }
+  }
+  if (dangling.size) {
+    fail(`the docs cite issues that were never filed: ${[...dangling].map(([n, fs]) => `ISSUE-${n} (${fs[0]})`).join(' · ')}`);
+  }
+  return `${defined.size} entries, every cited number found`;
+});
+
 check('every demo board on disk is linked from the README and the hub', () => {
   // A board can exist, work, be listed in the hub — and be missing from the README, which is exactly what happened
   // to the page-picker demo (added one day, gone the next after a merge). Nothing watched this, so it drifted.
