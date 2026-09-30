@@ -467,8 +467,8 @@ body {
 .widget-body.v-align-top > * { width: 100%; }
 .widget-body.v-align-center { align-items: center; }
 
-/* ── Frame: Bare — the card chrome gets out of the way ──────────────────────────────────────────────
-   Declared per widget (`frame: 'card' | 'bare'`), read by WidgetFrame, applied here. The point is a single
+/* ── Edge to edge — the card chrome gets out of the way ─────────────────────────────────────────────
+   Declared per widget (`edgeToEdge: true`), read by WidgetFrame, applied here. The point is a single
    image, a video or a panorama filling the box it was given: the title bar costs 33px, the body padding 24px,
    and each card's own inner padding another 16–20px. Hide the lot — and the ⏱ freshness stamp with them, since
    in a decorative tile it is the one thing that would sit ON the picture. Two precedents, not a new idea:
@@ -479,50 +479,50 @@ body {
    over the media, with a gradient behind it so the buttons stay legible on a bright photograph. Opening ⚙ does take
    space — that panel is an in-flow flex child with its own scrollbar (ISSUE-54), not an overlay — so the media shrinks
    while you are configuring, which is the honest behaviour rather than a panel floating over the picture. */
-.widget-frame.frame-bare { position: relative; }
-.widget-frame.frame-bare .widget-header {
+.widget-frame.edge-to-edge { position: relative; }
+.widget-frame.edge-to-edge .widget-header {
   position: absolute; inset: 0 0 auto 0; z-index: 3;
   background: linear-gradient(rgb(0 0 0 / 0.75), rgb(0 0 0 / 0));
   border-bottom: none;
   opacity: 0; transition: opacity 140ms ease;
 }
-.widget-frame.frame-bare:hover .widget-header,
-.widget-frame.frame-bare:focus-within .widget-header { opacity: 1; }
+.widget-frame.edge-to-edge:hover .widget-header,
+.widget-frame.edge-to-edge:focus-within .widget-header { opacity: 1; }
 /* A touchscreen has no hover to reveal it with, so it stays — faintly — rather than being unreachable. Kiosk and
    lean still hide the whole header outright, so a presentation is unaffected on a tablet. */
 @media (hover: none) {
-  .widget-frame.frame-bare .widget-header { opacity: 0.9; }
+  .widget-frame.edge-to-edge .widget-header { opacity: 0.9; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .widget-frame.frame-bare .widget-header { transition: none; }
+  .widget-frame.edge-to-edge .widget-header { transition: none; }
 }
-.widget-frame.frame-bare .widget-fetched { display: none; }
-.widget-frame.frame-bare .widget-body { padding: 0; }
-.widget-frame.frame-bare .gallery-card,
-.widget-frame.frame-bare .media-card,
-.widget-frame.frame-bare .panorama-card { padding: 0; }
+.widget-frame.edge-to-edge .widget-fetched { display: none; }
+.widget-frame.edge-to-edge .widget-body { padding: 0; }
+.widget-frame.edge-to-edge .gallery-card,
+.widget-frame.edge-to-edge .media-card,
+.widget-frame.edge-to-edge .panorama-card { padding: 0; }
 /* The card's own title goes as well — with the frame bare, the picture is the title. The subtitle goes with it
    EXCEPT when it is carrying a warning: the media player says "N not found" there, and hiding that would be the
    card quietly lying about what it is showing (the panorama's badge is kept for the same reason). */
-.widget-frame.frame-bare .ranking-title { display: none; }
-.widget-frame.frame-bare .media-card:not(.has-missing) .ranking-subtitle { display: none; }
+.widget-frame.edge-to-edge .ranking-title { display: none; }
+.widget-frame.edge-to-edge .media-card:not(.has-missing) .ranking-subtitle { display: none; }
 
 /* The media player's file-name/duration line is its title in the same sense, so it goes too. The transport
    controls stay for a PLAYLIST: with more than one file they are the only way to reach the others, and bare is
    about chrome, not about removing function. One file → they go as well. */
-.widget-frame.frame-bare .media-meta { display: none; }
-.widget-frame.frame-bare .media-card.is-single .media-controls { display: none; }
+.widget-frame.edge-to-edge .media-meta { display: none; }
+.widget-frame.edge-to-edge .media-card.is-single .media-controls { display: none; }
 
 /* Kiosk/lean add 8px back to every body; a bare card promised the edges, so say so where it counts. */
-.kiosk .widget-frame.frame-bare .widget-body,
-.lean .widget-frame.frame-bare .widget-body { padding: 0; }
+.kiosk .widget-frame.edge-to-edge .widget-body,
+.lean .widget-frame.edge-to-edge .widget-body { padding: 0; }
 
 /* The media stage's own black rounded box would otherwise sit inset inside a now-bare card. */
-.widget-frame.frame-bare .media-stage { border-radius: 0; }
+.widget-frame.edge-to-edge .media-stage { border-radius: 0; }
 /* States still need breathing room once the padding has gone — an error message is not a picture. */
-.widget-frame.frame-bare .widget-empty,
-.widget-frame.frame-bare .widget-error,
-.widget-frame.frame-bare .widget-loading { padding: 12px; }
+.widget-frame.edge-to-edge .widget-empty,
+.widget-frame.edge-to-edge .widget-error,
+.widget-frame.edge-to-edge .widget-loading { padding: 12px; }
 
 
 /* Markdown card fills the body; frame keeps it scrollable */

@@ -325,22 +325,22 @@ travelled. Nothing is hard-wired on the consumer side: `{{widget:click-seas#sele
 
 ## `wikibento-2026-09-29-image-tile.png` — one image filling the box (ISSUE-126)
 
-![Four tiles: a full-bleed Earth, a letterboxed portrait, a bare video and a caption-less grid](screenshots/wikibento-2026-09-29-image-tile.png)
+![Four tiles: a full-bleed Earth, a letterboxed portrait, a video set edge to edge and a caption-less grid](screenshots/wikibento-2026-09-29-image-tile.png)
 
 🖌 **The frame, not the widget.** The gallery already sourced a single file and already owned *Image fit*, so all that
 was missing was a way to get the chrome out of the way. Left to right: **cover** filling its card edge to edge with no
 title bar and no padding (100% of the card), the same card in **letterbox** showing the whole portrait, the identical
-image with **Frame → Card** kept — title bar, padding, and the caption as a gradient overlay that costs no height — and
+image with the card frame kept — title bar, padding, and the caption as a gradient overlay that costs no height — and
 a **bare video** that also fills its card, native controls intact. The bottom row is one grid twice: captions on, and
-captions off. Verified in the built app; the card frame gives 91% and a fixed grid tile 28%, which is what "bare" buys.
+captions off. Verified in the built app; the card frame gives 91% and a fixed grid tile 28%, which is what edge to edge buys.
 
 ---
 
-## `wikibento-2026-09-29-bare-controls.png` — a bare card still has its controls (ISSUE-126)
+## `wikibento-2026-09-29-edge-to-edge-controls.png` — an edge-to-edge card still has its controls (ISSUE-126)
 
-![A full-bleed image with the title bar fading in over it on hover](screenshots/wikibento-2026-09-29-bare-controls.png)
+![A full-bleed image with the title bar fading in over it on hover](screenshots/wikibento-2026-09-29-edge-to-edge-controls.png)
 
-**Hover the card and the bar comes back.** A bare card draws no chrome, which raised the obvious question the day it
+**Hover the card and the bar comes back.** An edge-to-edge card draws no chrome, which raised the obvious question the day it
 shipped — *"how do I get to the controls of them?"* The answer is this: the title bar is not deleted, it fades in over
 the media on hover (or keyboard focus), carrying the instance chip `tile-cover` and ⓘ About · ⚙ Configure · ↻ Refresh ·
 ✕ Remove, with a gradient behind it so the buttons stay legible on a bright photograph. It is also the handle you drag

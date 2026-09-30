@@ -253,13 +253,11 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       || WIDGET_TYPES[widget.widgetType]?.defaults?.verticalAlign
       || null;
 
-      // The frame's own appearance (2026-09-30). `bare` drops the title bar and the body padding so a single
-      // image, a video or a panorama fills the box. Same shape as vAlign just above — resolved config, then the
-      // registry default, applied as a class — because the frame is the only component that knows what chrome
-      // a card carries.
-      const frame = resolvedConfig.frame
-        || WIDGET_TYPES[widget.widgetType]?.defaults?.frame
-        || 'card';
+      // "Edge to edge" (2026-09-29): the card's own chrome steps aside so its content fills the box. Same shape as
+      // vAlign just above — resolved config, then the registry default, applied as a class — because the frame is the
+      // only component that knows what chrome a card carries. A real boolean: the render path normalises the config
+      // through the registry's field types, so a `'true'` from a hand-written board is already a boolean here.
+      const edgeToEdge = resolvedConfig.edgeToEdge === true;
 
     /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
      *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
@@ -549,7 +547,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   };
 
   return (
-      <div className={`widget-frame${frame === 'bare' ? ' frame-bare' : ''}`} ref={cardRef}>
+      <div className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}`} ref={cardRef}>
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}

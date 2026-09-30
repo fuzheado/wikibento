@@ -28,13 +28,13 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-BlCxPMq-.js` (+ `index-CWEKgJML.css`) |
-| deployed | 2026-09-29 (later) — **bare cards stay controllable** (ISSUE-126 follow-up). `Frame → Bare` no longer deletes the title bar: it fades in over the media on hover (or keyboard focus), carrying the instance chip and ⓘ ⚙ ↻ ✕, and it is the handle the card is dragged by. On a touchscreen it stays faintly visible; Present/Lean still hide it. Guarded in `npm test` through `scripts/smoke-built.mjs`. |
+| deployed | 2026-09-29 (later) — **edge-to-edge cards stay controllable** (ISSUE-126 follow-up). `Edge to edge` no longer deletes the title bar: it fades in over the media on hover (or keyboard focus), carrying the instance chip and ⓘ ⚙ ↻ ✕, and it is the handle the card is dragged by. On a touchscreen it stays faintly visible; Present/Lean still hide it. Guarded in `npm test` through `scripts/smoke-built.mjs`. |
 | registry | 41 widget types — 32 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🖌 **One image filling the box** (ISSUE-126) — a gallery can be a single file drawn edge to edge: `Display → Single image`, with **Image fit** letterboxing or cropping it and **Frame → Bare** taking the card chrome away (the same switch fills a bare video or panorama) · 🎬 **Video in the gallery** (ISSUE-124) — an article's videos appear as API-rendered posters with a ▶ badge, no video bytes until you click through · 📰 **a wiki page in a card, and the picker feeds it** (ISSUE-123) — the Box renders any page by title (the lead, a section, or all), and because its page field declares a kind the pick menu offers the box · 🎞 **story mode** (ISSUE-119) — an article as one continuous scroll, each panel chosen by the image's own shape |
+| newest capabilities | 🖌 **One image filling the box** (ISSUE-126) — a gallery can be a single file drawn edge to edge: `Display → Single image`, with **Image fit** letterboxing or cropping it and the **Edge to edge** switch taking the card chrome away (the same switch fills a bare video or panorama) · 🎬 **Video in the gallery** (ISSUE-124) — an article's videos appear as API-rendered posters with a ▶ badge, no video bytes until you click through · 📰 **a wiki page in a card, and the picker feeds it** (ISSUE-123) — the Box renders any page by title (the lead, a section, or all), and because its page field declares a kind the pick menu offers the box · 🎞 **story mode** (ISSUE-119) — an article as one continuous scroll, each panel chosen by the image's own shape |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -570,7 +570,7 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
        (3) **the poster's allowance is generous** — the page is the board's box × 1.25, so there is ~25% white space
        at the bottom. It is deliberate (script cannot measure the printed layout, and a page slightly too short is a
        second page nobody wanted), but a measured allowance would tighten it.
-     - **Also filed, not queued** — ISSUE-101 (a full-bleed single Commons image tile) and ISSUE-102 (quiz / trivia
+     - **Also filed, not queued** — ISSUE-101 (an edge-to-edge single-image tile — delivered as a gallery mode) and ISSUE-102 (quiz / trivia
        mode for an event, GitHub #95) came in from a parallel session. Both are self-contained and neither blocks
        anything here.
 2. **Tier-A wiring view** — a derived, read-only map of who drives whom on a board.

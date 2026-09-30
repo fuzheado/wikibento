@@ -144,8 +144,8 @@ try {
       try {
         const probe = {
           version: 1,
-          widgets: [{ id: 'bare-probe', widgetType: 'gallery', config: { from: 'list', files: 'File:The Earth seen from Apollo 17.jpg', displayMode: 'single', imageFit: 'cover', frame: 'bare', showCaptions: false } }],
-          layout: [{ i: 'bare-probe', x: 0, y: 0, w: 3, h: 5 }],
+          widgets: [{ id: 'edge-probe', widgetType: 'gallery', config: { from: 'list', files: 'File:The Earth seen from Apollo 17.jpg', displayMode: 'single', imageFit: 'cover', edgeToEdge: true, showCaptions: false } }],
+          layout: [{ i: 'edge-probe', x: 0, y: 0, w: 3, h: 5 }],
         };
         await page.goto(`${base}/?config=/demos.json`, { waitUntil: 'domcontentloaded' });
         await page.getByRole('button', { name: /Import/ }).click();
@@ -162,12 +162,12 @@ try {
         await card.locator('.widget-btn[title="Configure"]').click();
         await page.waitForTimeout(400);
         const panel = await card.locator('.widget-config').isVisible().catch(() => false);
-        if (atRest !== '0') problems.push(`bare frame: title bar visible at rest (opacity ${atRest})`);
-        if (onHover !== '1') problems.push(`bare frame: title bar did not reveal on hover (opacity ${onHover})`);
-        if (!panel) problems.push('bare frame: the ⚙ panel does not open from the revealed bar');
-        console.log(`  ${atRest === '0' && onHover === '1' && panel ? '✅' : '❌'} ${'bare frame'.padEnd(30)} controls revealed on hover (${atRest} → ${onHover}) · ⚙ ${panel ? 'opens' : 'BLOCKED'}`);
+        if (atRest !== '0') problems.push(`edge to edge: title bar visible at rest (opacity ${atRest})`);
+        if (onHover !== '1') problems.push(`edge to edge: title bar did not reveal on hover (opacity ${onHover})`);
+        if (!panel) problems.push('edge to edge: the ⚙ panel does not open from the revealed bar');
+        console.log(`  ${atRest === '0' && onHover === '1' && panel ? '✅' : '❌'} ${'edge to edge'.padEnd(30)} controls revealed on hover (${atRest} → ${onHover}) · ⚙ ${panel ? 'opens' : 'BLOCKED'}`);
       } catch (e) {
-        problems.push(`bare frame: ${String(e.message || e).slice(0, 110)}`);
+        problems.push(`edge to edge: ${String(e.message || e).slice(0, 110)}`);
       }
   } finally {
     await browser.close();

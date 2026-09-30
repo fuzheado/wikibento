@@ -327,14 +327,18 @@ test('captions can be turned off, and every mode receives the switch', () => {
   assert.equal(transform({ rows: [row] }, { ...base, showCaptions: false, displayMode: 'single' }).showCaptions, false);
 });
 
-test('the three media types declare the same Frame field, and it defaults to the card', () => {
+test('the media types declare the same Edge to edge switch, and it defaults to off', () => {
   for (const id of ['gallery', 'mediaPlayer', 'panorama360']) {
     const def = WIDGET_TYPES[id];
-    assert.equal(def.defaults.frame, 'card', `${id}: needs a frame default`);
-    const f = def.configFields.find((x) => x.key === 'frame');
-    assert.ok(f, `${id}: must declare the frame field`);
-    assert.deepEqual(f.options.map((o) => o.value), ['card', 'bare'], `${id}: both frame options`);
+    assert.equal(def.defaults.edgeToEdge, false, `${id}: the card keeps its frame by default`);
+    const f = def.configFields.find((x) => x.key === 'edgeToEdge');
+    assert.ok(f, `${id}: must declare the switch`);
+    assert.equal(f.type, 'boolean', `${id}: one switch, not a select — the wording is the whole point`);
+    assert.equal(f.label, 'Edge to edge');
   }
+  // the old spelling, and the reason for the name, are documented where a reader will look
+  const { configFields } = WIDGET_TYPES.gallery;
+  assert.ok(!configFields.some((f) => f.key === 'frame'), 'the retired key is gone from the registry');
 });
 
 test('the media player can letterbox or crop its picture, and never crops by default', () => {

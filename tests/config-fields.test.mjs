@@ -162,3 +162,18 @@ test('compacting drops what the registry would say anyway — and round-trips', 
   // the round-trip: remove-then-restore changes nothing the app can observe
   assert.deepEqual(normalizeConfigForDef(small, def), normalizeConfigForDef(stored, def));
 });
+
+test("a board's retired `frame: 'bare'` still resolves as edgeToEdge", () => {
+  const def = WIDGET_TYPES.gallery;
+  // It shipped as a two-option select for one day; boards saved then must not lose the setting.
+  const migrated = normalizeConfigForDef({ frame: 'bare' }, def);
+  assert.equal(migrated.edgeToEdge, true);
+  assert.equal('frame' in migrated, false, 'the dead key is translated, not left behind alongside it');
+  assert.equal(normalizeConfigForDef({ frame: 'card' }, def).edgeToEdge, false);
+  assert.equal(normalizeConfigForDef({ frame: 'edge' }, def).edgeToEdge, true);
+  // an explicit new value wins over the old key, and string booleans are coerced as usual
+  assert.equal(normalizeConfigForDef({ frame: 'bare', edgeToEdge: false }, def).edgeToEdge, false);
+  assert.equal(normalizeConfigForDef({ edgeToEdge: 'true' }, def).edgeToEdge, true);
+  // a widget that never declared the setting is untouched
+  assert.equal(normalizeConfigForDef({ frame: 'bare' }, WIDGET_TYPES.markdown).frame, 'bare');
+});

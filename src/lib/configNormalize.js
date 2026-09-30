@@ -44,8 +44,23 @@ export function coerceFieldValue(field, value) {
  * and a board that omits a key (which is what `compactConfig` produces) must still behave exactly like one that
  * spells it out. A stored value always wins.
  */
+/** `frame: 'bare' | 'card'` was this setting's spelling for the day it shipped (2026-09-29) before it became the
+ *  boolean `edgeToEdge`. It is the one key translated rather than left alone: a board saved in that window, or a doc
+ *  example written then, would otherwise keep a dead key *and* silently lose the setting.
+ */
+function migrateLegacyFrame(config, def) {
+  if (config.frame === undefined) return config;
+  if (!(def?.configFields || []).some((f) => f.key === 'edgeToEdge')) return config;
+  if (config.edgeToEdge === undefined) {
+    const v = String(config.frame).trim().toLowerCase();
+    config.edgeToEdge = v === 'bare' || v === 'none' || v === 'edge' || v === 'true';
+  }
+  delete config.frame;
+  return config;
+}
+
 export function normalizeConfigForDef(config, def) {
-  const out = { ...(config || {}) };
+  const out = migrateLegacyFrame({ ...(config || {}) }, def);
   for (const field of def?.configFields || []) {
     if (out[field.key] === undefined && def?.defaults && def.defaults[field.key] !== undefined) {
       out[field.key] = def.defaults[field.key];

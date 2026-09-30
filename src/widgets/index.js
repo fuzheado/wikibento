@@ -165,20 +165,18 @@ function embedLabel(raw) {
   try { return new URL(raw).hostname.replace(/^www\./, ''); } catch { return String(raw || '').slice(0, 40); }
 }
 
-/** The frame's own appearance, as opposed to the data's: `bare` drops the title bar and the padding so a
- *  single image or a video can fill the box edge to edge. Declared per type — like `verticalAlign` — because
- *  only the media types have something worth filling a box with. One object, so the three media types cannot
- *  drift apart in wording or options. */
-const FRAME_FIELD = {
-  key: 'frame', label: 'Frame', type: 'select',
-  hint: 'Bare removes the title bar and the body padding, so the media reaches the edges of the box.',
-  options: [
-    { value: 'card', label: 'Card (title bar + padding)' },
-    { value: 'bare', label: 'Bare (edge to edge)' },
-  ],
+/** "Edge to edge": the card's own chrome steps aside so the content reaches the edges of the box it was given.
+ *  Declared per type — like `verticalAlign` — because only some types have something worth filling a box with, and
+ *  one shared object means the types that offer it cannot drift apart in wording.
+ *
+ *  Shipped 2026-09-29 as `frame: 'bare' | 'card'` and renamed the same day. Two reasons, both about saying what the
+ *  thing is: "full bleed" is a print term most readers do not know, and "bare" already meant something else in this
+ *  codebase (the *bare widget id* — `{{widget:gallery}}` without a channel). `normalizeConfigForDef` migrates the old
+ *  spelling, so a board saved in that window still resolves. */
+const EDGE_TO_EDGE_FIELD = {
+  key: 'edgeToEdge', label: 'Edge to edge', type: 'boolean',
+  hint: 'The content reaches the card edges: the title bar fades in on hover, and the padding goes with it.',
 };
-
-const FRAME_DEFAULT = 'card';
 
 export const WIDGET_TYPES = {
   pageviews: {
@@ -830,7 +828,7 @@ export const WIDGET_TYPES = {
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
       displayMode: 'grid',   // 'grid' | 'list' | 'story' | 'single'
       showCaptions: true,    // off leaves the image alone: no caption under a tile, no overlay in single mode
-      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       iconSize: 'medium',
       imageFit: 'contain',
       order: 'listed',       // list/category: 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
@@ -899,7 +897,7 @@ export const WIDGET_TYPES = {
         { value: 'cover', label: 'Fill crop' },
       ], hint: 'Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.' },
       { key: 'showCaptions', label: 'Show captions', type: 'boolean', hint: 'Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes.' },
-      FRAME_FIELD,
+      EDGE_TO_EDGE_FIELD,
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500,
         hint: 'A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs.' },
       { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
@@ -1822,7 +1820,7 @@ export const WIDGET_TYPES = {
       filename: "File:'Imiloa grounds 360 Degree View (20220329 Hilo Planetarium HQ-CC2).jpg",
       project: 'commons.wikimedia',
       autoRotate: false,
-      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       refreshSeconds: 3600,
     },
     renderer: 'PanoramaCard',
@@ -1831,7 +1829,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
       { key: 'filename', label: 'Commons file (360° / equirectangular)', kind: 'commons-file', type: 'text', placeholder: 'File:Example 360.jpg' },
-      FRAME_FIELD,
+      EDGE_TO_EDGE_FIELD,
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'autoRotate', label: 'Auto-rotate', type: 'boolean' },
     ],
@@ -1866,7 +1864,7 @@ export const WIDGET_TYPES = {
       autoplay: false,
       showDescription: true,
       objectFit: 'contain',  // 'contain' (letterbox — never crop the picture) | 'cover' (fills the box)
-      frame: FRAME_DEFAULT,  // 'card' | 'bare' — see FRAME_FIELD
+      edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       annotation: '',
       refreshSeconds: 3600,
     },
@@ -1895,7 +1893,7 @@ export const WIDGET_TYPES = {
         { value: 'contain', label: 'Letterbox (never crop the picture)' },
         { value: 'cover', label: 'Fill crop (fills the box)' },
       ]},
-      FRAME_FIELD,
+      EDGE_TO_EDGE_FIELD,
       { key: 'annotation', label: 'Your annotation (Markdown)', type: 'textarea', rows: 3, placeholder: 'Free-form caption for this board — **bold**, [links](https://…), credit lines…' },
     ],
     fetch: (config) => fetchMediaPlaylist(config.files),

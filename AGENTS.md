@@ -16,6 +16,20 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
   - Local build: `npm run build && npx vite preview --port 4173`, then `--base http://localhost:4173`.
   - The script prints the base it is using, and warns when that is the implicit production default. Read that line.
 
+## Vocabulary — say what the thing is
+
+This project has lost time to a familiar word meaning something narrower than people assumed, so a few terms are fixed:
+
+- **"Edge to edge"** is the appearance setting that lets a card's content reach the edges (config: `edgeToEdge: true`,
+  class: `.edge-to-edge`). It shipped for one day as `frame: 'bare' | 'card'`; that spelling still resolves through
+  `normalizeConfigForDef`. **"Full bleed"** is a *synonym* — a print term, kept in `docs/GLOSSARY.md` so print-trained
+  readers find it, but not the name. Do not write "bare" for this: in this codebase **bare already means the bare
+  widget id** (`{{widget:id}}` with no channel), and "Fill" is taken by `imageFit`'s *Fill crop*.
+- **A card is a card; a widget is a type.** "Box" is avoided — it means both.
+- When a term changes, sweep the *current-state* docs (README, GUIDE, WIDGET-CATALOG, HANDOFF, JSON-FORMAT,
+  WIDGET-DEVELOPMENT) and leave the **dated records** alone (`docs/ISSUES.md`, `docs/DEPLOYMENTS.md`,
+  `docs/SCREENSHOTS.md` entries): they are history, and rewriting them makes the record lie about what was decided when.
+
 ## The widget registry (`src/widgets/index.js`)
 
 - **It is an object keyed by id, not an array.** Never delete from `id: 'x',` to the next `id: 'y',`: the key

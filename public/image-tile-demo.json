@@ -16,7 +16,7 @@
     "files": "File:The Earth seen from Apollo 17.jpg",
     "displayMode": "single",
     "imageFit": "cover",
-    "frame": "bare",
+    "edgeToEdge": true,
     "showCaptions": false,
     "linkAction": "new tab"
    }
@@ -29,7 +29,7 @@
     "files": "File:Albert Einstein Head.jpg",
     "displayMode": "single",
     "imageFit": "contain",
-    "frame": "bare",
+    "edgeToEdge": true,
     "showCaptions": false,
     "linkAction": "new tab"
    }
@@ -40,7 +40,7 @@
    "config": {
     "files": "File:2025 Skate America Jason Brown 3A.webm",
     "objectFit": "cover",
-    "frame": "bare",
+    "edgeToEdge": true,
     "showDescription": false
    }
   },

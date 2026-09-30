@@ -407,3 +407,18 @@ The other static widget is **QR Code** (`qrCode` / `QrCard`): it derives its
 payload from config and encodes it locally via `src/lib/qr.js` — no fetch, no
 API, works offline and in kiosk mode. It also **emits** its text, so a static
 widget can still be a dataflow producer.
+
+## Declaring an appearance field (the `edgeToEdge` pattern)
+
+Some fields describe the *card* rather than the data — today just `edgeToEdge`, before that `verticalAlign`. They are
+declared **per type** rather than globally, so only the types that have something worth filling a box with offer the
+switch, and one shared field object (`EDGE_TO_EDGE_FIELD` in `src/widgets/index.js`) keeps the wording from drifting.
+Three things to get right when you add one:
+
+1. **A registry default** (`edgeToEdge: false`) — the ⚙ panel shows the value the card is rendering, and a missing
+   default is how a field ends up showing an empty box while the card does something else (ISSUE-110).
+2. **A real boolean read** (`resolvedConfig.edgeToEdge === true`) — the config is normalised through the registry's
+   field types before it reaches the card, so `'true'` from a hand-written board is already `true`.
+3. **The card's own inset is yours to drop.** The frame handles the title bar and the body padding; the *inner* card
+   padding, borders and radii are per-renderer, and an edge-to-edge card that keeps them looks broken rather than
+   immersive. Add the selector next to the others in `src/App.css`.

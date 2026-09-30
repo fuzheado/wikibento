@@ -265,9 +265,9 @@ A gallery does not have to be a grid. Paste **one** `File:` name into **Images c
 | switch | what it does |
 |---|---|
 | **Image fit** | *Letterbox* — the whole file, with the card's own background around it. *Fill crop* — covers the box, cropping what does not fit. |
-| **Frame → Bare** | Takes away the title bar, the body padding and the card's own title, so the picture reaches the edges. |
+| **Edge to edge** | Takes away the title bar, the body padding and the card's own title, so the picture reaches the edges. |
 
-**Bare** is offered on the 🎬 **Video / Media Player** and the 🌐 **360° Panorama** as well, and means the same thing on
+**Edge to edge** is offered on the 🎬 **Video / Media Player** and the 🌐 **360° Panorama** as well, and means the same thing on
 each: the media is the card. On the player the file-name line goes, and for a single file its transport controls with it
 (the video's own controls stay); a *playlist* keeps its controls, because with more than one file they are the only way to
 reach the others, and a **"N not found"** note is a warning rather than decoration, so it keeps its line too. The video's
@@ -275,7 +275,7 @@ own **Video fit** does for a picture what Image fit does for a photo — *letter
 unasked is worse than bars.
 
 A gallery's **Show captions** switch turns the text off in every mode. In **Single image** a caption is an overlay on a
-gradient, so wanting one costs no height. **Nothing is lost by hiding the chrome.** The title bar does not disappear — it fades in *over* the media when you hover the card (or reach it with the keyboard), which is where ⓘ About, ⚙ Configure, ↻ Refresh, ✕ Remove and the instance-name chip live, and **drag a card by that bar** — the same handle every card in this app uses, which is why bare reveals it rather than deleting it On a touchscreen, where there is no hover to reveal it with, the bar stays faintly visible; in **Present** or **Lean** mode it is gone outright, because a presentation is not an editing surface. Open `?config=/image-tile-demo.json` to see all of it on one board.
+gradient, so wanting one costs no height. **Nothing is lost by hiding the chrome.** The title bar does not disappear — it fades in *over* the media when you hover the card (or reach it with the keyboard), which is where ⓘ About, ⚙ Configure, ↻ Refresh, ✕ Remove and the instance-name chip live, and **drag a card by that bar** — the same handle every card in this app uses, which is why *edge to edge* reveals it rather than deleting it On a touchscreen, where there is no hover to reveal it with, the bar stays faintly visible; in **Present** or **Lean** mode it is gone outright, because a presentation is not an editing surface. Open `?config=/image-tile-demo.json` to see all of it on one board.
 
 ## Story mode — the article as a continuous scroll (ISSUE-119)
 

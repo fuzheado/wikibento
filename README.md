@@ -46,7 +46,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
 | 📄 [Read a document](https://wikibento.toolforge.org/?config=/document-reader-demo.json) | a 329-page PDF and a DjVu read page by page — turn, zoom, jump, **facing pages** — beside an Internet Archive book (one reader, two archives), plus a small work transcribed on **Wikisource** whose page text appears with its proofreading grade (*Validated* — and *Not proofread (uncorrected OCR)* where that is the truth) |
 | 📰 [A wiki page in a card](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) | any wiki page rendered in a card — the lead, one section, or the whole thing — with its tables and images, and **every blue link a pick target** |
-| 🖌 [One image filling the box](https://wikibento.toolforge.org/?config=/image-tile-demo.json) | a single Commons file as a **full-bleed tile** — letterboxed or cropped, with the chrome switched off |
+| 🖌 [One image filling the box](https://wikibento.toolforge.org/?config=/image-tile-demo.json) | a single Commons file as an **edge-to-edge tile** — letterboxed or cropped, with the chrome switched off |
 | 🎞 [Story mode](https://wikibento.toolforge.org/?config=/story-demo.json) | **one Wikipedia article as a continuous scroll** — its images and captions, the article's own chapters, and a panel per image chosen by that image's shape |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
@@ -91,15 +91,15 @@ All 32 data-driven widget types render live data in the browser; the 9 static on
   `?kiosk=1` loads any board that way directly (a shareable presentation link), and ▣ **Lean** does the same
   without taking over the screen
 - **Story mode** — any gallery can present an article's images as one **continuous scroll**: each image gets the
-  panel its own shape deserves (full-bleed panorama, a centred plate for tall portraits at native size, or an
+  panel its own shape deserves (an edge-to-edge panorama, a centred plate for tall portraits at native size, or an
   image-and-text split whose text side alternates), with the article's own sections as chapters and a progress bar down
   the side. Set **Display → Story** on any gallery and point it at an article, or open [`?config=/story-demo.json`](https://wikibento.toolforge.org/?config=/story-demo.json).json` (Gallery, Images come from
   *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
   a single tall card is the whole screen, which is the way to show it to a room.
 - **Filling the box** — a gallery can be **one file filling its card**. Paste a single `File:` name, set **Display →
   Single image**, and two switches decide the rest: **Image fit** (*Letterbox* shows the whole file, *Fill crop* covers
-  the box) and **Frame → Bare**, which takes away the title bar, the padding and the card's own title so the picture
-  reaches the edges. **Bare** works on the 🎬 **Video / Media Player** too — its file line goes, and for a single file
+  the box) and the **Edge to edge** switch, which takes away the title bar, the padding and the card's own title so the picture
+  reaches the edges. **Edge to edge** works on the 🎬 **Video / Media Player** too — its file line goes, and for a single file
   its transport controls with it, while the video's own controls stay — and on the 🌐 **360° Panorama**. A gallery's
   captions are a switch as well, so a tile can carry no text at all. Open
   [`?config=/image-tile-demo.json`](https://wikibento.toolforge.org/?config=/image-tile-demo.json) to see all four.
@@ -319,7 +319,9 @@ front door.
   (every endpoint, cap and gotcha) · [MODULARITY-AND-DATAFLOW](docs/MODULARITY-AND-DATAFLOW.md) ·
   [MEDIA-DATAFLOW](docs/MEDIA-DATAFLOW.md) · [SCALABILITY](docs/SCALABILITY.md) ·
   [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md)
-- **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·
+- **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
+    *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
+  - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·
   [PHILOSOPHY](docs/PHILOSOPHY.md) · [PARADIGMS](docs/PARADIGMS.md) · [WIDGET-MESSAGING](docs/WIDGET-MESSAGING.md)
   · [PLUGIN-TRUST](docs/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/TOOL-LANDSCAPE.md) and its
   [synthesis](docs/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/TOOLFLOW-ANALYSIS.md) ·

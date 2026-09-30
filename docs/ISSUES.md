@@ -5033,6 +5033,11 @@ crop), so a type would have added a registry entry without adding a capability. 
 a focal point for deliberate cropping, and an attribution treatment for the ⓘ panel (the file page is still the
 click-through, and a picked tile still publishes `File:…`).
 
+**Terminology (added the same day):** this entry says "bare" and "full bleed" because that is what the setting
+was called when it shipped. It is now **Edge to edge** — one boolean, `edgeToEdge: true`, because "full bleed" is
+a print term and "bare" already meant the bare widget id here. `frame: 'bare'` still resolves. See
+[GLOSSARY.md](GLOSSARY.md).
+
 **Tests:** `tests/gallery-options.test.mjs` gained four (mode dispatch for all four modes *and* the absent case, the
 caption switch reaching the transform, the shared frame field on all three media types, the video fit incl. a nonsense
 value); `tests/renderer-registry.test.mjs` gained the guard the registry was missing — it checked the `renderer:` key but
