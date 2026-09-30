@@ -433,6 +433,71 @@ control, and the credit line is the caption-overlay pattern the gallery already 
 **Templating synergy (ISSUE-41):** the map family is the *best* demonstration of board parameters — a "Commons photo map of {{category}}" widget on an institution Bento re-maps instantly when the board param changes (Met → Smithsonian → Cleveland). Maps make the ripple visible.
 
 
+## Map widget — what Tier 1 left to do (2026-09-29, from Andrew's list)
+
+Tier 1 shipped: a **static map** of a place, drawn at the card's own size through `/api/staticmap`, with our pin and
+OpenStreetMap's credit line (ISSUE-131). These are the features that follow, in the order they make sense, with what is
+already true and what is genuinely open. Effort is honest: S is an afternoon, M a day or two, L a week.
+
+### The spine that makes most of this cheap: **a static map is a Mercator window**
+
+Given the centre, the zoom and the size, *any* coordinate maps to a pixel inside the image by the standard Web Mercator
+formula — the same one the tile services use. Verified numerically the day this was written: Alexanderplatz, ~3 km from a
+Berlin-centred 800×640 map at zoom 11, lands at pixel (432, 312), which is where it belongs (east and north of centre).
+And the pin already sits exactly on the Eiffel Tower when the map is centred there, which checks the centre case.
+
+That means **pins, paths, icons, labels and polygons can be our own SVG overlay** on the same static image, with no map
+library, no tiles and no policy of its own — and because we draw them, they are layers *we* can toggle, and they export
+and print with the map (verified: the map host sends CORS, so the canvas stays clean).
+*First thing to verify before relying on it:* a landmark test for an off-centre point (pick a coordinate whose position
+in the image you can see, and check the formula against it).
+
+### 1. Interactivity — pan, zoom, layers (M–L, and it is Tier 2)
+
+| ask | how |
+|---|---|
+| Pan / zoom | **Leaflet** (vendored like Pannellum), which is where they come free. Already specified in the mapping section above, with the tile policy settled (ISSUE-130) |
+| Layers | Leaflet layers, plus our own overlay layers; for the **static** card an honest subset: *styles* — verified to `osm-intl` ✓ and `osm` ✓, and `osm-terrain` answers **400**, so the list is closed and should be picked from a fixed set |
+| The division of labour | **Static for print, export and presentation; interactive for exploring.** This is not a compromise, it is the reason Tier 1 came first: a tiled map rasterises badly into 🖨️ Print or ⛶ Export → PNG, and a static image does not |
+
+### 2. Multilingual labels — **already working**, and worth writing down as done
+
+`?lang=` localises the map itself: verified with **Japanese** (豊島区, 新宿区, 千代田区…) and **Arabic** (القاهرة,
+مدينة نصر…) — CJK and RTL both correct in the rendered tiles, which is the hard part and it is theirs, not ours. The
+place-name layer we own already follows the Wikidata discipline (`<reader-language>|en|mul`). What is left:
+- a `lang` per **overlay** label, so a board can show a German place name on an English map (or vice versa);
+- an honest note when a style simply lacks a script, rather than a blank where a name should be.
+
+### 3. Multiple points, and paths between them (S–M on top of the overlay spine)
+
+Sources are all verified already (ISSUE-130): Commons `geosearch` (geotagged files near a point), `prop=coordinates`
+batched, WDQS `P625`, and `geoshape?getgeojson=1` for polygons. So a **points** card is mostly presentation:
+- a list of places (`Q64, Q243, 35.36,138.72`) or a *source* that yields them (a category's geotagged files, a SPARQL
+  result), each drawn at its Mercator pixel;
+- **paths**: a polyline through the points in order, optionally great-circle rather than screen-straight — the same
+  overlay, a different element;
+- **polygons**: fill a geoshape beneath the pins;
+- the projection's own caveats: points outside the image are simply not drawn, and a bounding box that fits all of them
+  wants a computed centre + zoom (both are the same maths, in the other direction).
+
+### 4. Icon shapes, sizes and labels (S each, once the overlay exists)
+
+Because we draw them: **shape** (pin, circle, square, star, a Commons thumbnail in a circle for the photo-map idea),
+**size** by importance or by a value, **label** as SVG text with a halo so it survives a busy map. The real problem is
+not drawing them, it is **collision** — overlapping labels at city scale. Honest plan: start with offsets and a maximum
+count, then clustering (Leaflet has `markercluster`; for the static overlay, a grid-based grouping is enough).
+
+### 5. Animation — a path you can step through (M, and the most interesting one)
+
+The ask: a forward/backward arrow that moves the map from place to place along a preset route, zooming as it goes. It
+fits this app unusually well, because the machinery already exists:
+- an **itinerary** is just a list of stops (place + zoom + optional pause) — a config field, not a new widget;
+- a static map cannot pan smoothly (each frame would be a request against a limited service), so the honest animation is
+  a **cross-fade between two stops**, one request per *new* stop and nothing while you re-visit one (the relay caches);
+- **the step index is a board param**, which is the point: a 🎛️ Board Controls stepper drives it, so ▶ moves every card
+  wired to that param — the map family was already noted as *the best demonstration of board parameters*;
+- and if a smooth flight is wanted later, that is Leaflet's `flyTo`, i.e. it arrives with Tier 2.
+
 ## 360° Panorama Viewer widgets (2026-08-13 analysis — proven live)
 
 > The user direction: embed a 360° viewer in a widget — "that shouldn't be

@@ -4992,6 +4992,38 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-132 · Maps: the feature backlog after Tier 1 — interactivity, many points, paths, icons, an itinerary — **open, backlog** (asked by Andrew)
+
+> **What was asked.** *"I'd like to make sure we note down that we would like some more features for the maps, such as
+> being interactive… pan, zoom, turn on layers… how we support multilingual labels… handle multiple points, connect the
+> dots with paths… different icon shapes, sizes and labels… and whether we want some kind of animation like a node-to-node
+> animation so that we can hit a forward or backward arrow and have the map zoom from place to place on a preset path."*
+
+Written up in full in **`docs/WIDGET-IDEAS.md` → "Map widget — what Tier 1 left to do"**, and queued in `ROADMAP.md`.
+The headline answers:
+
+- **Multilingual labels are already done**, which is worth recording *as* done rather than as a wish: `?lang=` localises
+  the tiles themselves — verified with Japanese (豊島区, 新宿区, 千代田区…) and Arabic (القاهرة, مدينة نصر…), CJK and RTL
+  both correct — and the place names we draw ourselves already follow the Wikidata `<reader-language>|en|mul` chain. What
+  is left is a `lang` per *overlay* label and an honest note when a style lacks a script.
+- **The spine for multiple points, paths, polygons, icons and labels is that a static map is a Mercator window**: given
+  the centre, zoom and size, any coordinate maps to a pixel by the standard formula (checked numerically: Alexanderplatz
+  lands where it belongs in a Berlin-centred map at zoom 11). So all of it is **our own SVG overlay** — no library, no
+  tiles, layers we can toggle, and it exports and prints with the map. A landmark test for an *off-centre* point is the
+  first thing to verify before relying on it.
+- **Interactivity is Tier 2 (Leaflet)**, where pan, zoom and layers come free, and the division of labour is worth
+  stating: **static for print, export and presentation; interactive for exploring.** Not a compromise — a tiled map
+  rasterises badly into 🖨️ Print and ⛶ Export → PNG, which is exactly why the static card came first.
+- **The itinerary is the most interesting one, and closer than it looks**: a list of stops (place + zoom + pause), a
+  cross-fade between two static maps per hop (one request per *new* stop, cached by the relay), and **the step index as a
+  board param** — so a 🎛️ Board Controls stepper drives ▶ ◀ and every card wired to that param moves with it. A smooth
+  flight is Leaflet's `flyTo`, i.e. it arrives with Tier 2.
+- **Static "layers" are the style, from a closed set**: `osm-intl` ✓ and `osm` ✓ both verified; `osm-terrain` answers
+  **400**, so the picker asks only for styles known to exist.
+
+Nothing here is built. This entry exists so the asks are tracked with the evidence attached, and so the next session
+starts from the design rather than from the wish.
+
 ## ISSUE-131 · The Map widget: a static map in a card, and the relay it turned out to need — **done + verified 2026-09-29** (asked by Andrew)
 
 > **What was asked.** *"Let's build Tier 1"* — the static Map widget from ISSUE-130: a place as a card, no Leaflet, no
