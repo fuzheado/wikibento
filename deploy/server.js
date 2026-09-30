@@ -35,9 +35,124 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
+// ── Relay safety: every proxied route draws on one budget (ISSUE-133) ────────
+// These routes exist because a browser cannot do three things: set its own User-Agent, read a response that carries no
+// CORS header, and be trusted to stay inside someone else's quota. That makes this file the one place where *our* code
+// runs on a shared, finite server — so the rules are the same for every relay, and they are the whole point of the
+// file: a HOST ALLOWLIST (a proxy that can reach anywhere is an amplifier), a BYTE CAP, a TIMEOUT, a RATE LIMIT, and a
+// cache that cannot grow without bound. Nothing here writes to disk.
+//
+// All five limits are env-overridable so a test can tighten them instead of having to produce megabytes.
+const RELAY_BURST = Number(process.env.RELAY_BURST || 40);          // requests per client per window
+const RELAY_WINDOW_MS = Number(process.env.RELAY_WINDOW_MS || 60000);
+const RELAY_MAX_INFLIGHT = Number(process.env.RELAY_MAX_INFLIGHT || 24); // upstream requests in flight, globally
+const RELAY_MAX_BYTES = Number(process.env.RELAY_MAX_BYTES || 8 * 1024 * 1024);
+const PROXY_MAX_BYTES = Number(process.env.PROXY_MAX_BYTES || 2 * 1024 * 1024);
+const RELAY_TIMEOUT_MS = Number(process.env.RELAY_TIMEOUT_MS || 20000);
+const RELAY_MAX_CLIENTS = 5000;      // buckets kept, so the limiter itself cannot be the leak
+
+/**
+ * Hosts a relay may reach, as patterns. The wiki families are many and *closed*; the three third-party hosts are the
+ * ones the widgets actually use. Everything else is refused by name, because the difference between a proxy and an
+ * amplifier is exactly this list.
+ */
+const RELAY_HOST_ALLOW = [
+  /(^|\.)wikipedia\.org$/, /(^|\.)wikisource\.org$/, /(^|\.)wiktionary\.org$/, /(^|\.)wikibooks\.org$/,
+  /(^|\.)wikiquote\.org$/, /(^|\.)wikinews\.org$/, /(^|\.)wikiversity\.org$/, /(^|\.)wikivoyage\.org$/,
+  /(^|\.)wikimedia\.org$/, /(^|\.)wikidata\.org$/, /(^|\.)wikifunctions\.org$/, /(^|\.)wikispecies\.org$/,
+  /(^|\.)mediawiki\.org$/, /(^|\.)wikimediafoundation\.org$/, /(^|\.)w\.wiki$/,
+  /^top\.hatnote\.com$/, /(^|\.)archive\.org$/,
+];
+
+function relayHostOf(raw) {
+  try {
+    const u = new URL(raw);
+    return u.protocol === 'https:' ? u.hostname.toLowerCase() : null;
+  } catch { return null; }
+}
+function relayHostAllowed(raw) {
+  const host = relayHostOf(raw);
+  return host ? RELAY_HOST_ALLOW.some((re) => re.test(host)) : false;
+}
+
+/**
+ * Token bucket per client, and a global in-flight ceiling. Both are bounded and clean up after themselves: a bucket is
+ * reused inside its window, stale buckets are swept once the map grows past a cap, and the in-flight counter is
+ * released in a `finally` so a throwing upstream cannot leak it.
+ */
+const relayHits = new Map();
+let relayInFlight = 0;
+function relayCheck(req) {
+  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const hit = relayHits.get(ip);
+  if (!hit || now - hit.start > RELAY_WINDOW_MS) relayHits.set(ip, { start: now, n: 1 });
+  else hit.n += 1;
+  if (relayHits.size > RELAY_MAX_CLIENTS) {
+    for (const [key, bucket] of relayHits) if (now - bucket.start > RELAY_WINDOW_MS) relayHits.delete(key);
+    if (relayHits.size > RELAY_MAX_CLIENTS) relayHits.clear();
+  }
+  const n = relayHits.get(ip).n;
+  if (n > RELAY_BURST) return { ok: false, status: 429, error: `too many relay requests (${n} in ${Math.round(RELAY_WINDOW_MS / 1000)}s) — wait a moment and retry` };
+  if (relayInFlight >= RELAY_MAX_INFLIGHT) return { ok: false, status: 503, error: 'the relay is at capacity — try again in a moment' };
+  return { ok: true };
+}
+function relayEnter() {
+  relayInFlight += 1;
+  return () => { relayInFlight = Math.max(0, relayInFlight - 1); };
+}
+
+/** One fetch helper, so that no relay can forget the deadline. */
+async function relayFetch(url, { headers = {}, timeoutMs = RELAY_TIMEOUT_MS } = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: ctrl.signal, redirect: 'follow', headers });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Read a body with a ceiling, streaming rather than buffering first: a hostile or merely enormous response must not be
+ * able to decide how much memory we use. `content-length` is a hint, not a promise, so the running total is what
+ * actually stops it.
+ */
+async function readCapped(response, maxBytes, label) {
+  const hinted = Number(response.headers.get('content-length') || 0);
+  if (hinted > maxBytes) throw new Error(`${label} is ${hinted} bytes (cap ${maxBytes})`);
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of response.body || []) {
+    total += chunk.length;
+    if (total > maxBytes) throw new Error(`${label} exceeded the ${maxBytes}-byte cap`);
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** A cache with a TTL *and* a ceiling, so a hostile key space cannot become a memory leak. */
+function cacheGetBounded(cache, key) {
+  const hit = cache.get(key);
+  if (!hit) return null;
+  const exp = hit.expires ?? hit.exp ?? hit.at + 6 * 60 * 60 * 1000;
+  if (exp < Date.now()) { cache.delete(key); return null; }
+  return hit.value ?? hit.v ?? hit.body ?? null;
+}
+function cacheSetBounded(cache, key, value, ttlMs, max) {
+  if (cache.size >= max && !cache.has(key)) cache.clear();
+  cache.set(key, { value, expires: Date.now() + ttlMs, at: Date.now() });
+}
+
 // Tiny in-memory TTL cache for the /api/wayback-gallery endpoint.
 const waybackCache = new Map();
-const waybackCacheSet = (key, value, ttlMs) => waybackCache.set(key, { value, expires: Date.now() + ttlMs });
+// Bounded as well as expiring: a hostile key space must not be able to grow this, and clearing is enough because the
+// entries are cheap to rebuild.
+const WAYBACK_CACHE_MAX = 200;
+const waybackCacheSet = (key, value, ttlMs) => {
+  if (waybackCache.size >= WAYBACK_CACHE_MAX && !waybackCache.has(key)) waybackCache.clear();
+  waybackCache.set(key, { value, expires: Date.now() + ttlMs });
+};
 const waybackCacheGet = (key) => {
   const hit = waybackCache.get(key);
   if (!hit) return null;
@@ -124,7 +239,12 @@ const getManifest = async () => {
 const manifestIds = (m) => new Map((m?.widgets || []).map((w) => [w.id, w]));
 
 const askCache = new Map();
-const askCacheSet = (k, v) => askCache.set(k, { v, exp: Date.now() + ASK_TTL_MS });
+// The most expensive upstream on this server (an LLM), so this cache has a ceiling as well as a TTL.
+const ASK_CACHE_MAX = 200;
+const askCacheSet = (k, v) => {
+  if (askCache.size >= ASK_CACHE_MAX && !askCache.has(k)) askCache.clear();
+  askCache.set(k, { v, exp: Date.now() + ASK_TTL_MS });
+};
 const askCacheGet = (k) => {
   const hit = askCache.get(k);
   if (!hit) return null;
@@ -194,6 +314,7 @@ const stripThink = (s) => String(s).replace(/<think>[\s\S]*?<\/think>/g, '').tri
 async function callLlm(model, system, user) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ASK_TIMEOUT_MS);
+    const leave = relayEnter();
   try {
     const r = await fetch(ASK_UPSTREAM(model), {
       method: 'POST',
@@ -210,7 +331,10 @@ async function callLlm(model, system, user) {
     if (!r.ok) throw new Error(`upstream HTTP ${r.status}`);
     const data = await r.json();
     return stripThink(data?.choices?.[0]?.message?.content || '');
-  } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+      leave();
+    }
 }
 
 // Validate + sanitize the model's options: drop hallucinated ids, cap count,
@@ -435,6 +559,10 @@ const PETSCAN_UA = 'WikiBento/0.1 (https://en.wikipedia.org/wiki/User:Fuzheado) 
 // URL itself, so nothing here can be aimed at another host. Identical requests come from a small memory cache — the
 // widget asks on a size ladder, so "identical" is now common rather than rare.
 const STATICMAP_UPSTREAM = 'https://maps.wikimedia.org/img/osm-intl';
+// The client's size ladder (src/lib/mapImage.js MAP_SIZE_LADDER), duplicated because this file cannot import from src/ —
+// it sits next to dist/ on the deployment. The server refuses anything else, which is what keeps the cache key space
+// closed, so if the two lists ever disagree the map widget stops working. `tests/map-widget.test.mjs` compares them.
+const MAP_LADDER = [320, 480, 640, 800, 1024, 1280, 1600, 2000];
 const STATICMAP_UA = process.env.WIKIMEDIA_USER_AGENT
   || 'WikiBento/0.1 (https://wikibento.toolforge.org/; User:Fuzheado) staticmap-relay';
 const STATICMAP_TTL_MS = 6 * 60 * 60 * 1000;
@@ -531,16 +659,18 @@ function parsePetscanParams(url) {
 async function fetchPetscanBounded(petscanUrl) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), PETSCAN_TIMEOUT_MS);
+    const leave = relayEnter();
   try {
-    const r = await fetch(petscanUrl, { signal: ctrl.signal, headers: { 'User-Agent': PETSCAN_UA } });
+    const r = await relayFetch(petscanUrl, { headers: { 'User-Agent': PETSCAN_UA }, timeoutMs: PETSCAN_TIMEOUT_MS });
     const len = Number(r.headers.get('content-length') || 0);
     if (len > PETSCAN_MAX_BYTES) return { truncated: true };
-    const text = await r.text();
+    const text = await readCapped(r, PETSCAN_MAX_BYTES, 'PetScan');
     if (!r.ok) throw new Error(`PetScan HTTP ${r.status}`);
     if (text.length > PETSCAN_MAX_BYTES) return { truncated: true };
     return { text };
   } finally {
-    clearTimeout(timer);
+      clearTimeout(timer);
+      leave();
   }
 }
 
@@ -561,25 +691,38 @@ const server = createServer(async (req, res) => {
     // headers), so this endpoint follows the redirect server-side and returns
     // the final URL. The client then fetches via the Action API / direct fetch.
     if (url.pathname === '/api/resolve') {
+        const gate = relayCheck(req);
+        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const target = url.searchParams.get('url') || '';
       if (!/^https:\/\//i.test(target)) {
         res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: 'url must be an absolute https:// URL' }));
         return;
       }
+      // Its only caller expands w.wiki links (src/lib/share.js), so that is all it may reach.
+      if (!/(^|\.)w\.wiki$/.test(relayHostOf(target) || '')) {
+        res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'this relay resolves w.wiki links only' }));
+        return;
+      }
+      const leave = relayEnter();
       try {
-        const r = await fetch(target, { redirect: 'follow' });
+        const r = await relayFetch(target);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ url: r.url || target, status: r.status }));
       } catch (e) {
         res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: `resolve failed: ${e.message}` }));
+      } finally {
+        leave();
       }
       return;
     }
 
     // ── /api/staticmap: static map images for the Map widget ──
     if (url.pathname === '/api/staticmap') {
+        const gate = relayCheck(req);
+        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const num = (name, min, max) => {
         const v = Number(url.searchParams.get(name));
         return Number.isFinite(v) && v >= min && v <= max ? v : null;
@@ -589,20 +732,31 @@ const server = createServer(async (req, res) => {
       const lon = num('lon', -180, 180);
       const w = num('w', 240, 2000);
       const h = num('h', 180, 2000);
+        // Only ladder sizes are honoured. The client asks for these anyway, and it matters here: the cache key
+        // is the requested box, so an unbounded set of sizes would let anyone turn this relay into a
+        // cache-busting loop that asks the map service once per request.
+        if (w !== null && h !== null && !(MAP_LADDER.includes(w) && MAP_LADDER.includes(h))) {
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+          res.end(JSON.stringify({ error: 'w and h must be on the size ladder' }));
+          return;
+        }
       const lang = (url.searchParams.get('lang') || 'en').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'en';
       if (z === null || lat === null || lon === null || w === null || h === null) {
         res.writeHead(400, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: 'z, lat, lon, w and h must be numbers in range' }));
         return;
       }
-      const key = `${z}/${lat.toFixed(6)}/${lon.toFixed(6)}/${w}x${h}/${lang}`;
+        // Four decimals is about 11 m — far finer than any zoom we allow — and it collapses the key space so a
+        // cache hit is the normal case rather than the exception.
+        const key = `${z}/${lat.toFixed(4)}/${lon.toFixed(4)}/${w}x${h}/${lang}`;
       const cached = staticMapCache.get(key);
       if (cached && Date.now() - cached.at < STATICMAP_TTL_MS) {
         res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=21600', 'X-Staticmap': 'cache' });
         res.end(cached.body);
         return;
       }
-      const upstream = `${STATICMAP_UPSTREAM},${z},${lat.toFixed(6)},${lon.toFixed(6)},${w}x${h}.png?lang=${lang}`;
+        const upstream = `${STATICMAP_UPSTREAM},${z},${lat.toFixed(4)},${lon.toFixed(4)},${w}x${h}.png?lang=${lang}`;
+        const leave = relayEnter();
       try {
         const r = await fetch(upstream, { headers: { 'User-Agent': STATICMAP_UA } });
         const type = r.headers.get('content-type') || '';
@@ -621,7 +775,9 @@ const server = createServer(async (req, res) => {
       } catch (e) {
         res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: `static map fetch failed: ${e.message}` }));
-      }
+        } finally {
+          leave();
+        }
       return;
     }
 
@@ -635,9 +791,20 @@ const server = createServer(async (req, res) => {
     // returns { status, body } wrapped in JSON with ACAO: * so the app (or any
     // origin) can read it. Read-only, https-only.
     if (url.pathname === '/api/proxy') {
+        const gate = relayCheck(req);
+        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       if (req.method !== 'GET') {
         res.writeHead(405, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: 'GET only' }));
+        return;
+      }
+      // A proxy that can reach anywhere is an amplifier, so this one reaches the wiki families and the three
+      // third-party hosts the widgets actually use. Anything else is refused by name. (Reading the parameter directly
+      // rather than a `target` const, because this check sits above that declaration and would be a temporal-dead-zone
+      // crash — which is exactly how this looked when it first ran: every proxy request answered 500.)
+      if (!relayHostAllowed(url.searchParams.get('url') || '')) {
+        res.writeHead(403, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'this relay reaches Wikimedia hosts, top.hatnote.com and archive.org' }));
         return;
       }
       const target = url.searchParams.get('url') || '';
@@ -646,13 +813,13 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ error: 'url must be an absolute https:// URL' }));
         return;
       }
+      const leave = relayEnter();
       try {
-        const r = await fetch(target, {
-          redirect: 'follow',
+        const r = await relayFetch(target, {
           headers: { 'User-Agent': process.env.WIKIMEDIA_USER_AGENT
             || 'WikiBento/0.1 (https://wikibento.toolforge.org/; User:Fuzheado) proxy' },
         });
-        const body = await r.text();
+        const body = await readCapped(r, PROXY_MAX_BYTES, 'that URL');
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store',
@@ -662,6 +829,8 @@ const server = createServer(async (req, res) => {
       } catch (e) {
         res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: `proxy fetch failed: ${e.message}` }));
+      } finally {
+        leave();
       }
       return;
     }
@@ -671,6 +840,8 @@ const server = createServer(async (req, res) => {
     // caps live here). Returns the normalized { source, files, usage, capped,
     // truncated } shape the widget's fetchGlamStats consumes.
     if (url.pathname === '/api/petscan') {
+        const gate = relayCheck(req);
+        if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const origin = req.headers.origin;
       if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'origin not allowed' });
       const ip = ipOf(req);
@@ -841,7 +1012,7 @@ const server = createServer(async (req, res) => {
               for (let attempt = 0; attempt < 2 && !cdxRows && !definitiveEmpty && budgetLeft() > 0; attempt++) {
                 try {
                   const r = await timedFetch(cdx, 25000);
-                  const text = await r.text();
+                  const text = await readCapped(r, RELAY_MAX_BYTES, 'the Wayback CDX API');
                   if (r.ok) {
                     const parsed = JSON.parse(text);
                     if (Array.isArray(parsed)) {
@@ -902,7 +1073,7 @@ const server = createServer(async (req, res) => {
             try {
               const tm = `https://web.archive.org/web/timemap/json?url=${encodeURIComponent(variant)}&from=${from}&to=${to}`;
               const r = await timedFetch(tm, 15000);
-              const text = await r.text();
+              const text = await readCapped(r, RELAY_MAX_BYTES, 'the Wayback timemap API');
               if (r.ok) {
                 const parsed = JSON.parse(text);
                 if (Array.isArray(parsed) && parsed.length >= 2) {
@@ -937,6 +1108,8 @@ const server = createServer(async (req, res) => {
 
     // ── /api/ask/session: short-lived HMAC control token ──
     if (url.pathname === '/api/ask/session') {
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const origin = req.headers.origin;
       if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'origin not allowed' });
       if (ASK_DISABLED) return json(res, 503, { error: 'Ask is disabled' });
@@ -948,6 +1121,8 @@ const server = createServer(async (req, res) => {
 
     // ── /api/ask: intent → widget recommendations (narrow-function relay) ──
     if (url.pathname === '/api/ask') {
+      const gate = relayCheck(req);
+      if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const origin = req.headers.origin;
       if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) return json(res, 403, { error: 'origin not allowed' });
       if (ASK_DISABLED) return json(res, 503, { error: 'Ask is disabled' });
@@ -1017,15 +1192,26 @@ const server = createServer(async (req, res) => {
           : 'public, max-age=3600',
     });
     res.end(data);
-  } catch {
-    res.writeHead(404, { 'Cache-Control': 'no-store' });
-    res.end('Not found');
+  } catch (e) {
+    // A thrown error used to be reported as `404 Not found`, which is the opposite of diagnosable: a relay that was
+    // broken, rate-limited or refused looked exactly like a file that does not exist — and the route's own reason was
+    // thrown away. Say 500, and say what said no (2026-09-29, ISSUE-133).
+    console.error('request failed:', req.method, req.url, '—', (e && e.message) || e);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ error: `request failed: ${(e && e.message) || e}` }));
+    } else if (!res.writableEnded) {
+      res.end();
+    }
   }
 });
 
 // WIKIBENTO_TEST=1 (set by npm test) skips listen so tests can import helpers.
 if (!process.env.WIKIBENTO_TEST) {
-  server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
+  // A request that never finishes must not hold a socket for node's 300-second default.
+server.requestTimeout = 30000;
+server.headersTimeout = 15000;
+server.listen(PORT, () => console.log(`WikiBento serving dist/ on port ${PORT}`));
 }
 
 export { normalizeConfig, validateOptions, validateAssembly, manifestIds, ASK_SYSTEM, askManual, ASK_RULES, ASK_RULES_BOARD, ASK_ASSEMBLY_MANUAL, buildPetscanUrl, wikiDbToDomain, normalizePetscanPages, parsePetscanParams };

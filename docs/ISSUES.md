@@ -4992,6 +4992,53 @@ largest`. A category is a *way of obtaining a file list*, so it belongs there:
 a `category` key (previously dropped as unknown). That combination is now the feature, so the expectation moved —
 and a genuinely unknown key is still dropped, so the invariant survives.
 
+## ISSUE-133 · Every proxied service inventoried, bounded, and guarded — **done + verified 2026-09-29** (asked by Andrew)
+
+> **What was asked.** *"An inventory of all the services that are proxied through a server… make sure this is well known…
+> put this in the README… and make sure all of these services that are proxied are (1) cached so they perform well, and
+> (2) not vulnerable to denial of service by being overwhelmed: they should clean up after themselves, not fill disk, not
+> fill memory, and survive being pummelled. I want to make sure these proxies are not the vulnerable part."*
+
+**Inventory: six routes, now in the README and `docs/PROXIES.md`.**
+
+| Route | Upstream | Why a server |
+|---|---|---|
+| `/api/staticmap` | Wikimedia's map service | it answers a Wikimedia UA with a PNG and a browser with `403` + HTML, which the browser refuses as an image |
+| `/api/proxy` | Wikimedia wikis, `top.hatnote.com`, `web.archive.org` | no CORS on some; a desktop parse needs our UA |
+| `/api/resolve` | `w.wiki` | expanding short URLs server-side |
+| `/api/petscan` | PetScan | quick-intersection ignores `max` (39 MB answers) |
+| `/api/wayback-gallery` | `web.archive.org` CDX | no CORS |
+| `/api/ask` · `/api/ask/session` | LiftWing LLM | key, prompt and spend live server-side |
+
+**Seven properties, enforced in one place** (the top of `deploy/server.js`, drawn on by all seven routes): a host
+allowlist; a **streamed** byte cap (`content-length` is a hint, the running total is the truth); a deadline via one
+`relayFetch` helper (node's own default is 300 s); a per-client token bucket; a global in-flight ceiling released in a
+`finally`; caches with a TTL **and** a size ceiling; and **errors that explain themselves** — a thrown error used to be
+reported as `404 Not Found`, which is how a broken relay looked exactly like a missing file.
+
+Two allowlists, chosen from the callers rather than guessed: `/api/proxy` reaches the wiki families plus the three
+third-party hosts the widgets actually use, and `/api/resolve` reaches `w.wiki` and nothing else. The map relay needs
+none — its parameters are numbers, and its sizes must be on the client's ladder, which closes the cache key space.
+**Nothing writes to disk**, and the in-memory caches are the only state.
+
+**A guard, and it earned its keep immediately.** `scripts/relay-guard-e2e.mjs` (`npm run smoke:relay`, now part of
+`npm test`) starts the real server with tight limits and tries to break it — off-ladder size, absurd params, a
+non-allowlisted host, an oversized body, a burst of 24 — then asserts a **second client is still served** (the limit is
+per client, not a global stop) and that resident memory is sane. Its first run found three real bugs:
+
+1. **`MAP_LADDER` undefined in the server.** The constant lives in `src/lib/mapImage.js`, which `deploy/server.js`
+   cannot import (it sits next to `dist/` on the deployment), so the map route threw on every request.
+2. **A temporal-dead-zone crash** in the proxy's new allowlist, which read a `target` const declared below it.
+3. **Every error reported as `404 Not found`** — which is exactly why the first two looked like missing files rather
+   than broken code. That catch is now a `500` naming the reason; fixing it is what turned all three from mysteries into
+   one-line reports.
+
+The ladder duplication is deliberate and now pinned: `tests/map-widget.test.mjs` compares the server's list with the
+client's, so they cannot drift apart silently.
+
+**Verified in production** with the read-only guard (`--base`, which never bursts a deployed host): off-ladder size 400,
+absurd params 400, a ladder size 200 `image/png`, and the repeat served from cache.
+
 ## ISSUE-132 · Maps: the feature backlog after Tier 1 — interactivity, many points, paths, icons, an itinerary — **open, backlog** (asked by Andrew)
 
 > **What was asked.** *"I'd like to make sure we note down that we would like some more features for the maps, such as

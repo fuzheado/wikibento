@@ -28,7 +28,7 @@ Feature-complete for v1 and deployed.
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
 | production bundle | `index-BzNfz0s6.js` (+ `index-BKHxtDhx.css`) and `server.js` (the map relay) |
-| deployed | 2026-09-29 (latest) — **a map in a card** (ISSUE-131). The 🗺️ **Map** widget (42nd type) takes a coordinate, a Wikidata item or a page title and draws it with Wikimedia’s static map service at the card’s own size: our pin at the centre, OpenStreetMap’s credit line on the image, zoom / fit / label language / **Edge to edge**. The card asks **our own server** (`/api/staticmap` in `deploy/server.js`), not the service, because the service refuses browser-shaped requests with a 403 HTML page and the browser then refuses that as an image. `public/map-demo.json`. |
+| deployed | 2026-09-29 (latest) — **the proxies inventoried, bounded and guarded** (ISSUE-133). Six routes run through our Toolforge server (`/api/staticmap`, `/api/proxy`, `/api/resolve`, `/api/petscan`, `/api/wayback-gallery`, `/api/ask`) — why each exists, and the rules they share (host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, errors that name their reason) are in **`docs/PROXIES.md`** and the README. `npm run smoke:relay` starts the real server with tight limits and tries to break it; it is part of `npm test`. |
 | registry | 42 widget types — 33 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |

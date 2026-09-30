@@ -271,6 +271,28 @@ wikibento/
         └── dataSources.js     # API fetchers (one per widget, batched where needed)
 ```
 
+## Proxied services (what runs on our server)
+
+Almost everything WikiBento shows is fetched **by your browser, from Wikimedia directly** — the Action and REST APIs,
+Commons, Wikidata, the Internet Archive all send CORS headers, so no server of ours is involved. A few things cannot work
+that way, and those go through **our own Toolforge server**; the full inventory, the reasons and the rules are in
+[docs/PROXIES.md](docs/PROXIES.md).
+
+| Route | Upstream | Why it needs a server |
+|---|---|---|
+| `/api/staticmap` | Wikimedia's map service | it answers a Wikimedia User-Agent with a PNG and a browser with `403`, which the browser then refuses as an image |
+| `/api/proxy` | Wikimedia wikis, `top.hatnote.com`, `web.archive.org` | sources that send no CORS headers, and asking for a *desktop* parse with our own User-Agent |
+| `/api/resolve` | `w.wiki` | expanding short URLs server-side; the target sends no CORS |
+| `/api/petscan` | PetScan | quick-intersection ignores `max` and can return 39 MB — the byte cap and file budget live on the server |
+| `/api/wayback-gallery` | `web.archive.org` CDX | no CORS on the CDX side |
+| `/api/ask` | LiftWing LLM | the API key, the system prompt and the spend live server-side |
+
+Every route is `https`, `GET`, **cached** where an answer repeats, and bounded: a **host allowlist**, a **streamed byte
+cap**, a **deadline**, a **per-client rate limit**, an **in-flight ceiling**, and in-memory caches with a size as well as a
+TTL. Nothing writes to disk. `node scripts/relay-guard-e2e.mjs` (also `npm run smoke:relay`, part of `npm test`) starts
+the real server with tight limits and tries to break it — off-ladder map sizes, a non-allowlisted host, an oversized body,
+a burst of 24 requests — and then checks the server is still answering for *someone else* and its memory is still sane.
+
 ## Technology Stack
 
 | Layer | Choice |

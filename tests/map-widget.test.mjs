@@ -7,8 +7,9 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import {
-  staticMapUrl, relayMapUrl, osmUrl, parsePlace, placeSubtitle, clampZoom, mapLanguage, legalMapSize, MAP_DEFAULT_ZOOM, OSM_ATTRIBUTION,
+  MAP_SIZE_LADDER, staticMapUrl, relayMapUrl, osmUrl, parsePlace, placeSubtitle, clampZoom, mapLanguage, legalMapSize, MAP_DEFAULT_ZOOM, OSM_ATTRIBUTION,
 } from '../src/lib/mapImage.js';
 
 test('staticMapUrl: the documented shape, at the card’s own size', () => {
@@ -96,4 +97,14 @@ test('relayMapUrl: the card asks our own server, with the same laddered numbers'
   assert.equal(q.get('lang'), 'de');      // and the two-letter code the service understands
   // It must not be possible to aim the relay at another host: it takes no URL.
   assert.ok(!u.includes('http'), 'the relay URL is relative and carries no upstream address');
+});
+
+test('the server and the widget agree about the size ladder', () => {
+  // The relay refuses anything off its ladder and the widget asks only for ladder sizes, so if the two lists ever
+  // differ the map cards quietly stop rendering. deploy/server.js cannot import from src/ (it sits next to dist/ on
+  // the deployment), so the duplication is deliberate and this is what keeps it honest.
+  const server = readFileSync('deploy/server.js', 'utf8');
+  const m = server.match(/const MAP_LADDER = \[([^\]]+)\]/);
+  assert.ok(m, 'deploy/server.js must define MAP_LADDER');
+  assert.deepEqual(m[1].split(',').map((n) => Number(n.trim())), MAP_SIZE_LADDER);
 });
