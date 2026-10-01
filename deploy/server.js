@@ -43,8 +43,14 @@ const MIME = {
 // cache that cannot grow without bound. Nothing here writes to disk.
 //
 // All five limits are env-overridable so a test can tighten them instead of having to produce megabytes.
-const RELAY_BURST = Number(process.env.RELAY_BURST || 40);          // requests per client per window
+const RELAY_BURST = Number(process.env.RELAY_BURST || 40);          // requests per client per window, per route
 const RELAY_WINDOW_MS = Number(process.env.RELAY_WINDOW_MS || 60000);
+// The static map gets its own, larger allowance, and the reason is measured rather than assumed: **one board of maps
+// is many small cached images** — a card asks for one image, then asks again whenever its box lands on a new rung of
+// the size ladder — and the demos sweep (2026-10-01, four runs at once from one address) put a single client over
+// 40/min, which answered 429 and put every map card into its error state. The flat limit is right for routes that
+// cost money or fetch megabytes; a 40 KB PNG served from memory is not that. Still bounded: ~4 requests/second.
+const RELAY_BURST_STATICMAP = Number(process.env.RELAY_BURST_STATICMAP || RELAY_BURST * 6);
 const RELAY_MAX_INFLIGHT = Number(process.env.RELAY_MAX_INFLIGHT || 24); // upstream requests in flight, globally
 const RELAY_MAX_BYTES = Number(process.env.RELAY_MAX_BYTES || 8 * 1024 * 1024);
 const PROXY_MAX_BYTES = Number(process.env.PROXY_MAX_BYTES || 2 * 1024 * 1024);
@@ -82,18 +88,21 @@ function relayHostAllowed(raw) {
  */
 const relayHits = new Map();
 let relayInFlight = 0;
-function relayCheck(req) {
+function relayCheck(req, route = 'relay', burst = RELAY_BURST) {
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
   const now = Date.now();
-  const hit = relayHits.get(ip);
-  if (!hit || now - hit.start > RELAY_WINDOW_MS) relayHits.set(ip, { start: now, n: 1 });
+  // One bucket per client PER ROUTE: a client that legitimately asks for twenty map images has not thereby earned
+  // twenty PetScan walks or LLM calls, and vice versa.
+  const key = `${ip}|${route}`;
+  const hit = relayHits.get(key);
+  if (!hit || now - hit.start > RELAY_WINDOW_MS) relayHits.set(key, { start: now, n: 1 });
   else hit.n += 1;
   if (relayHits.size > RELAY_MAX_CLIENTS) {
-    for (const [key, bucket] of relayHits) if (now - bucket.start > RELAY_WINDOW_MS) relayHits.delete(key);
+    for (const [k, bucket] of relayHits) if (now - bucket.start > RELAY_WINDOW_MS) relayHits.delete(k);
     if (relayHits.size > RELAY_MAX_CLIENTS) relayHits.clear();
   }
-  const n = relayHits.get(ip).n;
-  if (n > RELAY_BURST) return { ok: false, status: 429, error: `too many relay requests (${n} in ${Math.round(RELAY_WINDOW_MS / 1000)}s) — wait a moment and retry` };
+  const n = relayHits.get(key).n;
+  if (n > burst) return { ok: false, status: 429, error: `too many ${route} requests (${n} in ${Math.round(RELAY_WINDOW_MS / 1000)}s) — wait a moment and retry` };
   if (relayInFlight >= RELAY_MAX_INFLIGHT) return { ok: false, status: 503, error: 'the relay is at capacity — try again in a moment' };
   return { ok: true };
 }
@@ -721,7 +730,7 @@ const server = createServer(async (req, res) => {
 
     // ── /api/staticmap: static map images for the Map widget ──
     if (url.pathname === '/api/staticmap') {
-      const gate = relayCheck(req);
+      const gate = relayCheck(req, 'map', RELAY_BURST_STATICMAP);
       if (!gate.ok) { res.writeHead(gate.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ error: gate.error })); return; }
       const num = (name, min, max) => {
         const v = Number(url.searchParams.get(name));

@@ -14,7 +14,9 @@
  *   7. and the one that matters most: it is still answering after being pummelled
  *
  * Runs against a local server with `RELAY_BURST`/`PROXY_MAX_BYTES` tightened, so a test does not have to produce
- * megabytes or thousands of requests to exercise the limits. `--base URL` re-runs the read-only checks against a
+ * megabytes or thousands of requests to exercise the limits. The limits are per route: the map's allowance is larger
+ * than the rest (see `RELAY_BURST_STATICMAP`), so the guard bursts both — the default one through an off-allowlist
+ * proxy request that never reaches the internet, and the map's with a board's worth of images. `--base URL` re-runs the read-only checks against a
  * deployed host instead (it never bursts anything but localhost — see the note at the burst).
  */
 import { spawn } from 'node:child_process';
@@ -120,12 +122,27 @@ if (LOCAL) {
 
 // ── 5. the burst: the rate limit answers, and the server survives it ────────
 if (LOCAL) {
-  const burst = await Promise.all(Array.from({ length: 24 }, () => get(LADDER_MAP).then((r) => { r.arrayBuffer(); return r.status; }).catch(() => 0)));
+  // The burst is aimed at an OFF-ALLOWLIST proxy request on purpose: `relayCheck` runs before the allowlist, so the
+  // requests that pass the limit are refused locally (403) and **nothing reaches the open internet**. This is the
+  // default allowance (RELAY_BURST is 8 in this test env), and it must still answer.
+  const burst = await Promise.all(Array.from({ length: 24 }, () => get(`/api/proxy?url=${encodeURIComponent('https://example.com/x')}`)
+    .then((r) => { r.arrayBuffer(); return r.status; }).catch(() => 0)));
   const limited = burst.filter((s) => s === 429).length;
-  const served = burst.filter((s) => s === 200).length;
-  limited > 0
-    ? ok('burst: the rate limit answers', `${limited}× 429 for 24 requests, ${served} served`)
-    : bad('burst: rate limit', `no 429 in ${burst.length} requests (${burst.join(',')})`);
+  const refused = burst.filter((s) => s === 403).length;
+  limited > 0 && refused > 0
+    ? ok('burst: the default allowance answers', `${limited}× 429 and ${refused}× 403 (refused locally) for 24 requests`)
+    : bad('burst: rate limit', `24 requests gave ${limited}× 429, ${refused}× 403 (${burst.join(',')})`);
+
+  // The map route has its own, larger allowance — measured, not guessed: one board of map cards asks for a stack of
+  // small cached images, and the demos sweep (2026-10-01, four boards at once from one address) pushed a single client
+  // past a flat 40/min and put every map card into its error state. A board's worth of map images must be normal
+  // traffic; the expensive routes keep the default budget.
+  const mapBurst = await Promise.all(Array.from({ length: 24 }, () => get(LADDER_MAP).then((r) => { r.arrayBuffer(); return r.status; }).catch(() => 0)));
+  const mapLimited = mapBurst.filter((s) => s === 429).length;
+  const mapServed = mapBurst.filter((s) => s === 200).length;
+  mapLimited === 0
+    ? ok('burst: a board of map images is served', `0× 429, ${mapServed}× 200 for 24 map images`)
+    : bad('burst: map allowance', `${mapLimited}× 429 for 24 map images — a board must not trip its own relay`);
 
   // A DIFFERENT client, so this asserts two things at once: the server is still answering after the burst, and the
   // limit is per client rather than a global stop — one visitor cannot starve the rest (`x-forwarded-for` is what the

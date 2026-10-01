@@ -58,11 +58,20 @@ export default function MapCanvas({
         ? prev
         : { imgW, imgH, cssW, cssH }));
     };
+    // The FIRST measurement is immediate — nothing is drawn before it. After that, wait for the size to stop
+    // moving: on a phone the grid stacks and every image that arrives shifts the cards, and since a distinct ladder
+    // size is a distinct request, a settling layout can ask for several images per card. Measured on the demos sweep
+    // (2026-10-01): one board's map cards asked for 84 images in a minute, which tripped the relay's own rate limit.
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(measure);
+    let settle = null;
+    const onResize = () => {
+      if (settle) clearTimeout(settle);
+      settle = setTimeout(measure, 180);
+    };
+    const ro = new ResizeObserver(onResize);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { if (settle) clearTimeout(settle); ro.disconnect(); };
   }, []);
 
   const list = Array.isArray(points) ? points.filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon)) : [];

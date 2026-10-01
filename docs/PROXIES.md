@@ -26,7 +26,7 @@ Every route below is in `deploy/server.js`. "Caps" are byte ceilings, "TTL" is h
 
 | Route | Upstream | Why it is proxied | Cache | Caps and limits |
 |---|---|---|---|---|
-| `/api/staticmap` | `maps.wikimedia.org/img/osm-intl` | the map service refuses browser-shaped requests (see above) | 60 entries, 6 h, memory | size must be on the ladder; coordinates rounded to 4 dp; closed parameter set |
+| `/api/staticmap` | `maps.wikimedia.org/img/osm-intl` | the map service refuses browser-shaped requests (see above) | 60 entries, 6 h, memory | size must be on the ladder; coordinates rounded to 4 dp; closed parameter set; **240 requests/min** per client (a board of maps is normal traffic) |
 | `/api/proxy` | Wikimedia wikis, `top.hatnote.com`, `web.archive.org` | sources with no CORS, and asking for a *desktop* parse with our own UA (ISSUE-100) | none (each request is data the user asked for) | 2 MB body cap; **host allowlist**; shared deadline |
 | `/api/resolve` | `w.wiki` only | expanding short URLs server-side; the target sends no CORS | none | 1 host allowed; shared deadline |
 | `/api/petscan` | `petscan.wmcloud.org` | quick-intersection ignores `max`; the cap and the file budget live here (ISSUE-46) | none | 25 MB streamed cap, 60 s deadline, file budget, `{ truncated }` reported rather than guessed |
@@ -46,8 +46,13 @@ Set once, at the top of `deploy/server.js`, and drawn on by all seven routes:
    a hostile or merely enormous body must never decide how much memory we use.
 3. **A deadline.** One helper (`relayFetch`) so that no route can forget one; node's own `requestTimeout` is 300 s by
    default, which is far too patient, so it is set to 30 s.
-4. **A rate limit, per client.** A token bucket keyed on the client's address (the proxy's `x-forwarded-for`), so one
-   visitor cannot starve the others — asserted by the guard, not assumed.
+4. **A rate limit, per client *and per route*.** A token bucket keyed on the client's address (the proxy's
+   `x-forwarded-for`) and the route, so one visitor cannot starve the others — asserted by the guard, not assumed.
+   The allowances differ deliberately: **40/min by default** (routes that cost money, fetch megabytes, or walk someone
+   else's database) and **240/min for `/api/staticmap`** — one board of maps is a stack of small cached images, and a
+   flat limit put every map card into its error state when four sweeping browsers shared one address (measured
+   2026-10-01: `too many relay requests (84 in 60s)`). A client that asks for twenty map images has not thereby earned
+   twenty PetScan walks, which is why the budgets are separate rather than one larger number for everything.
 5. **An in-flight ceiling.** Concurrent upstream requests are bounded globally, released in a `finally`, so a slow
    upstream cannot pile up connections.
 6. **Caches that cannot grow without bound.** A TTL *and* a size ceiling; a hostile key space cannot become a leak.
