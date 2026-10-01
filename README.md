@@ -102,7 +102,9 @@ All 33 data-driven widget types render live data in the browser; the 9 static on
   (read from that wiki first, following redirects, then from its Wikidata item). Wikimedia's own map service draws it at the
   card's own size, with **our pin** at the centre, OpenStreetMap's credit on the image, and zoom, fit and **map label
   language** under ⚙. One image means no tiles and no map library — so it prints and exports properly, and it works
-  **Edge to edge**. Open [`?config=/map-demo.json`](https://wikibento.toolforge.org/?config=/map-demo.json).
+  **Edge to edge**. The title bar names the place the fetch resolved (`Q64` → **Berlin**), and when the relay fails the
+  card prints the relay's own reason with **Try again** rather than leaving a broken image. Open
+  [`?config=/map-demo.json`](https://wikibento.toolforge.org/?config=/map-demo.json).
 - **Nothing proxied is the weak point** — six services need our server rather than your browser
   ([docs/PROXIES.md](docs/PROXIES.md)), and all six share one set of rules: a host allowlist, a streamed byte cap, a deadline,
   a per-client rate limit, an in-flight ceiling and bounded caches. `scripts/relay-guard-e2e.mjs` tries to break them on
@@ -242,7 +244,9 @@ npm run lint           # oxlint
 ```
 
 Also available: `npm run docs-facts` (the consistency gates alone; `:live` also checks what production
-serves), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`, and `update:cim-allow-list`.
+serves), `smoke:map` (the Map card in a browser — resolved name, relay failure, Try again),
+`check:map-landmarks` (the map projection checked against real rendered maps), `smoke:panels`, `smoke:qr`,
+`smoke:share`, `smoke:wayback`, and `update:cim-allow-list`.
 
 Browser runs need the engines installed **with the repo's own `playwright-core`**, and some hosts need a
 remote-browser daemon or an explicit engine path — see [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md).

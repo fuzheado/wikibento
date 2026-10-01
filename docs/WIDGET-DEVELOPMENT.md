@@ -268,6 +268,10 @@ myWidget: {
   },
   renderer: 'StatCard',                       // StatCard | RankingCard | TrendCard
   dataSource: 'mwapi-something',              // informational only
+  // Optional: what the header calls this card. `labelFromConfig(config)` names the asset from the config;
+  // `labelFromData(data)` names what the fetch RESOLVED (the Map's `Q64` → "Berlin") and is consulted first —
+  // while loading, the config label answers. See `src/lib/widgetTitle.js`. A field that applies to only one
+  // source declares `showIf` (AGENTS.md).
   configFields: [                             // drives the ⚙ panel
     { key: 'param', label: 'Param', type: 'text', placeholder: 'Something' },
     // type: 'select'  → add options: [{value, label}]

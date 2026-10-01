@@ -5056,8 +5056,11 @@ The headline answers:
 - **The spine for multiple points, paths, polygons, icons and labels is that a static map is a Mercator window**: given
   the centre, zoom and size, any coordinate maps to a pixel by the standard formula (checked numerically: Alexanderplatz
   lands where it belongs in a Berlin-centred map at zoom 11). So all of it is **our own SVG overlay** — no library, no
-  tiles, layers we can toggle, and it exports and prints with the map. A landmark test for an *off-centre* point is the
-  first thing to verify before relying on it.
+  tiles, layers we can toggle, and it exports and prints with the map. **Verified against real rendered maps 2026-09-30**
+  (`npm run check:map-landmarks`): four maps and eight Wikidata-anchored landmarks across both hemispheres, every predicted
+  pixel classified water or land — and the check proves it can fail, because a mirrored and a doubled projection are both
+  caught (by the two island-in-a-lake cases; a town probe that only proves "not water" catches neither, and the script
+  says so per case rather than hiding it).
 - **Interactivity is Tier 2 (Leaflet)**, where pan, zoom and layers come free, and the division of labour is worth
   stating: **static for print, export and presentation; interactive for exploring.** Not a compromise — a tiled map
   rasterises badly into 🖨️ Print and ⛶ Export → PNG, which is exactly why the static card came first.
@@ -5068,8 +5071,10 @@ The headline answers:
 - **Static "layers" are the style, from a closed set**: `osm-intl` ✓ and `osm` ✓ both verified; `osm-terrain` answers
   **400**, so the picker asks only for styles known to exist.
 
-Nothing here is built. This entry exists so the asks are tracked with the evidence attached, and so the next session
-starts from the design rather than from the wish.
+**Nothing here is built yet — except the piece everything else rests on.** The projection primitive (`mercatorPixel`,
+`src/lib/mapImage.js`) and its verification against real images landed 2026-09-30, so the next session starts from a
+verified spine rather than a wish: points, paths, polygons and icons are overlay work now. This entry exists so the asks
+stay tracked with the evidence attached.
 
 ## ISSUE-131 · The Map widget: a static map in a card, and the relay it turned out to need — **done + verified 2026-09-29** (asked by Andrew)
 
@@ -5112,6 +5117,13 @@ one each.**
 `labelFromConfig` — showing the *resolved* place name would mean the frame consulting `data.title`, a small general
 change worth doing on its own; and if the relay ever fails the card shows a broken image rather than the relay's reason,
 which wants an image-level error state.
+
+> **Both closed 2026-09-30.** The general change is `widgetTitle()` (`src/lib/widgetTitle.js`): a widget may now declare
+> `labelFromData(data)` — the Map's, `Q64` → "Berlin" — consulted *after* the user's own `_title` and *before*
+> `labelFromConfig`, which is what shows while loading. It is opt-in per type, so no widget that sets `data.title` for its
+> content silently renames its header. A failing relay is no longer a broken image: the `<img>`'s error event asks the
+> relay why and the card prints its reason, with a Try again that re-asks and an OpenStreetMap link for the place it still
+> knows; on a host with no relay it says that instead. `npm run smoke:map` asserts all of it in a browser (11 checks).
 
 ## ISSUE-130 · Maps: what we have, what the sources allow, and the tiered plan — **research done 2026-09-29** (asked by Andrew)
 

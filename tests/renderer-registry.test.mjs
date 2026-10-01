@@ -102,3 +102,22 @@ test('every registry key is its own id (a mis-keyed entry is invisible until som
   const bad = Object.entries(WIDGET_TYPES).filter(([key, def]) => def.id !== key).map(([key, def]) => `${key} → ${def.id}`);
   assert.deepEqual(bad, []);
 });
+
+/**
+ * The third guard, and the one it took two weeks to notice: **a component the frame renders as JSX must exist.**
+ *
+ * `TableCard` was deleted by a region rewrite (e4cdad8, 2026-09-14) while `SparqlCard` kept dispatching to it, so
+ * every table-mode query threw `ReferenceError: TableCard is not defined` and the error boundary showed "Try again".
+ * Both tests above passed: TableCard is not named by a registry `renderer:` key (the SPARQL widget's renderer is
+ * `SparqlCard`, which picks a mode), and it is not a `'…Card'` string literal in the registry either. `npm run lint`
+ * knew — `jsx-no-undef` printed it on every run — and nobody read that line.
+ *
+ * So scan the frame's own JSX, whatever routes lead there: every `<XCard …>` must have a `function XCard(`.
+ */
+test('every card the frame renders as JSX is defined', () => {
+  const frame = read('src/widgets/WidgetFrame.jsx');
+  const used = [...new Set([...frame.matchAll(/<([A-Z][A-Za-z0-9_]*Card)\b/g)].map((m) => m[1]))];
+  assert.ok(used.length >= 10, `expected the frame to render many cards, found ${used.length}`);
+  const missing = used.filter((name) => !new RegExp(`function\\s+${name}\\s*\\(`).test(frame));
+  assert.deepEqual(missing, [], `the frame renders cards that do not exist: ${missing.join(', ')}`);
+});

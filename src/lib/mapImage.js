@@ -155,3 +155,40 @@ export function relayMapUrl({ lat, lon, zoom = MAP_DEFAULT_ZOOM, width = 800, he
   });
   return `/api/staticmap?${params}`;
 }
+
+/** Web Mercator is only defined between these latitudes, where the projection runs to infinity. The map service
+ *  renders nothing beyond them, so a point outside is clamped rather than producing `Infinity`. */
+export const MAP_LAT_LIMIT = 85.05112878;
+
+/**
+ * The spine for every overlay the Map card will grow: **a static map is a Mercator window** (ISSUE-132).
+ *
+ * Given the centre, the zoom and the image size, any coordinate lands at a pixel by the same Web Mercator formula the
+ * tile services draw with — so points, paths, polygons, icons and labels can be our own SVG over one static image,
+ * with no map library, no tiles, and layers we can toggle. `x`/`y` are pixels in the *requested image* (the laddered
+ * `w`×`h` from `staticMapUrl`), not in the card's CSS box: `object-fit: cover|contain` decides how that image meets the
+ * box afterwards, so an overlay drawn in this space needs the same `viewBox`, not the card's measurements.
+ *
+ * The maths, stated once: at zoom `z` the world is `256 · 2^z` pixels square; longitude maps linearly across it, and
+ * latitude maps through the Mercator ordinate `asinh(tan φ)`. That is the whole formula — which is exactly why it is
+ * worth checking against a real image rather than trusting it, and `scripts/map-landmark-check.mjs` does: it fetches
+ * maps of known lakes and islands, predicts where each landmark should be, and classifies the pixels there as water or
+ * land. An off-centre, mirrored or mis-scaled projection fails it. Verified 2026-09-30 on four maps across both
+ * hemispheres — see that script's output in `docs/VERIFIED-WORKING.md`.
+ */
+export function mercatorPixel({
+  lat, lon, centerLat, centerLon, zoom = MAP_DEFAULT_ZOOM, width = 800, height = 500,
+} = {}) {
+  const z = clampZoom(zoom);
+  const world = 256 * 2 ** z;
+  const xOf = (v) => ((Number(v) + 180) / 360) * world;
+  const yOf = (v) => {
+    const clamped = Math.max(-MAP_LAT_LIMIT, Math.min(MAP_LAT_LIMIT, Number(v)));
+    return ((1 - Math.asinh(Math.tan((clamped * Math.PI) / 180)) / Math.PI) / 2) * world;
+  };
+  const w = Number(width) || 0;
+  const h = Number(height) || 0;
+  const x = xOf(lon) - xOf(centerLon) + w / 2;
+  const y = yOf(lat) - yOf(centerLat) + h / 2;
+  return { x, y, inside: x >= 0 && y >= 0 && x <= w && y <= h };
+}

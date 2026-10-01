@@ -512,6 +512,13 @@ body {
 .map-card.is-contain .map-img { object-fit: contain; }
 /* One frame of empty card while the box is measured — `ResizeObserver` runs before paint, so it is never seen. */
 .map-skeleton { background: linear-gradient(100deg, var(--bg) 30%, rgba(255,255,255,0.03) 50%, var(--bg) 70%); }
+/* The relay's own reason, in place of the image: a browser shows a failed image as nothing at all, and "nothing"
+   tells a reader neither what happened nor whether waiting would help. */
+.map-error {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 12px; text-align: center; background: var(--bg);
+}
+.map-error-text { color: var(--danger); font-size: 12px; }
 .map-pin {
   position: absolute; left: 50%; top: 50%; width: 16px; height: 16px;
   margin: -15px 0 0 -8px;                 /* the tip of the teardrop is the coordinate */

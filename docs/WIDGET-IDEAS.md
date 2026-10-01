@@ -442,15 +442,19 @@ already true and what is genuinely open. Effort is honest: S is an afternoon, M 
 ### The spine that makes most of this cheap: **a static map is a Mercator window**
 
 Given the centre, the zoom and the size, *any* coordinate maps to a pixel inside the image by the standard Web Mercator
-formula — the same one the tile services use. Verified numerically the day this was written: Alexanderplatz, ~3 km from a
-Berlin-centred 800×640 map at zoom 11, lands at pixel (432, 312), which is where it belongs (east and north of centre).
-And the pin already sits exactly on the Eiffel Tower when the map is centred there, which checks the centre case.
+formula — the same one the tile services use. Verified against real rendered maps on 2026-09-30
+(`npm run check:map-landmarks`): four static maps, eight Wikidata-anchored landmarks, every predicted pixel classified
+water or land — each lake centre at 100% water and, off-centre, an island, a town and a mountain all on land. (The
+figure sketched here originally — Alexanderplatz at "(432, 312), ~3 km from a Berlin-centred map" — was approximate;
+the verified prediction is **(443.5, 307.5)** at 2.1 km, and the arithmetic and the image agree.)
 
 That means **pins, paths, icons, labels and polygons can be our own SVG overlay** on the same static image, with no map
 library, no tiles and no policy of its own — and because we draw them, they are layers *we* can toggle, and they export
 and print with the map (verified: the map host sends CORS, so the canvas stays clean).
-*First thing to verify before relying on it:* a landmark test for an off-centre point (pick a coordinate whose position
-in the image you can see, and check the formula against it).
+**The landmark test this section asked for is now done and reproducible** — `scripts/map-landmark-check.mjs`, run with
+`npm run check:map-landmarks`. It also re-runs every case through a mirrored and a doubled projection and fails if
+nothing notices, because a check that cannot fail is not a check (measured: the two island cases catch both; a probe
+that only proves "not water" catches neither).
 
 ### 1. Interactivity — pan, zoom, layers (M–L, and it is Tier 2)
 

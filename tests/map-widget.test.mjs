@@ -9,8 +9,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  MAP_SIZE_LADDER, staticMapUrl, relayMapUrl, osmUrl, parsePlace, placeSubtitle, clampZoom, mapLanguage, legalMapSize, MAP_DEFAULT_ZOOM, OSM_ATTRIBUTION,
+  MAP_SIZE_LADDER, staticMapUrl, relayMapUrl, osmUrl, parsePlace, placeSubtitle, clampZoom, mapLanguage, legalMapSize, MAP_DEFAULT_ZOOM, OSM_ATTRIBUTION, mercatorPixel,
 } from '../src/lib/mapImage.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
 
 test('staticMapUrl: the documented shape, at the card’s own size', () => {
   // both dimensions land on the ladder (800 is a rung; 500 rounds up to 640)
@@ -107,4 +108,73 @@ test('the server and the widget agree about the size ladder', () => {
   const m = server.match(/const MAP_LADDER = \[([^\]]+)\]/);
   assert.ok(m, 'deploy/server.js must define MAP_LADDER');
   assert.deepEqual(m[1].split(',').map((n) => Number(n.trim())), MAP_SIZE_LADDER);
+});
+
+/**
+ * The spine the map backlog rests on (ISSUE-132): a static map is a Mercator window, so any coordinate maps to a
+ * pixel of the image. These tests pin the arithmetic against the tile-pyramid formula the services draw with, keep
+ * the hemispheres honest, and understand `inside`. What they *cannot* do is check the formula against a rendered
+ * image — that is `scripts/map-landmark-check.mjs` (four maps, eight landmarks, water/land classified by pixel),
+ * whose verdict is recorded in docs/VERIFIED-WORKING.md and docs/ISSUES.md (ISSUE-132).
+ */
+test('mercatorPixel: the centre is the middle, and it agrees with the tile-pyramid formula', () => {
+  assert.deepEqual(
+    mercatorPixel({ lat: 52.52, lon: 13.405, centerLat: 52.52, centerLon: 13.405, zoom: 11, width: 800, height: 640 }),
+    { x: 400, y: 320, inside: true },
+    'the coordinate the map was centred on lands in the middle of the image',
+  );
+  // The same world expressed independently: world = 256·2^z pixels, longitude linear across it, latitude through
+  // the Mercator ordinate. A sign, a factor of 2 or a 256-vs-512 tile size shows up as a mismatch here.
+  const TILE = 256;
+  const tileX = (lon, z) => ((Number(lon) + 180) / 360) * 2 ** z;
+  const tileY = (lat, z) => ((1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z;
+  const cases = [
+    { lat: 52.5219, lon: 13.4132, centerLat: 52.516666666667, centerLon: 13.383333333333, zoom: 11, width: 800, height: 640 },
+    { lat: -33.8688, lon: 151.2093, centerLat: -33.88, centerLon: 151.245, zoom: 13, width: 480, height: 480 },
+    { lat: 46.71241, lon: 12.04509, centerLat: 46.693611, centerLon: 12.085, zoom: 12, width: 640, height: 320 },
+  ];
+  for (const c of cases) {
+    const got = mercatorPixel(c);
+    assert.ok(Math.abs(got.x - ((tileX(c.lon, c.zoom) - tileX(c.centerLon, c.zoom)) * TILE + c.width / 2)) < 1e-6, `x for ${JSON.stringify(c)}`);
+    assert.ok(Math.abs(got.y - ((tileY(c.lat, c.zoom) - tileY(c.centerLat, c.zoom)) * TILE + c.height / 2)) < 1e-6, `y for ${JSON.stringify(c)}`);
+  }
+});
+
+test('mercatorPixel: the worked case, the hemispheres, and the edge of the window', () => {
+  // Alexanderplatz (52.5219, 13.4132) on a Berlin-centred (Q64's P625) 800×640 map at zoom 11 — 2.1 km away, which
+  // is the example the map backlog quotes. (The figure written down when Tier 1 shipped, "(432, 312)", was
+  // approximate; these are the numbers the formula and the rendered image agree on.)
+  const p = mercatorPixel({ lat: 52.5219, lon: 13.4132, centerLat: 52.516666666667, centerLon: 13.383333333333, zoom: 11, width: 800, height: 640 });
+  assert.ok(Math.abs(p.x - 443.5) < 0.1, `x = ${p.x}`);
+  assert.ok(Math.abs(p.y - 307.5) < 0.1, `y = ${p.y}`);
+  assert.equal(p.inside, true);
+
+  const east = mercatorPixel({ lat: 0, lon: 10, centerLat: 0, centerLon: 0, zoom: 8, width: 1000, height: 1000 });
+  assert.ok(east.x > 500, 'east of centre is to the right');
+  assert.equal(east.y, 500, 'and no further down');
+  const south = mercatorPixel({ lat: -10, lon: 0, centerLat: 0, centerLon: 0, zoom: 8, width: 1000, height: 1000 });
+  assert.ok(south.y > 500, 'south of centre is below — one formula serves both hemispheres');
+  assert.equal(south.x, 500);
+
+  const far = mercatorPixel({ lat: 40, lon: -30, centerLat: 52.52, centerLon: 13.405, zoom: 11, width: 800, height: 640 });
+  assert.equal(far.inside, false, 'a point outside the window says so rather than being drawn at a wrong pixel');
+  assert.ok(far.x < 0 && far.y > 0, 'west and south of a Berlin window');
+  assert.deepEqual(
+    mercatorPixel({ lat: 1, lon: 2, centerLat: 1, centerLon: 2, zoom: 11, width: 0, height: 0 }),
+    { x: 0, y: 0, inside: true },
+    'a zero-sized image still answers, at its single point',
+  );
+  const pole = mercatorPixel({ lat: -90, lon: 0, centerLat: -90, centerLon: 0, zoom: 3, width: 100, height: 100 });
+  assert.ok(Number.isFinite(pole.x) && Number.isFinite(pole.y), 'the poles clamp instead of reaching Infinity');
+});
+
+test('map: the header names the place once it is resolved (labelFromData)', () => {
+  // The card is given `Q64` and only the fetch knows that means "Berlin". While loading, the config label answers,
+  // so the header says `Q64` rather than something invented (ISSUE-131's first rough edge).
+  const def = WIDGET_TYPES.map;
+  assert.equal(def.labelFromConfig({ place: 'Q64' }), 'Q64');
+  assert.equal(def.labelFromData(null), null, 'no data yet → the config label answers');
+  assert.equal(def.labelFromData({}), null);
+  assert.equal(def.labelFromData({ title: 'Berlin' }), 'Berlin');
+  assert.equal(def.labelFromData({ title: '48.8584, 2.2945' }), '48.8584, 2.2945', 'a bare coordinate is a name too');
 });

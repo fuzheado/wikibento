@@ -26,6 +26,7 @@ import ProjectField, { FALLBACK_PROJECTS } from '../components/ProjectField';
 import PagedViewer from './PagedViewer';
 import { configFieldValue, fieldVisible } from '../lib/configFields';
 import { relayMapUrl, osmUrl, placeSubtitle, OSM_ATTRIBUTION, MAP_HI_DPI, legalMapSize } from '../lib/mapImage';
+import { widgetTitle } from '../lib/widgetTitle';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
 import { printTarget } from '../lib/print';
@@ -308,13 +309,15 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   // app's layout state changes (content-based auto-fit, see App.onAutoHeight).
   const onAutoHeightRef = useRef(onAutoHeight);
   onAutoHeightRef.current = onAutoHeight;
-  // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
-  // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's compatibility rule).
-  // explicitly set a custom _title. Falls back to the generic widget name.
-  const headerTitle =
-    resolvedConfig._title && resolvedConfig._title !== def?.name
-      ? resolvedConfig._title
-      : def?.labelFromConfig?.(resolvedConfig) || def?.name || widget.widgetType;
+  // What the title bar reads: the user's own `_title`, else what the widget resolved from its data
+  // (`labelFromData` — the Map's `Q64` becoming "Berlin", ISSUE-131), else what it can name from its config,
+  // else the generic name. One pure function, so the order is tested rather than inferred (tests/widget-title).
+  const headerTitle = widgetTitle({
+    def,
+    config: resolvedConfig,
+    data: state.data,
+    fallback: widget.widgetType,
+  });
 
   // Header tooltip carries the internal slug too — the canonical identifier
   // used in the registry, dashboard.json widgetType, and bug reports.
@@ -1849,6 +1852,10 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
 function MapCard({ data }) {
   const wrapRef = useRef(null);
   const [box, setBox] = useState(null);
+  // A failing relay answers JSON, which a browser shows as a broken image: a blank card with no reason in it. So the
+  // image's own error event asks the relay *why* and the card says it (ISSUE-131's second rough edge).
+  const [failed, setFailed] = useState(null);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return undefined;
@@ -1878,9 +1885,58 @@ function MapCard({ data }) {
     width: box?.w || 800,
     height: box?.h || 500,
   });
+  // A different place or a different box is a different request, so an old failure is not this image's story.
+  useEffect(() => { setFailed(null); }, [url]);
+
+  const urlRef = useRef(url);
+  urlRef.current = url;
+  // Which attempt has already been explained: a single failed <img> can fire its error event more than once, and a
+  // retry must be allowed to ask again even if the previous explanation is still in flight.
+  const explainedAttempt = useRef(-1);
+  const explain = useCallback(async () => {
+    if (explainedAttempt.current === attempt) return;
+    explainedAttempt.current = attempt;
+    let reason = 'the map image could not be loaded';
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const type = res.headers.get('content-type') || '';
+      if (type.includes('json')) {
+        const body = await res.json().catch(() => null);
+        reason = body?.error || `the map relay answered HTTP ${res.status}`;
+      } else if (res.status === 404 || type.includes('html')) {
+        // A plain static host answers 404, or hands back the app's own index.html: there is no relay here at all.
+        reason = 'this host has no map relay — the map needs /api/staticmap from the Toolforge server';
+      } else if (res.ok && type.startsWith('image/')) {
+        // The relay is answering now, so the image itself did not arrive (a blip, or the browser refused it). Say
+        // that, rather than reporting "the relay answered 200" at a reader who can see there is no map.
+        reason = 'the map image did not load, but the relay is answering — try again';
+      } else {
+        reason = `the map relay answered HTTP ${res.status}${type ? ` (${type})` : ''}`;
+      }
+    } catch {
+      reason = 'the map relay could not be reached';
+    }
+    // The place may have changed while the relay was being asked.
+    if (urlRef.current === url) setFailed(reason);
+  }, [url, attempt]);
+
+  const retry = useCallback(() => {
+    setFailed(null);
+    setAttempt((n) => n + 1);
+  }, []);
+
   const where = data.label || placeSubtitle('', data.lat, data.lon);
   return (
     <div className={`map-card${data.fit === 'contain' ? ' is-contain' : ''}`} ref={wrapRef}>
+      {failed ? (
+        <div className="map-error">
+          <span className="map-error-text">⚠ {failed}</span>
+          <button className="widget-btn" onClick={retry}>Try again</button>
+          <a className="widget-btn" href={osmUrl(data.lat, data.lon, data.zoom)} target="_blank" rel="noopener noreferrer">
+            Open this place on OpenStreetMap ↗
+          </a>
+        </div>
+      ) : (
       <a
         className="map-link"
         href={osmUrl(data.lat, data.lon, data.zoom)}
@@ -1893,9 +1949,11 @@ function MapCard({ data }) {
             the real size costs the map service a second image per card, which its terms ask us to avoid. */}
         {box ? (
         <img
+          key={attempt}
           className="map-img"
           src={url}
           alt={`Map of ${where}`}
+          onError={explain}
           /* The map service answers 403 to a request whose Referer is localhost (measured 2026-09-29), which
              the browser then refuses as a cross-origin image — so a map was blank on any local dev server while
              working in production. Sending no referrer at all is allowed by the service (also measured) and makes
@@ -1908,9 +1966,12 @@ function MapCard({ data }) {
         )}
         {data.showPin ? <span className="map-pin" aria-hidden="true" /> : null}
       </a>
-      <span className="map-credit">
-        <a href={OSM_ATTRIBUTION.href} target="_blank" rel="noopener noreferrer">{OSM_ATTRIBUTION.text}</a>
-      </span>
+      )}
+      {failed ? null : (
+        <span className="map-credit">
+          <a href={OSM_ATTRIBUTION.href} target="_blank" rel="noopener noreferrer">{OSM_ATTRIBUTION.text}</a>
+        </span>
+      )}
     </div>
   );
 }
@@ -2945,6 +3006,41 @@ function DocumentReaderCard({ data }) {
         }
         : null}
     />
+  );
+}
+
+/** Table — the SPARQL widget's rows as they came, for queries with no numeric column to chart.
+ *
+ *  Restored 2026-09-30. A region rewrite on 2026-09-14 (e4cdad8) deleted this component while `SparqlCard` kept
+ *  dispatching to it, so every table-mode query threw `ReferenceError: TableCard is not defined`, shown by the error
+ *  boundary as "Try again". BarCard died in the same rewrite and was restored within days; this one waited, because no
+ *  shipped board happened to render table mode. It was found by `npm run lint` — `jsx-no-undef` had been printing the
+ *  warning all along, which is a reminder that a lint line nobody reads is not a gate.
+ *
+ *  Why the renderer-registry test missed it: the dispatch reaches TableCard *inside* `SparqlCard`, not through a
+ *  registry `renderer:` name, and the test scanned the registry for `'…Card'` strings. It now separately asserts that
+ *  every component the frame renders as JSX is defined — the check that would have caught this. */
+function TableCard({ data }) {
+  const columns = data.columns || [];
+  const rows = data.rows || [];
+  return (
+    <div className="table-card">
+      {data.title && <div className="ranking-title" title={data.title}>{data.title}</div>}
+      {data.subtitle && <div className="ranking-subtitle">{data.subtitle}</div>}
+      <div className="table-scroll">
+        <table className="sparql-table">
+          <thead>
+            <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && <tr><td className="widget-empty" colSpan={columns.length || 1}>No rows</td></tr>}
+            {rows.map((r, i) => (
+              <tr key={i}>{r.map((cell, j) => <td key={j} title={String(cell)}>{cell}</td>)}</tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

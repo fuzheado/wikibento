@@ -5,11 +5,65 @@ kept because the failures it documents are the ones that recur (a silently-ignor
 renders an empty frame instead of an error). The README carries only the current headline; this carries the
 evidence.
 
-Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels` and `npm run test:browsers`
+Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm run smoke:map` and `npm run test:browsers`
 (see [BROWSER-TESTING.md](BROWSER-TESTING.md)), and the cross-doc consistency gates with
 `node scripts/docs-facts.mjs`.
 
 Back to the [README](../README.md).
+
+## The map card's two edges, and the Mercator-window spine (ISSUE-131/132, 2026-09-30)
+
+Two rough edges had been filed rather than fixed, and the whole map backlog rested on one unverified assumption. All
+three were closed, each with a check behind it.
+
+- ✅ **The header names the resolved place.** A card is given `Q64`; only the fetch knows that means "Berlin", and the
+  title bar showed the query back at the reader. The frame now asks `widgetTitle()` (`src/lib/widgetTitle.js`), which
+  consults `labelFromData(data)` when a widget declares it — opt-in per type, so a widget that sets `data.title` for its
+  own content does not silently rename its header — then `labelFromConfig(config)`, which is what shows while loading.
+  `smoke:map` asserts the header reads "🗺️ Berlin".
+- ✅ **A failed relay says why.** The relay answers JSON when it fails, which a browser renders as a broken image: a
+  blank card with no reason and no sign whether waiting would help. The `<img>`'s error event now asks the relay *why*,
+  and the card prints the relay's own sentence with **Try again** (which re-asks) and an OpenStreetMap link for the
+  place it still knows. `scripts/map-e2e.mjs` mocks a 502, checks the exact string, then lets the relay recover and
+  checks the map, the credit line and the re-request (3 Berlin requests: the failed image, the failed why-ask, the
+  successful retry). On a host with no relay at all — `vite preview` — the card says *that* instead, also checked.
+- ✅ **The pin covers the coordinate**, asserted in the same run: the pin is our own overlay, because the map service
+  draws no marker of its own.
+
+**The spine is verified against real images, not against itself.** The backlog assumes a static map is a Mercator
+window — any coordinate maps to a pixel, so points, paths, icons and labels can be our own SVG with no map library.
+`mercatorPixel()` now lives in `src/lib/mapImage.js`, pinned twice: unit tests against the tile-pyramid formula, and
+`npm run check:map-landmarks`, which fetches four real static maps and classifies the pixels at eight predicted
+landmarks — lakes (water) with an island, a town or a mountain beside them (land), every coordinate a Wikidata P625:
+
+| case | zoom | probes | verdict |
+|---|---|---|---|
+| Crater Lake, Oregon | 13 | lake centre · Wizard Island | water 100% · land, crosshair centred on the island |
+| Lake Bled, Slovenia | 13 | lake centre · Bled town | water 100% · land, on the town |
+| Lake Rotorua, Aotearoa (southern hemisphere) | 13 | lake centre · Mokoia Island | water 100% · land |
+| Pragser Wildsee, Dolomites | 12 | lake centre · Hochalpenkopf | water 100% · land |
+
+**The check proves it can fail.** Every case is re-run through a mirrored and a doubled projection, and the run fails if
+nothing notices. Measured: the two island-in-a-lake cases catch both distortions — a small land feature surrounded by
+water is exactly what a wrong offset misses — while the town and mountain probes catch neither, because a probe that
+only proves "not water" cannot say *which* land it landed on. The script prints that per case and requires each
+distortion to be caught somewhere. (The figure the backlog had written down — Alexanderplatz "at pixel (432, 312), ~3 km
+from a Berlin-centred map" — was approximate; the verified prediction is (443.5, 307.5) at 2.1 km, and the arithmetic
+and the image agree.)
+
+🐛 **A third thing was found while doing this, and it was not the map.** `npm run lint` had been printing
+`jsx-no-undef: 'TableCard' is not defined` for two weeks: the 2026-09-14 region rewrite that deleted `BarCard`
+(gotcha 15) had also deleted `TableCard`, while `SparqlCard` kept dispatching to it — so every SPARQL query whose mode
+resolved to *table* threw `ReferenceError` behind "Try again". The registry test could not see it (the dispatch happens
+*inside* `SparqlCard`, not through a registry `renderer:` name). Restored, verified in the built app through the Import
+panel (2 columns, 1 row, no error frame), and guarded by a new assertion in `tests/renderer-registry.test.mjs` — every
+card the frame renders as JSX must exist. That assertion was itself verified by deleting the component and watching it
+fail.
+
+- Artifacts: `cache/maps/map-e2e-error.png` · `cache/maps/map-e2e-loaded.png` · `cache/maps/landmark-*-annotated.png`
+  (the predicted pixels drawn onto the real maps) · `cache/maps/sparql-table-render.png`.
+- Re-run: `npm run smoke:map` (needs `dist/`; starts the real relay) · `npm run check:map-landmarks` (network; four
+  images, cached under `cache/`).
 
 ## The gallery family became one widget (ISSUE-105, 2026-09-18)
 

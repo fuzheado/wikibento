@@ -43,9 +43,11 @@ App  (state: widgets[], layout[], panel visibility)
   catalog-adds use `` `${typeId}-${Date.now()}` ``). `id` keys both the layout item
   (`layout[].i`) and the widget.
 - **Config:** `config` is a free-form object. `_title` is an optional user override
-  for the header (no longer auto-set on add); otherwise the header shows
-  `labelFromConfig(config)` — the asset being analyzed (article, category, file,
-  domain, language) — falling back to the generic widget name. `refreshSeconds`
+  for the header (no longer auto-set on add); otherwise `widgetTitle()`
+  (`src/lib/widgetTitle.js`) decides, in order: `labelFromData(data)` when the widget
+  declares one — what the fetch *resolved*, e.g. the Map's `Q64` → "Berlin" — then
+  `labelFromConfig(config)`, the asset being analyzed (article, category, file,
+  domain, language), and finally the generic widget name. `refreshSeconds`
   drives auto-refresh.
 
 ## Widget Lifecycle (WidgetFrame)

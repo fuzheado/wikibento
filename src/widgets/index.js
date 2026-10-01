@@ -1825,6 +1825,9 @@ export const WIDGET_TYPES = {
     icon: '🗺️',
     description: 'A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia\'s own map service at the card\'s own size, with our pin at the centre. No tiles and no map library: one image, which is why it also prints and exports.',
     labelFromConfig: (c) => String(c.place || '').trim() || null,
+    // A place is given as `Q64` and only the fetch knows that means "Berlin", so the header waits for the data
+    // rather than repeating the query back at the reader. While loading, labelFromConfig still answers.
+    labelFromData: (d) => String(d?.title || '').trim() || null,
     defaults: {
       place: 'Q64',          // a coordinate ('48.8584, 2.2945'), a Wikidata item, or a page title
       project: 'en.wikipedia',

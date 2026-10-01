@@ -33,8 +33,8 @@ Feature-complete for v1 and deployed.
 | showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
-| pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🗺️ **A map in a card** (ISSUE-131) — a coordinate, a Wikidata item or a page title, drawn by Wikimedia's map service at the card's own size, with our pin and OpenStreetMap's credit; the card asks **our own relay** (`/api/staticmap`), because the service refuses browser-shaped requests · 🔒 **every proxied route inventoried and bounded** (ISSUE-133, `docs/PROXIES.md`) — host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, and a guard in `npm test` that tries to break them · 🖼️ **Edge to edge on seven types** (ISSUE-126/127) · 🏷️ **widget names checked against the docs** (ISSUE-128) |
+| pending deploy | **the branch now carries unreleased work** — the map card's resolved-place header and its relay-failure state, and the restored SPARQL table renderer (both browser-verified, `docs/VERIFIED-WORKING.md`, 2026-09-30). Production still serves the bundle above, so `docs-facts --live` describes the previous release until the next deploy — and the two state lines above are updated *after* one, not before |
+| newest capabilities | 🗺️ **A map in a card** (ISSUE-131) — a coordinate, a Wikidata item or a page title, drawn by Wikimedia's map service at the card's own size, with our pin and OpenStreetMap's credit; the card asks **our own relay** (`/api/staticmap`), because the service refuses browser-shaped requests · 🔒 **every proxied route inventoried and bounded** (ISSUE-133, `docs/PROXIES.md`) — host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, and a guard in `npm test` that tries to break them · 🖼️ **Edge to edge on seven types** (ISSUE-126/127) · 🏷️ **widget names checked against the docs** (ISSUE-128) · 🗺️ **the map card's two rough edges closed** (ISSUE-131, 2026-09-30): the header names the **resolved place** (`Q64` → "Berlin") and a failed relay prints **its own reason** with a Try again that re-asks, instead of a broken image (`npm run smoke:map`) · 📐 **the map backlog's spine verified against real images** (ISSUE-132): `mercatorPixel` checked against four rendered maps, with a built-in control that fails the run if a mirrored or doubled projection slips past (`npm run check:map-landmarks`) · 🧾 **the SPARQL table renderer restored** — a region rewrite on 2026-09-14 deleted `TableCard` while `SparqlCard` kept calling it, so every table-mode query crashed behind "Try again"; found by lint, fixed, guarded by a new test |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -67,6 +67,8 @@ Gallery).
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
 | `npm run test:browsers:demos` | **every demo board** (23 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
+| `npm run smoke:map` | the Map card in a real browser: the header names the place the fetch resolved (`Q64` → "Berlin"), a failing relay shows **its own reason** (mocked 502) rather than a broken image, **Try again** recovers, and the pin covers the coordinate the map was centred on — 11 checks; on a host without the relay it checks the honest message instead |
+| `npm run check:map-landmarks` | the Mercator-window spine against real rendered maps (ISSUE-132): four maps and eight Wikidata-anchored landmarks across both hemispheres, each predicted pixel classified water/land, plus a control that re-runs every case through a mirrored and a doubled projection and fails if nothing notices |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
@@ -264,7 +266,12 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
     `ReferenceError` — swallowed by the widget error boundary as "Try Again", green test suite, three commits
     on `main` (never production, which predated the commit). `tests/renderer-registry.test.mjs` now asserts
     that every renderer named in the registry — and every card the dispatcher switches on — exists. Lesson:
-    after replacing a block of a source file, grep for what *was* inside it.
+    after replacing a block of a source file, grep for what *was* inside it. **It happened again, in the same commit**:
+    the rewrite also took `TableCard`, and it stayed broken for two weeks (found 2026-09-30 by `npm run lint`, which had
+    been printing `jsx-no-undef` on every run all along — a lint line nobody reads is not a gate). `TableCard` is reached
+    *inside* `SparqlCard`, not by a registry `renderer:` name, so the registry assertion could not see it; the test now
+    also asserts that every component the frame renders as JSX is defined, and that assertion was verified by deleting
+    the component and watching it fail.
 16. **Never truncate text in the data layer.** Timeline labels were clipped to 36 characters in the layout
     module *before* rendering, so "October 1944 · lived in Bergen-Belsen concentration camp" kept its
     ellipsis at **every** zoom level — and the check written to catch truncation measured *layout* overflow,
@@ -513,10 +520,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
-   - **Two small map gaps, both one-liners in spirit** (recorded in ISSUE-131): the Map card's header shows what you typed
-     (`Q64`) rather than the resolved place name ("Berlin") — the frame takes its title from `labelFromConfig`, so a fix means
-     letting the frame consult `data.title`; and a failing relay shows a broken image rather than its reason, though the relay
-     itself returns the reason as JSON. Neither is broken; both are rough edges.
+   - ~~**Two small map gaps**~~ **Done 2026-09-30** — the frame consults `labelFromData(data)` when a widget declares it
+     (`src/lib/widgetTitle.js`), so the Map's header reads "Berlin"; a failing relay prints its own reason with a Try again;
+     and `npm run smoke:map` asserts both in a browser. **Also done: the off-centre landmark test** — `mercatorPixel` is
+     verified against four real rendered maps by `npm run check:map-landmarks`, so the overlay spine is ready to build on.
+     **The next map slice is therefore items 3–4 of ISSUE-132**: multiple points, paths and polygons over that overlay,
+     then custom icons and labels (with collision as the real problem), and only then the itinerary stepper.
    - **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
      open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
      WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move

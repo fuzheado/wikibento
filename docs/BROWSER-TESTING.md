@@ -10,9 +10,17 @@ npm run smoke:panels      # panel reachability only: every ⚙/ⓘ action reacha
 - **`npm run smoke:url`** — the URL keeps telling the truth (ISSUE-87): a `?config=` claim is dropped when the
   board diverges, Share embeds the board on screen, present params stay reversible, and a quiet load is not
   treated as an edit. Also runs against a deploy: `AUDIT_BASE=https://wikibento.toolforge.org npm run smoke:url`.
+- **`npm run smoke:map`** — the Map card's browser half (ISSUE-131): the title bar names the place the fetch
+  *resolved* (`Q64` → "Berlin", not the query the board stored), a failing relay shows the relay's own reason
+  instead of a broken image, **Try again** re-requests and recovers, and the pin covers the coordinate the map was
+  centred on. It mocks the relay's first answer as a 502, so the failure path is checked without breaking anything
+  real; run against `vite preview` (no relay) it checks the honest "this host has no map relay" message instead.
+  The projection underneath it has its own check: `npm run check:map-landmarks` (see
+  [WIDGET-IDEAS](WIDGET-IDEAS.md) → "what Tier 1 left to do").
 npm run smoke:qr          # QR widget end-to-end (scan payload, quiet zone, param follow)
 npm run smoke:share       # share panel + lean/kiosk modes
 npm run smoke:wayback     # Wayback gallery states (loading / absent capture / error)
+npm run smoke:map         # Map card: resolved place name, relay-failure reason, Try again
 ```
 
 The cross-engine matrix exists because of a real outage: a `User-Agent` header on every browser fetch made
