@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified by generating and reading the PDFs (Met demo: Board 5 pages, Poster **1 page**, Document **7**; every image loaded, no overlap, no card reflowed) |
-| newest capabilities | 🏷️ **Widget names are checked against the docs** (ISSUE-128) — the registry name is what the app shows, and `docs-facts` now fails if a doc, a source string or a board still uses a retired one · 🖼️ **Edge to edge, on seven types** (ISSUE-127) — the QR code, the document reader, the IA book and the embedded page joined the gallery, video player and panorama: chrome goes, warnings and needed controls stay · 🖌 **One image filling the box** (ISSUE-126) — a gallery can be a single file drawn edge to edge: `Display → Single image`, with **Image fit** letterboxing or cropping it and the **Edge to edge** switch taking the card chrome away (the same switch fills a bare video or panorama) · 🎬 **Video in the gallery** (ISSUE-124) — an article's videos appear as API-rendered posters with a ▶ badge, no video bytes until you click through · 📰 **a wiki page in a card, and the picker feeds it** (ISSUE-123) — the Box renders any page by title (the lead, a section, or all), and because its page field declares a kind the pick menu offers the box · 🎞 **story mode** (ISSUE-119) — an article as one continuous scroll, each panel chosen by the image's own shape |
+| newest capabilities | 🗺️ **A map in a card** (ISSUE-131) — a coordinate, a Wikidata item or a page title, drawn by Wikimedia's map service at the card's own size, with our pin and OpenStreetMap's credit; the card asks **our own relay** (`/api/staticmap`), because the service refuses browser-shaped requests · 🔒 **every proxied route inventoried and bounded** (ISSUE-133, `docs/PROXIES.md`) — host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, and a guard in `npm test` that tries to break them · 🖼️ **Edge to edge on seven types** (ISSUE-126/127) · 🏷️ **widget names checked against the docs** (ISSUE-128) |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -56,6 +56,8 @@ Gallery).
 | command | asserts |
 |---|---|
 | `npm test` | the whole suite — a bundle per constitution area: scope, freshness, manifest compliance (including **emitters, channels, `primary`, prose→reference, and the project picker's no-hardcoded-lists rule**), panel, dataflow, demos, assembly, trend-axis, gallery, config-load, references, projects, URL state… — plus `scripts/docs-facts.mjs` — and it now ends by **loading what it built** (`npm run smoke:built`): a browser opens a board in `dist/` and requires cards with no page errors, so a green suite cannot hide an app that throws in the built bundle. |
+| `npm run smoke:built` | the **built** artefact loads at all — cards render, no page errors (a bundle-time cycle or use-before-init is invisible to unit tests and to `vite build`) |
+| `npm run smoke:relay` | the **proxied routes** keep their promises: host allowlist, byte cap, size ladder, a cache hit, a rate limit that answers a burst, a second client still served, sane memory — `docs/PROXIES.md` |
 | `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
 | `npm run smoke:iabook` | the 📖 Internet Archive reader in a real browser — 33 assertions: the manifest's page count (not the metadata's), search-inside with the word boxed on the page, facing pages, right-to-left order, PNG export |
@@ -63,7 +65,7 @@ Gallery).
 | `npm run smoke:story` | story mode end to end — a story card for a real article pasted in through ⬆ Import: the panel mix (a mix dominated by one kind means the shape data never arrived), caption coverage, chapters, the progress bar, and screenshots |
 | `npm run smoke:pick` | pick mode end to end in a real browser — arm a brush, place a card from a row, refuse a twin, Undo it, the kind gate, and each publisher: 19 checks, against the built app or against production with `--base` |
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
-| `npm run test:browsers:demos` | **every demo board** (21 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
+| `npm run test:browsers:demos` | **every demo board** (23 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
@@ -433,6 +435,11 @@ actually broken or unfinished today:
   whose promise is that editing affordances are gone (Esc already exits kiosk). A design question, filed with options.
 - **ISSUE-125** — one genuine JavaScript error in WebKit, found by the demos sweep and left fatal there:
   `Argument 1 ('blob') to FileReader.readAsBinaryString must be an instance of Blob`. Most likely the CORS-image PNG
+- **ISSUE-132** — the **map backlog**: interactivity (pan/zoom/layers), many points and paths, icon shapes/sizes/labels,
+  and an itinerary animation stepped with ▶ ◀. Nothing built; the design, the sources and the effort are in
+  `docs/WIDGET-IDEAS.md` → *"Map widget — what Tier 1 left to do"*. Two of the asks are already answered there rather than
+  queued (multilingual labels work via `?lang=`; the SVG-overlay spine makes points, paths, polygons and icons our own
+  drawing, no library).
   export or a document reader handing a cross-origin value to a `FileReader`; a hypothesis for the next session.
   asked directly, so it is intermittent and most likely an upstream timeout; recorded rather than guessed at.
 
@@ -506,6 +513,10 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 1. **Nothing is pending** — production is level with this branch, and the state lines above plus
    `docs-facts --live` are the evidence for it. The queue, in the order I would take it:
 
+   - **Two small map gaps, both one-liners in spirit** (recorded in ISSUE-131): the Map card's header shows what you typed
+     (`Q64`) rather than the resolved place name ("Berlin") — the frame takes its title from `labelFromConfig`, so a fix means
+     letting the frame consult `data.title`; and a failing relay shows a broken image rather than its reason, though the relay
+     itself returns the reason as JSON. Neither is broken; both are rough edges.
    - **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
      open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
      WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move

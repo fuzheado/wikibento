@@ -98,6 +98,15 @@ All 33 data-driven widget types render live data in the browser; the 9 static on
   the side. Set **Display → Story** on any gallery and point it at an article, or open [`?config=/story-demo.json`](https://wikibento.toolforge.org/?config=/story-demo.json).json` (Gallery, Images come from
   *An article*). The technique is ported from the Met / Google-Arts-&-Culture prototype; in **Present** or **Lean** mode
   a single tall card is the whole screen, which is the way to show it to a room.
+- **A map in a card** — 🗺️ **Map** takes a place: a coordinate (`48.8584, 2.2945`), a Wikidata item (`Q64`), or a page title
+  (read from that wiki first, following redirects, then from its Wikidata item). Wikimedia's own map service draws it at the
+  card's own size, with **our pin** at the centre, OpenStreetMap's credit on the image, and zoom, fit and **map label
+  language** under ⚙. One image means no tiles and no map library — so it prints and exports properly, and it works
+  **Edge to edge**. Open [`?config=/map-demo.json`](https://wikibento.toolforge.org/?config=/map-demo.json).
+- **Nothing proxied is the weak point** — six services need our server rather than your browser
+  ([docs/PROXIES.md](docs/PROXIES.md)), and all six share one set of rules: a host allowlist, a streamed byte cap, a deadline,
+  a per-client rate limit, an in-flight ceiling and bounded caches. `scripts/relay-guard-e2e.mjs` tries to break them on
+  every `npm test`.
 - **Filling the box** — a gallery can be **one file filling its card**. Paste a single `File:` name, set **Display →
   Single image**, and two switches decide the rest: **Image fit** (*Letterbox* shows the whole file, *Fill crop* covers
   the box) and the **Edge to edge** switch, which takes away the title bar, the padding and the card's own title so the picture
