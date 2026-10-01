@@ -11,6 +11,43 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm
 
 Back to the [README](../README.md).
 
+## The release sweep found our own rate limit (2026-10-01)
+
+`npm run test:browsers:demos` is the release check — every board × Chromium/Firefox/WebKit × desktop and an iPhone
+profile, 144 runs. It was run after deploying the points work, and it earned its keep: **11 of 144 runs failed, and only
+the map rows failed for a reason in our own code.** The rest were the standing upstream weather the check already knows
+about (archive.org CORS on the Wayback iframe, the legacy Wikistats CSV, WDQS/QLever throttling on the `depicts` card),
+plus one sweep-side `locator.click` timeout — and the set moves between runs, which is how you can tell.
+
+**What the Firefox/phone map row actually said** (reproduced with a probe, because the sweep prints card ids, not text):
+
+```
+⚠ too many relay requests (84 in 60s) — wait a moment and retry       429 /api/staticmap?…
+```
+
+Our *own* relay was rate-limiting our own app. Four sweeping browsers share one address, and a board of six map cards
+was asking for more images than the relay's **flat 40/min** allowance permitted — a limit written for routes that cost
+money or fetch megabytes, applied to 40 KB PNGs that are usually served from memory. Two fixes, both measured:
+
+- **The relay's limit is per client and per route** (`deploy/server.js`): 40/min by default, **240/min for
+  `/api/staticmap`**. A client that asks for twenty map images has not thereby earned twenty PetScan walks, which is why
+  the budgets are separate rather than one bigger number. `scripts/relay-guard-e2e.mjs` now bursts **both**: the default
+  allowance through an off-allowlist proxy request (refused locally, so nothing reaches the internet —
+  19× 429, 5× 403 for 24 requests), and the map's own with a board's worth of images, which **must** be served
+  (0× 429, 24× 200).
+- **A map card waits for its box to settle** before asking for an image (180 ms after the last resize; the first
+  measurement is still immediate). On a phone the grid stacks and every image that arrives shifts the cards, and since a
+  distinct ladder size is a distinct request, one board load was asking for ~21 images. Measured after the fix:
+  **6 requests per board load**, one per card, no errors.
+
+**Re-run of the full sweep after the fix: 139/144 clean**, every map row green in all six engine/viewport
+combinations, and the five remaining failures are the sources above (Wayback ×1, the CSP report-only note on the Wayback
+iframe ×1 — ISSUE-115 — the Wikistats/External-Link cards ×1, and `depicts` ×2). Nothing in the sweep now fails for a
+reason that is ours.
+
+- Artifacts: `/tmp/demos-sweep.log` (before) · `/tmp/demos-sweep2.log` (after) — the per-board lines are the evidence.
+- Re-run: `npm run test:browsers:demos -- --base https://wikibento.toolforge.org` (~15 min) · `npm run smoke:relay`.
+
 ## Points on a map, and a query as a map (ISSUE-132 items 1–2, 2026-09-30)
 
 The overlay's geometry was verified earlier the same day; this is the renderer it was for. Both halves landed together
