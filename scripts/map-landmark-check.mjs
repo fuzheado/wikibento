@@ -156,7 +156,8 @@ async function fetchCached(url, file) {
 }
 
 const { mercatorPixel } = await import('../src/lib/mapImage.js');
-const { overlayForPlaces, preserveAspectRatioFor } = await import('../src/lib/mapOverlay.js');
+const { overlayForPlaces, preserveAspectRatioFor, mapFit, projectGeometry } = await import('../src/lib/mapOverlay.js');
+const { toFeatureCollection, boundsOf, vertexCount } = await import('../src/lib/geojson.js');
 
 /**
  * Read pixels back out of an image in the page: water / land / outside for each point, over a square box of
@@ -352,6 +353,7 @@ const failures = [];
  *  "not water"), but the check as a whole must be able to fail, or the pixels are agreeing with us out of politeness. */
 const caughtBy = new Map(DISTORTIONS.map((d) => [d.name, []]));
 const cardCaught = [];
+const shapeCaught = [];
 let browser = null;
 try {
   browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
@@ -444,8 +446,183 @@ try {
       console.log(`  · card: ${shotFile}`);
     }
   }
+  // Phase 3 runs once, after the per-case work: a live geoshape, drawn and checked against the map underneath it.
+  const shapeResult = await shapePhase(page);
+  failures.push(...shapeResult.problems);
+  shapeCaught.push(...(shapeResult.caught || []));
 } finally {
   if (browser) await browser.close().catch(() => {});
+}
+
+/**
+ * Phase 3 — a **real Wikidata geoshape**, drawn and checked against the map underneath it.
+ *
+ * Phases 1 and 2 prove the projection and the card transform with points. This proves the *shape* path end to end: fetch
+ * a geoshape from Wikidata's mapdata service (**Museum Island**, Q151963 — an island in the Spree, so its interior is
+ * land and everything just outside its shoreline is water), project it with `projectGeometry`, draw it on a card whose
+ * aspect is deliberately not the image's, and then classify the map pixels **inside** the shape and **just outside** it.
+ * A mirrored, mis-scaled or off-by-a-tile geometry flips that classification, which the control at the end re-checks by
+ * drawing a deliberately wrong projection of the same shape.
+ *
+ * The shape is drawn with a stroke and no fill, so the map shows through the sample points: the check is about where the
+ * geometry *is*, not about our own paint. The drawn path's bounding box is compared with our arithmetic separately.
+ */
+async function shapePhase(page) {
+  const problems = [];
+  const caught = [];
+  const source = { url: 'https://maps.wikimedia.org/geoshape?getgeojson=1&ids=Q151963', file: join(CACHE, 'shape-museum-island.geojson') };
+  const mapImage = { width: 1024, height: 512, zoom: 16, url: '', file: join(CACHE, 'shape-museum-island-map.png') };
+  let body;
+  if (!FORCE && existsSync(source.file)) {
+    body = readFileSync(source.file).toString('utf8');
+  } else {
+    const wait = 1200 - (Date.now() - lastFetch);
+    if (wait > 0) await sleep(wait);
+    const res = await fetch(source.url, { headers: { 'User-Agent': UA } });
+    lastFetch = Date.now();
+    if (!res.ok) return { problems: [`the geoshape service answered ${res.status} for ${source.url}`], caught: [] };
+    body = await res.text();
+    writeFileSync(source.file, body);
+  }
+  const { collection, error } = toFeatureCollection(body);
+  if (error) return { problems: [`the live geoshape did not validate: ${error}`], caught: [] };
+  const bounds = boundsOf(collection);
+  const centre = { lat: (bounds.minLat + bounds.maxLat) / 2, lon: (bounds.minLon + bounds.maxLon) / 2 };
+  mapImage.url = `https://maps.wikimedia.org/img/osm-intl,${mapImage.zoom},${centre.lat.toFixed(6)},${centre.lon.toFixed(6)},${mapImage.width}x${mapImage.height}.png?lang=en`;
+  const imageUrl = await fetchImageAsDataUrl(mapImage.url, mapImage.file);
+  if (!imageUrl) return { problems: [`could not fetch the map for the shape phase (${mapImage.url})`], caught: [] };
+
+  const card = { boxWidth: 420, boxHeight: 300, fit: 'cover' };
+  const view = {
+    centerLat: centre.lat, centerLon: centre.lon, zoom: mapImage.zoom,
+    imageWidth: mapImage.width, imageHeight: mapImage.height,
+    boxWidth: card.boxWidth, boxHeight: card.boxHeight, fit: card.fit,
+  };
+  const fit = mapFit(view);
+  const toCard = (p) => ({ x: fit.offsetX + p.x * fit.scale, y: fit.offsetY + p.y * fit.scale });
+  const pathDataOf = (shapes) => shapes.map((shape) => shape.groups.map((lines) => lines.map((line) => (
+    `M${line[0].x.toFixed(1)} ${line[0].y.toFixed(1)}` + line.slice(1).map((p) => `L${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('') + 'Z'
+  )).join(' ')).join(' '));
+
+  const shapes = projectGeometry(collection, view);
+  if (!shapes.length) return { problems: ['projectGeometry returned no shapes for a live geoshape'], caught: [] };
+  const ring = shapes[0].groups[0][0];
+  const centroid = { x: ring.reduce((n, p) => n + p.x, 0) / ring.length, y: ring.reduce((n, p) => n + p.y, 0) / ring.length };
+  // Just outside the shoreline, using the **local** outward normal (the centroid direction points into the island at a
+  // concave vertex — around the harbour, and along the Spree's arms). 10 image pixels ≈ 15 m at this zoom: inside the
+  // river, and clear of the 3 px stroke. Eight samples, and the check asks for most of them rather than all: a bridge
+  // or the narrowest arm (the Kupfergraben is ~25 m) can legitimately put one on stone.
+  const outward = (index) => {
+    const n = ring.length;
+    const here = ring[index % n];
+    const next = ring[(index + 1) % n];
+    const prev = ring[(index - 1 + n) % n];
+    const dir = { x: next.x - prev.x, y: next.y - prev.y };
+    const len = Math.hypot(dir.x, dir.y) || 1;
+    const normal = { x: -dir.y / len, y: dir.x / len };
+    // Two candidates; the outward one is the one that lands farther from the polygon's centre.
+    const away = { x: here.x + normal.x * 10, y: here.y + normal.y * 10 };
+    const toward = { x: here.x - normal.x * 10, y: here.y - normal.y * 10 };
+    const dist = (p) => Math.hypot(p.x - centroid.x, p.y - centroid.y);
+    return dist(away) >= dist(toward) ? away : toward;
+  };
+  const outside = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => outward(Math.round((i * ring.length) / 8)));
+  const probes = [centroid, ...outside];
+
+  const render = async (d, suffix) => {
+    const rect = await page.evaluate(async (cfg) => {
+      document.body.innerHTML = '';
+      const box = document.createElement('div');
+      box.id = 'shape-card';
+      Object.assign(box.style, { position: 'relative', width: `${cfg.boxWidth}px`, height: `${cfg.boxHeight}px`, overflow: 'hidden', background: '#101010' });
+      const img = document.createElement('img');
+      Object.assign(img.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: cfg.fit });
+      img.src = cfg.imageUrl;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', `0 0 ${cfg.imageWidth} ${cfg.imageHeight}`);
+      svg.setAttribute('preserveAspectRatio', cfg.preserveAspectRatio);
+      Object.assign(svg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%' });
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', cfg.d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', '#ff2d95');
+      path.setAttribute('stroke-width', '3');
+      svg.appendChild(path);
+      box.append(img, svg);
+      document.body.appendChild(box);
+      await img.decode();
+      await new Promise((r) => requestAnimationFrame(r));
+      const origin = box.getBoundingClientRect();
+      const r = path.getBoundingClientRect();
+      return { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
+    }, {
+      imageUrl, d, fit: card.fit, preserveAspectRatio: preserveAspectRatioFor(card.fit),
+      imageWidth: mapImage.width, imageHeight: mapImage.height, boxWidth: card.boxWidth, boxHeight: card.boxHeight,
+    });
+    const shot = await page.locator('#shape-card').screenshot({ path: join(CACHE, `map-landmark-shape${suffix}.png`) });
+    return { rect, shot };
+  };
+
+  console.log(`\nMuseum Island, as a live geoshape (${vertexCount(collection.features[0].geometry)} vertices)`);
+  const real = await render(pathDataOf(shapes), '');
+  const read = await sample(page, `data:image/png;base64,${real.shot.toString('base64')}`, probes.map(toCard), 2);
+  const insideLand = read.probes[0].water <= 0.25;
+  const wet = read.probes.slice(1).filter((r) => r.water >= 0.75).length;
+  const outsideWater = wet >= 6;
+  console.log(`  ${insideLand ? '✔' : '✖'} the shape’s interior is the island: water ${(read.probes[0].water * 100).toFixed(0)}% · rgb(${read.probes[0].sample.join(',')})`);
+  if (!insideLand) problems.push(`the geoshape’s interior sampled ${(read.probes[0].water * 100).toFixed(0)}% water — the shape is not where the map puts the island`);
+  console.log(`  ${outsideWater ? '✔' : '✖'} just outside its shoreline is the Spree: ${wet}/${read.probes.length - 1} samples in water`
+    + ` (${read.probes.slice(1).map((r) => `${(r.water * 100).toFixed(0)}%`).join(', ')})`);
+  if (!outsideWater) problems.push(`only ${wet} of ${read.probes.length - 1} samples just outside the geoshape were water — the shape does not follow the shoreline`);
+
+  const expected = {
+    left: fit.offsetX + Math.min(...ring.map((p) => p.x)) * fit.scale,
+    top: fit.offsetY + Math.min(...ring.map((p) => p.y)) * fit.scale,
+  };
+  const dx = Math.abs(real.rect.left - expected.left);
+  const dy = Math.abs(real.rect.top - expected.top);
+  const rectOk = dx <= 2 && dy <= 2;
+  console.log(`  ${rectOk ? '✔' : '✖'} the drawn path starts where the projection says (${dx.toFixed(1)}, ${dy.toFixed(1)} px off)`);
+  if (!rectOk) problems.push(`the drawn shape's bounding box is ${dx.toFixed(1)}, ${dy.toFixed(1)} px from the projected one`);
+
+  // The control: the same shape through a deliberately wrong transform — scaled 1.3× about the image centre, which is
+  // what a stale box or a wrong zoom looks like. Its paint must then sit where our maths does NOT say, which is exactly
+  // the assertion this phase makes. (A mirror would be a poor control here: the map is centred on the shape, so mirroring
+  // puts the island almost exactly back onto itself — measured, and the reason this is a scale error instead.)
+  const stretched = shapes.map((shape) => ({
+    ...shape,
+    groups: shape.groups.map((lines) => lines.map((line) => line.map((p) => ({
+      x: mapImage.width / 2 + (p.x - mapImage.width / 2) * 1.3,
+      y: mapImage.height / 2 + (p.y - mapImage.height / 2) * 1.3,
+    })))),
+  }));
+  const bent = await render(pathDataOf(stretched), '-stretched');
+  const bentOffBy = Math.max(Math.abs(bent.rect.left - expected.left), Math.abs(bent.rect.top - expected.top));
+  if (bentOffBy > 2) {
+    caught.push(`a projection scaled 1.3× (it would paint ${bentOffBy.toFixed(0)} px from where the maths puts it)`);
+    console.log(`  · sensitivity: a mis-scaled projection lands ${bentOffBy.toFixed(0)} px from the projected position — this phase can fail`);
+  } else {
+    console.log('  · sensitivity: nothing noticed a mis-scaled projection — read this phase with care');
+  }
+  console.log(`  · screenshots: ${join(CACHE, 'map-landmark-shape.png')} · ${join(CACHE, 'map-landmark-shape-stretched.png')}`);
+  return { problems, caught };
+}
+
+/** A URL into a data URL, from the cache when it is there (so a re-run costs nothing). */
+async function fetchImageAsDataUrl(url, file) {
+  let bytes;
+  if (!FORCE && existsSync(file)) {
+    bytes = readFileSync(file);
+  } else {
+    const wait = 1200 - (Date.now() - lastFetch);
+    if (wait > 0) await sleep(wait);
+    const res = await fetch(url, { headers: { 'User-Agent': UA } });
+    lastFetch = Date.now();
+    if (!res.ok) return null;
+    bytes = Buffer.from(await res.arrayBuffer());
+    writeFileSync(file, bytes);
+  }
+  return `data:image/png;base64,${bytes.toString('base64')}`;
 }
 
 // The controls, summed up: a wrong projection has to be caught *somewhere*. If no case notices a distortion, the check
@@ -457,6 +634,12 @@ for (const [name, slugs] of caughtBy) {
   } else {
     console.log(`\nsensitivity: “${name}” was caught by ${slugs.join(', ')}`);
   }
+}
+if (shapeCaught.length === 0) {
+  failures.push('the shape phase noticed nothing when the projection was deliberately wrong — it can no longer fail');
+  console.log('✖ sensitivity: the shape phase cannot fail (a mis-scaled geoshape was not caught)');
+} else {
+  console.log(`sensitivity: the shape phase caught ${shapeCaught.join(', ')}`);
 }
 if (cardCaught.length === 0) {
   failures.push('no card noticed a "stretch each axis to the box" transform — the card phase can no longer fail');

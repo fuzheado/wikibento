@@ -531,6 +531,9 @@ body {
    to OpenStreetMap, and a dot must not swallow the click. */
 .map-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .map-point { fill: var(--accent); stroke: #fff; }
+/* A path, and a filled area (its holes are real holes: the renderer uses fill-rule="evenodd"). */
+.map-shape { fill: none; stroke: var(--accent); }
+.map-shape.map-area { fill: rgb(88 166 255 / 0.22); }
 .map-points-note { position: absolute; left: 4px; bottom: 3px; font-size: 9px; line-height: 1.5; padding: 0 4px; border-radius: 3px; background: rgb(0 0 0 / 0.55); color: #fff; }
 .map-credit { position: absolute; right: 4px; bottom: 3px; font-size: 9px; line-height: 1.5; padding: 0 4px; border-radius: 3px; background: rgb(0 0 0 / 0.55); }
 .map-credit a { color: #fff; text-decoration: none; }

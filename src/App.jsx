@@ -728,13 +728,20 @@ const handleAutoHeight = useCallback((id, px) => {
             .flatMap((w) => {
         const def = WIDGET_TYPES[w.widgetType];
         const label = def.labelFromConfig?.(w.config) || def.name || w.widgetType;
-        const base = { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}` };
+        // Each option carries the KIND it publishes, so a consumer can ask for what it understands: a geometry field
+        // should not offer a text emitter, and a text field should not offer a shape (docs/MEDIA-DATAFLOW.md).
+        const kindsOf = (kind) => (kind ? [kind] : []);
+        const baseKinds = def.outputs?.kind
+          ? kindsOf(def.outputs.kind)
+          : (def.primary && def.outputs?.[def.primary] ? kindsOf(def.outputs[def.primary]) : []);
+        const base = { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}`, kinds: baseKinds };
         // Extra named channels (ISSUE-91) are sources in their own right, so the reader's selection can be
         // picked distinctly from the widget's own data.
         const extra = Object.keys(def.outputs || {}).filter((k) => k !== 'kind');
         return [base, ...extra.map((channel) => ({
           id: `${w.id}#${channel}`,
           label: `${def.icon} ${def.name} · ${w.id}#${channel} — ${channel}`,
+          kinds: kindsOf(def.outputs[channel]),
         }))];
       }),
     [widgets],

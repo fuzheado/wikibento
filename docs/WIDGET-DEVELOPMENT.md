@@ -165,6 +165,7 @@ would be a lie. A source may also declare a `noun` for its verdict copy (`no suc
 | `translate` | `translation` · `speech` | the translated text, and the *same text typed as speech* — `{ type: 'speech', text, lang }` — so a 🔊 Speaker can choose a voice for the language (ISSUE-97) | `speaker`, `markdown`, `echo` |
 | `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
 | `wikiBox` | `items` · `selection` | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
+| `map` | `geojson` | what the card draws, as a **GeoJSON `FeatureCollection`** in a typed envelope: `{ type: 'geojson', data: … }` — places, paths and areas, with `label`/`wikidata`/`role` properties and time (`datetime`, or `times` per vertex). The first **JSON-shaped** kind rather than a text one, which is why it needed the size policy in [GEOMETRY.md](GEOMETRY.md) | `map` (a second map card, via its `source` field) — and any future drawing card |
 
 ## Anti-patterns (with the concrete reason)
 

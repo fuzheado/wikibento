@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-01T04:20:32.675Z",
+ "generatedAt": "2026-10-01T19:05:02.005Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -1655,7 +1655,7 @@
    "experimental": false,
    "timeScope": "point",
    "nodeKind": "display",
-   "consumesSource": false,
+   "consumesSource": true,
    "configFields": [
     {
      "key": "place",
@@ -1671,10 +1671,37 @@
      "placeholder": "Q64\\nQ243\\n48.8584, 2.2945\\nBrandenburg Gate"
     },
     {
+     "key": "shape",
+     "type": "select",
+     "label": "The points draw",
+     "hint": "A path needs two places, an area three (the ring is closed for you).",
+     "options": [
+      "markers",
+      "path",
+      "area"
+     ]
+    },
+    {
+     "key": "geojson",
+     "type": "textarea",
+     "label": "GeoJSON (paste, or {{widget:id}})",
+     "hint": "RFC 7946 — a FeatureCollection, a Feature or a bare geometry. Takes precedence over the points list. Read liberally: rings closed, swapped axes detected, styles ignored, and a refused shape says why.",
+     "placeholder": "{ \"type\": \"FeatureCollection\", \"features\": [ … ] }"
+    },
+    {
+     "key": "source",
+     "type": "source",
+     "label": "Geometry from another widget",
+     "hint": "A map (or a future drawing card) publishing its geometry: this card draws it. Overrides both fields above.",
+     "kinds": [
+      "geojson"
+     ]
+    },
+    {
      "key": "framePoints",
      "type": "boolean",
      "label": "Frame the points",
-     "hint": "Centre and zoom are computed to fit every point (needs at least two). Off: the map stays where Place and Zoom put it, and points outside that view are counted on the card."
+     "hint": "Centre and zoom are computed to fit everything drawn — every place, and every vertex of a path or an area. Off: the map stays where Place and Zoom put it, and what falls outside is counted on the card."
     },
     {
      "key": "project",
@@ -1714,6 +1741,8 @@
    "defaults": [
     "place",
     "points",
+    "shape",
+    "geojson",
     "framePoints",
     "project",
     "zoom",
@@ -1722,7 +1751,10 @@
     "showPin",
     "edgeToEdge",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "geojson"
+   }
   },
   {
    "id": "panorama360",

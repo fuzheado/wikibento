@@ -166,11 +166,35 @@ test('config fields are well-formed and documented', () => {
 });
 
 
+test('a consumer’s declared kinds are documented, and something publishes them (ISSUE-132)', () => {
+  // The consumer side of the emitter contract: a field that says `kinds: ['geojson']` narrows the source picker, so the
+  // kinds have to be real and *producible* — a field wired only to nothing would look like an empty dropdown.
+  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
+  const published = new Set();
+  for (const w of manifest.widgets) {
+    if (!w.outputs) continue;
+    if ('kind' in w.outputs) published.add(w.outputs.kind);
+    else Object.values(w.outputs).forEach((k) => published.add(k));
+  }
+  let declared = 0;
+  for (const w of manifest.widgets) {
+    for (const f of w.configFields || []) {
+      if (!f.kinds) continue;
+      declared += 1;
+      for (const kind of f.kinds) {
+        assert.ok(DOCUMENTED.includes(kind), `${w.id}.${f.key}: kind “${kind}” is not documented`);
+        assert.ok(published.has(kind), `${w.id}.${f.key}: accepts “${kind}” but no widget in the catalog publishes it`);
+      }
+    }
+  }
+  assert.ok(declared >= 1, 'expected at least one kind-aware source field (the map’s geometry input)');
+});
+
 test('emitter output kinds stay within the documented set (emitter contract)', () => {
   // docs/WIDGET-DEVELOPMENT.md -> "The Emitter Contract": a new output kind is a
   // design act (a real consumer, doc entries, an askManual() phrase, a size
   // policy) — this allowlist makes that decision loud instead of accidental.
-  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech'];
+  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
     const kinds = 'kind' in w.outputs ? [w.outputs.kind] : Object.values(w.outputs);

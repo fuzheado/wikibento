@@ -686,6 +686,9 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
                   <datalist id={`source-dl-${widget.id}`}>
                     {(sourceOptions || [])
                       .filter((o) => o.id !== widget.id)
+                      // A field that declares the kinds it accepts is offered only those (an unknown kind is never
+                      // hidden — we would rather offer something we cannot classify than hide it).
+                      .filter((o) => !field.kinds?.length || !o.kinds?.length || o.kinds.some((k) => field.kinds.includes(k)))
                       .map((o) => (
                         <option key={o.id} value={o.id}>{o.label}</option>
                       ))}
@@ -1845,7 +1848,7 @@ function MapCard({ data }) {
       centerLon={data.lon}
       zoom={data.zoom}
       label={data.label}
-      points={data.points}
+      geojson={data.collection}
       frame={data.frame}
       lang={data.lang}
       fit={data.fit}
@@ -1858,7 +1861,7 @@ function MapCard({ data }) {
 /** A SPARQL result's coordinates as a map (ISSUE-132): the query's own rows, framed to this card. The card's own box
  *  decides the zoom it can afford, which is why the framing happens in the canvas and not in the transform. */
 function SparqlMapCard({ data }) {
-  return <MapCanvas points={data.points} frame showPin={false} note={data.note} />;
+  return <MapCanvas geojson={data.collection} frame showPin={false} note={data.note} />;
 }
 
 function GalleryGridCard({ data, onSelect, picking, onPickItem }) {

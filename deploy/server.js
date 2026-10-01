@@ -287,6 +287,8 @@ const askManual = (m) => {
         lines: 'its lines (one per line)',
         count: 'a number',
         value: 'its value',
+        speech: 'the same text, typed as speech (text + language)',
+        geojson: 'a geometry (a GeoJSON FeatureCollection: places, a path or an area, optionally with dates)',
       }[w.outputs.kind] || `a ${w.outputs.kind}`;
       return `${w.id} emits ${what} (kind: ${w.outputs.kind})`;
     })

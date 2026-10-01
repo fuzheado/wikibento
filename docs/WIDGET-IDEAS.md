@@ -474,7 +474,9 @@ place-name layer we own already follows the Wikidata discipline (`<reader-langua
 
 ### 3. Multiple points, and paths between them (S–M on top of the overlay spine)
 
-**The first half of this is done (2026-09-30, ISSUE-132).** A list of places is one row of config (`points`, up to 100, the
+**All of this is done (2026-10-01, ISSUE-132)** — paths and polygons land as **GeoJSON** with the standards and rules in
+`docs/GEOMETRY.md` (paths from the points list, pasted geometry, another widget's shape over the wire, sizes capped).
+**The first half landed on 2026-09-30.** A list of places is one row of config (`points`, up to 100, the
 same vocabulary as `place`, batched 50 per call), the card frames them (`fitPlaces`) and draws them as markers — and the
 same machinery is the SPARQL widget's `map` renderer, so a query that returns coordinates is a map with no extra work. What
 is left here is **paths and polygons**: a polyline through the points in order, and a geoshape fill beneath. The geometry is

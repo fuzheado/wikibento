@@ -27,6 +27,12 @@ export function parseTimelineDate(value) {
     const precise = month !== 1 || day !== 1;
     return { year, month, day, precision: precise ? (day === 1 ? 'month' : 'day') : 'year' };
   }
+  const yearMonth = /^(-?\d{1,4})-(\d{2})$/.exec(s);
+  if (yearMonth) {
+    const month = Number(yearMonth[2]);
+    if (month >= 1 && month <= 12) return { year: Number(yearMonth[1]), month, day: null, precision: 'month' };
+    return null;
+  }
   const bareYear = /^(-?\d{3,4})$/.exec(s);
   if (bareYear) return { year: Number(bareYear[1]), month: null, day: null, precision: 'year' };
   return null;

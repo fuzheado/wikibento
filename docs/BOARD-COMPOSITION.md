@@ -746,6 +746,7 @@ When wiring dataflow chains, reference the emitter's `id`:
 | `lineCount` | `data.count` (number) | `echo`, `markdown` |
 | `echo` | `data.value` (pass-through) | Any text field |
 | `qrCode` | `data.text` (the encoded string) | `echo`, `markdown`, or any text field (rare — a QR is usually a leaf) |
+| `map` | `{ type: 'geojson', data: <FeatureCollection> }` (ISSUE-132) | `map` — a second map card's *Geometry from another widget* field (`kinds: ['geojson']`), which draws the shape |
 
 ### 4.5 Quick Reference: Board Patterns → Widget Mapping
 

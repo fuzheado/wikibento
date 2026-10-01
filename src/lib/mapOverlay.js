@@ -18,6 +18,7 @@
  */
 
 import { mercatorPixel } from './mapImage.js';
+import { roleOf, vertexCount } from './geojson.js';
 
 /** `object-fit` and `preserveAspectRatio` are the same two behaviours under different names. */
 export const OVERLAY_PRESERVE_ASPECT_RATIO = {
@@ -157,4 +158,59 @@ export function fitPlaces(places, { imageWidth, imageHeight, padding = 0.12, min
     spanLon: spanX * 360,
     spanLat: spanY,
   };
+}
+
+/**
+ * A GeoJSON collection → the paths to draw, in the **image's own pixel space** (the space the overlay SVG's viewBox
+ * uses, so `preserveAspectRatio` scales and crops the shapes exactly as it does the markers).
+ *
+ * `visible` is false when a feature has nothing inside the window — a caller may say so ("3 of 8 shapes are outside
+ * this view") rather than drawing an invisible path. Shapes are not clipped to the window ourselves: the SVG clips,
+ * which is the same thing for free.
+ *
+ * One honest caveat, inherited from the projection: a shape crossing the antimeridian is drawn as a band across the
+ * map, because a single Mercator window cannot wrap. RFC 7946 §3.1.9 says such a polygon should be *split*; we do that
+ * when a real case appears rather than pre-emptively.
+ */
+export function projectGeometry(collection, view = {}) {
+  const features = Array.isArray(collection?.features) ? collection.features : [];
+  if (!features.length) return [];
+  const project = (position) => {
+    const at = mercatorPixel({
+      lat: Number(position[1]),
+      lon: Number(position[0]),
+      centerLat: view.centerLat,
+      centerLon: view.centerLon,
+      zoom: view.zoom,
+      width: view.imageWidth,
+      height: view.imageHeight,
+    });
+    return { x: at.x, y: at.y, inside: at.inside };
+  };
+  const line = (positions) => (Array.isArray(positions) ? positions.map(project) : []).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  const out = [];
+  for (const feature of features) {
+    const g = feature?.geometry;
+    if (!g || !Array.isArray(g.coordinates) || g.type === 'GeometryCollection') continue;
+    // `groups` are drawn as one <path> each, so a polygon's holes are holes rather than extra filled shapes (the
+    // renderer uses fill-rule="evenodd"). Every group is a list of lines.
+    let groups = [];
+    if (g.type === 'LineString') groups = [[line(g.coordinates)]];
+    else if (g.type === 'MultiLineString') groups = g.coordinates.map((one) => [line(one)]);
+    else if (g.type === 'Polygon') groups = [g.coordinates.map(line)];
+    else if (g.type === 'MultiPolygon') groups = g.coordinates.map((polygon) => polygon.map(line));
+    else continue;                                   // Points belong to the marker layer, not the shape layer
+    groups = groups.map((lines) => lines.filter((l) => l.length >= 2)).filter((lines) => lines.length);
+    if (!groups.length) continue;
+    const points = groups.flat(2);
+    out.push({
+      role: roleOf(feature) === 'area' ? 'area' : 'path',
+      label: String(feature?.properties?.label ?? ''),
+      vertices: vertexCount(g),
+      inside: points.some((p) => p.inside),
+      visible: points.some((p) => p.inside),
+      groups,
+    });
+  }
+  return out;
 }

@@ -54,6 +54,20 @@ import { buildTimeline } from '../lib/timeline';
 import { storySequence, storyPanelCounts } from '../lib/story';
 import { resolveMonth, shiftMonth, fmtMonth, fmtMonthRange, fmtDayRange, dayWindow } from '../lib/scope';
 
+/** What a map card calls itself when it has no place name: the places it shows, or the shapes it drew. */
+function shapeTitle(collection, points, fallback) {
+  const features = collection?.features?.length || 0;
+  if (!features) return points.length ? `${points.length} place${points.length === 1 ? '' : 's'}` : fallback;
+  const isArea = (f) => ['Polygon', 'MultiPolygon'].includes(f.geometry?.type);
+  const isLine = (f) => ['LineString', 'MultiLineString'].includes(f.geometry?.type);
+  const areas = collection.features.filter(isArea).length;
+  const lines = collection.features.filter(isLine).length;
+  if (!areas && !lines) return `${features} place${features === 1 ? '' : 's'}`;
+  if (areas && !lines) return `${areas} area${areas === 1 ? '' : 's'}`;
+  if (lines && !areas) return `${lines} path${lines === 1 ? '' : 's'}`;
+  return `${features} shapes`;
+}
+
 /**
  * The Article Pageviews display mode, resolved in ONE place (2026-09-18).
  *
@@ -92,6 +106,7 @@ const galleryMode = (config) => {
 import { toLines, countOf } from '../lib/dataflow';
 import { placeSubtitle, clampZoom, mapLanguage } from '../lib/mapImage';
 import { MAX_MAP_POINTS, placesFromRows } from '../lib/mapPlaces';
+import { toFeatureCollection, fromPoints, readGeojsonPayload, geojsonPayload, describeCollection } from '../lib/geojson';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
 const NAMESPACE_LABELS = {
@@ -1775,6 +1790,9 @@ export const WIDGET_TYPES = {
           title,
           subtitle: `${places.points.length} places · ${places.labelVar || (places.shape === 'wkt' ? 'Point(lon lat)' : `${places.latVar}/${places.lonVar}`)}`,
           points: places.points,
+          // The same GeoJSON collection a map card draws from, so both map renderers speak one language (and this one
+          // could publish geometry later without changing its shape).
+          collection: fromPoints(places.points, { mode: 'markers', properties: { label: title } }),
           note: places.points.length < rows.length ? `${places.points.length} of ${rows.length} rows have coordinates` : '',
         };
       }
@@ -1862,6 +1880,8 @@ export const WIDGET_TYPES = {
     defaults: {
       place: 'Q64',          // a coordinate ('48.8584, 2.2945'), a Wikidata item, or a page title
       points: '',            // one place per line, same vocabulary; with framePoints the card fits them all
+      shape: 'markers',      // 'markers' | 'path' | 'area' — what the points list draws
+      geojson: '',           // RFC 7946, pasted or interpolated; overrides `points`
       framePoints: true,     // compute the centre and the zoom so every point is on the card
       project: 'en.wikipedia',
       zoom: 13,
@@ -1872,12 +1892,23 @@ export const WIDGET_TYPES = {
       refreshSeconds: 86400, // a place does not move; the static-widget convention
     },
     renderer: 'MapCard',
+    // The geometry this card draws, published as GeoJSON (ISSUE-132). A real consumer exists on the first day: another
+    // map card wired to it through its own `source` field.
+    outputs: { kind: 'geojson' },
+    emit: (data) => geojsonPayload(data?.collection),
     dataSource: 'Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki\'s own prop=coordinates',
     defaultLayout: { w: 5, h: 4, minW: 3, minH: 3 },
     configFields: [
       { key: 'place', label: 'Place', type: 'text', placeholder: '48.8584, 2.2945 · Q64 · Eiffel Tower', hint: 'A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item. Optional when the card has points.' },
       { key: 'points', label: 'Points (one place per line)', type: 'textarea', rows: 5, placeholder: 'Q64\nQ243\n48.8584, 2.2945\nBrandenburg Gate', hint: `The same vocabulary as Place, up to ${MAX_MAP_POINTS} lines. A line that cannot be placed is counted on the card rather than dropped in silence.` },
-      { key: 'framePoints', label: 'Frame the points', type: 'boolean', hint: 'Centre and zoom are computed to fit every point (needs at least two). Off: the map stays where Place and Zoom put it, and points outside that view are counted on the card.' },
+      { key: 'shape', label: 'The points draw', type: 'select', options: [
+        { value: 'markers', label: 'Markers — one dot each' },
+        { value: 'path', label: 'A path — a line through them, in order' },
+        { value: 'area', label: 'An area — a polygon through them' },
+      ], hint: 'A path needs two places, an area three (the ring is closed for you).' },
+      { key: 'geojson', label: 'GeoJSON (paste, or {{widget:id}})', type: 'textarea', rows: 4, placeholder: '{ "type": "FeatureCollection", "features": [ … ] }', hint: 'RFC 7946 — a FeatureCollection, a Feature or a bare geometry. Takes precedence over the points list. Read liberally: rings closed, swapped axes detected, styles ignored, and a refused shape says why.' },
+      { key: 'source', label: 'Geometry from another widget', type: 'source', kinds: ['geojson'], hint: 'A map (or a future drawing card) publishing its geometry: this card draws it. Overrides both fields above.' },
+      { key: 'framePoints', label: 'Frame the points', type: 'boolean', hint: 'Centre and zoom are computed to fit everything drawn — every place, and every vertex of a path or an area. Off: the map stays where Place and Zoom put it, and what falls outside is counted on the card.' },
       { key: 'project', label: 'Project (for page titles)', type: 'project' },
       { key: 'zoom', label: 'Zoom (1–19)', type: 'number', min: 1, max: 19, hint: 'Ignored while the points are framed.' },
       { key: 'lang', label: 'Map label language', type: 'text', vocab: 'bcp47', placeholder: 'blank = your language', hint: 'A BCP-47 code, e.g. de, fr, ja. Blank follows your browser.' },
@@ -1888,8 +1919,16 @@ export const WIDGET_TYPES = {
       { key: 'showPin', label: 'Pin the place', type: 'boolean', hint: 'The map service draws no marker of its own, so this one is ours — at the centre, which is the coordinate you asked for.' },
       EDGE_TO_EDGE_FIELD,
     ],
-    fetch: (config) => fetchMapView(config.place, config.points, config.project),
-    transform: (data, config) => {
+    fetch: (config) => {
+      // A card whose geometry arrives from elsewhere — pasted GeoJSON, or another widget's `source` — has nothing to
+      // look up. Only a place name or a list of places costs a request (and when both are absent the fetch would throw,
+      // which is what left this card empty until the demo board was driven in a browser).
+      const hasGeometry = Boolean(String(config.geojson || '').trim() || String(config.source || '').trim());
+      const hasPlaces = Boolean(String(config.place || '').trim() || String(config.points || '').trim());
+      if (hasGeometry && !hasPlaces) return Promise.resolve({ place: null, points: [], unresolved: [], skipped: 0 });
+      return fetchMapView(config.place, config.points, config.project);
+    },
+    transform: (data, config, opts) => {
       // A place *or* a list of points: the fetch refuses only when both are missing, so either may be absent here.
       const place = data.place || null;
       const points = data.points || [];
@@ -1897,23 +1936,42 @@ export const WIDGET_TYPES = {
       const notes = [];
       if (data.unresolved?.length) notes.push(`${data.unresolved.length} line${data.unresolved.length === 1 ? '' : 's'} could not be placed`);
       if (data.skipped) notes.push(`${data.skipped} beyond the first ${MAX_MAP_POINTS}`);
+
+      // What this card draws, as ONE GeoJSON collection (RFC 7946): geometry from another widget, else pasted GeoJSON,
+      // else the places list as markers, a path or an area. The same collection is what the card publishes.
+      const shape = ['markers', 'path', 'area'].includes(config.shape) ? config.shape : 'markers';
+      const emitted = readGeojsonPayload(opts?.sourceOutput);
+      const pasted = toFeatureCollection(config.geojson);
+      let geometry = { collection: { type: 'FeatureCollection', features: [] }, warnings: [], refused: null };
+      if (emitted) geometry = { ...geometry, collection: emitted };
+      else if (pasted.error) geometry = { ...geometry, refused: pasted.error };
+      else if (pasted.collection.features.length) geometry = { ...geometry, collection: pasted.collection, warnings: pasted.warnings };
+      else geometry = { ...geometry, collection: fromPoints(points, { mode: shape, properties: { label: place?.label || '' } }) };
+      const collection = geometry.collection;
+      // A refusal is shown, not swallowed: an unusable paste is usually the wrong key or a fragment, and drawing an
+      // empty map quietly would hide it. The rest of the card still renders (docs/JSON-FORMAT.md's severity model).
+      if (geometry.refused) notes.push(geometry.refused);
+      else if (geometry.warnings?.length) notes.push(geometry.warnings[0]);
+
       return {
+        collection,
         lat: place ? place.lat : points[0]?.lat,
         lon: place ? place.lon : points[0]?.lon,
         label: place?.label || '',
         source: place?.source || (points.length ? 'the points you listed' : ''),
         points,
         unresolved: data.unresolved || [],
-        // Framing needs the card's box, so the canvas does the actual fit; this only says whether it may.
-        frame: config.framePoints !== false && points.length > 0,
+        // Framing needs the card's box, so the canvas does the actual fit; this only says whether it may. Geometry counts
+        // as something to frame — a card whose shape arrives from another widget has no place list at all.
+        frame: config.framePoints !== false && (points.length > 0 || collection.features.length > 0),
         note: notes.join(' · '),
         zoom: clampZoom(config.zoom),
         // The map's labels follow the reader, not the wiki: a map is for the person looking at it.
         lang: mapLanguage(config.lang || (typeof navigator !== 'undefined' ? navigator.language : '')),
         fit: config.imageFit === 'contain' ? 'contain' : 'cover',
         showPin: config.showPin !== false,
-        title: place?.label || (points.length ? `${points.length} place${points.length === 1 ? '' : 's'}` : at),
-        subtitle: place?.label ? `${at} · ${place.source}` : (points.length ? `${points.length} places` : at),
+        title: place?.label || shapeTitle(collection, points, at),
+        subtitle: place?.label ? `${at} · ${place.source}` : describeCollection(collection) || at,
       };
     },
   },

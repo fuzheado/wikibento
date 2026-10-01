@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { relayMapUrl, osmUrl, placeSubtitle, OSM_ATTRIBUTION, MAP_HI_DPI, legalMapSize } from '../lib/mapImage';
 import { mapFit, overlayForPlaces, visibleCount, fitPlaces, preserveAspectRatioFor } from '../lib/mapOverlay';
 import { allowHiDpi } from '../lib/imageSrcset';
+import { fromPoints, collectionVertices, describeCollection } from '../lib/geojson';
+import { projectGeometry } from '../lib/mapOverlay';
 
 /**
  * The map canvas both map-drawing widgets share (ISSUE-131/132): a static map image, our markers on top, and
@@ -32,7 +34,7 @@ const MARKER_RADIUS_PX = 5;
 const MARKER_STROKE_PX = 1.5;
 
 export default function MapCanvas({
-  centerLat, centerLon, zoom, label = '', points = [], frame = false,
+  centerLat, centerLon, zoom, label = '', points = [], geojson = null, frame = false,
   lang = '', fit = 'cover', showPin = true, note = '',
 }) {
   const wrapRef = useRef(null);
@@ -74,12 +76,18 @@ export default function MapCanvas({
     return () => { if (settle) clearTimeout(settle); ro.disconnect(); };
   }, []);
 
-  const list = Array.isArray(points) ? points.filter((p) => Number.isFinite(p?.lat) && Number.isFinite(p?.lon)) : [];
+  // One source of truth: a GeoJSON collection of the places, paths and areas this card shows. A plain list of places is
+  // converted here, so a caller may pass either (`points` is the map widget's own list, `geojson` is everything else:
+  // a pasted shape, a Wikidata geoshape, or another widget's emitted geometry).
+  const collection = Array.isArray(geojson?.features) && geojson.features.length
+    ? geojson
+    : fromPoints(points, { mode: 'markers' });
+  const list = collectionVertices(collection);
   const imageWidth = box?.imgW || 800;
   const imageHeight = box?.imgH || 500;
   // Framing needs the box, so it is decided here. `fitPlaces` returns `zoom: null` for a single point (one point has no
   // extent), and `?? zoom` then means "centre on it, keep the zoom you asked for".
-  const fitted = frame && list.length ? fitPlaces(list, { imageWidth, imageHeight }) : null;
+  const fitted = frame && list.length ? fitPlaces(list, { imageWidth, imageHeight }) : null;   // every vertex, so a shape is framed whole
   const view = {
     centerLat: fitted ? fitted.centerLat : (Number.isFinite(centerLat) ? centerLat : list[0]?.lat),
     centerLon: fitted ? fitted.centerLon : (Number.isFinite(centerLon) ? centerLon : list[0]?.lon),
@@ -142,9 +150,24 @@ export default function MapCanvas({
     setAttempt((n) => n + 1);
   }, []);
 
+  // Markers (Point features) and shapes (lines and areas), both in the image's own pixel space.
+  const markerPlaces = collection.features
+    .filter((f) => f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint')
+    .flatMap((f) => {
+      const props = f.properties || {};
+      const at = f.geometry.type === 'Point' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      return at.map((position, i) => ({
+        lat: Number(position?.[1]), lon: Number(position?.[0]),
+        label: String(props.label ?? '') || `Point ${i + 1}`,
+        wikidata: props.wikidata,
+      }));
+    })
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+  const shapes = box ? projectGeometry(collection, view) : [];
+
   // Markers, and the two honest counts: how many points there are, and how many the card is actually showing (a crop
   // can take a point away, and silence there would read as a lost point).
-  const placed = list.length && box ? overlayForPlaces(list, view) : [];
+  const placed = markerPlaces.length && box ? overlayForPlaces(markerPlaces, view) : [];
   const shown = visibleCount(placed);
   const markerFit = mapFit(view);
   const markerRadius = markerFit.scale > 0 ? MARKER_RADIUS_PX / markerFit.scale : 0;
@@ -152,14 +175,25 @@ export default function MapCanvas({
 
   const where = label || (list.length ? `${list.length} place${list.length === 1 ? '' : 's'}` : placeSubtitle('', view.centerLat, view.centerLon));
   const chips = [];
-  if (list.length) chips.push(`${list.length} point${list.length === 1 ? '' : 's'}`);
-  if (list.length > shown) chips.push(`${list.length - shown} outside this view`);
+  if (shapes.length) {
+    // A shape note says what was drawn and how big it is (the collection's summary: shapes, vertices, any time range),
+    // and counts the *shapes* the crop takes away — never the vertices, which are not things a reader counts.
+    const summary = describeCollection(collection);
+    if (summary) chips.push(summary);
+    const offscreen = shapes.filter((s) => !s.visible).length;
+    if (offscreen) chips.push(`${offscreen} shape${offscreen === 1 ? '' : 's'} outside this view`);
+  } else if (markerPlaces.length) {
+    chips.push(`${markerPlaces.length} point${markerPlaces.length === 1 ? '' : 's'}`);
+    if (markerPlaces.length > shown) chips.push(`${markerPlaces.length - shown} outside this view`);
+  }
   if (note) chips.push(note);
 
   if (!hasView) {
     return (
       <div className="map-card" ref={wrapRef}>
-        <div className="map-error"><span className="map-error-text">⚠ Nothing to draw — give the card a place, a point, or a query with coordinates</span></div>
+        <div className="map-error"><span className="map-error-text">⚠ Nothing to draw — give the card a place, a point, or a geometry</span></div>
+        {/* The note still shows: it is where a refused paste or an unusable source says why. */}
+        {chips.length ? <span className="map-points-note">{chips.join(' · ')}</span> : null}
       </div>
     );
   }
@@ -205,13 +239,28 @@ export default function MapCanvas({
         {/* The points, in the image's own pixel space — the SVG's preserveAspectRatio is the <img>'s object-fit, so the
             browser scales and crops both identically. The svg takes no pointer events: the map is a link to
             OpenStreetMap, and a dot must not swallow the click. */}
-        {placed.length ? (
+        {placed.length || shapes.length ? (
           <svg
             className="map-overlay"
             viewBox={`0 0 ${view.imageWidth} ${view.imageHeight}`}
             preserveAspectRatio={preserveAspectRatioFor(fit)}
             aria-hidden="true"
           >
+            {shapes.map((shape, i) => (
+              <path
+                key={`shape-${i}`}
+                className={`map-shape map-${shape.role}`}
+                fillRule={shape.role === 'area' ? 'evenodd' : undefined}
+                d={shape.groups.map((lines) => lines.map((line) => (
+                  `M${line[0].x.toFixed(1)} ${line[0].y.toFixed(1)}`
+                  + line.slice(1).map((p) => `L${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join('')
+                  + (shape.role === 'area' ? 'Z' : '')
+                )).join(' ')).join(' ')}
+                strokeWidth={markerStroke}
+              >
+                {shape.label ? <title>{shape.label}</title> : null}
+              </path>
+            ))}
             {placed.filter((p) => p.card.visible).map((p, i) => (
               <circle
                 key={`${p.label || ''}-${i}`}

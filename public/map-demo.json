@@ -5,7 +5,7 @@
    "id": "map-note",
    "widgetType": "markdown",
    "config": {
-    "text": "## 🗺️ A map in a card\n\n**Place** takes any of three things:\n\n- a **coordinate** — `48.8584, 2.2945` (degrees and N/S/E/W are fine: `48.8584° N, 2.2945° E`)\n- a **Wikidata item** — `Q64` (Berlin)\n- a **page title** — `Brandenburg Gate`. A title is read from that wiki first, following redirects, and only then from its Wikidata item.\n\nThe map is drawn by **Wikimedia's own map service** at the size this card actually is, so it needs no tiles and no map library — and because it is one image it also **prints** and **exports to PNG** properly, where a tiled map would not. The service draws no marker of its own, so the **pin is ours**, at the centre — which is the coordinate you asked for. **Map label language** blank means your own browser's.\n\nSet **Frame → Edge to edge** for a chrome-free map, **⛶** in its title bar to fill the screen, and click the map to open the same place on **OpenStreetMap**.\n\n**Points** take the same vocabulary, one per line (up to 100): a coordinate, a Wikidata item, or a page title. With **Frame the points** on, the centre and the zoom are computed to fit them — the card below shows four Berlin landmarks, drawn at their own pixels by an SVG overlay that mirrors the image's own `object-fit`. A point the crop takes away is counted on the card rather than quietly dropped."
+    "text": "## 🗺️ A map in a card\n\n**Place** takes any of three things:\n\n- a **coordinate** — `48.8584, 2.2945` (degrees and N/S/E/W are fine: `48.8584° N, 2.2945° E`)\n- a **Wikidata item** — `Q64` (Berlin)\n- a **page title** — `Brandenburg Gate`. A title is read from that wiki first, following redirects, and only then from its Wikidata item.\n\nThe map is drawn by **Wikimedia's own map service** at the size this card actually is, so it needs no tiles and no map library — and because it is one image it also **prints** and **exports to PNG** properly, where a tiled map would not. The service draws no marker of its own, so the **pin is ours**, at the centre — which is the coordinate you asked for. **Map label language** blank means your own browser's.\n\nSet **Frame → Edge to edge** for a chrome-free map, **⛶** in its title bar to fill the screen, and click the map to open the same place on **OpenStreetMap**.\n\n**Points** take the same vocabulary, one per line (up to 100): a coordinate, a Wikidata item, or a page title. With **Frame the points** on, the centre and the zoom are computed to fit them — the card below shows four Berlin landmarks, drawn at their own pixels by an SVG overlay that mirrors the image's own `object-fit`. A point the crop takes away is counted on the card rather than quietly dropped.\n\n**The same list can draw a shape:** set **The points draw** to *A path* (a line through them, in order) or *An area* (a polygon — the ring is closed for you). Geometry also arrives **from another widget** (a map card publishes what it draws as GeoJSON; pick it in *Geometry from another widget*) or as **pasted GeoJSON** — RFC 7946, the format every map and drawing library speaks. Rings are closed for you, swapped axes are detected, style hints are ignored, and a shape that cannot be read says why instead of drawing nothing."
    }
   },
   {
@@ -37,6 +37,21 @@
    "id": "map-points",
    "widgetType": "map",
    "config": { "place": "Q64", "points": "Q82425\nQ151356\nQ151963\nQ152783", "framePoints": true, "project": "en.wikipedia", "zoom": 13, "lang": "", "imageFit": "cover", "showPin": true }
+  },
+  {
+   "id": "map-area",
+   "widgetType": "map",
+   "config": { "place": "Q64", "points": "52.5400, 13.3700\n52.5400, 13.4300\n52.5000, 13.4300\n52.5000, 13.3700", "shape": "area", "framePoints": true, "project": "en.wikipedia", "zoom": 13, "lang": "", "imageFit": "cover", "showPin": false }
+  },
+  {
+   "id": "map-wire",
+   "widgetType": "map",
+   "config": { "place": "Q64", "source": "map-area", "project": "en.wikipedia", "zoom": 12, "lang": "", "imageFit": "cover", "showPin": false }
+  },
+  {
+   "id": "map-pasted",
+   "widgetType": "map",
+   "config": { "geojson": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"properties\":{\"label\":\"A walk, with a date\",\"role\":\"path\",\"datetime\":\"1944-08\"},\"geometry\":{\"type\":\"LineString\",\"coordinates\":[[13.3777,52.5163],[13.3831,52.5186],[13.3956,52.5214],[13.4094,52.5208],[13.4136,52.5217]]}}]}", "framePoints": true, "project": "en.wikipedia", "zoom": 13, "lang": "", "imageFit": "cover", "showPin": false }
   }
  ],
  "layout": [
@@ -46,6 +61,9 @@
   { "i": "map-fuji", "x": 5, "y": 4, "w": 3, "h": 4 },
   { "i": "map-bare", "x": 8, "y": 4, "w": 4, "h": 4 },
   { "i": "map-letterbox", "x": 0, "y": 8, "w": 4, "h": 4 },
-  { "i": "map-points", "x": 4, "y": 8, "w": 8, "h": 5, "minW": 3, "minH": 3 }
+  { "i": "map-points", "x": 4, "y": 8, "w": 8, "h": 5, "minW": 3, "minH": 3 },
+  { "i": "map-area", "x": 0, "y": 13, "w": 4, "h": 4, "minW": 3, "minH": 3 },
+  { "i": "map-wire", "x": 4, "y": 13, "w": 4, "h": 4, "minW": 3, "minH": 3 },
+  { "i": "map-pasted", "x": 8, "y": 13, "w": 4, "h": 4, "minW": 3, "minH": 3 }
  ]
 }

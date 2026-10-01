@@ -244,7 +244,63 @@ try {
   }
   await pointsCard.screenshot({ path: join(root, 'cache/maps/map-e2e-points.png') }).catch(() => {});
 
-  // 5. The same machinery for a query result: a SPARQL result with a WKT coordinate column becomes a map.
+  // 5. **Shapes** (ISSUE-132): the same list can draw a path or an area, geometry can arrive from another widget, and a
+  //    pasted GeoJSON draws too — with the honest note that says what was drawn and how big it is. Asserted on the map
+  //    board, before this script switches boards for the SPARQL map.
+  const areaCard = page.locator('[data-widget-id="map-area"]');
+  await areaCard.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => document.querySelectorAll('[data-widget-id="map-area"] .map-shape.map-area').length >= 1, undefined, { timeout: 45000 }).catch(() => {});
+  check('a list of places can draw an area', (await areaCard.locator('.map-shape.map-area').count()) >= 1);
+  const areaNote = (await areaCard.locator('.map-points-note').textContent().catch(() => '')) || '';
+  check('the area card says what it drew', /1 shape/.test(areaNote) && !/outside this view/.test(areaNote), JSON.stringify(areaNote.trim()));
+  const areaBox = await areaCard.evaluate((el) => {
+    const card = el.getBoundingClientRect();
+    const path = el.querySelector('.map-shape.map-area');
+    if (!path) return null;
+    const r = path.getBoundingClientRect();
+    return {
+      w: r.width,
+      h: r.height,
+      inside: r.left >= card.left - 1 && r.top >= card.top - 1 && r.right <= card.right + 1 && r.bottom <= card.bottom + 1,
+      cardW: card.width,
+      cardH: card.height,
+    };
+  });
+  // Framed means it fills the box along at least one axis — and the honest floor is ~40%, not 100%: the fit uses the
+  // *floor* of the fitting zoom (so `zoom + 1` cannot overflow) on top of its 12% padding, which leaves a fitted shape
+  // occupying as little as ~44%. A world view would leave a few per cent, which is what this catches. A tall shape
+  // correctly leaves the sides empty, hence the *larger* of the two ratios rather than both.
+  check('the area is framed inside the card', !!areaBox && areaBox.inside
+    && Math.max(areaBox.w / areaBox.cardW, areaBox.h / areaBox.cardH) > 0.4,
+    areaBox ? `${Math.round(areaBox.w)}×${Math.round(areaBox.h)} of ${Math.round(areaBox.cardW)}×${Math.round(areaBox.cardH)}` : 'no path');
+
+  const wireCard = page.locator('[data-widget-id="map-wire"]');
+  await page.waitForFunction(() => document.querySelectorAll('[data-widget-id="map-wire"] .map-shape').length >= 1, undefined, { timeout: 45000 }).catch(() => {});
+  const wiredNote = (await wireCard.locator('.map-points-note').textContent().catch(() => '')) || '';
+  check('geometry travels from one map to another (source)', (await wireCard.locator('.map-shape').count()) >= 1, JSON.stringify(wiredNote.trim()));
+
+  const pastedCard = page.locator('[data-widget-id="map-pasted"]');
+  await page.waitForFunction(() => document.querySelectorAll('[data-widget-id="map-pasted"] .map-shape.map-path').length >= 1, undefined, { timeout: 45000 }).catch(() => {});
+  const pastedNote = (await pastedCard.locator('.map-points-note').textContent().catch(() => '')) || '';
+  check('a pasted GeoJSON path draws, with its date', (await pastedCard.locator('.map-shape.map-path').count()) >= 1 && /1944-08/.test(pastedNote), JSON.stringify(pastedNote.trim()));
+  await areaCard.screenshot({ path: join(root, 'cache/maps/map-e2e-area.png') }).catch(() => {});
+  await pastedCard.screenshot({ path: join(root, 'cache/maps/map-e2e-pathed.png') }).catch(() => {});
+  // The map image has to arrive *under* the shapes too, or the screenshots are dots on a dark card (which is exactly what
+  // the first run of this check produced — the shapes were asserted before the relay had answered).
+  if (relayPresent) {
+    for (const [id, card2] of [['map-area', areaCard], ['map-pasted', pastedCard]]) {
+      await page.waitForFunction((sel) => {
+        const img = document.querySelector(sel);
+        return !!(img && img.naturalWidth > 0);
+      }, `[data-widget-id="${id}"] img.map-img`, { timeout: 45000 }).catch(() => {});
+      const w = await card2.locator('img.map-img').evaluate((el) => el.naturalWidth).catch(() => 0);
+      check(`the map arrives under the shapes (${id})`, w > 0, `naturalWidth ${w}`);
+    }
+    await areaCard.screenshot({ path: join(root, 'cache/maps/map-e2e-area.png') }).catch(() => {});
+    await pastedCard.screenshot({ path: join(root, 'cache/maps/map-e2e-pathed.png') }).catch(() => {});
+  }
+
+  // 6. The same machinery for a query result: a SPARQL result with a WKT coordinate column becomes a map.
   await page.goto(`${base}/?config=/sparql-demo.json`, { waitUntil: 'domcontentloaded' });
   const queryCard = page.locator('[data-widget-id="map-museums"]');
   await queryCard.waitFor({ state: 'visible', timeout: 30000 });
@@ -270,7 +326,7 @@ try {
   if (notes.length) console.log(`  · notes (upstream weather): ${notes.length}`);
   console.log('  · screenshots: cache/maps/map-e2e-error.png'
     + `${relayPresent ? ', cache/maps/map-e2e-loaded.png' : ''}`
-    + ', cache/maps/map-e2e-points.png, cache/maps/map-e2e-sparql-map.png');
+    + ', cache/maps/map-e2e-points.png, cache/maps/map-e2e-area.png, cache/maps/map-e2e-pathed.png, cache/maps/map-e2e-sparql-map.png');
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (server) server.kill();

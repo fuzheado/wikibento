@@ -5093,8 +5093,24 @@ session starts from verified geometry rather than a wish.
 > the date line. (2) `tests/undefined-refs.test.mjs` caught a missing `allowHiDpi` import in the new canvas — the built
 > bundle would have thrown `ReferenceError` on every map card, which is exactly the class of bug that test exists for.
 >
-> **What remains** is the rest of this entry, in order: paths and polygons, icon shapes/sizes/labels (drawing them is easy,
-> collision is not), the itinerary stepper over a board param, and Tier 2 interactivity.
+> **What remains** is the rest of this entry, in order: icon shapes/sizes/labels (drawing them is easy, collision is not),
+> the itinerary stepper over a board param, a time filter/replay (the data is ready), and Tier 2 interactivity.
+>
+> **Paths and polygons landed 2026-10-01, as a format decision rather than a drawing one** — the shape of the answer is in
+> **`docs/GEOMETRY.md`**: **GeoJSON (RFC 7946)**, always a `FeatureCollection`, `[longitude, latitude]` WGS84, in a typed
+> envelope (`{type:'geojson', data}`) so a plain object keeps its old meaning; **time named the way STAC and OGC name it**
+> (`datetime`/`start_datetime`/`end_datetime`, plus `times` per vertex for a moving path — KML's `gx:Track` in the form
+> every animation layer takes), with precision never fabricated (Wikidata's year-precision date stays `1944`); intake that
+> repairs rings, detects swapped axes, drops altitude, flattens a `GeometryCollection`, simplifies above 2,000 vertices and
+> **refuses** what it cannot read, by name (`docs/JSON-FORMAT.md`'s severity model, applied to geometry); and a size policy
+> (200 features · 2,000 vertices · 256 KB) because an emitted value is persisted, hashed and shared. The Map widget draws
+> markers, a path or an area from its own list, accepts pasted GeoJSON, consumes another widget's geometry through a
+> kind-filtered `source` field, and **publishes what it draws** (`outputs: { kind: 'geojson' }`) — with a second map as the
+> first consumer, which is what made the emitter honest on day one. Verified in a browser (`npm run smoke:map`, 26 checks)
+> and against a real geoshape: `npm run check:map-landmarks` phase 3 draws Museum Island from Wikidata's mapdata and
+> classifies the map inside it (land) and just outside its shoreline (the Spree), with a control that fails the run if a
+> mis-scaled projection slips past. Two bugs were found by driving it: a card whose geometry arrives *only* from a paste or a
+> source had nothing to fetch and the fetch threw, and the card's note counted *vertices* as "outside this view".
 
 ## ISSUE-131 · The Map widget: a static map in a card, and the relay it turned out to need — **done + verified 2026-09-29** (asked by Andrew)
 

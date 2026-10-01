@@ -11,6 +11,48 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm
 
 Back to the [README](../README.md).
 
+## Geometry: paths, polygons and time, as a standard (ISSUE-132, 2026-10-01)
+
+The overlay's geometry was verified on 2026-09-30; this is what draws on it. The design question was *“are we inventing
+something?”* — and the answer is in **`docs/GEOMETRY.md`**: **GeoJSON (RFC 7946)**, always a `FeatureCollection`,
+`[longitude, latitude]` in WGS84, in a typed envelope (`{ type: 'geojson', data }`), with time named the way STAC and OGC
+API–Features name it (`datetime`, `start_datetime`/`end_datetime`) plus `times` per vertex for a moving path (KML's
+`gx:Track`, in the form every animation layer takes). No dialect: the same payload goes to a static card, to the SPARQL
+map renderer, to the CSV rows and to a timeline's `{when, what, group}` rows without conversion.
+
+- ✅ **Four roads into one card, all driven in a browser.** Markers, *a path*/*an area* from the places list, **pasted**
+  GeoJSON, and **another widget's** geometry through a kind-filtered `source` field — the Map card publishes what it draws
+  (`outputs: { kind: 'geojson' }`), so a second map draws the first one's shape. `npm run smoke:map` asserts all four (26
+  checks), including that the map image arrives *under* the shapes.
+- ✅ **Intake that repairs rather than refuses** — rings closed, altitude dropped, a bare geometry wrapped, a
+  `GeometryCollection` flattened, `when`/`begin`/`end` normalised to the STAC names, **swapped axes detected** (only when a
+  latitude is impossible: `|lat| > 90`), oversized shapes simplified with the reduction reported, and unusable input
+  **refused by name** (a projected CRS, a shape with no coordinates, an unknown type) — the severity model from
+  `docs/JSON-FORMAT.md`, applied to geometry.
+- ✅ **A live geoshape, checked against the map underneath it** — `npm run check:map-landmarks` grew a third phase:
+  Museum Island (Q151963) is fetched from Wikidata's mapdata service, projected, drawn on a card whose aspect is not the
+  image's, and then the map pixels **inside** the shape are classified (land — it *is* an island: 0% water) and **just
+  outside its shoreline** (the Spree; 6 of 8 samples in water, the other two being a bridge and the narrowest arm). The
+  drawn path's own bounding box matched our arithmetic to **0.0 px**. The control — the same shape scaled 1.3×, which is
+  what a stale box or wrong zoom looks like — lands **30 px** away and fails the phase, so it can fail.
+- 🐛 **Four bugs, all found by driving it rather than by reading it.** (1) A card whose geometry arrives *only* from a
+  paste or a source **had nothing to fetch** — and the fetch threw, so the card rendered nothing at all; the widget's
+  fetch now knows that geometry-only cards cost no request. (2) The card's note counted **vertices** as "5 outside this
+  view" on a shape card, where "outside" is a fact about *shapes*; the note now counts what it should, and the fallback
+  branch shows it (an unusable paste says why even with no map to draw on). (3) My first area fixture — four Berlin
+  landmarks — was **nearly collinear**, so the "area" was a sliver; the fixture is a square, and the framing assertion
+  learned the honest floor (the fit uses the *floor* of the fitting zoom, so a fitted shape can occupy ~44% of an axis,
+  not 100%). (4) An array of features kept only the **first** one, because `Array.prototype.some` short-circuits — the
+  exact shape a board or another widget hands us.
+- Also fixed in passing: `askManual()` had **no `speech` phrase arm** (the Emitter Contract requires one), so the Ask
+  prompt described the 🔊 Translator's speech channel as "a speech".
+
+- Artifacts: `cache/maps/map-landmark-shape.png` (the live geoshape on the island) ·
+  `cache/maps/map-landmark-shape-stretched.png` (the control) · `cache/maps/map-e2e-area.png`,
+  `cache/maps/map-e2e-pathed.png` (the app's own cards) · `cache/maps/shape-museum-island.geojson`.
+- Re-run: `npm run check:map-landmarks` (three phases) · `npm run smoke:map` (26 checks, needs `dist/`) · the unit tests
+  in `tests/geojson.test.mjs` (15: RFC order, repairs, refusals, caps, WKT, time precision, and the timeline hand-off).
+
 ## The release sweep found our own rate limit (2026-10-01)
 
 `npm run test:browsers:demos` is the release check — every board × Chromium/Firefox/WebKit × desktop and an iPhone

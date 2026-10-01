@@ -106,6 +106,10 @@ function parseField(slice) {
     const v = prop(slice, p);
     if (v !== undefined) field[p] = v;
   }
+  // A field's `kinds` is an ARRAY literal — what a consumer says it understands, so the source picker can
+  // filter and the gate can check (docs/MEDIA-DATAFLOW.md). `prop()` reads quoted scalars only, so it needs its own parse.
+  const kindsMatch = slice.match(/kinds:\s*\[([^\]]*)\]/);
+  if (kindsMatch) field.kinds = [...kindsMatch[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
   const om = slice.match(/options:\s*\[([\s\S]*?)\]/);
   if (om) {
     for (const v of om[1].matchAll(/value:\s*'([^']*)'/g)) field.options ??= [], field.options.push(v[1]);
