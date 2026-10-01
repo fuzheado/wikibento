@@ -32,7 +32,9 @@ import {
   buildLabelRequestUrl,
   parseLabelResponse,
   enrichEntityLabels,
+  chunkIds,
 } from '../lib/sparqlLabels';
+import { parsePlaceLines } from '../lib/mapPlaces';
 
 
 /** Wikistats CSV is 195 KB and fetched by two widgets — cache it. */
@@ -1857,67 +1859,212 @@ export async function fetchGalleryPage(page, { maxItems = 48, project = 'commons
  * A place that resolves to nothing is *told* to resolve to nothing, rather than quietly becoming `0, 0`: a missing
  * coordinate isn't an error a map can show, it is a map of the Gulf of Guinea, which looks like a working card.
  */
-export async function fetchMapPlace(place, project = 'en.wikipedia') {
-  const parsed = parsePlace(place);
+/**
+ * The Map widget's data: the place the card is *about* (optional) and the points drawn on it (optional).
+ *
+ * Both use one vocabulary — a coordinate (`48.8584, 2.2945`), a Wikidata item (`Q64`), or a page title — and both are
+ * resolved in batches: an item list goes to `wbgetentities` 50 at a time, a title list to the wiki's
+ * `prop=coordinates` 50 (and ~4,500 encoded characters) at a time, and pages with no coordinate of their own fall back
+ * to their Wikidata item in one more batch. `place` alone still works exactly as it did before points existed.
+ */
+export async function fetchMapView(place, pointsText, project = 'en.wikipedia') {
   const lang = labelLanguage(typeof navigator !== 'undefined' ? navigator.language : undefined);
-
-  if (parsed.kind === 'empty') throw new Error('Enter a place: a coordinate, a Wikidata item, or a page title');
-  if (parsed.kind === 'invalid') throw new Error(parsed.reason);
-  if (parsed.kind === 'coordinate') {
-    return { lat: parsed.lat, lon: parsed.lon, label: '', source: 'a coordinate you gave' };
+  const { entries, skipped } = parsePlaceLines(pointsText);
+  const [about, points] = await Promise.all([
+    resolveMaybePlace(place, project, lang),
+    fetchMapPoints(entries, project, lang),
+  ]);
+  if (!about && !points.points.length) {
+    throw new Error('Enter a place, or a list of places (one per line: a coordinate, a Wikidata item, or a page title)');
   }
-
-  if (parsed.kind === 'item') {
-    const coord = await fetchWikidataCoord(parsed.id);
-    if (!coord) throw new Error(`${parsed.id} has no coordinate (P625)`);
-    const labels = await fetchWikidataLabels([parsed.id], lang);
-    return { ...coord, label: labels?.[parsed.id] || parsed.id, source: 'Wikidata', item: parsed.id };
-  }
-
-  const site = projectSite(project);
-  const params = new URLSearchParams({
-    action: 'query',
-    titles: parsed.title,
-    redirects: '1',
-    prop: 'coordinates|pageprops',
-    format: 'json',
-    formatversion: '2',
-    origin: '*',
-  });
-  const data = await fetchJSON(`${wikiApiUrl(project)}?${params}`);
-  const page = data?.query?.pages?.[0];
-  const here = page?.coordinates?.[0];
-  if (here) return { lat: here.lat, lon: here.lon, label: page.title, source: `${site?.host || project}`, page: page.title };
-
-  const item = page?.pageprops?.wikibase_item;
-  if (item) {
-    const coord = await fetchWikidataCoord(item);
-    if (coord) {
-      const labels = await fetchWikidataLabels([item], lang);
-      return { ...coord, label: labels?.[item] || page?.title || item, source: `Wikidata (${item})`, item, page: page?.title };
-    }
-  }
-  throw new Error(
-    page?.missing
-      ? `No page called “${parsed.title}” on ${site?.host || project}`
-      : `“${parsed.title}” has no coordinate, and neither does its Wikidata item`,
-  );
+  return { place: about, points: points.points, unresolved: points.unresolved, skipped };
 }
 
-/** P625 for one item. The Action API, not WDQS: this is a single-item lookup and the cheap path is the right one. */
-async function fetchWikidataCoord(qid) {
-  const params = new URLSearchParams({
-    action: 'wbgetentities',
-    ids: qid,
-    props: 'claims',
-    format: 'json',
-    formatversion: '2',
-    origin: '*',
-  });
-  const data = await fetchJSON(`https://www.wikidata.org/w/api.php?${params}`);
-  const claims = data?.entities?.[qid]?.claims?.P625 || [];
-  const value = claims.find((c) => c?.mainsnak?.datavalue?.value)?.mainsnak.datavalue.value;
-  return value && Number.isFinite(value.latitude) ? { lat: value.latitude, lon: value.longitude } : null;
+/** One place → coordinates, or an error that says what is wrong with it (the single-`place` path). */
+export async function fetchMapPlace(place, project = 'en.wikipedia') {
+  const parsed = parsePlace(place);
+  if (parsed.kind === 'empty') throw new Error('Enter a place: a coordinate, a Wikidata item, or a page title');
+  if (parsed.kind === 'invalid') throw new Error(parsed.reason);
+  const lang = labelLanguage(typeof navigator !== 'undefined' ? navigator.language : undefined);
+  const resolved = await resolveMapEntries([{ input: String(place ?? ''), parsed }], project, lang);
+  const first = resolved.points[0];
+  if (first) return first;
+  throw new Error(resolved.unresolved[0]?.reason || 'could not resolve that place');
+}
+
+/** `place` is optional when there are points: no place, no error, just nothing to centre on. */
+async function resolveMaybePlace(place, project, lang) {
+  const parsed = parsePlace(place);
+  if (parsed.kind === 'empty') return null;
+  if (parsed.kind === 'invalid') throw new Error(parsed.reason);
+  const resolved = await resolveMapEntries([{ input: String(place ?? ''), parsed }], project, lang);
+  return resolved.points[0] || null;
+}
+
+/** The points half of `fetchMapView`: parsed lines in, resolvable places out, unresolved lines reported rather than
+ *  dropped (the card says "2 of 12 could not be placed"). */
+export async function fetchMapPoints(entries, project = 'en.wikipedia', lang) {
+  const language = lang || labelLanguage(typeof navigator !== 'undefined' ? navigator.language : undefined);
+  return resolveMapEntries(entries, project, language);
+}
+
+/**
+ * The one place lines and `place` are resolved: coordinates directly, items and titles in batches, everything else
+ * reported per line with the reason.
+ */
+async function resolveMapEntries(entries, project, lang) {
+  const points = [];
+  const unresolved = [];
+  const itemLines = [];
+  const titleLines = [];
+  for (const { input, parsed } of entries) {
+    if (parsed.kind === 'coordinate') {
+      points.push({ lat: parsed.lat, lon: parsed.lon, label: '', kind: 'coordinate', input });
+    } else if (parsed.kind === 'item') {
+      itemLines.push({ input, id: parsed.id });
+    } else if (parsed.kind === 'title') {
+      titleLines.push({ input, title: parsed.title });
+    } else {
+      unresolved.push({ input, reason: parsed.reason || 'nothing to look up' });
+    }
+  }
+
+  if (itemLines.length) {
+    const ids = [...new Set(itemLines.map((l) => l.id))];
+    const coords = await fetchWikidataCoords(ids);
+    const labels = await fetchWikidataLabelsInChunks(ids, lang);
+    for (const line of itemLines) {
+      const here = coords[line.id];
+      if (!here) { unresolved.push({ input: line.input, reason: `${line.id} has no coordinate (P625)` }); continue; }
+      points.push({ ...here, label: labels[line.id] || line.id, kind: 'item', item: line.id, input: line.input });
+    }
+  }
+
+  if (titleLines.length) {
+    const byTitle = await resolveMapTitles(titleLines.map((l) => l.title), project, lang);
+    for (const line of titleLines) {
+      const found = byTitle[line.title];
+      if (!found || found.missing) {
+        unresolved.push({ input: line.input, reason: `no page called “${line.title}” on ${projectSite(project)?.host || project}` });
+        continue;
+      }
+      if (found.lat === undefined) {
+        unresolved.push({ input: line.input, reason: `“${line.title}” has no coordinate, and neither does its Wikidata item` });
+        continue;
+      }
+      points.push({ lat: found.lat, lon: found.lon, label: found.label || line.title, kind: 'title', page: found.page, item: found.item, input: line.input });
+    }
+  }
+
+  return { points, unresolved };
+}
+
+/**
+ * Wikidata P625 for many items, batched 50 at a time (the anonymous `ids` cap). Missing coordinates come back as
+ * nulls — one item without a P625 must not fail a list of twelve.
+ */
+async function fetchWikidataCoords(ids) {
+  const out = {};
+  for (const chunk of chunkIds([...new Set(ids)])) {
+    const params = new URLSearchParams({
+      action: 'wbgetentities',
+      ids: chunk.join('|'),
+      props: 'claims',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const data = await fetchJSON(`https://www.wikidata.org/w/api.php?${params}`);
+    for (const id of chunk) {
+      const claims = data?.entities?.[id]?.claims?.P625 || [];
+      const value = claims.find((c) => c?.mainsnak?.datavalue?.value)?.mainsnak.datavalue.value;
+      out[id] = value && Number.isFinite(value.latitude) ? { lat: value.latitude, lon: value.longitude } : null;
+    }
+  }
+  return out;
+}
+
+/** Labels for many items: `fetchWikidataLabels` is one request per chunk, and each chunk is cached on its own. */
+async function fetchWikidataLabelsInChunks(ids, lang) {
+  const out = {};
+  for (const chunk of chunkIds([...new Set(ids)])) {
+    Object.assign(out, await fetchWikidataLabels(chunk, lang));
+  }
+  return out;
+}
+
+/**
+ * Page titles → coordinates on one wiki. Two things are batched here and both have a trap already paid for elsewhere in
+ * this file: 50 titles per query (the anonymous `toomanyvalues` cap — length-only chunking silently returns nothing
+ * when short titles pack 70 into a chunk) *and* ~4,500 encoded characters (HTTP 414 on long titles). A page's own
+ * `prop=coordinates` is the first answer, following redirects; only when it has none does its Wikidata item get asked,
+ * in one batch for every page that needs it.
+ */
+async function resolveMapTitles(titles, project, lang) {
+  const out = {};
+  const needsItem = [];
+  const MAX_ENCODED = 4500;
+  let chunk = [];
+  let chunkLen = 0;
+
+  const flush = async () => {
+    if (!chunk.length) return;
+    const params = new URLSearchParams({
+      action: 'query',
+      titles: chunk.join('|'),
+      redirects: '1',
+      prop: 'coordinates|pageprops',
+      format: 'json',
+      formatversion: '2',
+      origin: '*',
+    });
+    const data = await fetchJSON(`${wikiApiUrl(project)}?${params}`);
+    const pages = new Map((data?.query?.pages || []).map((p) => [p.title, p]));
+    // `normalized` and `redirects` are both "from → to"; follow the chain so a requested title finds its page.
+    const moved = new Map();
+    for (const entry of [...(data?.query?.normalized || []), ...(data?.query?.redirects || [])]) moved.set(entry.from, entry.to);
+    const settle = (title) => {
+      let current = title;
+      for (let i = 0; i < 5 && moved.has(current); i += 1) current = moved.get(current);
+      return current;
+    };
+    // An empty or < 50-title chunk cannot hit the cap; a full one can.
+    for (const title of chunk) {
+      const page = pages.get(settle(title)) || pages.get(settle(title).replace(/_/g, ' '));
+      if (!page || page.missing) { out[title] = { missing: true }; continue; }
+      const here = page.coordinates?.[0];
+      if (here && Number.isFinite(here.lat)) {
+        out[title] = { lat: here.lat, lon: here.lon, label: page.title, page: page.title };
+        continue;
+      }
+      const item = page.pageprops?.wikibase_item;
+      if (item) { needsItem.push({ title, item, page: page.title }); out[title] = { pendingItem: true }; continue; }
+      out[title] = { label: page.title, page: page.title };   // a page with no coordinate and no item
+    }
+    chunk = [];
+    chunkLen = 0;
+  };
+
+  for (const title of titles) {
+    const len = encodeURIComponent(title).length + 1;
+    if (chunk.length >= 50 || (chunk.length && chunkLen + len > MAX_ENCODED)) await flush();
+    chunk.push(title);
+    chunkLen += len;
+  }
+  await flush();
+
+  if (needsItem.length) {
+    const ids = [...new Set(needsItem.map((n) => n.item))];
+    const coords = await fetchWikidataCoords(ids);
+    const labels = await fetchWikidataLabelsInChunks(ids, lang);
+    for (const { title, item, page } of needsItem) {
+      const here = coords[item];
+      out[title] = here
+        ? { lat: here.lat, lon: here.lon, label: labels[item] || page, source: `Wikidata (${item})`, item, page }
+        : { label: page, item, page };
+    }
+  }
+  return out;
 }
 
 export async function fetchPanoramaFile(filename, project = 'commons.wikimedia') {

@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-09-30T19:33:39.203Z",
+ "generatedAt": "2026-10-01T04:20:32.675Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -1549,7 +1549,7 @@
    "id": "sparql",
    "name": "SPARQL Query",
    "icon": "🧠",
-   "description": "Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, or a timeline of dated events",
+   "description": "Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, a timeline of dated events, or a map of the coordinates in the result",
    "dataSource": "WDQS / QLever SPARQL + Humaniki API",
    "category": "Queries & Power",
    "type": "query",
@@ -1590,7 +1590,8 @@
       "bar",
       "line",
       "table",
-      "timeline"
+      "timeline",
+      "map"
      ]
     },
     {
@@ -1646,7 +1647,7 @@
    "id": "map",
    "name": "Map",
    "icon": "🗺️",
-   "description": "A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia's own map service at the card's own size, with our pin at the centre. No tiles and no map library: one image, which is why it also prints and exports.",
+   "description": "A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia's own map service at the card's own size, with our pin at the centre and a marker for every point you list. No tiles and no map library: one image, which is why it also prints and exports.",
    "dataSource": "Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki's own prop=coordinates",
    "category": "Content & Embeds",
    "type": "stat",
@@ -1660,8 +1661,20 @@
      "key": "place",
      "type": "text",
      "label": "Place",
-     "hint": "A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item.",
+     "hint": "A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item. Optional when the card has points.",
      "placeholder": "48.8584, 2.2945 · Q64 · Eiffel Tower"
+    },
+    {
+     "key": "points",
+     "type": "textarea",
+     "label": "Points (one place per line)",
+     "placeholder": "Q64\\nQ243\\n48.8584, 2.2945\\nBrandenburg Gate"
+    },
+    {
+     "key": "framePoints",
+     "type": "boolean",
+     "label": "Frame the points",
+     "hint": "Centre and zoom are computed to fit every point (needs at least two). Off: the map stays where Place and Zoom put it, and points outside that view are counted on the card."
     },
     {
      "key": "project",
@@ -1671,7 +1684,8 @@
     {
      "key": "zoom",
      "type": "number",
-     "label": "Zoom (1–19)"
+     "label": "Zoom (1–19)",
+     "hint": "Ignored while the points are framed."
     },
     {
      "key": "lang",
@@ -1699,6 +1713,8 @@
    ],
    "defaults": [
     "place",
+    "points",
+    "framePoints",
     "project",
     "zoom",
     "lang",

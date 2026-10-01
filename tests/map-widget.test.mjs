@@ -12,6 +12,8 @@ import {
   MAP_SIZE_LADDER, staticMapUrl, relayMapUrl, osmUrl, parsePlace, placeSubtitle, clampZoom, mapLanguage, legalMapSize, MAP_DEFAULT_ZOOM, OSM_ATTRIBUTION, mercatorPixel,
 } from '../src/lib/mapImage.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { mapFit, imagePixelInCard, overlayForPlaces, visibleCount, preserveAspectRatioFor, fitPlaces } from '../src/lib/mapOverlay.js';
+import { parsePlaceLines, parseWktPoint, placesFromRows, hasPlaces, MAX_MAP_POINTS } from '../src/lib/mapPlaces.js';
 
 test('staticMapUrl: the documented shape, at the card’s own size', () => {
   // both dimensions land on the ladder (800 is a rung; 500 rounds up to 640)
@@ -177,4 +179,193 @@ test('map: the header names the place once it is resolved (labelFromData)', () =
   assert.equal(def.labelFromData({}), null);
   assert.equal(def.labelFromData({ title: 'Berlin' }), 'Berlin');
   assert.equal(def.labelFromData({ title: '48.8584, 2.2945' }), '48.8584, 2.2945', 'a bare coordinate is a name too');
+});
+
+/**
+ * The overlay geometry (ISSUE-132's first slice): where a place lands on a *card*, whose aspect is usually not the
+ * image's, because the size ladder quantises the two dimensions independently (486×296 asks for 640×320).
+ *
+ * These are the numbers the future renderer's hit-testing and labels rely on, and they are the same transform the
+ * browser applies — `object-fit: cover` is `preserveAspectRatio="xMidYMid slice"`. The browser half is
+ * `npm run check:map-landmarks`, whose card phase renders each landmark on cards of a different aspect and checks both
+ * where the ink lands and what the map shows underneath it. Arithmetic that agrees with itself is not evidence; that
+ * check is.
+ */
+test('mapFit: cover crops to fill, contain letterboxes, and each names its SVG twin', () => {
+  // The tall card (260×520, aspect 0.5) against an 800×640 image (1.25): cover scales by the height and crops the
+  // sides; contain scales by the width and leaves margins above and below.
+  const cover = mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 260, boxHeight: 520, fit: 'cover' });
+  assert.equal(cover.scale, 0.8125);
+  assert.equal(cover.drawWidth, 650);
+  assert.equal(cover.drawHeight, 520);
+  assert.equal(cover.offsetX, -195, 'a crop offsets the image out of the box');
+  assert.equal(cover.offsetY, 0);
+  assert.equal(cover.preserveAspectRatio, 'xMidYMid slice');
+
+  const contain = mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 260, boxHeight: 520, fit: 'contain' });
+  assert.equal(contain.scale, 0.325);
+  assert.equal(contain.drawWidth, 260);
+  assert.equal(contain.drawHeight, 208);
+  assert.equal(contain.offsetX, 0);
+  assert.equal(contain.offsetY, 156, 'a letterbox offsets the image into the box');
+  assert.equal(contain.preserveAspectRatio, 'xMidYMid meet');
+
+  // The pairing the overlay depends on, and the default for anything unexpected.
+  assert.equal(preserveAspectRatioFor('cover'), 'xMidYMid slice');
+  assert.equal(preserveAspectRatioFor('contain'), 'xMidYMid meet');
+  assert.equal(preserveAspectRatioFor(undefined), 'xMidYMid slice');
+  assert.equal(mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 100, boxHeight: 50 }).mode, 'cover');
+
+  // A card with no measured box yet (`ResizeObserver` has not run) has nothing to show, and says so.
+  const unmeasured = mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 0, boxHeight: 0 });
+  assert.equal(unmeasured.scale, 0);
+  assert.equal(imagePixelInCard({ x: 400, y: 320 }, unmeasured).visible, false);
+  assert.equal(imagePixelInCard(undefined, undefined).visible, false);
+});
+
+test('imagePixelInCard: the crop is what takes a point off the card', () => {
+  // The tall card shows image columns 240…560 of 800 — Wizard Island (image x ≈ 172) is cropped away.
+  const tall = mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 260, boxHeight: 520, fit: 'cover' });
+  assert.deepEqual(imagePixelInCard({ x: 400, y: 320 }, tall), { x: 130, y: 260, visible: true });
+  assert.equal(imagePixelInCard({ x: 171.8, y: 357.6 }, tall).visible, false, 'the island is outside a tall card');
+
+  // The wide card crops vertically instead, and the island survives — at a y the naive implementation gets wrong.
+  const wide = mapFit({ imageWidth: 800, imageHeight: 640, boxWidth: 520, boxHeight: 260, fit: 'cover' });
+  const island = imagePixelInCard({ x: 171.8, y: 357.6 }, wide);
+  assert.equal(island.visible, true);
+  assert.ok(Math.abs(island.x - 111.7) < 0.1 && Math.abs(island.y - 154.4) < 0.1, `island at ${island.x}, ${island.y}`);
+  const naive = { x: (171.8 / 800) * 520, y: (357.6 / 640) * 260 };   // "stretch each axis to the box"
+  assert.ok(Math.abs(naive.y - island.y) > 8, 'the two transforms disagree by enough to land on different content');
+});
+
+test('overlayForPlaces: a list of places becomes image pixels and card coordinates', () => {
+  const view = {
+    centerLat: 42.943611111111, centerLon: -122.10666666667, zoom: 13,
+    imageWidth: 800, imageHeight: 640, boxWidth: 520, boxHeight: 260, fit: 'cover',
+  };
+  const [lake, island, far] = overlayForPlaces([
+    { id: 'lake', lat: 42.943611111111, lon: -122.10666666667 },
+    { id: 'island', lat: 42.93888888888889, lon: -122.14583333333333 },
+    { id: 'far', lat: 0, lon: 0 },
+  ], view);
+  assert.equal(lake.image.inside, true);
+  assert.equal(Math.round(lake.card.x), 260, 'the map centre is the card centre');
+  assert.equal(Math.round(lake.card.y), 130);
+  assert.equal(lake.card.visible, true);
+  assert.equal(island.card.visible, true, 'the island is on this card');
+  assert.equal(Math.round(island.card.x), 112);
+  assert.equal(far.image.inside, false, 'a place on another continent is not on this map');
+  assert.equal(far.card.visible, false);
+  assert.equal(visibleCount([lake, island, far]), 2);
+
+  // A caller's own fields travel with the geometry.
+  assert.equal(lake.id, 'lake');
+  // Nothing to draw, and nothing to crash on.
+  assert.deepEqual(overlayForPlaces([], view), []);
+  assert.deepEqual(overlayForPlaces(null, view), []);
+  assert.equal(overlayForPlaces([{ lat: 1, lon: 2 }], { ...view, boxWidth: 0, boxHeight: 0 })[0].card.visible, false);
+  assert.equal(overlayForPlaces([{ lat: 42.95, lon: -122.11 }], view)[0].card.visible, true, 'a place in the window is visible');
+});
+
+/**
+ * Places from input (ISSUE-132): a textarea of places, and a query result's coordinates.
+ *
+ * Both shapes are the ones the endpoints really return, and both hide a trap worth pinning: WKT says *longitude first*
+ * (`Point(13.405 52.52)` — swap those two and Berlin moves to the Indian Ocean), and a result may have coordinates in
+ * only some rows, which the card has to be able to say out loud.
+ */
+test('parsePlaceLines: one place per line, in the same vocabulary as `place`', () => {
+  const { entries, skipped } = parsePlaceLines('\nQ64\n\n# a comment\n48.8584, 2.2945\n  Brandenburg Gate  \n120, 200\n');
+  assert.equal(skipped, 0);
+  assert.deepEqual(entries.map((e) => e.input), ['Q64', '48.8584, 2.2945', 'Brandenburg Gate', '120, 200']);
+  // Letters make it a page title, however odd it looks; two numbers out of range are invalid and say why.
+  assert.deepEqual(entries.map((e) => e.parsed.kind), ['item', 'coordinate', 'title', 'invalid']);
+  assert.match(entries[3].parsed.reason, /not a place on Earth/);
+  assert.equal(parsePlaceLines('').entries.length, 0);
+  assert.equal(parsePlaceLines(null).entries.length, 0);
+  assert.deepEqual(parsePlaceLines('Berlin\nQ64').entries[0].parsed, { kind: 'title', title: 'Berlin' });
+
+  // The cap is reported, not silent: a hundred is already more than a card can show without clustering.
+  const many = parsePlaceLines(Array.from({ length: MAX_MAP_POINTS + 7 }, (_, i) => `Q${i + 1}`).join('\n'));
+  assert.equal(many.entries.length, MAX_MAP_POINTS);
+  assert.equal(many.skipped, 7);
+});
+
+test('parseWktPoint: WKT is longitude first, and only a point on Earth is a place', () => {
+  assert.deepEqual(parseWktPoint('Point(13.405 52.52)'), { lat: 52.52, lon: 13.405 });
+  assert.deepEqual(parseWktPoint('point(-122.106667 42.943611)'), { lat: 42.943611, lon: -122.106667 });
+  // The CRS84 form WDQS actually returns for wdt:P625.
+  assert.deepEqual(
+    parseWktPoint('<http://www.opengis.net/def/crs/OGC/1.3/CRS84> Point(13.405 52.52)'),
+    { lat: 52.52, lon: 13.405 },
+  );
+  assert.equal(parseWktPoint('LINESTRING(0 0, 1 1)'), null);
+  assert.equal(parseWktPoint('Q64'), null);
+  assert.equal(parseWktPoint(''), null);
+  assert.equal(parseWktPoint(undefined), null);
+  assert.equal(parseWktPoint('Point(13.405 120)'), null, 'no latitude above 90, however the query phrased it');
+  assert.equal(parseWktPoint('Point(200 52)'), null);
+  // The order trap, stated: 2.2945 must be read as the LONGITUDE.
+  assert.deepEqual(parseWktPoint('Point(2.2945 48.8584)'), { lat: 48.8584, lon: 2.2945 });
+});
+
+test('placesFromRows: a WKT column, a lat/lon pair, or nothing', () => {
+  const wkt = placesFromRows(
+    ['item', 'itemLabel', 'coord'],
+    [
+      { item: 'Q82425', itemLabel: 'Brandenburg Gate', coord: 'Point(13.377722 52.516272)' },
+      { item: 'Q151356', itemLabel: 'Fernsehturm Berlin', coord: 'Point(13.409444 52.520833)' },
+      { item: 'Q151963', itemLabel: 'Museum Island', coord: '' },
+    ],
+  );
+  assert.equal(wkt.shape, 'wkt');
+  assert.equal(wkt.points.length, 2, 'a row with no coordinate is not a place');
+  assert.equal(wkt.labelVar, 'itemLabel');
+  assert.equal(wkt.points[0].label, 'Brandenburg Gate');
+  assert.ok(Math.abs(wkt.points[1].lat - 52.520833) < 1e-6, 'the second landmark is the Fernsehturm');
+  assert.deepEqual(wkt.points.map((p) => p.row), [0, 1], 'the row index travels, so a caller can say which rows were dropped');
+
+  const pair = placesFromRows(['label', 'lat', 'longitude', 'count'], [{ label: 'X', lat: 52.5, longitude: 13.4, count: 3 }]);
+  assert.equal(pair.shape, 'pair');
+  assert.equal(pair.points.length, 1);
+  assert.equal(pair.points[0].label, 'X', 'a numeric column is never the label');
+
+  // Out of range, and a table with no coordinates at all.
+  assert.equal(placesFromRows(['label', 'lat', 'lon'], [{ label: 'X', lat: 120, lon: 13 }]).points.length, 0);
+  assert.equal(placesFromRows(['label', 'count'], [{ label: 'X', count: 3 }]).shape, null);
+  assert.equal(placesFromRows([], []).points.length, 0);
+  assert.equal(hasPlaces(['coord'], [{ coord: 'Point(1 2)' }]), true);
+  assert.equal(hasPlaces(['label', 'count'], [{ label: 'X', count: 1 }]), false);
+});
+
+test('fitPlaces: the largest zoom that still fits, and the shortest way round the globe', () => {
+  const W = 800;
+  const H = 640;
+  const inside = (list, fit, zoom) => list.every(({ lat, lon }) => mercatorPixel({
+    lat, lon, centerLat: fit.centerLat, centerLon: fit.centerLon, zoom, width: W, height: H,
+  }).inside);
+
+  const cities = [{ lat: 52.52, lon: 13.405 }, { lat: 48.8566, lon: 2.3522 }];
+  const fit = fitPlaces(cities, { imageWidth: W, imageHeight: H });
+  assert.ok(inside(cities, fit, fit.zoom), 'every point fits at the chosen zoom');
+  assert.ok(!inside(cities, fit, fit.zoom + 1), 'and one more level would push a point outside — that is what "fits" means');
+  assert.ok(fit.centerLat > 48.8 && fit.centerLat < 52.6 && fit.centerLon > 2.3 && fit.centerLon < 13.5, 'centred between them');
+
+  // Across the date line: the centre is on the line, not halfway around the world from both islands.
+  const pacific = [{ lat: -17.8, lon: 178.0 }, { lat: -13.583333, lon: -172.416667 }];
+  const pacFit = fitPlaces(pacific, { imageWidth: W, imageHeight: H });
+  assert.ok(pacFit.centerLon < -170 && pacFit.centerLon > -180, `centre on the date line, not ${pacFit.centerLon}`);
+  assert.ok(inside(pacific, pacFit, pacFit.zoom), 'both islands fit — which is what the longitude wrap is for');
+  assert.ok(!inside(pacific, pacFit, pacFit.zoom + 1));
+
+  // One point has no extent: the caller's own zoom is the honest answer.
+  assert.deepEqual(
+    fitPlaces([{ lat: 52.52, lon: 13.405 }], { imageWidth: W, imageHeight: H }),
+    { centerLat: 52.52, centerLon: 13.405, zoom: null, single: true, spanLon: 0, spanLat: 0 },
+  );
+  // A degenerate set is still a view, clamped rather than infinite.
+  assert.equal(fitPlaces([{ lat: 52.52, lon: 13.405 }, { lat: 52.52, lon: 13.405 }], { imageWidth: W, imageHeight: H }).zoom, 17);
+  assert.equal(fitPlaces([], { imageWidth: W, imageHeight: H }), null);
+  assert.equal(fitPlaces(null, { imageWidth: W, imageHeight: H }), null);
+  assert.equal(fitPlaces([{ lat: 'x', lon: 'y' }], { imageWidth: W, imageHeight: H }), null);
 });

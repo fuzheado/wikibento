@@ -49,6 +49,21 @@ export const SPARQL_PRESETS = [
   LIMIT 12`,
   },
   {
+    id: 'berlin-museums-on-a-map',
+    label: "Berlin's museums, on a map",
+    endpoint: 'wdqs',
+    // Measured 2026-09-30: 0.9 s, 40 rows, every one with a coordinate — the result shape the map renderer exists
+    // for. `?coord` comes back as a WKT `Point(lon lat)` (longitude first), and `?itemLabel` is what a marker's
+    // tooltip shows. Deliberately bounded: one city and one type, so it cannot become a collection-wide scan.
+    query: `SELECT ?item ?itemLabel ?coord WHERE {
+  ?item wdt:P131 wd:Q64 ;      # located in Berlin
+        wdt:P31  wd:Q33506 ;   # instance of museum
+        wdt:P625 ?coord .      # coordinates
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+}
+LIMIT 40`,
+  },
+  {
     id: 'met-collection',
     label: 'Collection depth (Met)',
     endpoint: 'wdqs',

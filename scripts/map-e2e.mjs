@@ -6,11 +6,14 @@
  * say it. `tests/widget-title.test.mjs` pins the priority order and `tests/map-widget.test.mjs` the arithmetic;
  * neither can see a title bar or an error panel.
  *
- * What it asserts, on the `map-berlin` card of the real demo board:
+ * What it asserts, on the real demo boards:
  *   1. the header names the place the fetch resolved (`Q64` → "Berlin"), not the query the board was given
  *   2. a failing relay shows the RELAY'S OWN REASON (its first answer is mocked 502), with no broken image
  *   3. Try again re-requests, the map arrives, and the credit line comes back with it
  *   4. the pin the card draws contains the coordinate the map was centred on
+ *   5. **points** (ISSUE-132): the `map-points` card draws one marker per place, inside the card, spread across it
+ *      (the set is framed, not a world view), with an honest count on the card and no centre pin (framing a set
+ *      computes a centre nobody chose) — and the `map-museums` card, a SPARQL result with coordinates, does the same
  *
  * Usage:
  *   npm run build && node scripts/map-e2e.mjs                 # starts deploy/server.js (the real relay) over dist/
@@ -200,9 +203,74 @@ try {
     check('without a relay the card names that, rather than showing a broken image', /no map relay/.test(after), JSON.stringify(after.trim()));
   }
 
+  // 4. **Points** (ISSUE-132): a list of places, framed. The markers are our own SVG in the image's pixel space, so
+  //    what matters is that they are there, one per place, inside the card, and spread across it — a map that failed to
+  //    frame the set would put them in a corner of a world view.
+  const pointsCard = page.locator('[data-widget-id="map-points"]');
+  await pointsCard.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => {
+    const card = document.querySelector('[data-widget-id="map-points"]');
+    return !!card && card.querySelectorAll('.map-overlay circle').length >= 4;
+  }, undefined, { timeout: 45000 }).catch(() => {});
+  const marks = await pointsCard.evaluate((el) => {
+    const card = el.getBoundingClientRect();
+    return [...el.querySelectorAll('.map-overlay circle')].map((c) => {
+      const r = c.getBoundingClientRect();
+      return { x: r.left + r.width / 2 - card.left, y: r.top + r.height / 2 - card.top, w: card.width, h: card.height };
+    });
+  });
+  check('a list of places draws one marker each', marks.length === 4, `${marks.length} markers for 4 places`);
+  check('every marker is inside the card', marks.every((m) => m.x >= 0 && m.y >= 0 && m.x <= m.w && m.y <= m.h));
+  const spreadX = marks.length ? Math.max(...marks.map((m) => m.x)) - Math.min(...marks.map((m) => m.x)) : 0;
+  const spreadY = marks.length ? Math.max(...marks.map((m) => m.y)) - Math.min(...marks.map((m) => m.y)) : 0;
+  check('the set is framed, not a world view', marks.length === 4 && spreadX > marks[0].w * 0.3 && spreadY > marks[0].h * 0.2,
+    `markers span ${Math.round(spreadX)}×${Math.round(spreadY)} of ${Math.round(marks[0]?.w || 0)}×${Math.round(marks[0]?.h || 0)}`);
+  const pointsNote = (await pointsCard.locator('.map-points-note').textContent().catch(() => '')) || '';
+  check('the card says how many points it is showing', /4 points/.test(pointsNote), JSON.stringify(pointsNote.trim()));
+  check('a framed set has no centre pin (nobody chose that centre)', (await pointsCard.locator('.map-pin').count()) === 0);
+  check('the markers do not swallow the map link', await pointsCard.evaluate((el) => {
+    const svg = el.querySelector('.map-overlay');
+    return !!svg && getComputedStyle(svg).pointerEvents === 'none';
+  }));
+  // Markers appear as soon as the box is measured; the image arrives after the relay has fetched it. A screenshot
+  // taken in between shows dots on an empty card, which is exactly the sort of half-truth this check exists to avoid.
+  if (relayPresent) {
+    await page.waitForFunction((sel) => {
+      const img = document.querySelector(sel);
+      return !!(img && img.naturalWidth > 0);
+    }, '[data-widget-id="map-points"] img.map-img', { timeout: 45000 }).catch(() => {});
+    const w = await pointsCard.locator('img.map-img').evaluate((el) => el.naturalWidth).catch(() => 0);
+    check('the framed map arrives under the markers', w > 0, `naturalWidth ${w}`);
+  }
+  await pointsCard.screenshot({ path: join(root, 'cache/maps/map-e2e-points.png') }).catch(() => {});
+
+  // 5. The same machinery for a query result: a SPARQL result with a WKT coordinate column becomes a map.
+  await page.goto(`${base}/?config=/sparql-demo.json`, { waitUntil: 'domcontentloaded' });
+  const queryCard = page.locator('[data-widget-id="map-museums"]');
+  await queryCard.waitFor({ state: 'visible', timeout: 30000 });
+  await page.waitForFunction(() => {
+    const card = document.querySelector('[data-widget-id="map-museums"]');
+    return !!card && card.querySelectorAll('.map-overlay circle').length >= 10;
+  }, undefined, { timeout: 60000 }).catch(() => {});
+  const queryMarks = await queryCard.locator('.map-overlay circle').count();
+  check('a SPARQL result with coordinates draws a map', queryMarks >= 10, `${queryMarks} markers from the query`);
+  const queryNote = (await queryCard.locator('.map-points-note').textContent().catch(() => '')) || '';
+  check('the query map counts its places', /\d+ points/.test(queryNote), JSON.stringify(queryNote.trim()));
+  if (relayPresent) {
+    await page.waitForFunction((sel) => {
+      const img = document.querySelector(sel);
+      return !!(img && img.naturalWidth > 0);
+    }, '[data-widget-id="map-museums"] img.map-img', { timeout: 45000 }).catch(() => {});
+    const w = await queryCard.locator('img.map-img').evaluate((el) => el.naturalWidth).catch(() => 0);
+    check('the query map has a map under it too', w > 0, `naturalWidth ${w}`);
+  }
+  await queryCard.screenshot({ path: join(root, 'cache/maps/map-e2e-sparql-map.png') }).catch(() => {});
+
   check('no page errors from our code', pageErrors.length === 0, pageErrors.slice(0, 2).join(' | ') || 'none');
   if (notes.length) console.log(`  · notes (upstream weather): ${notes.length}`);
-  console.log(`  · screenshots: cache/maps/map-e2e-error.png${relayPresent ? ', cache/maps/map-e2e-loaded.png' : ''}`);
+  console.log('  · screenshots: cache/maps/map-e2e-error.png'
+    + `${relayPresent ? ', cache/maps/map-e2e-loaded.png' : ''}`
+    + ', cache/maps/map-e2e-points.png, cache/maps/map-e2e-sparql-map.png');
 } finally {
   if (browser) await browser.close().catch(() => {});
   if (server) server.kill();

@@ -11,6 +11,56 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm
 
 Back to the [README](../README.md).
 
+## Points on a map, and a query as a map (ISSUE-132 items 1–2, 2026-09-30)
+
+The overlay's geometry was verified earlier the same day; this is the renderer it was for. Both halves landed together
+because they share one component: a list of places, and a query whose result has coordinates.
+
+- ✅ **A list of points.** `points` takes the same vocabulary as `place` — a coordinate, a Wikidata item, or a page title —
+  one per line, up to 100, resolved in batches (`wbgetentities` 50 per call; titles by min(50, ~4,500 encoded chars), with
+  a page's own coordinate asked first and its Wikidata item only as a fallback). A line that cannot be resolved is
+  **counted on the card** ("2 lines could not be placed"), never dropped in silence.
+- ✅ **Framing.** `fitPlaces` computes the centre and the zoom — in the canvas, because a zoom that fits depends on the box
+  the image is drawn into, which a transform cannot know.
+- ✅ **Markers as our own SVG**, in the image's pixel space, with `preserveAspectRatio` mirroring the `<img>`'s `object-fit`
+  (`src/lib/mapOverlay.js`): one image, one overlay, no library, nothing per-frame. The SVG takes no pointer events, so a
+  dot never swallows the click that opens OpenStreetMap.
+- ✅ **A query as a map.** The SPARQL widget's `map` renderer reads a WKT `Point(lon lat)` column or a lat/lon pair
+  (`src/lib/mapPlaces.js`), chosen automatically in *auto* mode or forced in ⚙; a result with no coordinates falls back to
+  the table and says why. A preset ships with it — `berlin-museums-on-a-map`, 40 museums in 0.9 s, every row with a
+  coordinate.
+
+**Measured in a browser** (`npm run smoke:map`, now 19 checks, against the built app and the real relay):
+
+| check | result |
+|---|---|
+| a list of places draws one marker each | 4 markers for 4 places |
+| every marker inside the card · the set is framed | spans 811×200 of a 969×448 card |
+| the card says how many points it is showing | "4 points" |
+| a framed set has no centre pin | no `.map-pin` — nobody chose that centre |
+| a SPARQL result with coordinates draws a map | 40 markers from the live query |
+| the map image arrives under the markers | `naturalWidth` 2000 on both |
+
+Screenshots: `cache/maps/map-e2e-points.png` (four Berlin landmarks on a framed city map) ·
+`cache/maps/map-e2e-sparql-map.png` (40 museums from WDQS).
+
+🐛 **The projection had no longitude wrap, and a probe found it.** The auto-fit probe for a Fiji/Samoa pair printed
+`fits at 6 = false`: an unwrapped subtraction puts 178°E *355°* away from a centre at 177°W, so one island fell ~16,000 px
+outside the image and the "fit" was no fit at all. `mercatorPixel` now takes the shortest way round (modulo the world), and
+the landmark check grew a fifth case — Viti Levu and Savai'i either side of the date line, with open Pacific between them —
+which fails with the old arithmetic (both probes outside the image) and passes with it (0% water on both islands).
+`cache/maps/landmark-fiji-samoa-annotated.png` shows the two crosshairs on the two islands.
+
+🐛 **And the suite caught a missing import, which is the whole point of it.** `MapCanvas.jsx` used `allowHiDpi()` without
+importing it — copied out of `WidgetFrame`, where the import already existed. `tests/undefined-refs.test.mjs` failed with
+exactly that name; without it the built bundle would have thrown `ReferenceError` on every map card (a class of bug the
+bundler does not check). Verified by the suite, not by luck.
+
+- Artifacts: `cache/maps/map-e2e-points.png` · `cache/maps/map-e2e-sparql-map.png` ·
+  `cache/maps/landmark-fiji-samoa-annotated.png`.
+- Re-run: `npm run smoke:map` (needs `dist/`; starts the real relay) · `npm run check:map-landmarks` · the unit tests in
+  `tests/map-widget.test.mjs` (20: the projection, the fit, the card transform, WKT parsing, place lists).
+
 ## The map card's two edges, and the Mercator-window spine (ISSUE-131/132, 2026-09-30)
 
 Two rough edges had been filed rather than fixed, and the whole map backlog rested on one unverified assumption. All
@@ -51,6 +101,27 @@ distortion to be caught somewhere. (The figure the backlog had written down — 
 from a Berlin-centred map" — was approximate; the verified prediction is (443.5, 307.5) at 2.1 km, and the arithmetic
 and the image agree.)
 
+**…and then the same landmarks on a card, because a card is not shaped like its image.** The size ladder quantises the
+two dimensions independently (a 486×296 box asks for 640×320), so CSS (`object-fit: cover|contain`) crops or letterboxes
+every map — and the overlay can only be right if it knows by how much. `src/lib/mapOverlay.js` now computes that
+transform, and the check's second phase makes a card for real: the same image, a box of a deliberately different shape
+(520×260 wide crop, 260×520 tall crop, 420×420 letterbox), and the marker drawn in the image's own pixel space with
+`preserveAspectRatio` doing what `object-fit` does. Three things per marker:
+
+- **the ink is where our maths says** — the marker's own rendered position matched `overlayForPlaces` to **0.00 px** in
+  all 23 placements the card shows (4 cases × 3 cards × 2 landmarks, less the one the crop takes away);
+- **the map underneath is still the landmark** — the pixels under that point, read back out of a *screenshot of the
+  card*, classify as water (lake centres, 100%) or land (island, town, mountain, 0% water);
+- **the crop is honest about what it takes** — Wizard Island is off the 260×520 crop (24 placements, 23 shown), and the
+  browser agrees it is off screen, which is the fact `visibleCount` exists to tell a reader.
+
+The control for this phase is the mistake the module exists to prevent — "stretch each axis to the box instead of
+cropping it" — and it is caught (Bled town and Mokoia Island move onto water under a naive stretch, and the tall crop's
+island moves *onto* the card), so the phase can fail. Two of its own bugs were found this way and are worth keeping:
+the first run reported every marker 8.00 px, 8.00 px out because marker rects were read in *viewport* coordinates while
+the maths was in *card* coordinates (the page body's default margin), and the control initially skipped the cropped-away
+points — which is exactly where the interesting disagreement lives.
+
 🐛 **A third thing was found while doing this, and it was not the map.** `npm run lint` had been printing
 `jsx-no-undef: 'TableCard' is not defined` for two weeks: the 2026-09-14 region rewrite that deleted `BarCard`
 (gotcha 15) had also deleted `TableCard`, while `SparqlCard` kept dispatching to it — so every SPARQL query whose mode
@@ -61,9 +132,10 @@ card the frame renders as JSX must exist. That assertion was itself verified by 
 fail.
 
 - Artifacts: `cache/maps/map-e2e-error.png` · `cache/maps/map-e2e-loaded.png` · `cache/maps/landmark-*-annotated.png`
-  (the predicted pixels drawn onto the real maps) · `cache/maps/sparql-table-render.png`.
-- Re-run: `npm run smoke:map` (needs `dist/`; starts the real relay) · `npm run check:map-landmarks` (network; four
-  images, cached under `cache/`).
+  (the predicted pixels drawn onto the real maps) · `cache/maps/landmark-*-card-*.png` (the same landmarks on wide, tall
+  and letterboxed cards) · `cache/maps/sparql-table-render.png`.
+- Re-run: `npm run smoke:map` (needs `dist/`; starts the real relay) · `npm run check:map-landmarks` (network for phase
+  1 — four images, cached under `cache/`; phase 2 downloads nothing and renders from those same four).
 
 ## The gallery family became one widget (ISSUE-105, 2026-09-18)
 

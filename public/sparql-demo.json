@@ -5,7 +5,7 @@
       "id": "note",
       "widgetType": "markdown",
       "config": {
-        "text": "# \ud83e\udde0 Query power\n\nThree live SPARQL queries, three engines \u2014 no backend, straight from your browser:\n\n- **Collection depth** (WDQS) \u2014 how many Wikidata items link to major museums' collections\n- **Women in Red** (Humaniki) \u2014 % of English Wikipedia biographies about women\n- **Most-depicted subjects** (QLever) \u2014 the top topics in Commons' structured data\n\nEdit any card's \u2699 to change the query, endpoint, or renderer.",
+        "text": "# \ud83e\udde0 Query power\n\nFour live SPARQL queries, three engines \u2014 no backend, straight from your browser:\n\n- **Collection depth** (WDQS) \u2014 how many Wikidata items link to major museums' collections\n- **Women in Red** (Humaniki) \u2014 % of English Wikipedia biographies about women\n- **Most-depicted subjects** (QLever) \u2014 the top topics in Commons' structured data\n\nEdit any card's \u2699 to change the query, endpoint, or renderer.\n\nThe fourth is the **Map** renderer: a result with coordinates \u2014 a WKT `Point(lon lat)` column, or a `lat`/`lon` pair \u2014 is drawn as a map, framed to fit. It is chosen automatically when a result has coordinates, and it is in the Renderer menu when you want it anyway.",
         "refreshSeconds": 86400
       }
     },
@@ -44,6 +44,18 @@
         "maxRows": 100,
         "refreshSeconds": 1800
       }
+    },
+    {
+      "id": "map-museums",
+      "widgetType": "sparql",
+      "config": {
+        "preset": "berlin-museums-on-a-map",
+        "query": "",
+        "endpoint": "wdqs",
+        "renderer": "map",
+        "maxRows": 40,
+        "refreshSeconds": 1800
+      }
     }
   ],
   "layout": [
@@ -79,6 +91,15 @@
       "x": 0,
       "y": 8,
       "w": 12,
+      "h": 6,
+      "minW": 3,
+      "minH": 3
+    },
+    {
+      "i": "map-museums",
+      "x": 0,
+      "y": 14,
+      "w": 8,
       "h": 6,
       "minW": 3,
       "minH": 3

@@ -515,8 +515,8 @@ describe it in the docs above, done.
 - **Label resolution (Issue #6, post-processing in `fetchSparql`):** QLever **cannot** run `SERVICE wikibase:label` (it tries to federate to a dead host), so QLever queries like the most-depicted-subjects preset returned **bare QIDs**. The widget path now passes `{ resolveLabels: true }` and every cell whose raw binding was a Wikidata entity URI (`http://www.wikidata.org/entity/Q34442`, Q *or* P ids) is batch-resolved via the Action API `wbgetentities` (`props=labels`, chunked ≤ 50 ids/call) and rendered **"Label (QID)"** — e.g. `road (Q34442)` — keeping the QID visible for traceability. General: works for any endpoint and any user query, WDQS included. Heuristics: vars that already have a `?xLabel` sibling (the WDQS SERVICE convention) are left as bare QIDs — no duplicated labels; literals and non-Wikidata URIs are never touched (detection happens on the raw uri-typed binding, before shortening). Language = `navigator.language` primary subtag with `en` fallback (labels fetched in `xx|en`, user language first — no picker yet); 24 h TTL cache; **best-effort** — a label failure never fails the query, raw QIDs stay. Pure helpers in `src/lib/sparqlLabels.js`; tests in `tests/sparql-labels.test.mjs`.
 - **Reliability:** 60 s timeout + one retry (WDQS SLO is 95%; live 502/504 seen); 10-min TTL cache keyed `endpoint::query` (a ↻ refresh inside the TTL returns cached — by design). 4xx fails fast — the widget shows a themed error + Retry. `Retry-After` on 429 is honored by the shared HTTP layer (ISSUE-61).
 - **Humaniki gotcha (the big one):** interpret value keys via the API's OWN `meta.bias_labels`. Humaniki's QID convention is **swapped vs Wikidata** (verified: its map says 6581097→male / 6581072→female; Wikidata says the opposite). Hardcoding `Q6581097=female` yields a wrong **79.7%**; the label lookup yields the correct **~20.1%** (matches Women in Red). `?project=enwiki&label_lang=en`; sum all `values` = total humans, sum the female-key bucket = women.
-- **Renderer detection (transform):** 1 row + numeric → StatCard · label→value rows → BarCard · date-ish var + numeric → TrendCard (index-x) · else TableCard. Manual ⚙ override: `auto|stat|bar|line|table`.
-- **Presets** (`src/lib/sparqlPresets.js`): met-collection (72,433), multi-institution (Met > Rijksmuseum > British Museum > Smithsonian — Europeana returns no rows), women-in-red (Humaniki), commons-top-depicts (QLever). Picking a preset atomically sets query + endpoint.
+- **Renderer detection (transform):** coordinates in the result — a WKT `Point(lon lat)` column (WDQS `wdt:P625`; **longitude first**) or a `lat`/`lon` pair, parsed in `src/lib/mapPlaces.js` — → **MapCard**, which frames the points itself (ISSUE-132) · 1 row + numeric → StatCard · label→value rows → BarCard · date-ish var + numeric → TrendCard (index-x) · dated rows with no number → TimelineCard · else TableCard. Manual ⚙ override: `auto|stat|bar|line|table|timeline|map`.
+- **Presets** (`src/lib/sparqlPresets.js`): met-collection (72,433), berlin-museums-on-a-map (40 rows, every one with a coordinate — measured 0.9 s 2026-09-30; the result shape the map renderer exists for), multi-institution (Met > Rijksmuseum > British Museum > Smithsonian — Europeana returns no rows), women-in-red (Humaniki), commons-top-depicts (QLever). Picking a preset atomically sets query + endpoint.
 
 ## 18. Wiki Page — static iframe (no fetch) **Widget:** Wiki Page · **Fetcher:** none (static widget)
 - **What it is:** an `<iframe>` pointing at the wiki page itself — the page renders with full MediaWiki CSS/JS and links browse inside the widget. `referrerpolicy="no-referrer"`.
@@ -794,4 +794,36 @@ pure function of fetched data; the Emitter Contract in WIDGET-DEVELOPMENT.md cov
 
 **Caching:** 10 minutes. The Main Page boxes change a few times a day; a stale headline is worse than a refetch.
 The card's footer shows the fetch time like every other widget, and each card links back to its template (CC BY-SA).
+
+## 31. Map — one static image, and the places on it (ISSUE-131/132)
+
+**Widget:** Map · **Fetchers:** `fetchMapView(place, points, project)` (the widget) and `fetchSparql` + `placesFromRows`
+(the SPARQL map renderer).
+
+- **The image** is Wikimedia's static map service — `maps.wikimedia.org/img/osm-intl,{z},{lat},{lon},{w}x{h}.png?lang=`
+  — which answers **403 with an HTML page** to a browser-shaped request (the browser then refuses it as an image:
+  `ERR_BLOCKED_BY_ORB`) and 200 to one identifying as Wikimedia. A page cannot set its own User-Agent, so the card asks
+  **our own relay** (`/api/staticmap`, see PROXIES.md), which builds the upstream URL from numbers and a two-letter
+  language and streams the PNG back. Sizes land on a ladder (320…2000) so one card is one URL; `?lang=de` localises the
+  labels on the service's side, and the place names we draw ourselves follow `<reader-language>|en|mul`.
+- **The service draws no marker and prints no attribution** (verified by looking at the returned image). Both are ours:
+  the pin is an overlay at the centre — which *is* the coordinate we passed — and the credit line is card content, so
+  edge-to-edge does not hide a licence.
+- **A place** is a coordinate (`48.8584, 2.2945`), a Wikidata item (`Q64`), or a page title, all resolved in one place
+  (`parsePlace`). Titles are read from that wiki first (`prop=coordinates|pageprops`, `redirects=1`, `formatversion=2`),
+  and only then from the page's Wikidata item — the ISSUE-113 lesson, so a renamed page still lands.
+- **A list of points** uses the same vocabulary, one per line, capped at 100. Everything is batched: `wbgetentities`
+  50 ids per call, titles by **min(50, ~4,500 encoded chars)** (the anonymous `toomanyvalues` cap and the 414 cap are
+  two different limits — see the note in `fetchBatchedUsage`), and pages with no coordinate of their own fall back to
+  their item in one more batch. A line that cannot be resolved is **reported on the card**, not dropped.
+- **Framing** (`fitPlaces`) computes the centre and the zoom that fit a set. It works in normalised Web Mercator and
+  takes the **smallest arc** of longitude, because longitude is a circle: without that, a Fiji/Samoa pair is centred
+  halfway around the world from itself. `mercatorPixel` wraps the longitude difference for the same reason — found by
+  the auto-fit probe, and now a landmark case. A single point has no extent, so the card keeps the configured zoom.
+- **The markers** are drawn in the image's own pixel space by an SVG overlay whose `preserveAspectRatio` mirrors the
+  `<img>`'s `object-fit` (`xMidYMid slice` *is* `cover`) — so a card is one image and one overlay, with no map library
+  and nothing per-frame. `src/lib/mapOverlay.js` is that geometry; `npm run check:map-landmarks` verifies it against
+  real rendered maps and real cards.
+- **Print and export work** because it is one image: ⛶ Export → PNG and 🖨️ Print rasterise properly, where a tiled map
+  would not. This is the reason the static card came before any interactive one.
 

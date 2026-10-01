@@ -45,7 +45,7 @@ import {
  fetchIaItem,
   wikistatsHost,
   fetchGalleryPage,
-  fetchMapPlace,
+  fetchMapView,
 } from './dataSources';
 import { boxLines } from '../lib/wikiBox';
 import { parseRef, projectSite, projectRef, pageRef, resolvePageConfig, resolveRefLines } from '../lib/reference';
@@ -90,7 +90,8 @@ const galleryMode = (config) => {
   return m === 'list' || m === 'story' || m === 'single' ? m : GALLERY_MODE_DEFAULT;
 };
 import { toLines, countOf } from '../lib/dataflow';
-import { staticMapUrl, osmUrl, placeSubtitle, clampZoom, mapLanguage, OSM_ATTRIBUTION } from '../lib/mapImage';
+import { placeSubtitle, clampZoom, mapLanguage } from '../lib/mapImage';
+import { MAX_MAP_POINTS, placesFromRows } from '../lib/mapPlaces';
 import { fitEcLevel, QR_BYTE_CAPACITY, QR_DENSE_CHARS, QR_MAX_CHARS } from '../lib/qr';
 
 const NAMESPACE_LABELS = {
@@ -1660,7 +1661,7 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'SPARQL Query',
     icon: '🧠',
-    description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, or a timeline of dated events',
+    description: 'Run any SPARQL query — Wikidata (WDQS) or Commons (QLever); big number, bars, table, trend, a timeline of dated events, or a map of the coordinates in the result',
     // A custom title wins over the preset's name: it is what the card shows in presentation/lean mode,
     // where the frame's own title bar is hidden.
     labelFromConfig: (c) => (c.title || getPreset(c.preset)?.label || (c.query || '').split('\n')[0]?.slice(0, 40) || 'SPARQL'),
@@ -1668,7 +1669,7 @@ export const WIDGET_TYPES = {
       preset: 'laureates-by-country',   // measured 2.9 s / 12 rows (2026-09-18); never a full-collection aggregate
       query: '',
       endpoint: 'wdqs',      // 'wdqs' | 'qlever-commons' | 'humaniki'
-      renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table'
+      renderer: 'auto',      // 'auto' | 'stat' | 'bar' | 'line' | 'table' | 'timeline' | 'map'
       maxRows: 100,
       align: 'calendar',     // timeline only: 'calendar' (same moment) | 'age' (align at birth)
       title: '',             // timeline only: shown in the card (and in lean mode, where the frame is bare)
@@ -1699,6 +1700,7 @@ export const WIDGET_TYPES = {
         { value: 'line', label: 'Line chart' },
         { value: 'table', label: 'Table' },
         { value: 'timeline', label: 'Timeline (dated rows, one lane per group)' },
+        { value: 'map', label: 'Map (a Point(lon lat) column, or lat/lon columns)' },
       ]},
       { key: 'align', label: 'Timeline alignment', type: 'select', options: [
         { value: 'calendar', label: 'Calendar years — what happened at the same time' },
@@ -1732,12 +1734,19 @@ export const WIDGET_TYPES = {
       const numericVars = vars.filter(numeric);
       const dateish = (v) => /year|date|time|month|decade|century/i.test(v) && !numeric(v);
       const labelVar = vars.find((v) => /label$/i.test(v) && !numeric(v)) || vars.find((v) => !numeric(v) && !dateish(v));
+      // Coordinates in the result, if any: a WKT `Point(lon lat)` column or a lat/lon pair (src/lib/mapPlaces.js).
+      const places = placesFromRows(vars, rows);
 
       // Manual override wins; otherwise detect from the result shape.
       let mode = config.renderer || 'auto';
       const timeline = buildTimeline(rows, vars, { align: config.align });
       if (mode === 'auto') {
         if (!rows.length) mode = 'table';
+        // Coordinates beat everything else: a query that returns where things are is a map, whatever else it
+        // also returns. This is the one detection that can change an existing board's rendering — a result that
+        // used to be a table of latitude and longitude columns now draws the places — which is why the Renderer
+        // select still overrides it.
+        else if (places.points.length) mode = 'map';
         // Dated rows with no number to plot are a timeline, not a table. (Anything with a numeric
         // column keeps its existing path — a date column plus a count is still a trend chart.)
         else if (!numericVars.length) mode = timeline ? 'timeline' : 'table';
@@ -1747,6 +1756,28 @@ export const WIDGET_TYPES = {
         else mode = 'table';
       }
       if (mode === 'bar' && !labelVar) mode = 'table';
+
+      if (mode === 'map') {
+        // Forced onto a result with no coordinates: say so rather than drawing an empty map.
+        if (!places.points.length) {
+          return {
+            mode: 'table',
+            title,
+            subtitle: `${rows.length} rows · no coordinates (a Point(lon lat) column, or a lat/lon pair)`,
+            columns: vars,
+            rows: rows.map((r) => vars.map((v) => fmt(r[v]))),
+          };
+        }
+        // The card frames the points itself: a zoom that fits them depends on the card's own box, which a
+        // transform cannot know. `note` keeps the honest count when only some rows had coordinates.
+        return {
+          mode: 'map',
+          title,
+          subtitle: `${places.points.length} places · ${places.labelVar || (places.shape === 'wkt' ? 'Point(lon lat)' : `${places.latVar}/${places.lonVar}`)}`,
+          points: places.points,
+          note: places.points.length < rows.length ? `${places.points.length} of ${rows.length} rows have coordinates` : '',
+        };
+      }
 
       if (mode === 'stat') {
         const valueVar = numericVars[numericVars.length - 1] || vars[vars.length - 1];
@@ -1823,13 +1854,15 @@ export const WIDGET_TYPES = {
 
     timeScope: 'point',    name: 'Map',
     icon: '🗺️',
-    description: 'A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia\'s own map service at the card\'s own size, with our pin at the centre. No tiles and no map library: one image, which is why it also prints and exports.',
+    description: 'A static map of a place — a coordinate, a Wikidata item, or a page title — drawn by Wikimedia\'s own map service at the card\'s own size, with our pin at the centre and a marker for every point you list. No tiles and no map library: one image, which is why it also prints and exports.',
     labelFromConfig: (c) => String(c.place || '').trim() || null,
     // A place is given as `Q64` and only the fetch knows that means "Berlin", so the header waits for the data
     // rather than repeating the query back at the reader. While loading, labelFromConfig still answers.
     labelFromData: (d) => String(d?.title || '').trim() || null,
     defaults: {
       place: 'Q64',          // a coordinate ('48.8584, 2.2945'), a Wikidata item, or a page title
+      points: '',            // one place per line, same vocabulary; with framePoints the card fits them all
+      framePoints: true,     // compute the centre and the zoom so every point is on the card
       project: 'en.wikipedia',
       zoom: 13,
       lang: '',              // blank = the reader's language
@@ -1842,9 +1875,11 @@ export const WIDGET_TYPES = {
     dataSource: 'Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki\'s own prop=coordinates',
     defaultLayout: { w: 5, h: 4, minW: 3, minH: 3 },
     configFields: [
-      { key: 'place', label: 'Place', type: 'text', placeholder: '48.8584, 2.2945 · Q64 · Eiffel Tower', hint: 'A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item.' },
+      { key: 'place', label: 'Place', type: 'text', placeholder: '48.8584, 2.2945 · Q64 · Eiffel Tower', hint: 'A coordinate, a Wikidata item, or a page title. A title is read from that wiki first (following redirects), then from its Wikidata item. Optional when the card has points.' },
+      { key: 'points', label: 'Points (one place per line)', type: 'textarea', rows: 5, placeholder: 'Q64\nQ243\n48.8584, 2.2945\nBrandenburg Gate', hint: `The same vocabulary as Place, up to ${MAX_MAP_POINTS} lines. A line that cannot be placed is counted on the card rather than dropped in silence.` },
+      { key: 'framePoints', label: 'Frame the points', type: 'boolean', hint: 'Centre and zoom are computed to fit every point (needs at least two). Off: the map stays where Place and Zoom put it, and points outside that view are counted on the card.' },
       { key: 'project', label: 'Project (for page titles)', type: 'project' },
-      { key: 'zoom', label: 'Zoom (1–19)', type: 'number', min: 1, max: 19 },
+      { key: 'zoom', label: 'Zoom (1–19)', type: 'number', min: 1, max: 19, hint: 'Ignored while the points are framed.' },
       { key: 'lang', label: 'Map label language', type: 'text', vocab: 'bcp47', placeholder: 'blank = your language', hint: 'A BCP-47 code, e.g. de, fr, ja. Blank follows your browser.' },
       { key: 'imageFit', label: 'Fit', type: 'select', options: [
         { value: 'cover', label: 'Fill crop' },
@@ -1853,21 +1888,32 @@ export const WIDGET_TYPES = {
       { key: 'showPin', label: 'Pin the place', type: 'boolean', hint: 'The map service draws no marker of its own, so this one is ours — at the centre, which is the coordinate you asked for.' },
       EDGE_TO_EDGE_FIELD,
     ],
-    fetch: (config) => fetchMapPlace(config.place, config.project),
+    fetch: (config) => fetchMapView(config.place, config.points, config.project),
     transform: (data, config) => {
-      const at = placeSubtitle('', data.lat, data.lon);
+      // A place *or* a list of points: the fetch refuses only when both are missing, so either may be absent here.
+      const place = data.place || null;
+      const points = data.points || [];
+      const at = placeSubtitle('', place ? place.lat : points[0]?.lat, place ? place.lon : points[0]?.lon);
+      const notes = [];
+      if (data.unresolved?.length) notes.push(`${data.unresolved.length} line${data.unresolved.length === 1 ? '' : 's'} could not be placed`);
+      if (data.skipped) notes.push(`${data.skipped} beyond the first ${MAX_MAP_POINTS}`);
       return {
-        lat: data.lat,
-        lon: data.lon,
-        label: data.label || '',
-        source: data.source,
+        lat: place ? place.lat : points[0]?.lat,
+        lon: place ? place.lon : points[0]?.lon,
+        label: place?.label || '',
+        source: place?.source || (points.length ? 'the points you listed' : ''),
+        points,
+        unresolved: data.unresolved || [],
+        // Framing needs the card's box, so the canvas does the actual fit; this only says whether it may.
+        frame: config.framePoints !== false && points.length > 0,
+        note: notes.join(' · '),
         zoom: clampZoom(config.zoom),
         // The map's labels follow the reader, not the wiki: a map is for the person looking at it.
         lang: mapLanguage(config.lang || (typeof navigator !== 'undefined' ? navigator.language : '')),
         fit: config.imageFit === 'contain' ? 'contain' : 'cover',
         showPin: config.showPin !== false,
-        title: data.label || at,
-        subtitle: data.label ? `${at} · ${data.source}` : data.source,
+        title: place?.label || (points.length ? `${points.length} place${points.length === 1 ? '' : 's'}` : at),
+        subtitle: place?.label ? `${at} · ${place.source}` : (points.length ? `${points.length} places` : at),
       };
     },
   },

@@ -474,6 +474,18 @@ place-name layer we own already follows the Wikidata discipline (`<reader-langua
 
 ### 3. Multiple points, and paths between them (S–M on top of the overlay spine)
 
+**The first half of this is done (2026-09-30, ISSUE-132).** A list of places is one row of config (`points`, up to 100, the
+same vocabulary as `place`, batched 50 per call), the card frames them (`fitPlaces`) and draws them as markers — and the
+same machinery is the SPARQL widget's `map` renderer, so a query that returns coordinates is a map with no extra work. What
+is left here is **paths and polygons**: a polyline through the points in order, and a geoshape fill beneath. The geometry is
+`src/lib/mapOverlay.js`: the image→card transform for `cover` and
+`contain`, the SVG twin of `object-fit` (`preserveAspectRatio="xMidYMid slice|meet"`), a list of places → image pixels →
+card coordinates, and which of them the crop takes away (`visibleCount` for an honest "N are outside this view"). It is
+verified in a browser — `npm run check:map-landmarks` phase 2 renders each landmark on cards of a different aspect and
+requires the marker's own rendered position to match our maths to the pixel *and* the map underneath to still be the
+landmark, with a control that fails the run if a naive "stretch each axis to the box" transform slips past. What remains
+is the **renderer** (the card draws the SVG overlay and its markers) and the **sources** below.
+
 Sources are all verified already (ISSUE-130): Commons `geosearch` (geotagged files near a point), `prop=coordinates`
 batched, WDQS `P625`, and `geoshape?getgeojson=1` for polygons. So a **points** card is mostly presentation:
 - a list of places (`Q64, Q243, 35.36,138.72`) or a *source* that yields them (a category's geotagged files, a SPARQL

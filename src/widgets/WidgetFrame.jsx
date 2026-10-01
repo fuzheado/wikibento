@@ -24,8 +24,8 @@ import { serviceImageUrl, searchHits } from '../lib/iaBook';
 import { fetchProjectList, fetchIaBookSearch, fetchIaBookPageText, fetchWikisourcePageText } from './dataSources';
 import ProjectField, { FALLBACK_PROJECTS } from '../components/ProjectField';
 import PagedViewer from './PagedViewer';
+import MapCanvas from './MapCanvas';
 import { configFieldValue, fieldVisible } from '../lib/configFields';
-import { relayMapUrl, osmUrl, placeSubtitle, OSM_ATTRIBUTION, MAP_HI_DPI, legalMapSize } from '../lib/mapImage';
 import { widgetTitle } from '../lib/widgetTitle';
 import { exportRows, toCsv, exportFilename } from '../lib/exportData';
 import { nodeToSvg, svgElementToPngBlob, corsImageToPngBlob, imageCapabilities, downloadBlob } from '../lib/exportImage';
@@ -1835,145 +1835,30 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
   );
 }
 
-/** Map (ISSUE-131) — a static map image, drawn by Wikimedia's map service at the card's own size, with our pin at the
- *  centre and OpenStreetMap's credit line. Deliberately **not** Leaflet: one image needs no tiles, no library and no
- *  policy of its own — and, the reason this was the first tier, it survives 🖨️ Print and ⛶ Export → PNG, where a tiled
- *  map rasterises badly.
- *
- *  Two things the map service does not do, both verified by looking at what it returned: it draws no marker at the
- *  centre, and it prints no attribution. The pin is therefore ours — and it is honest, because the centre *is* the
- *  coordinate the fetch resolved — and the credit line is card content, so edge-to-edge does not hide it (a licence is
- *  not decoration).
- *
- *  The image is requested at the size the card actually is, times 2 on a retina screen: the service renders any size,
- *  so there is no need for a second asset or for downloading more than the card can show. Until the box is measured
- *  the default size is used — a map at the wrong size is still the right map.
- */
+/** Map (ISSUE-131) — the shared canvas (`./MapCanvas`) with the data the map widget itself fetched: the place the card
+ *  is about, and any points the board listed. The canvas owns the framing, the overlay, the credit line and the failure
+ *  state; this wrapper only hands it a view. */
 function MapCard({ data }) {
-  const wrapRef = useRef(null);
-  const [box, setBox] = useState(null);
-  // A failing relay answers JSON, which a browser shows as a broken image: a blank card with no reason in it. So the
-  // image's own error event asks the relay *why* and the card says it (ISSUE-131's second rough edge).
-  const [failed, setFailed] = useState(null);
-  const [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return undefined;
-    // Quantised on purpose: a new size means a new URL, so an unquantised measurement would ask the map service for
-    // an image on every frame of a resize. Landing on the ladder makes most measurements a no-op (no state change, no
-    // new request), and the browser then reuses the one image it already has.
-    const measure = () => {
-      const dpr = allowHiDpi() ? MAP_HI_DPI : 1;
-      const w = legalMapSize(el.clientWidth * dpr, 240);
-      const h = legalMapSize(el.clientHeight * dpr, 180);
-      setBox((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // Through our own relay, not the map service directly: the service refuses browser-shaped requests (see
-  // relayMapUrl). Same numbers, same ladder, one image per card.
-  const url = relayMapUrl({
-    lat: data.lat,
-    lon: data.lon,
-    zoom: data.zoom,
-    lang: data.lang,
-    width: box?.w || 800,
-    height: box?.h || 500,
-  });
-  // A different place or a different box is a different request, so an old failure is not this image's story.
-  useEffect(() => { setFailed(null); }, [url]);
-
-  const urlRef = useRef(url);
-  urlRef.current = url;
-  // Which attempt has already been explained: a single failed <img> can fire its error event more than once, and a
-  // retry must be allowed to ask again even if the previous explanation is still in flight.
-  const explainedAttempt = useRef(-1);
-  const explain = useCallback(async () => {
-    if (explainedAttempt.current === attempt) return;
-    explainedAttempt.current = attempt;
-    let reason = 'the map image could not be loaded';
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      const type = res.headers.get('content-type') || '';
-      if (type.includes('json')) {
-        const body = await res.json().catch(() => null);
-        reason = body?.error || `the map relay answered HTTP ${res.status}`;
-      } else if (res.status === 404 || type.includes('html')) {
-        // A plain static host answers 404, or hands back the app's own index.html: there is no relay here at all.
-        reason = 'this host has no map relay — the map needs /api/staticmap from the Toolforge server';
-      } else if (res.ok && type.startsWith('image/')) {
-        // The relay is answering now, so the image itself did not arrive (a blip, or the browser refused it). Say
-        // that, rather than reporting "the relay answered 200" at a reader who can see there is no map.
-        reason = 'the map image did not load, but the relay is answering — try again';
-      } else {
-        reason = `the map relay answered HTTP ${res.status}${type ? ` (${type})` : ''}`;
-      }
-    } catch {
-      reason = 'the map relay could not be reached';
-    }
-    // The place may have changed while the relay was being asked.
-    if (urlRef.current === url) setFailed(reason);
-  }, [url, attempt]);
-
-  const retry = useCallback(() => {
-    setFailed(null);
-    setAttempt((n) => n + 1);
-  }, []);
-
-  const where = data.label || placeSubtitle('', data.lat, data.lon);
   return (
-    <div className={`map-card${data.fit === 'contain' ? ' is-contain' : ''}`} ref={wrapRef}>
-      {failed ? (
-        <div className="map-error">
-          <span className="map-error-text">⚠ {failed}</span>
-          <button className="widget-btn" onClick={retry}>Try again</button>
-          <a className="widget-btn" href={osmUrl(data.lat, data.lon, data.zoom)} target="_blank" rel="noopener noreferrer">
-            Open this place on OpenStreetMap ↗
-          </a>
-        </div>
-      ) : (
-      <a
-        className="map-link"
-        href={osmUrl(data.lat, data.lon, data.zoom)}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={`${where} — open on OpenStreetMap`}
-      >
-        {/* Nothing is requested until the box has been measured. The gallery already does this for its tiles, and the
-            reason is the same one that made the size ladder necessary: asking at a default size first and then again at
-            the real size costs the map service a second image per card, which its terms ask us to avoid. */}
-        {box ? (
-        <img
-          key={attempt}
-          className="map-img"
-          src={url}
-          alt={`Map of ${where}`}
-          onError={explain}
-          /* The map service answers 403 to a request whose Referer is localhost (measured 2026-09-29), which
-             the browser then refuses as a cross-origin image — so a map was blank on any local dev server while
-             working in production. Sending no referrer at all is allowed by the service (also measured) and makes
-             the card behave the same in both places. */
-          referrerPolicy="no-referrer"
-          decoding="async"
-        />
-        ) : (
-          <div className="map-img map-skeleton" aria-hidden="true" />
-        )}
-        {data.showPin ? <span className="map-pin" aria-hidden="true" /> : null}
-      </a>
-      )}
-      {failed ? null : (
-        <span className="map-credit">
-          <a href={OSM_ATTRIBUTION.href} target="_blank" rel="noopener noreferrer">{OSM_ATTRIBUTION.text}</a>
-        </span>
-      )}
-    </div>
+    <MapCanvas
+      centerLat={data.lat}
+      centerLon={data.lon}
+      zoom={data.zoom}
+      label={data.label}
+      points={data.points}
+      frame={data.frame}
+      lang={data.lang}
+      fit={data.fit}
+      showPin={data.showPin}
+      note={data.note}
+    />
   );
+}
+
+/** A SPARQL result's coordinates as a map (ISSUE-132): the query's own rows, framed to this card. The card's own box
+ *  decides the zoom it can afford, which is why the framing happens in the canvas and not in the transform. */
+function SparqlMapCard({ data }) {
+  return <MapCanvas points={data.points} frame showPin={false} note={data.note} />;
 }
 
 function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
@@ -2725,6 +2610,7 @@ function SparqlCard({ data }) {
   if (data.mode === 'line') return <TrendCard data={data} />;
   if (data.mode === 'bar') return <BarCard data={data} />;
   if (data.mode === 'timeline') return <TimelineCard data={data} />;
+  if (data.mode === 'map') return <SparqlMapCard data={data} />;
   return <TableCard data={data} />;
 }
 

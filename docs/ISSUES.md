@@ -5071,10 +5071,30 @@ The headline answers:
 - **Static "layers" are the style, from a closed set**: `osm-intl` ✓ and `osm` ✓ both verified; `osm-terrain` answers
   **400**, so the picker asks only for styles known to exist.
 
-**Nothing here is built yet — except the piece everything else rests on.** The projection primitive (`mercatorPixel`,
-`src/lib/mapImage.js`) and its verification against real images landed 2026-09-30, so the next session starts from a
-verified spine rather than a wish: points, paths, polygons and icons are overlay work now. This entry exists so the asks
-stay tracked with the evidence attached.
+**Nothing here is built yet — except the geometry everything else rests on.** Two pieces landed 2026-09-30:
+the projection primitive (`mercatorPixel`, `src/lib/mapImage.js`), verified against four real rendered maps; and the
+**card geometry** (`src/lib/mapOverlay.js`) — the image→card transform, the SVG twin of `object-fit`/`preserveAspectRatio`
+(`"xMidYMid slice"` *is* `cover`), places → image pixels → card coordinates, and which points a crop takes away — verified
+in a browser on cards of a deliberately different aspect, where the marker's own rendered position must match our maths and
+the map underneath must still be the landmark (`npm run check:map-landmarks`, whose second phase that is). So the next
+session starts from verified geometry rather than a wish.
+
+> **Items 1–2 landed 2026-09-30.** The Map widget takes a **list of points** (`points`: a coordinate, a Wikidata item or a
+> page title, one per line, up to 100) and **frames** them when `framePoints` is on: `fitPlaces` computes the centre and the
+> zoom, and the markers are drawn by an SVG overlay whose `preserveAspectRatio` mirrors the `<img>`'s `object-fit`, so the
+> card is still one image and no library. The **SPARQL widget** gained the matching `map` renderer: a result with
+> coordinates — a WKT `Point(lon lat)` column or a lat/lon pair — is drawn as a map, chosen automatically or forced in ⚙
+> (a preset, `berlin-museums-on-a-map`, ships with it: 40 museums, 0.9 s, every row with a coordinate).
+>
+> **Two things this shook out, both worth keeping.** (1) The projection had **no longitude wrap**: the auto-fit probe for a
+> Fiji/Samoa pair returned "fits at zoom 6 = false", because an unwrapped subtraction puts 178°E 355° away from a centre at
+> 177°W — a blank card rather than a Pacific one. `mercatorPixel` now wraps the difference modulo the world, and the fifth
+> landmark case is that pair, so the fix is verified against a real rendered map where the two islands sit either side of
+> the date line. (2) `tests/undefined-refs.test.mjs` caught a missing `allowHiDpi` import in the new canvas — the built
+> bundle would have thrown `ReferenceError` on every map card, which is exactly the class of bug that test exists for.
+>
+> **What remains** is the rest of this entry, in order: paths and polygons, icon shapes/sizes/labels (drawing them is easy,
+> collision is not), the itinerary stepper over a board param, and Tier 2 interactivity.
 
 ## ISSUE-131 · The Map widget: a static map in a card, and the relay it turned out to need — **done + verified 2026-09-29** (asked by Andrew)
 

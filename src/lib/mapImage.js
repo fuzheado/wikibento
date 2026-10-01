@@ -169,12 +169,16 @@ export const MAP_LAT_LIMIT = 85.05112878;
  * `w`×`h` from `staticMapUrl`), not in the card's CSS box: `object-fit: cover|contain` decides how that image meets the
  * box afterwards, so an overlay drawn in this space needs the same `viewBox`, not the card's measurements.
  *
- * The maths, stated once: at zoom `z` the world is `256 · 2^z` pixels square; longitude maps linearly across it, and
- * latitude maps through the Mercator ordinate `asinh(tan φ)`. That is the whole formula — which is exactly why it is
- * worth checking against a real image rather than trusting it, and `scripts/map-landmark-check.mjs` does: it fetches
- * maps of known lakes and islands, predicts where each landmark should be, and classifies the pixels there as water or
- * land. An off-centre, mirrored or mis-scaled projection fails it. Verified 2026-09-30 on four maps across both
- * hemispheres — see that script's output in `docs/VERIFIED-WORKING.md`.
+ * The maths, stated once: at zoom `z` the world is `256 · 2^z` pixels square; longitude maps linearly across it —
+ * and **longitude is circular**, so the difference from the centre is taken modulo the world: a set that spans the date
+ * line is drawn on one map rather than flung 16,000 px off-screen, which is what an unwrapped subtraction does (found
+ * by the auto-fit probe for a Fiji/Samoa pair, 2026-09-30). Latitude maps through the Mercator ordinate
+ * `asinh(tan φ)`. That is the whole formula — which is exactly why it is worth checking against a real image rather
+ * than trusting it, and `scripts/map-landmark-check.mjs` does: it fetches maps of known lakes and islands, predicts
+ * where each landmark should be, and classifies the pixels there as water or land. An off-centre, mirrored or
+ * mis-scaled projection fails it; so does a missing wrap, since a probe across the date line then falls outside the
+ * image. Verified 2026-09-30 on five maps across both hemispheres — see that script's output in
+ * `docs/VERIFIED-WORKING.md`.
  */
 export function mercatorPixel({
   lat, lon, centerLat, centerLon, zoom = MAP_DEFAULT_ZOOM, width = 800, height = 500,
@@ -188,7 +192,10 @@ export function mercatorPixel({
   };
   const w = Number(width) || 0;
   const h = Number(height) || 0;
-  const x = xOf(lon) - xOf(centerLon) + w / 2;
+  // Longitude is a circle: the shortest way round from the centre, in world pixels. Without this, a point at 178°E on a
+  // map centred at 177°W is 355° away instead of 5°, which is a blank card rather than a Pacific one.
+  const wrapWorld = (dx) => (((dx + world / 2) % world) + world) % world - world / 2;
+  const x = wrapWorld(xOf(lon) - xOf(centerLon)) + w / 2;
   const y = yOf(lat) - yOf(centerLat) + h / 2;
   return { x, y, inside: x >= 0 && y >= 0 && x <= w && y <= h };
 }

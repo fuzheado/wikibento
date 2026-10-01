@@ -34,7 +34,7 @@ Feature-complete for v1 and deployed.
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified with `npm run smoke:map --base https://wikibento.toolforge.org` (11/11, including the real relay) and `node scripts/docs-facts.mjs --live` |
-| newest capabilities | 🗺️ **A map in a card** (ISSUE-131) — a coordinate, a Wikidata item or a page title, drawn by Wikimedia's map service at the card's own size, with our pin and OpenStreetMap's credit; the card asks **our own relay** (`/api/staticmap`), because the service refuses browser-shaped requests · 🔒 **every proxied route inventoried and bounded** (ISSUE-133, `docs/PROXIES.md`) — host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, and a guard in `npm test` that tries to break them · 🖼️ **Edge to edge on seven types** (ISSUE-126/127) · 🏷️ **widget names checked against the docs** (ISSUE-128) · 🗺️ **the map card's two rough edges closed** (ISSUE-131, 2026-09-30): the header names the **resolved place** (`Q64` → "Berlin") and a failed relay prints **its own reason** with a Try again that re-asks, instead of a broken image (`npm run smoke:map`) · 📐 **the map backlog's spine verified against real images** (ISSUE-132): `mercatorPixel` checked against four rendered maps, with a built-in control that fails the run if a mirrored or doubled projection slips past (`npm run check:map-landmarks`) · 🧾 **the SPARQL table renderer restored** — a region rewrite on 2026-09-14 deleted `TableCard` while `SparqlCard` kept calling it, so every table-mode query crashed behind "Try again"; found by lint, fixed, guarded by a new test |
+| newest capabilities | 🗺️ **A map in a card** (ISSUE-131) — a coordinate, a Wikidata item or a page title, drawn by Wikimedia's map service at the card's own size, with our pin and OpenStreetMap's credit; the card asks **our own relay** (`/api/staticmap`), because the service refuses browser-shaped requests · 🔒 **every proxied route inventoried and bounded** (ISSUE-133, `docs/PROXIES.md`) — host allowlist, streamed byte cap, deadline, per-client rate limit, in-flight ceiling, bounded caches, and a guard in `npm test` that tries to break them · 🖼️ **Edge to edge on seven types** (ISSUE-126/127) · 🏷️ **widget names checked against the docs** (ISSUE-128) · 🗺️ **the map card's two rough edges closed** (ISSUE-131, 2026-09-30): the header names the **resolved place** (`Q64` → "Berlin") and a failed relay prints **its own reason** with a Try again that re-asks, instead of a broken image (`npm run smoke:map`) · 📐 **the map backlog's spine verified against real images** (ISSUE-132): `mercatorPixel` checked against four rendered maps, and the **card geometry** (`src/lib/mapOverlay.js` — the image→card transform, the SVG twin of `object-fit`, and which points a crop takes away) checked on cards of a different aspect, where the browser's own rendering has to agree to the pixel; both phases have a built-in control that fails the run if a wrong transform slips past (`npm run check:map-landmarks`) · 🧾 **the SPARQL table renderer restored** — a region rewrite on 2026-09-14 deleted `TableCard` while `SparqlCard` kept calling it, so every table-mode query crashed behind "Try again"; found by lint, fixed, guarded by a new test · 🗺️ **points on a map, and a query as a map** (ISSUE-132 items 1–2, 2026-09-30): the Map widget takes a **list of places** (a coordinate, a QID or a page title, one per line, up to 100, batched at 50 per call) with **Frame the points** computing the centre and zoom to fit them, drawn as our own SVG overlay that mirrors the image's `object-fit`; the SPARQL widget draws a result's coordinates as a map, auto-detected or forced. The projection **wraps longitude** now — a Fiji/Samoa fit used to be a blank card, found by the auto-fit probe and pinned as the fifth landmark case (`npm run check:map-landmarks`) |
 
 Pick mode is the newest verb (ISSUE-114). 🖌 **Pick ▾** in the header arms a widget type, and each
 click on an item inside a card places a card for that item — the brush persists, so six excerpts from one
@@ -67,8 +67,8 @@ Gallery).
 | `npm run test:browsers` | Chromium + Firefox + WebKit load a dashboard with 0 error frames |
 | `npm run test:browsers:demos` | **every demo board** (23 of them, including the full-catalog board) × every engine × desktop **and** an iPhone profile — asserting a card per widget, no error frames, no console errors, no collapsed card, no `—` placeholder and no empty ranking. ~8–20 min, so it is a release check, not a per-commit one |
 | `npm run smoke:url` | the URL tells the truth: a claim is dropped when the board diverges, Share embeds the board on screen, present params stay opt-in and reversible (9 actions traced) |
-| `npm run smoke:map` | the Map card in a real browser: the header names the place the fetch resolved (`Q64` → "Berlin"), a failing relay shows **its own reason** (mocked 502) rather than a broken image, **Try again** recovers, and the pin covers the coordinate the map was centred on — 11 checks; on a host without the relay it checks the honest message instead |
-| `npm run check:map-landmarks` | the Mercator-window spine against real rendered maps (ISSUE-132): four maps and eight Wikidata-anchored landmarks across both hemispheres, each predicted pixel classified water/land, plus a control that re-runs every case through a mirrored and a doubled projection and fails if nothing notices |
+| `npm run smoke:map` | the Map card in a real browser, and what draws on it: the header names the place the fetch resolved (`Q64` → "Berlin"), a failing relay shows **its own reason** (mocked 502) rather than a broken image, **Try again** recovers, the pin covers the coordinate the map was centred on, a **list of points** draws one marker each — inside the card, framed rather than lost in a world view, counted on the card, with no centre pin — and a **SPARQL result with coordinates** draws the same kind of map from a live query (19 checks); on a host without the relay it checks the honest message instead |
+| `npm run check:map-landmarks` | the map geometry against real rendered maps (ISSUE-132), in two phases: **image space** — five maps and eleven Wikidata-anchored landmarks across both hemispheres (including a Fiji/Samoa pair **across the date line**, which is what a missing longitude wrap looks like), each predicted pixel classified water/land — and **card space** — the same landmarks on cards of a deliberately different aspect (wide/tall crop, letterbox), where the browser's own `object-fit` + `preserveAspectRatio` placement must match `overlayForPlaces` to the pixel and the map underneath must still be the landmark. Both phases carry a control (a mirrored/doubled projection; a naive stretch) and fail the run if nothing notices |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
@@ -137,7 +137,7 @@ integrity) · `src/lib/borrowedBoard.js` (borrowed boards, the recovery stash, t
 notice's rule) · `src/lib/reference.js` (a page plus its wiki: `enwiki:Weddell Sea`,
 and the one project→host mapping) · `src/lib/projects.js` (every wiki, ordered
 recency → default → curated → rest) · `src/lib/wikiBox.js` (rendering a wiki template:
-sanitise, scope, rewrite, and what a click means) · `src/lib/speech.js` (the typed speech value — text + language — and choosing a voice by language) · `src/lib/paramSources.js` (the validated lookup sources: Commons categories, galleries, files, articles, QIDs) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+sanitise, scope, rewrite, and what a click means) · `src/lib/speech.js` (the typed speech value — text + language — and choosing a voice by language) · `src/lib/mapImage.js` (the static-map URL, the size ladder, and `mercatorPixel`) · `src/lib/mapOverlay.js` (where a place lands on a card: the image→card transform, the SVG twin of `object-fit`, and the crop's own visibility) · `src/lib/paramSources.js` (the validated lookup sources: Commons categories, galleries, files, articles, QIDs) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
 (fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
 renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
 example board) · `src/lib/params.js` (board params, reference resolution) ·
@@ -442,11 +442,12 @@ actually broken or unfinished today:
   whose promise is that editing affordances are gone (Esc already exits kiosk). A design question, filed with options.
 - **ISSUE-125** — one genuine JavaScript error in WebKit, found by the demos sweep and left fatal there:
   `Argument 1 ('blob') to FileReader.readAsBinaryString must be an instance of Blob`. Most likely the CORS-image PNG
-- **ISSUE-132** — the **map backlog**: interactivity (pan/zoom/layers), many points and paths, icon shapes/sizes/labels,
-  and an itinerary animation stepped with ▶ ◀. Nothing built; the design, the sources and the effort are in
-  `docs/WIDGET-IDEAS.md` → *"Map widget — what Tier 1 left to do"*. Two of the asks are already answered there rather than
-  queued (multilingual labels work via `?lang=`; the SVG-overlay spine makes points, paths, polygons and icons our own
-  drawing, no library).
+- **ISSUE-132** — the **map backlog**: **points are done** (the Map widget's list + framing, and the SPARQL map renderer,
+  2026-09-30). What remains, in `docs/WIDGET-IDEAS.md` → *"Map widget — what Tier 1 left to do"*: **paths and polygons**
+  (a polyline through the points in order, a geoshape fill beneath — the sources are verified), **icon shapes, sizes and
+  labels** (with collision as the real problem), the **itinerary** animation stepped with ▶ ◀ over a board param, and
+  **interactivity** (pan/zoom/layers — Tier 2, Leaflet, a separate widget type by design). Multilingual labels already work
+  via `?lang=`, and the static-layer question is answered by a style picker in the ⚙ panel.
   export or a document reader handing a cross-origin value to a `FileReader`; a hypothesis for the next session.
   asked directly, so it is intermittent and most likely an upstream timeout; recorded rather than guessed at.
 
@@ -524,8 +525,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      (`src/lib/widgetTitle.js`), so the Map's header reads "Berlin"; a failing relay prints its own reason with a Try again;
      and `npm run smoke:map` asserts both in a browser. **Also done: the off-centre landmark test** — `mercatorPixel` is
      verified against four real rendered maps by `npm run check:map-landmarks`, so the overlay spine is ready to build on.
-     **The next map slice is therefore items 3–4 of ISSUE-132**: multiple points, paths and polygons over that overlay,
-     then custom icons and labels (with collision as the real problem), and only then the itinerary stepper.
+     **The renderer landed the same day** — and with it the two things it was for: the Map widget draws a **list of points**
+     (framed by `fitPlaces`), and the SPARQL widget draws a **result's coordinates** as a map (auto-detected from a WKT
+     `Point(lon lat)` column or a lat/lon pair). **The next map work is the rest of the family, in this order:** paths and
+     polygons (a polyline through the points in order, a geoshape fill beneath), then custom icons and labels with collision
+     as the real problem, then the **itinerary stepper** over a board param (the best params demo this app has), and Tier 2
+     (Leaflet) only when pan and zoom are actually wanted — the static card is what prints and exports.
    - **ISSUE-125 — the WebKit `FileReader` error is the one thing the sweep still fails on from our own code** (see the
      open-issues list). Everything else it reports is upstream weather: archive.org's CORS, the Action API's 429s and
      WDQS throttling put the `wayback` / `assessments` / `depicts` widgets into an error STATE, and the counts move

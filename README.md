@@ -48,7 +48,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 📰 [A wiki page in a card](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) | any wiki page rendered in a card — the lead, one section, or the whole thing — with its tables and images, and **every blue link a pick target** |
 | 🖌 [One image filling the box](https://wikibento.toolforge.org/?config=/image-tile-demo.json) | a single Commons file as an **edge-to-edge tile** — letterboxed or cropped, with the chrome switched off |
 | 🖼️ [Edge to edge](https://wikibento.toolforge.org/?config=/edge-to-edge-demo.json) | the switch that takes a card's chrome away — a QR code, a Commons document, an IA book, a wiki page |
-| 🗺️ [A map in a card](https://wikibento.toolforge.org/?config=/map-demo.json) | a coordinate, a Wikidata item or a page title — one image, so it prints and exports |
+| 🗺️ [A map in a card](https://wikibento.toolforge.org/?config=/map-demo.json) | a coordinate, a Wikidata item or a page title — plus any number of **points**, framed by the card; one image, so it prints and exports |
 | 🎞 [Story mode](https://wikibento.toolforge.org/?config=/story-demo.json) | **one Wikipedia article as a continuous scroll** — its images and captions, the article's own chapters, and a panel per image chosen by that image's shape |
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
@@ -102,8 +102,11 @@ All 33 data-driven widget types render live data in the browser; the 9 static on
   (read from that wiki first, following redirects, then from its Wikidata item). Wikimedia's own map service draws it at the
   card's own size, with **our pin** at the centre, OpenStreetMap's credit on the image, and zoom, fit and **map label
   language** under ⚙. One image means no tiles and no map library — so it prints and exports properly, and it works
-  **Edge to edge**. The title bar names the place the fetch resolved (`Q64` → **Berlin**), and when the relay fails the
-  card prints the relay's own reason with **Try again** rather than leaving a broken image. Open
+  **Edge to edge**. **Points** take the same vocabulary, one per line (up to 100), drawn as markers on the image; with
+  **Frame the points** on, the centre and the zoom are computed to fit them all — and the same machinery is the SPARQL
+  widget's **Map** renderer, so a query that returns coordinates is a map (auto-detected from the result, or chosen in
+  ⚙). The title bar names the place the fetch resolved (`Q64` → **Berlin**), and when the relay fails the card prints
+  the relay's own reason with **Try again** rather than leaving a broken image. Open
   [`?config=/map-demo.json`](https://wikibento.toolforge.org/?config=/map-demo.json).
 - **Nothing proxied is the weak point** — six services need our server rather than your browser
   ([docs/PROXIES.md](docs/PROXIES.md)), and all six share one set of rules: a host allowlist, a streamed byte cap, a deadline,
