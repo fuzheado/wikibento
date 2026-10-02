@@ -11,6 +11,38 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm
 
 Back to the [README](../README.md).
 
+## Deployed and verified live, and the CIM gate (2026-10-02)
+
+**The two defects above are now live**, and the proof is the audit's own failing case. Production serves
+`index-SNG1_nn_.js` and the new `server.js`; against production, the prompt the audit used — *"Build me a card that
+shows an article summary, translates it to French, and can speak the translation aloud"* — now returns **3 cards**:
+`article-summary` (excerpt) → `french-translation` (translate) → **`speak-french` (speaker) with
+`source: "french-translation#speech"`** and zero warnings. Before the deploy the same request produced 2 cards, with
+the speaker pruned as a dangling reference. The ⬆ Import fix rides the same bundle hash production serves, so the
+build that was probed in a real browser is byte-for-byte the build that is live.
+
+- ✅ **The advisor is warned off CIM for categories that are not on the allow list** (audit fix #6). Nine types read
+  pre-computed Commons Impact Metrics, which exist only for a curated allow list of Commons categories (~1,800, mostly
+  GLAM/archive/museum collections) — so a `cim*` card for a general or niche category cannot load. The audit found the
+  advisor proposing two such cards on a switcher board. The gate now reaches all three readers: `askManual()` carries a
+  **CIM GATE** line naming the gated types as a list **derived from the manifest** (so a CIM widget added later joins
+  it), board mode includes the same manual so both modes carry it, the suggest-mode intent rule qualifies its own
+  "prefer … `cim*`" advice, and `CIM_CATEGORY_FIELD` carries a `hint` — which is also what the ⚙ panel shows a human,
+  with the two live alternatives (`📈 GLAM Category Usage`, `📁 Category Size`). The card itself was already honest:
+  a category CIM has not processed throws `CimUnregisteredError`, whose message names the Phabricator request
+  process. The *advice* was the part proposing a dead card.
+- 🪤 **The generator kept only `{key, type}` from a shared config-field constant.** Writing the hint on
+  `CIM_CATEGORY_FIELD` looked like one line and went nowhere: `scripts/generate-manifest.mjs` parsed
+  `const NAME = { key: …, type: … }` to exactly those two props, so `label`, `placeholder` and `hint` were dropped —
+  and the manifest is the half that reaches the advisor. It now parses shared constants with the same `parseField()`
+  as inline fields (which also gave six category fields the labels they had been silently missing). A second trap
+  inside the same lesson: that parser's `prop()` only recognises a property preceded by `,` or `{`, so a `//` comment
+  line between two properties silently drops the second — the failure mode is *silence*, which is why
+  `tests/ask-validation.test.mjs` now asserts the hint actually arrives, derived from the manifest.
+- 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
+  baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
+  [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).
+
 ## The Ask audit's two defects, fixed (2026-10-01)
 
 The Phase 2 audit (`docs/ASK-ARCHITECTURE.md`) found two defects by driving the system, and both were real, small, and

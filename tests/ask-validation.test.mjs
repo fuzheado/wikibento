@@ -46,6 +46,52 @@ test('the static prompt stays inside its measured token budget (the 16K fallback
       + ' — the block that grew is the one to trim (docs/ASK-ARCHITECTURE.md, "How to re-measure")');
   }
 });
+
+/**
+ * The CIM allow-list gate (the Ask audit's fix #6, 2026-10-02).
+ *
+ * Nine widget types read Commons Impact Metrics, which a monthly job PRE-COMPUTES for a curated allow list of
+ * Commons categories only — so a cim* card for a general, niche or brand-new category cannot load: it fails with
+ * the request process (the app is honest; the *advice* was not). The audit found the advisor proposing two such
+ * cards on a switcher board.
+ *
+ * This asserts the gate reaches every reader that can state it: the advisor's manual (both modes — it lives in
+ * `askManual`, which board mode also includes), the suggest-mode intent rule, and the human's ⚙ panel via the
+ * field hint that travels through the manifest. It is derived from the manifest, so a CIM widget added later is
+ * covered without editing this test — and it fails if the hint stops reaching the manifest (which is how a `//`
+ * comment inside a shared config-field constant silently dropped it: see the note in src/widgets/index.js).
+ */
+test('the advisor is warned off CIM for categories that are not on the allow list', () => {
+  const cimIds = manifest.widgets.filter((w) => String(w.dataSource || '').startsWith('CIM ')).map((w) => w.id);
+  assert.ok(cimIds.length >= 9, `expected the CIM family in the manifest, found ${cimIds.length}`);
+
+  const manual = askManual(manifest);
+  for (const id of cimIds) assert.ok(manual.includes(id), `the manual does not name the gated type ${id}`);
+  assert.match(manual, /CIM GATE: [\s\S]*?ALLOW LIST/, 'the manual states the allow-list gate');
+  assert.match(manual, /prefer glamorgan or categorySize/, 'the manual names the live alternatives');
+
+  const catalog = ASK_SYSTEM(manifest);
+  const valueRules = ASK_RULES.slice(ASK_RULES.indexOf('\n\nVALUE RULES (critical'), ASK_RULES.indexOf('\n\nOUTPUT SCHEMA:'));
+  const modes = {
+    suggest: `${catalog}${manual}${ASK_RULES}`,
+    board: `${catalog}${manual}${ASK_ASSEMBLY_MANUAL}${ASK_RULES_BOARD}${valueRules}`,
+  };
+  for (const [mode, prompt] of Object.entries(modes)) {
+    assert.match(prompt, /CIM GATE:/, `${mode} prompt does not carry the CIM gate`);
+  }
+  assert.match(modes.suggest, /cim\* is GATED/, 'the suggest prompt does not qualify its own "prefer … cim*" rule');
+
+  // The ⚙-panel half: every category-taking CIM widget's field carries the sentence.
+  const hinted = manifest.widgets
+    .filter((w) => cimIds.includes(w.id))
+    .flatMap((w) => (w.configFields || []).filter((f) => f.key === 'category').map((f) => ({ id: w.id, hint: String(f.hint || '') })));
+  assert.ok(hinted.length >= 6, `expected the six category-taking CIM types, found ${hinted.length}`);
+  for (const { id, hint } of hinted) {
+    assert.match(hint, /ALLOW LIST/, `the category field of ${id} carries no allow-list hint`);
+    assert.match(hint, /GLAM Category Usage|Category Size/, `the hint on ${id} names no live alternative`);
+  }
+});
+
 const categorySize = defs.get('categorySize');
 const gallery = defs.get('gallery');
 const topPages = defs.get('topPages');

@@ -314,13 +314,20 @@ the wayback case went 1/5 → 5/5 only by adding a targeted example.
 4. ✅ **DONE 2026-10-01** — **A token constitution with the measured ratio** (S). `tests/*` does not assemble the prompt today. Assert
    `ASK_SYSTEM + askManual + <rules> + 700 output ≤ 14,000` using **4.13 chars/token** (or the API count), and fail
    with the block that grew.
-5. **Reconcile `category-sample-photos`** (S, owner's call). It fails 5/5 today against a prompt whose own few-shot
-   teaches `categorySize`. Either the ground truth is stale after the gallery merge or the example needs sharpening;
-   decide, then re-measure — do not let a permanent 1/15 sit in the baseline.
-6. **Warn the advisor off CIM for non-allow-listed categories** (S–M). One manual line ("the CIM family only serves
-   categories on the published Commons Impact Metrics allow-list; prefer `glamorgan`/`categorySize` for anything
-   else") or a `hint` on the CIM `category` field. Evidence: the switcher board renders two CIM cards that can never
-   load.
+5. ⏸ **Reviewed by the owner 2026-10-02 — left as it is for now.** It fails 5/5 against a prompt whose own few-shot
+   teaches `categorySize`, and since the gallery merge the model answers `gallery` with `from: category` — a picture
+   grid rather than a count with a few thumbnails. The owner looked at both and kept the current behaviour, so the
+   fixture is **deliberately** not reconciled: the 1/15 is an accepted, known difference, not a regression. Revisit
+   only if the fixture is recalibrated as a whole (the trigger in `docs/INTENT-BENCHMARK.md`).
+6. ✅ **DONE 2026-10-02** — **Warn the advisor off CIM for non-allow-listed categories** (S). Done in the three places
+   a reader can meet the gate: `askManual()` gains a **CIM GATE** line (both modes — board mode includes the manual,
+   so one line covers both) that names the gated types as a list **derived from the manifest's `dataSource`**, the
+   suggest-mode intent rule says `cim*` is gated, and `CIM_CATEGORY_FIELD` carries a `hint` so a human in the ⚙ panel
+   gets the same sentence and the names of the live alternatives (`glamorgan`, `categorySize`). The hint's journey is
+   asserted by `tests/ask-validation.test.mjs`, which also catches the trap it hit: `scripts/generate-manifest.mjs`
+   kept only `{key, type}` from a shared config-field constant, so a hint written there could never reach the
+   manifest — the reader that must state the gate. The card was already honest (an unlisted category throws
+   `CimUnregisteredError` naming the request process); the *advice* was the part that proposed a dead card.
 7. **Cover assembly mode offline** (S). `tests/board-fixtures.mjs` + `scoreChainOptions` score *options*; nothing
    asserts the board contract. A small offline constitution (fixtures → `validateAssembly` → unique ids, known
    types, no dangling refs, ≥2 widgets) is the shape `tests/assembly.test.mjs` already proves possible — it just

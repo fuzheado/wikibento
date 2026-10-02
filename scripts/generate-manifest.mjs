@@ -80,11 +80,6 @@ function prop(block, name) {
 }
 
 // ── Shared consts referenced inside entries ────────────────────────────────
-// configFields constants (CIM_CATEGORY_FIELD …): const name → first {key,type}.
-const constFields = {};
-for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\{\s*key:\s*'(\w+)'[\s\S]*?type:\s*'(\w+)'/g)) {
-  constFields[m[1]] = { key: m[2], type: m[3] };
-}
 // Option arrays (PROJECT_OPTIONS, CIM_SCOPES, …): const name → option values.
 const constArrays = {};
 for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\[([\s\S]*?)\n\];/g)) {
@@ -118,6 +113,17 @@ function parseField(slice) {
     if (ref && constArrays[ref]) field.options = [...constArrays[ref]];
   }
   return field;
+}
+
+// Shared config-field constants (CIM_CATEGORY_FIELD, CIM_MONTH_FIELD, …) are referenced by many entries, so
+// parse each ONCE with the same parser as an inline field. The extra props matter: this used to keep only
+// `{key, type}`, which silently dropped a shared constant's label and hint — so a guard written there could
+// not reach the manifest, and the manifest is what the Ask advisor reads (2026-10-02: the CIM allow-list
+// warning lives in exactly such a hint, and the advisor is the reader that has to state it).
+const constFields = {};
+for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\{\s*key:[\s\S]*?\n\};/g)) {
+  const f = parseField(m[0]);
+  if (f) constFields[m[1]] = f;
 }
 
 // ── Entry extraction ───────────────────────────────────────────────────────

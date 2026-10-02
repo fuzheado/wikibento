@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-01T19:05:02.005Z",
+ "generatedAt": "2026-10-02T06:21:23.595Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -890,11 +890,16 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     },
     {
      "key": "month",
-     "type": "number"
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -943,7 +948,10 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     }
    ],
    "defaults": [
@@ -986,7 +994,10 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     }
    ],
    "defaults": [
@@ -1024,11 +1035,16 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     },
     {
      "key": "month",
-     "type": "number"
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1071,7 +1087,10 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     }
    ],
    "defaults": [
@@ -1119,11 +1138,16 @@
     },
     {
      "key": "category",
-     "type": "text"
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library"
     },
     {
      "key": "month",
-     "type": "number"
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1474,7 +1498,9 @@
     },
     {
      "key": "edgeToEdge",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -1788,7 +1814,9 @@
     },
     {
      "key": "edgeToEdge",
-     "type": "boolean"
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [

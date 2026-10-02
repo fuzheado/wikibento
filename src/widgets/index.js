@@ -126,7 +126,25 @@ const CIM_EDIT_TYPES = [
   { value: 'create', label: 'Creates' },
   { value: 'update', label: 'Updates' },
 ];
-const CIM_CATEGORY_FIELD = { key: 'category', label: 'Commons category', type: 'text', placeholder: 'Files from the Biodiversity Heritage Library' };
+// The CIM category field cannot show its own gate: Commons Impact Metrics is
+// precomputed for a curated allow list, so a plausible-looking category can
+// simply have no data. The `hint` is where that sentence lives, because the
+// hint rides into the manifest and the manifest is what the Ask advisor reads —
+// one sentence, three readers (the ⚙ panel, the prompt's catalog, and the
+// advisor's dataflow manual).
+//
+// NOTE (cost an hour, 2026-10-02): keep the properties below free of comment
+// lines. `scripts/generate-manifest.mjs`'s `prop()` only recognises a property
+// preceded by `,` or `{`, so a `//` line between two properties silently drops
+// the second one from the manifest — and the manifest is the half that reaches
+// the advisor. tests/ask-validation.test.mjs asserts the hint arrives.
+const CIM_CATEGORY_FIELD = {
+  key: 'category',
+  label: 'Commons category',
+  type: 'text',
+  placeholder: 'Files from the Biodiversity Heritage Library',
+  hint: 'Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.',
+};
 const CIM_MONTH_FIELD = { key: 'month', label: 'Month (default: last complete month)', type: 'number', placeholder: '7' };
 const cimRanking = (title, subtitle, columns, rows, colClasses) => ({ title, subtitle, columns, rows, colClasses });
 
