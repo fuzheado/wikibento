@@ -97,6 +97,16 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   **zero** cards rendered, which is what a bundle that throws before its first render actually looks like.
   (The rule this is an instance of: a check whose failure message contradicts its own output is a check people stop
   reading.)
+- 🩺 **The board doctor, and two things it found** (2026-10-02). `npm run check:board -- board.json` (or `pbpaste | …`)
+  reports what the app will say about a board from outside, delegating to `validateDashboard` and `findUnresolvedRefs`
+  and adding the checks a validator cannot: a `{{widget:id}}` naming no card, a `#channel` the producer does not
+  publish, a field the current source mode ignores, an undeclared `{{param}}`, and the gates. Every check is tested in
+  **both directions** — a case that must fire and a control that must stay silent (15 tests) — because a diagnostic
+  that only proves it can complain complains about everything. Findings: **ISSUE-134** (a *Repairable* value — `"200"`
+  for a number — is refused by ⬆ Import, contradicting `docs/JSON-FORMAT.md` and AGENTS.md; filed as a doctrine call,
+  the doctor reports what the app does); and the relay-type fact, which existed in **three hand-written lists** (guide,
+  widget map, doctor) and is now `needsRelay: true` on the definitions, derived by all three — the map regenerated
+  byte-identical, 🔌 badges intact.
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).
