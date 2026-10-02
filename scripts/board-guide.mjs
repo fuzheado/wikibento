@@ -187,12 +187,17 @@ const mapText = await read('docs/WIDGET-MAP.md');
  * door with no introduction.
  */
 const readmeIntro = (() => {
-  const start = readme.match(/^WikiBento is a drag-and-drop dashboard for Wikimedia\.[\s\S]*?in a French voice \(ISSUE-97\)\.$/m);
-  if (!start) {
-    console.error('✘ README.md no longer opens with the paragraph the guide quotes — update the extraction in this script');
+  // The README's opening PARAGRAPH — anchored on where it starts and on the paragraph break, not on a phrase inside it:
+  // the first version pinned the last sentence (and then Andrew rewrote the paragraph, which is exactly the sort of edit
+  // this extraction must survive). The sanity check is light but real: if the paragraph no longer mentions the
+  // Speak/Translate chain, the guide is quoting the wrong thing and says so.
+  const intro = (readme.match(/^WikiBento is a drag-and-drop[\s\S]*?(?=\n\n)/m) || [])[0];
+  if (!intro || !intro.includes('ISSUE-97')) {
+    console.error('✘ README.md no longer opens with the paragraph the guide quotes (expected the opening paragraph, '
+      + 'ending with the Speak/Translate chain) — update the extraction in this script');
     process.exit(1);
   }
-  return start[0];
+  return intro;
 })();
 
 const chains = (mapText.match(/^- \*\*Shipping chains\*\*: (.+)$/m) || [])[1];

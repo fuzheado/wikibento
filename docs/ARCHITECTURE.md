@@ -2,8 +2,11 @@
 
 ## Overview
 
-WikiBento is a single-page React app with **no backend**. All state lives in the
-browser, all data comes from Wikimedia APIs via CORS. The app is a thin shell
+WikiBento is a single-page React app whose **data path has no backend of ours**: every live widget fetches from
+CORS-enabled APIs in the browser (Wikimedia's REST and Action APIs, Commons, Wikidata, Wikistats, the Internet
+Archive) and all state lives in the browser. Beside it sits a **small, bounded relay** (`deploy/server.js`) for the
+jobs a browser cannot do — a service that refuses browser-shaped requests, sources that send no CORS header, a
+short-URL expansion, the Ask advisor's LLM key — inventoried and guarded in [PROXIES.md](PROXIES.md). The app is a thin shell
 (`App.jsx`) around a **widget registry** (`src/widgets/index.js`) — every widget type is
 a declarative entry describing its config, fetcher, and renderer. Adding a widget is
 adding one registry entry (see [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md)).

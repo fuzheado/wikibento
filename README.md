@@ -2,12 +2,14 @@
 
 ![WikiBento demo dashboard](docs/screenshot.png)
 
-WikiBento is a drag-and-drop dashboard for Wikimedia. The things worth keeping an eye on live in many
-places — pageview and stats APIs, wiki pages, recent changes, Commons — and WikiBento brings them onto one
+WikiBento is a drag-and-drop dashboard for Wikimedia — and for the adjacent open collections Wikimedia work leans
+on: **the Internet Archive** (items and their views, books you can search inside, audio and video, and how a page
+looked years ago) and **maps** over OpenStreetMap. The things worth keeping an eye on live in many places —
+pageview and stats APIs, wiki pages, recent changes, Commons, archive.org — and WikiBento brings them onto one
 reactive board you can arrange, point at a subject, and send as a link: article metrics, external link
-counts, category sizes, file usage, GLAM impact stats, listings and feeds you can click through — plus
-output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they chain: a translation
-carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
+counts, category sizes, file usage, GLAM impact stats, archive items and books, maps, listings and feeds you can
+click through — plus output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they
+chain: a translation carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
 
 **Why this exists at all,** now that an agent can generate a dashboard from a sentence:
 [`docs/WHY-WIKIBENTO.md`](docs/WHY-WIKIBENTO.md) — the argument, and the running ledger of measured API
@@ -16,8 +18,15 @@ widgets are the demo; the ledger is the product.
 
 It's a single-page React app built on [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
 (the grid engine behind Grafana and Kibana), ≈0.8 MB (~235 KB gzipped), hostable as static files on Toolforge
-or anywhere. Every widget hits **real Wikimedia APIs** (RESTBase, the MediaWiki Action API, Commons,
-Wikistats) straight from the browser — no backend, no login, no proxy. `npm run build` prints exact figures.
+or anywhere. **Client-driven, with a server side only where a browser cannot go.** Every widget fetches its own
+data in your browser — Wikimedia's REST and Action APIs, Commons, Wikidata, Wikistats, Commons Impact Metrics,
+WDQS, MinT, and the Internet Archive's metadata, IIIF and Wayback APIs — and the app carries a **small, audited set
+of server-side routes** for the handful of jobs a browser genuinely cannot do: a map service that refuses
+browser-shaped requests, two sources that send no CORS header, a short-URL expansion, a cap that has to be enforced
+before 39 MB arrives, and the Ask advisor's LLM relay, where the key and the prompt live. Each route is inventoried,
+bounded and guarded — the table is [Proxied services](#proxied-services-what-runs-on-our-server) below, the full
+inventory is [docs/PROXIES.md](docs/PROXIES.md). No accounts, no login, nothing stored about you.
+`npm run build` prints exact figures.
 
 **Live:** [wikibento.toolforge.org](https://wikibento.toolforge.org/) ·
 **Example:** [Alysa Liu](https://wikibento.toolforge.org/?config=https://w.wiki/TR9R) ·

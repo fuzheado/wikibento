@@ -22,12 +22,14 @@ files are absolute GitHub links (§0 lists the useful ones). Reading this page n
 
 ## 0. What WikiBento is, if you have never seen it
 
-WikiBento is a drag-and-drop dashboard for Wikimedia. The things worth keeping an eye on live in many
-places — pageview and stats APIs, wiki pages, recent changes, Commons — and WikiBento brings them onto one
+WikiBento is a drag-and-drop dashboard for Wikimedia — and for the adjacent open collections Wikimedia work leans
+on: **the Internet Archive** (items and their views, books you can search inside, audio and video, and how a page
+looked years ago) and **maps** over OpenStreetMap. The things worth keeping an eye on live in many places —
+pageview and stats APIs, wiki pages, recent changes, Commons, archive.org — and WikiBento brings them onto one
 reactive board you can arrange, point at a subject, and send as a link: article metrics, external link
-counts, category sizes, file usage, GLAM impact stats, listings and feeds you can click through — plus
-output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they chain: a translation
-carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
+counts, category sizes, file usage, GLAM impact stats, archive items and books, maps, listings and feeds you can
+click through — plus output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they
+chain: a translation carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
 
 Read this page and you can write a board without ever opening the app — and if you are a model: §1 is the shape,
 §2 is the field names, §6 is how to check the result before handing it over.

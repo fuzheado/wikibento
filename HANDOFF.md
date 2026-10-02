@@ -7,9 +7,13 @@ design rationale: [docs/ISSUES.md](docs/ISSUES.md) · feature docs: [README.md](
 
 WikiBento is a dark-themed, drag-and-drop widget dashboard for Wikimedia —
 "insights and action". A single-page React app (React 19, Vite 8,
-react-grid-layout) with **no backend for data**: every live widget fetches
-directly from CORS-enabled Wikimedia APIs (RESTBase pageviews, MediaWiki Action
-API, Commons, Wikistats, Commons Impact Metrics, WDQS/QLever, MinT). A handful of
+react-grid-layout) with **no backend in the data path**: every live widget fetches
+directly from CORS-enabled APIs (Wikimedia's RESTBase pageviews, MediaWiki Action
+API, Commons, Wikistats, Commons Impact Metrics, WDQS/QLever, MinT — and the Internet
+Archive's metadata, IIIF and Wayback APIs), beside a **small bounded relay** for the
+few jobs a browser cannot do (a map service that refuses browser-shaped requests, two
+sources with no CORS header, a short-URL expansion, the Ask advisor's LLM key —
+`docs/PROXIES.md` is the inventory). A handful of
 static widgets (Text/Markdown, QR, Board Controls, Speaker, Wiki Page, Text List,
 and the dataflow nodes) render from config.
 
