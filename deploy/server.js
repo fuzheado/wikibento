@@ -184,6 +184,12 @@ const ASK_SECRET = process.env.WIKIBENTO_ASK_SECRET || randomBytes(24).toString(
 const ASK_MODEL = process.env.WIKIBENTO_ASK_MODEL || 'llm-qwen36-27b';
 const ASK_FALLBACK_MODEL = 'llm-qwen3-14b';
 const ASK_UPSTREAM = (model) => `https://api.wikimedia.org/service/lw/inference/v1/models/${model}/openai/v1/chat/completions`;
+// /api/validate limits. Per client and per hour, plus a global hourly ceiling — the same shape as every other route:
+// a public endpoint whose work is bounded, not a service anyone can use to heat the machine. No upstream, so the only
+// cost is parsing, which is why the byte cap is the real bound.
+const VALIDATE_PER_MIN = Number(process.env.VALIDATE_PER_MIN) || 30;
+const VALIDATE_MAX_BYTES = Number(process.env.VALIDATE_MAX_BYTES) || 256 * 1024;
+
 const ASK_ALLOWED_ORIGINS = new Set([
   'https://wikibento.toolforge.org',
   'http://localhost:5173', 'http://localhost:4173', 'http://localhost:8765',
@@ -211,11 +217,13 @@ const rlLimit = (ip, perMin, perHour, globalHour) => {
 const ipOf = (req) => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || '?';
 const sha = (s) => createHmac('sha256', ASK_SECRET).update(String(s)).digest('hex');
 
-const readBody = async (req) => {
+const readBody = async (req, max = 8192) => {
   const chunks = [];
+  let size = 0;
   for await (const c of req) {
     chunks.push(c);
-    if (chunks.reduce((n, x) => n + x.length, 0) > 8192) throw new Error('body too large');
+    size += c.length;
+    if (size > max) throw new Error('body too large');
   }
   return Buffer.concat(chunks).toString('utf8');
 };
@@ -250,6 +258,42 @@ const getManifest = async () => {
   return askManifest;
 };
 const manifestIds = (m) => new Map((m?.widgets || []).map((w) => [w.id, w]));
+
+/**
+ * The CIM allow list, for the doctor's category gate (it warns about a category Commons Impact Metrics has never
+ * processed — the card would draw nothing). Read once from the served snapshot; absent, the check degrades to the note
+ * the doctor already writes without a list.
+ */
+let cimListLoaded = false;
+let cimListSet = null;
+const cimAllowListSet = async () => {
+  if (!cimListLoaded) {
+    try {
+      const snap = JSON.parse(await readFile(join(ROOT, 'cim-allow-list.json'), 'utf8'));
+      cimListSet = Array.isArray(snap.categories)
+        ? new Set(snap.categories.map((c) => String(c).replace(/_/g, ' ').trim().toLowerCase()))
+        : null;
+    } catch { cimListSet = null; }
+    cimListLoaded = true;
+  }
+  return cimListSet;
+};
+
+/**
+ * The validator bundle — the app's own doctor, built by `npm run build:validator` and copied beside this file on
+ * deploy. Imported LAZILY and once: it is ~380 KB of registry, it is only needed by one route, and a missing bundle
+ * must not stop the app from serving boards (the route says so instead).
+ */
+let validatorMod = null;
+let validatorTried = false;
+const validatorModule = async () => {
+  if (!validatorTried) {
+    validatorTried = true;
+    try { validatorMod = await import(new URL('./validator-bundle.mjs', import.meta.url).href); }
+    catch (e) { console.error('validator bundle unavailable:', (e && e.message) || e); validatorMod = null; }
+  }
+  return validatorMod;
+};
 
 const askCache = new Map();
 // The most expensive upstream on this server (an LLM), so this cache has a ceiling as well as a TTL.
@@ -771,6 +815,13 @@ const json = (res, status, obj, extra = {}) => {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extra });
   res.end(JSON.stringify(obj));
 };
+// One line per validation, like the ask relay: what was asked, what came back. No board content, no IP (a hash).
+const logValidate = (ip, report) => console.log(JSON.stringify({
+  ev: 'validate', ts: new Date().toISOString(), ip: sha(ip).slice(0, 12),
+  verdict: report.verdict, widgets: report.counts?.widgets ?? 0,
+  errors: report.counts?.errors ?? 0, repairs: report.counts?.repairs ?? 0, warnings: report.counts?.warnings ?? 0,
+}));
+
 const logAsk = (ip, prompt, n, ms, cached, err) => console.log(JSON.stringify({
   ev: 'ask', ts: new Date().toISOString(), ip: sha(ip).slice(0, 12), plen: String(prompt).length, n, ms, cached: !!cached, err: err || null,
 }));
@@ -1260,6 +1311,69 @@ const server = createServer(async (req, res) => {
       askCacheSet(cacheKey, payload);
       logAsk(ip, prompt, payload.options.length, Date.now() - t0, false);
       return json(res, 200, { ...payload, cached: false });
+    }
+
+    // ── /api/validate: the board doctor as a service (Slice 2 of the Ask door) ────────────────────────────────
+    // No upstream, no key, no model: a board goes in and the same verdict `npm run check:board` prints comes out. The
+    // GET form carries the board in the URL, which is what makes the door ITERATIVE — a browsing model can call it and
+    // fix its own board inside the conversation instead of handing the reader a JSON blob to paste and hope. POST is
+    // for scripts (and, later, the MCP tool). It runs the APP's validator, bundled, so this endpoint and the ⬆ Import
+    // panel cannot disagree about what a board is.
+    //
+    // 200 for a successful diagnosis even when the verdict is "unusable": the endpoint's job is to report, and a chat
+    // reads the body, not the status. (A 4xx is for a request that could not be interpreted at all.)
+    if (url.pathname === '/api/validate') {
+      const CORS = { 'Access-Control-Allow-Origin': '*' };
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          ...CORS,
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        });
+        res.end();
+        return;
+      }
+      const ip = ipOf(req);
+      const wait = rlLimit(ip, VALIDATE_PER_MIN, 600, 10000);
+      if (wait) return json(res, 429, { error: 'too many validation requests', retryAfterSeconds: wait }, { ...CORS, 'Retry-After': String(wait) });
+
+      let input;
+      if (req.method === 'POST') {
+        let body;
+        try { body = await readBody(req, VALIDATE_MAX_BYTES); }
+        catch { return json(res, 413, { error: `body too large (max ${VALIDATE_MAX_BYTES} bytes)` }, CORS); }
+        try { input = JSON.parse(body); } catch { return json(res, 400, { error: 'the body must be board JSON' }, CORS); }
+      } else {
+        const board = url.searchParams.get('board');
+        const plain = url.searchParams.get('d');
+        const gz = url.searchParams.get('z');
+        if (!board && !plain && !gz) {
+          return json(res, 400, {
+            error: 'pass the board as ?board=<url-encoded JSON>, ?d=<base64url> or ?z=<gzip+base64url>, or POST it',
+            hint: 'the app’s ⬇ Share panel produces exactly the ?d= and ?z= payloads; the board guide is at /board-guide.md',
+          }, CORS);
+        }
+        const bundle = await validatorModule();
+        if (!bundle) return json(res, 503, { error: 'this host has no validator bundle (deploy/validator-bundle.mjs)' }, CORS);
+        try {
+          if (gz) input = await bundle.decodeCompressedDashboardHash(gz);
+          else if (plain) input = bundle.decodeDashboardHash(plain);
+          else input = board;
+        } catch (e) {
+          return json(res, 400, { error: `could not decode the board: ${(e && e.message) || e}` }, CORS);
+        }
+      }
+
+      const bundle = await validatorModule();
+      if (!bundle) return json(res, 503, { error: 'this host has no validator bundle (deploy/validator-bundle.mjs)' }, CORS);
+      const allowList = await cimAllowListSet();
+      const report = bundle.diagnoseBoard(input, {
+        allowList,
+        source: req.method === 'POST' ? 'posted board' : 'board in the URL',
+      });
+      logValidate(ip, report);
+      return json(res, 200, report, CORS);
     }
 
     const pathname = url.pathname === '/' ? '/index.html' : url.pathname;

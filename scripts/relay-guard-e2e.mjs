@@ -64,6 +64,8 @@ if (LOCAL) {
       RELAY_MAX_INFLIGHT: '3',
       PROXY_MAX_BYTES: '4000',
       RELAY_TIMEOUT_MS: '8000',
+      VALIDATE_PER_MIN: '8',          // the functional checks use 7 requests; the burst at the end spends the rest
+      VALIDATE_MAX_BYTES: '4000',     // …and the byte cap without a megabyte of input
     },
   });
   pid = server.pid;
@@ -111,6 +113,68 @@ for (const [path, type] of Object.entries(DOOR)) {
 {
   const r = await get('/api/staticmap?z=99&lat=x&lon=13&w=640&h=480');
   r.status === 400 ? ok('map: absurd params refused', 'HTTP 400') : bad('map: absurd params', `HTTP ${r.status}`);
+}
+
+// ── 1a. /api/validate — the board doctor as a service (the Ask door, Slice 2) ───
+{
+  // The board the guide teaches (its §1 example), short enough for a URL.
+  const good = {
+    version: 1,
+    params: { article: { label: 'Article', type: 'buttons', options: ['Albert Einstein'], value: 'Albert Einstein' } },
+    widgets: [{ id: 'lede', widgetType: 'excerpt', config: { article: '{{article}}' } },
+      { id: 'controls', widgetType: 'boardControls', config: { title: 'Choose' } }],
+    layout: [{ i: 'lede', x: 0, y: 0, w: 8, h: 4 }, { i: 'controls', x: 0, y: 4, w: 12, h: 3 }],
+  };
+  const r = await get(`/api/validate?board=${encodeURIComponent(JSON.stringify(good))}`);
+  const body = await r.json().catch(() => null);
+  if (r.status !== 200 || !body?.verdict) bad('validate: a good board', `HTTP ${r.status} ${JSON.stringify(body).slice(0, 80)}`);
+  else if (body.errors.length) bad('validate: a good board', `errors: ${body.errors[0].slice(0, 80)}`);
+  else if (r.headers.get('access-control-allow-origin') !== '*') bad('validate: CORS', 'no ACAO on the response');
+  else ok('validate: a good board', `${body.verdict} · ${body.counts.widgets} widgets`);
+
+  // A board that cannot load must come back REPORTED, not as a 4xx: the endpoint's job is the diagnosis, and a chat
+  // reads the body.
+  const broken = { version: 1, widgets: [{ id: 's', widgetType: 'speaker', config: { text: '{{widget:nope}}' } }], layout: [{ i: 's', x: 0, y: 0, w: 4, h: 3 }] };
+  const r2 = await get(`/api/validate?board=${encodeURIComponent(JSON.stringify(broken))}`);
+  const b2 = await r2.json().catch(() => null);
+  r2.status === 200 && b2?.verdict === 'unusable' && b2.errors.length
+    ? ok('validate: a broken board is reported', `unusable · "${(b2.errors[0].message || b2.errors[0]).slice(0, 46)}…"`)
+    : bad('validate: a broken board', `HTTP ${r2.status} verdict ${b2?.verdict}`);
+
+  // The app's own `?d=` payload, and the compressed `?z=` one, both decode with the APP's codecs (one codec, not two).
+  const { encodeDashboardHash, encodeCompressedDashboardHash } = await import('../deploy/validator-bundle.mjs');
+  const d = await get(`/api/validate?d=${encodeURIComponent(encodeDashboardHash(JSON.stringify(good)))}`);
+  const z = await get(`/api/validate?z=${encodeURIComponent(await encodeCompressedDashboardHash(JSON.stringify(good)))}`);
+  const [bd, bz] = [await d.json().catch(() => null), await z.json().catch(() => null)];
+  d.status === 200 && z.status === 200 && bd?.verdict === 'clean' && bz?.verdict === 'clean'
+    ? ok('validate: ?d= and ?z= decode', 'both clean, via the app\'s codecs')
+    : bad('validate: ?d= / ?z=', `d ${d.status} ${bd?.verdict} · z ${z.status} ${bz?.verdict}`);
+
+  // POST, for scripts (and later for MCP).
+  const posted = await fetch(`${base}/api/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(broken) });
+  const bp = await posted.json().catch(() => null);
+  posted.status === 200 && bp?.verdict === 'unusable'
+    ? ok('validate: POST', `unusable, ${bp.errors.length} error(s)`)
+    : bad('validate: POST', `HTTP ${posted.status}`);
+
+  // A request with nothing to validate says how to ask (`?board=`, `?d=`, `?z=`, POST).
+  const empty = await get('/api/validate');
+  empty.status === 400 ? ok('validate: nothing to validate', 'HTTP 400 with a hint') : bad('validate: empty', `HTTP ${empty.status}`);
+
+  // The byte cap, and the rate limit (tightened for this run: 3/min).
+  const huge = await fetch(`${base}/api/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: `{"widgets":[${'"x",'.repeat(3000)}"y"],"layout":[]}` });
+  const hugeBody = await huge.json().catch(() => ({}));
+  huge.status === 413 && /max \d+ bytes/.test(String(hugeBody.error))
+    ? ok('validate: oversized body refused', `HTTP 413, "${hugeBody.error}"`)
+    : bad('validate: oversized body', `HTTP ${huge.status} ${JSON.stringify(hugeBody).slice(0, 60)}`);
+
+  // LAST, because it spends the allowance: the limit is per client, so everything above has already used some.
+  let limited = 0;
+  for (let i = 0; i < 5; i++) {
+    const rr = await get(`/api/validate?board=${encodeURIComponent('{}')}`);
+    if (rr.status === 429) limited++;
+  }
+  limited > 0 ? ok('validate: rate limited', `${limited}× 429 in 5 more requests (limit 8/min, 7 already used)`) : bad('validate: rate limit', 'no 429');
 }
 
 // ── 1b. the door's etiquette: a missing path is a 404 that names nothing ──────

@@ -321,6 +321,7 @@ that way, and those go through **our own Toolforge server**; the full inventory,
 | `/api/petscan` | PetScan | quick-intersection ignores `max` and can return 39 MB — the byte cap and file budget live on the server |
 | `/api/wayback-gallery` | `web.archive.org` CDX | no CORS on the CDX side |
 | `/api/ask` | LiftWing LLM | the API key, the system prompt and the spend live server-side |
+| `/api/validate` | *(nothing — no upstream)* | the **board doctor** as a service: a board goes in, the same verdict ⬆ Import gives comes out, so an outside model can check its own work. It exists server-side because the validator is the app's own code bundled, not a second implementation |
 
 Every route is `https`, `GET`, **cached** where an answer repeats, and bounded: a **host allowlist**, a **streamed byte
 cap**, a **deadline**, a **per-client rate limit**, an **in-flight ceiling**, and in-memory caches with a size as well as a
@@ -378,8 +379,10 @@ front door.
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
 - **Bring a board from outside** — `npm run check:board -- board.json` runs the app's own validation over a board that
   came from a chat, a notebook or another tool: what will block the import, what the app will repair silently, what it
-  will quietly ignore ([docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) is the contract it checks). Serving that contract to
-  an outside model is [`/board-guide.md`](https://wikibento.toolforge.org/board-guide.md).
+  will quietly ignore ([docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) is the contract it checks). The same checker is
+  **served** as `/api/validate` (GET with the board in the URL, or POST it), so a model can call it and fix its own
+  board before handing it over; the contract it checks is
+  [`/board-guide.md`](https://wikibento.toolforge.org/board-guide.md).
 - **Build & extend** — [WIRING-BOARDS](docs/WIRING-BOARDS.md) (what travels between cards: sources, consumers,
   channels, references — the advanced guide after the GUIDE) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)
   · [BOARD-COMPOSITION](docs/BOARD-COMPOSITION.md) (every widget, wired) · [DATA-SOURCES](docs/DATA-SOURCES.md)

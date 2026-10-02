@@ -376,6 +376,22 @@ otherwise wait forever. (This was a real bug in the app's own validator until 20
 3. **Trim nothing by hand.** The app drops config keys equal to the registry default when it *writes* a board (Export,
    share, localStorage). A board does not have to be minimal to be right.
 
+**And if you can fetch a URL, check it yourself before handing it over.** The same checker is served as JSON, with no
+key and no account:
+
+\`\`\`
+GET ${LIVE}/api/validate?board=<url-encoded board JSON>      # readable, best for a small board
+GET ${LIVE}/api/validate?d=<base64url>                       # the app's Share form
+GET ${LIVE}/api/validate?z=<gzip+base64url>                  # the app's compressed Share form (smallest)
+POST ${LIVE}/api/validate   with the board as the JSON body  # for a script
+\`\`\`
+
+The reply is the verdict — \`verdict\` (\`clean\` | \`importable\` | \`unusable\`), then \`errors\` (what stops it loading),
+\`repairs\` (what the app normalises, and what it read), \`warnings\` (it loads, and probably not as you meant) and \`notes\`
+(gates: relay, experimental, precomputed-only data) — with each message naming the section of this page that states the
+rule. A \`200\` means *the diagnosis succeeded*, even when the verdict is \`unusable\`: read the body, fix it, ask again.
+That loop is the point of serving it, so prefer it to guessing.
+
 ${P}{param}} must name a declared param; ${P}{widget:id}} must name a card on the board.
 
 ---
