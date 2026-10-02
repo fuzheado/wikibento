@@ -400,8 +400,14 @@ try {
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: W, height: H } });
-  await page.setContent(`<html><body style="margin:0;background:#0f1115">${svgText}</body></html>`);
-  await page.pdf({ path: join(root, 'docs/widget-map.pdf'), landscape: true, format: 'A4', printBackground: true, margin: { top: '8mm', bottom: '8mm', left: '8mm', right: '8mm' } });
+  // The SVG is sized in CSS pixels (A4 landscape at 96 dpi); for PRINT it must be told to fill the sheet, or Chrome
+  // lays it out at 1122 px and pushes a second, empty page — measured: 2 pages until this style was added.
+  await page.setContent(`<html><head><style>
+    @page { size: A4 landscape; margin: 0 }
+    html, body { margin: 0; padding: 0 }
+    svg { display: block; width: 100vw; height: 100vh }
+  </style></head><body>${svgText}</body></html>`);
+  await page.pdf({ path: join(root, 'docs/widget-map.pdf'), landscape: true, format: 'A4', printBackground: true, margin: { top: '0', bottom: '0', left: '0', right: '0' } });
   await page.screenshot({ path: join(root, 'docs/widget-map.png'), fullPage: false });
 } finally {
   await browser.close();
