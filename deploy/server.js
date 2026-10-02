@@ -33,6 +33,10 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
+  // The door's guide is markdown, and markdown is the point: served as the default
+  // `application/octet-stream` a reader gets a file download instead of text (found live
+  // 2026-10-02, immediately after the first deploy of /board-guide.md).
+  '.md': 'text/markdown; charset=utf-8',
 };
 
 // ── Relay safety: every proxied route draws on one budget (ISSUE-133) ────────

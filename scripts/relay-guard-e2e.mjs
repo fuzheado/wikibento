@@ -81,12 +81,19 @@ const get = (path) => fetch(`${base}${path}`);
 const LADDER_MAP = '/api/staticmap?z=11&lat=52.5167&lon=13.3833&w=640&h=480&lang=en';
 
 // ── 0. the door: the three files an outside producer reads, readable cross-origin ──
-for (const path of ['/manifest.json', '/board-guide.md', '/dashboard.schema.json']) {
+const DOOR = {
+  '/manifest.json': 'application/json',
+  '/board-guide.md': 'text/markdown',      // not octet-stream: a reader must get TEXT, not a download
+  '/dashboard.schema.json': 'application/json',
+};
+for (const [path, type] of Object.entries(DOOR)) {
   const r = await get(path);
   const acao = r.headers.get('access-control-allow-origin');
+  const ct = r.headers.get('content-type') || '';
   if (r.status !== 200) bad(`door: ${path}`, `HTTP ${r.status}`);
   else if (acao !== '*') bad(`door: ${path}`, `no Access-Control-Allow-Origin (got ${acao})`);
-  else ok(`door: ${path}`, `HTTP 200, ACAO *`);
+  else if (!ct.startsWith(type)) bad(`door: ${path}`, `Content-Type ${ct} (expected ${type}…)`);
+  else ok(`door: ${path}`, `HTTP 200, ACAO *, ${ct.split(';')[0]}`);
 }
 {
   // …and the app's own files are NOT advertised that way: a dashboard bundle is not an API.
