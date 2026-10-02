@@ -20,3 +20,6 @@ export {
   encodeDashboardHash,
   encodeCompressedDashboardHash,
 } from '../src/lib/share.js';
+// `make_board_url` reports whether a link still fits a QR code, so the ceiling travels with the encoder that decides it
+// (one constant, `src/lib/qr.js`, used by the Share panel too).
+export { QR_MAX_CHARS } from '../src/lib/qr.js';

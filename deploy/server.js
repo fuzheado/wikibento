@@ -190,6 +190,25 @@ const ASK_UPSTREAM = (model) => `https://api.wikimedia.org/service/lw/inference/
 const VALIDATE_PER_MIN = Number(process.env.VALIDATE_PER_MIN) || 30;
 const VALIDATE_MAX_BYTES = Number(process.env.VALIDATE_MAX_BYTES) || 256 * 1024;
 
+// /mcp limits — the Model Context Protocol endpoint. Read-only tools over public data, so authless (Andrew,
+// 2026-10-02); a token would protect nothing, and the abuse controls are the same shape as every other route: a
+// per-client allowance, a global hourly ceiling, a body cap, and no upstream that a caller can aim.
+const MCP_PER_MIN = Number(process.env.MCP_PER_MIN) || 60;
+const MCP_MAX_BYTES = Number(process.env.MCP_MAX_BYTES) || 256 * 1024;
+// The protocol revision this server speaks. Clients send theirs; we answer with ours when we do not know it, which the
+// spec allows (the client then decides whether it can proceed).
+const MCP_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
+const MCP_VERSION = MCP_VERSIONS[0];
+// The 512 characters ChatGPT reads first (its docs are explicit that the field must be self-contained), so it says
+// what this server is and what it can do without a second call.
+const MCP_INSTRUCTIONS = [
+  'WikiBento is a dashboard for Wikimedia data (Wikipedia, Commons, Wikidata) and the Internet Archive.',
+  'Use get_board_guide first: it is the contract for writing a board, including the envelope and the full catalog.',
+  'Then validate_board on what you wrote — it returns the same verdict the app\'s Import panel will give, and the',
+  'messages name the rule. make_board_url turns a finished board into a link the reader can open (or a QR code, if it',
+  'is small enough). Boards are JSON: {params, widgets, layout}.',
+].join(' ');
+
 const ASK_ALLOWED_ORIGINS = new Set([
   'https://wikibento.toolforge.org',
   'http://localhost:5173', 'http://localhost:4173', 'http://localhost:8765',
@@ -816,6 +835,174 @@ const json = (res, status, obj, extra = {}) => {
   res.end(JSON.stringify(obj));
 };
 // One line per validation, like the ask relay: what was asked, what came back. No board content, no IP (a hash).
+/**
+ * The four tools, and the JSON-RPC dispatch around them.
+ *
+ * Deliberately READ-ONLY and four: the catalog, the contract, the checker and the link. Anything more would be a
+ * second implementation of the app (the duplication this repository keeps paying for), and anything that *wrote* would
+ * need authentication the public data does not deserve.
+ */
+const MCP_TOOLS = [
+  {
+    name: 'get_catalog',
+    description: 'The WikiBento widget catalog as JSON: every widget type with its config fields, defaults, gates and '
+      + 'what it publishes. Large (~56 KB) — use get_board_guide and its §2 for the compact view when you only need '
+      + 'field names.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'get_board_guide',
+    description: 'The contract for writing a WikiBento board: the envelope Import accepts, the catalog, the gates, the '
+      + 'shipping chains, the reference grammars and how to check the result. Call this before writing a board.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        section: {
+          type: 'string',
+          description: 'Which part: "0".."6" (or envelope, catalog, gates, chains, references, checking), or "all" '
+            + '(default, ~63 KB) — §1 (the envelope) and §2 (the catalog) are the two that matter most.',
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'validate_board',
+    description: "Check a board before handing it over. Returns the same verdict the app's Import panel will give: "
+      + 'errors that stop it loading, repairs the app makes silently, warnings, and notes (gates). It is a diagnosis — '
+      + 'a board it calls unusable still comes back as a successful result, so read the verdict.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        board: {
+          description: 'The board as JSON (an object, or the JSON text) — {version?, params?, widgets, layout}.',
+        },
+      },
+      required: ['board'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'make_board_url',
+    description: 'Turn a finished board into links a reader can open: the plain JSON, a #/d/ share URL, and a #/z/ '
+      + 'compressed URL (which is what fits in a QR code — the ceiling is 1500 characters, reported back).',
+    inputSchema: {
+      type: 'object',
+      properties: { board: { description: 'The board as JSON (an object, or the JSON text).' } },
+      required: ['board'],
+      additionalProperties: false,
+    },
+  },
+];
+
+/** A tool result, in the shape the protocol expects. `structuredContent` rides alongside the text for clients that use it. */
+const mcpResult = (text, structured) => ({
+  content: [{ type: 'text', text }],
+  ...(structured !== undefined ? { structuredContent: structured } : {}),
+});
+const mcpError = (id, code, message) => ({ jsonrpc: '2.0', id: id ?? null, error: { code, message } });
+
+async function mcpHandle(msg, req) {
+  const { id = null, method, params } = msg || {};
+  const isNotification = id === undefined || id === null;
+  if (msg?.jsonrpc !== '2.0' || typeof method !== 'string') {
+    return isNotification ? null : mcpError(id, -32600, 'invalid JSON-RPC request');
+  }
+  if (method === 'notifications/initialized' || method.startsWith('notifications/')) return null;
+
+  if (method === 'initialize') {
+    const asked = params?.protocolVersion;
+    return { jsonrpc: '2.0', id, result: {
+      protocolVersion: MCP_VERSIONS.includes(asked) ? asked : MCP_VERSION,
+      capabilities: { tools: {} },
+      serverInfo: { name: 'wikibento', version: '1.0.0' },
+      instructions: MCP_INSTRUCTIONS,
+    } };
+  }
+  if (method === 'ping') return { jsonrpc: '2.0', id, result: {} };
+  if (method === 'tools/list') {
+    return { jsonrpc: '2.0', id, result: { tools: MCP_TOOLS } };
+  }
+  if (method === 'tools/call') {
+    const name = params?.name;
+    const args = params?.arguments || {};
+    const bundle = await validatorModule();
+    if (!bundle) return mcpError(id, -32603, 'this host has no validator bundle (deploy/validator-bundle.mjs)');
+    try {
+      if (name === 'get_catalog') {
+        const manifest = await getManifest();
+        if (!manifest) return mcpError(id, -32603, 'the widget manifest is missing on this host');
+        return { jsonrpc: '2.0', id, result: mcpResult(JSON.stringify(manifest, null, 2), manifest) };
+      }
+      if (name === 'get_board_guide') {
+        const guide = await readFile(join(ROOT, 'board-guide.md'), 'utf8');
+        const want = String(args.section ?? 'all').toLowerCase();
+        if (want === 'all') return { jsonrpc: '2.0', id, result: mcpResult(guide) };
+        const NAMED = { envelope: '1', catalog: '2', gates: '3', chains: '4', references: '5', checking: '6' };
+        const n = NAMED[want] ?? want;
+        const section = guideSection(guide, n);
+        if (!section) return mcpError(id, -32602, `no such section "${args.section}" — try 0..6, envelope, catalog, gates, chains, references, checking, or all`);
+        return { jsonrpc: '2.0', id, result: mcpResult(section) };
+      }
+      if (name === 'validate_board') {
+        if (args.board === undefined) return mcpError(id, -32602, 'validate_board needs a "board" argument');
+        const report = bundle.diagnoseBoard(args.board, { allowList: await cimAllowListSet(), source: 'mcp' });
+        const lines = [
+          report.summary,
+          ...report.errors.map((e) => `✘ ${e.message}`),
+          ...report.repairs.map((e) => `⚠ repair: ${e.message}`),
+          ...report.warnings.map((e) => `⚠ ${e.message}`),
+          ...report.notes.map((e) => `ℹ ${e.message}`),
+          report.verdict === 'unusable' ? 'Fix the errors and call validate_board again.' : 'This board will import.',
+        ];
+        return { jsonrpc: '2.0', id, result: mcpResult(lines.join('\n'), report) };
+      }
+      if (name === 'make_board_url') {
+        if (args.board === undefined) return mcpError(id, -32602, 'make_board_url needs a "board" argument');
+        const text = typeof args.board === 'string' ? args.board : JSON.stringify(args.board);
+        const report = bundle.diagnoseBoard(text, { allowList: await cimAllowListSet(), source: 'mcp' });
+        if (report.verdict === 'unusable') {
+          return { jsonrpc: '2.0', id, result: mcpResult(`This board does not import yet, so a link would just show the failure:\n${report.errors.map((e) => `✘ ${e.message}`).join('\n')}`, report) };
+        }
+        const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+        const host = req.headers['x-forwarded-host'] || req.headers.host || 'wikibento.toolforge.org';
+        const base = `${proto}://${host}/`;
+        const d = bundle.encodeDashboardHash(text);
+        const z = await bundle.encodeCompressedDashboardHash(text);
+        const structured = { json: text, shareUrl: `${base}#/d/${d}`, compressedShareUrl: `${base}#/z/${z}`, qrMaxChars: bundle.QR_MAX_CHARS, qrFits: `${base}#/z/${z}`.length <= bundle.QR_MAX_CHARS };
+        const len = structured.compressedShareUrl.length;
+        return { jsonrpc: '2.0', id, result: mcpResult(
+          `Share link (#/d/): ${structured.shareUrl}\n`
+          + `Compressed (#/z/, what a QR carries): ${structured.compressedShareUrl}\n`
+          + `QR: ${structured.qrFits ? 'fits' : `too long — the ceiling is ${structured.qrMaxChars} characters and this link is ${len}`}\n`
+          + 'Paste the JSON into ⬆ Import to check it in the app.', structured) };
+      }
+      return mcpError(id, -32602, `unknown tool "${name}" — available: ${MCP_TOOLS.map((t) => t.name).join(', ')}`);
+    } catch (e) {
+      return mcpError(id, -32603, `tool failed: ${(e && e.message) || e}`);
+    }
+  }
+  return mcpError(id, -32601, `method not found: ${method}`);
+}
+
+/**
+ * One section of the served guide, by its number — `get_board_guide`'s `section` argument.
+ *
+ * Index arithmetic rather than a regex with lookaheads: the guide is a generated file with `## N.` sections and `#`
+ * appendices, and "up to the next heading of either rank, or the end" is easier to read as a slice than as a pattern.
+ */
+function guideSection(guide, n) {
+  const at = guide.indexOf(`\n## ${n}. `);
+  if (at === -1) return null;
+  const rest = guide.slice(at + 1);
+  const next = rest.slice(1).search(/\n## |\n# /);
+  return (next === -1 ? rest : rest.slice(0, next + 1)).trim();
+}
+
+const logMcp = (ip, method, outcome) => console.log(JSON.stringify({
+  ev: 'mcp', ts: new Date().toISOString(), ip: sha(ip).slice(0, 12), method: method || null, outcome,
+}));
+
 const logValidate = (ip, report) => console.log(JSON.stringify({
   ev: 'validate', ts: new Date().toISOString(), ip: sha(ip).slice(0, 12),
   verdict: report.verdict, widgets: report.counts?.widgets ?? 0,
@@ -1311,6 +1498,38 @@ const server = createServer(async (req, res) => {
       askCacheSet(cacheKey, payload);
       logAsk(ip, prompt, payload.options.length, Date.now() - t0, false);
       return json(res, 200, { ...payload, cached: false });
+    }
+
+    // ── /mcp: the Model Context Protocol endpoint (Slice 3 of the Ask door) ───────────────────────────────────
+    // A JSON-RPC endpoint over Streamable HTTP, STATELESS: one POST in, one application/json response out. No session
+    // id, no SSE — which is also what makes it safe to run here, since whether Toolforge's ingress buffers a
+    // long-lived stream is not answerable from this repository. GET and DELETE are answered 405: a stateless server is
+    // allowed to have no stream and no session to terminate (the spec says so explicitly).
+    //
+    // Authless by decision (Andrew, 2026-10-02): the four tools read public data and validate JSON. A token would
+    // protect nothing and would stop a reader connecting Claude in one step. The bounds are the relay's, and the
+    // Origin check is the spec's requirement — it is about DNS rebinding, not authentication.
+    if (url.pathname === '/mcp') {
+      const origin = req.headers.origin;
+      if (origin && !ASK_ALLOWED_ORIGINS.has(origin)) {
+        return json(res, 403, { error: 'origin not allowed' });
+      }
+      if (req.method !== 'POST') {
+        // 405 is the spec's own answer for a stateless server: no GET stream, no DELETE session.
+        return json(res, 405, { error: 'this MCP server is stateless — POST JSON-RPC to /mcp', allow: 'POST' }, { Allow: 'POST' });
+      }
+      const ip = ipOf(req);
+      const wait = rlLimit(ip, MCP_PER_MIN, 600, 20000);
+      if (wait) return json(res, 429, { error: 'too many MCP requests', retryAfterSeconds: wait }, { 'Retry-After': String(wait) });
+      let body;
+      try { body = await readBody(req, MCP_MAX_BYTES); }
+      catch { return json(res, 413, { error: `body too large (max ${MCP_MAX_BYTES} bytes)` }); }
+      let msg;
+      try { msg = JSON.parse(body); } catch { return json(res, 400, { error: 'the body must be JSON-RPC 2.0' }); }
+      const answer = await mcpHandle(msg, req);
+      if (answer === null) { res.writeHead(202, { 'Cache-Control': 'no-store' }); res.end(); return; }   // a notification
+      logMcp(ip, msg?.method, answer.error ? 'error' : 'ok');
+      return json(res, 200, answer);
     }
 
     // ── /api/validate: the board doctor as a service (Slice 2 of the Ask door) ────────────────────────────────

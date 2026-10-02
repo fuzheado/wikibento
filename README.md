@@ -264,6 +264,7 @@ npm run smoke          # grid geometry + panel reachability (every ⚙/ⓘ actio
 npm run smoke:boards   # a board pasted through ⬆ Import draws — one card per widget, no waiting state
 npm run test:browsers  # the same board in Chromium + Firefox + WebKit
 npm run check:board -- board.json   # what the app will say about a board from outside (or: pbpaste | npm run check:board)
+npm run smoke:mcp      # the MCP endpoint, spoken to as a client (handshake, four tools, every refusal)
 npm run lint           # oxlint
 ```
 
@@ -325,6 +326,7 @@ that way, and those go through **our own Toolforge server**; the full inventory,
 | `/api/petscan` | PetScan | quick-intersection ignores `max` and can return 39 MB — the byte cap and file budget live on the server |
 | `/api/wayback-gallery` | `web.archive.org` CDX | no CORS on the CDX side |
 | `/api/ask` | LiftWing LLM | the API key, the system prompt and the spend live server-side |
+| `/mcp` | *(nothing — no upstream)* | the **Model Context Protocol** endpoint: four read-only tools (`get_catalog`, `get_board_guide`, `validate_board`, `make_board_url`) so an agent can read the board contract, write a board, check it and hand back a link without a human carrying JSON between windows — [docs/MCP.md](docs/MCP.md) |
 | `/api/validate` | *(nothing — no upstream)* | the **board doctor** as a service: a board goes in, the same verdict ⬆ Import gives comes out, so an outside model can check its own work. It exists server-side because the validator is the app's own code bundled, not a second implementation |
 
 Every route is `https`, `GET`, **cached** where an answer repeats, and bounded: a **host allowlist**, a **streamed byte
@@ -389,7 +391,10 @@ front door.
   one page, grouped by what you must supply — with the gates and the wiring; the picture is [widget-map.pdf](docs/widget-map.pdf)) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
-- **Bring a board from outside** — `npm run check:board -- board.json` runs the app's own validation over a board that
+- **Let an agent do it** — the same four capabilities are an **MCP server** at `/mcp` (`get_catalog`,
+  `get_board_guide`, `validate_board`, `make_board_url`), so Claude or ChatGPT can read the contract, write a board,
+  check it and return a link — [docs/MCP.md](docs/MCP.md). And locally: `npm run check:board -- board.json` runs the
+  app's own validation over a board that
   came from a chat, a notebook or another tool: what will block the import, what the app will repair silently, what it
   will quietly ignore ([docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) is the contract it checks). The same checker is
   **served** as `/api/validate` (GET with the board in the URL, or POST it), so a model can call it and fix its own

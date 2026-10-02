@@ -35,6 +35,23 @@ Every route below is in `deploy/server.js`. "Caps" are byte ceilings, "TTL" is h
 
 **Everything is `https` and `GET`**, and **nothing writes to disk** — the caches are in memory, bounded, and expire.
 
+## Not relays, but server-side routes: `/api/validate` and `/mcp`
+
+**Neither reaches anything.** No upstream, no key, no model — which is why they are not in the inventory above and why
+they need no host allowlist. Both run the app's own code (bundled by `npm run build:validator`), so neither can disagree
+with the ⬆ Import panel.
+
+- **`/api/validate`** — the board doctor, for a chat that can fetch a URL. Bounds: a 256 KB body cap
+  (`VALIDATE_MAX_BYTES`), a per-client rate limit (`VALIDATE_PER_MIN`, default 30/min) with a global hourly ceiling,
+  `GET`/`POST`/`OPTIONS`, and `Access-Control-Allow-Origin: *` because the callers are other origins by design.
+- **`/mcp`** — the Model Context Protocol endpoint ([MCP.md](MCP.md)): JSON-RPC 2.0 over Streamable HTTP, **stateless**
+  (no session, no SSE) and **authless**, because its four tools are read-only over public data; the same shape of bounds
+  (`MCP_PER_MIN` 60/min, `MCP_MAX_BYTES` 256 KB) plus the `Origin` validation the spec requires. `GET` and `DELETE`
+  answer 405 — there is no stream and no session to end.
+
+`scripts/relay-guard-e2e.mjs` asserts `/api/validate`; `scripts/mcp-e2e.mjs` speaks the protocol at `/mcp` — 16 checks,
+including the four refusals a client will hit.
+
 ## The rules every relay follows
 
 Set once, at the top of `deploy/server.js`, and drawn on by all seven routes:
