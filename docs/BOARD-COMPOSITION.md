@@ -4,7 +4,7 @@
 
 WikiBento is a drag-and-drop dashboard for Wikimedia — a single reactive layout for keeping an eye on content and interacting with it. Wikimedia's content and activity live across many places: pageview and stats APIs, wiki pages, recent changes, Commons. WikiBento brings what you care about into one place.
 
-This guide is the **complete reference for wiring widgets into boards**. It covers all 38 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
+This guide is the **complete reference for wiring widgets into boards**. It covers all 42 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
 
 Think of it as the assembly manual for WikiBento's Lego set: each widget is a brick, and this guide tells you what every brick looks like, how they snap together, and what you can build.
 
@@ -28,7 +28,7 @@ Think of it as the assembly manual for WikiBento's Lego set: each widget is a br
 
 ## Table of Contents
 
-1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 41 widgets with full capabilities
+1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 42 types with full capabilities
 2. [Part 2 — Communication Patterns](#part-2--communication-patterns) — params, dataflow, source picker, interpolation
 3. [Part 3 — Board Composition Patterns](#part-3--board-composition-patterns) — layout, sizing, responsive, kiosk/lean
 4. [Part 4 — LLM Prompt Guide](#part-4--llm-prompt-guide) — how to use this guide to generate board configs
@@ -244,7 +244,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `FileTrafficCard` (interactive SVG chart with −/+ zoom)
 
-### 1.3 Files & Media (4 widgets)
+### 1.3 Files & Media (5 widgets)
 
 #### `fileUsage` — File Usage by Wiki
 - **dataSource:** Commons API `globalusage` + `imageinfo`
@@ -297,6 +297,19 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `MediaPlayerCard`
 
+#### `documentReader` — Document Reader
+- **dataSource:** Commons API `imageinfo` — page count plus a page-N thumbnail template, one call for a 329-page book
+- **configFields:**
+  - `file` (text — `File:Name.pdf`, or `Name.pdf`)
+  - `project` (project — defaults to `commons.wikimedia`)
+  - `spread` (select: `auto` \| `on` \| `off`) — facing pages
+  - `textPanel` (select: `on` \| `off`) — the Wikisource transcription beside the page
+- **defaults:** `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
+- **timeScope:** `point`
+- **emit:** the current page's Commons file URL (`outputs.kind: 'value'`)
+- **renderer:** `DocumentReaderCard` (the paged viewer the IA books share)
+- **⚠️ LLM note:** a document page render exists only at **certain widths** (120/250/330/500/960/1280). Any other width answers `400` with an HTML page, which the browser refuses to give an `<img>` at all — so never hand-write a width (`docs/DOCUMENT-VIEWER.md`)
+
 ### 1.4 Rankings & Platforms (4 widgets)
 
 #### `linkcount` — External Link Count
@@ -341,7 +354,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `RankingCard` (with optional `TopPagesExpandedCard` when `showExpanded`)
 
-### 1.5 Content & Embeds (7 widgets)
+### 1.5 Content & Embeds (8 widgets)
 
 #### `boardControls` — Board Controls (params)
 - **dataSource:** static (writes board params)
@@ -428,6 +441,22 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `WikiPageCard`
 
+#### `wikiBox` — Wikipedia Box
+- **dataSource:** Action API `parse` — a `{{Template}}` transclusion (rendered HTML + TemplateStyles, one call), or a page by title, whole or one section
+- **configFields:**
+  - `source` (select: `Template` \| `Page`)
+  - `box` (text — the transcluded template, e.g. `{{In the news}}`)
+  - `page` (text — the page title, for `source: Page`)
+  - `section` (text — blank for the lead, a number, a heading name, or all)
+  - `project` (project)
+  - `linkAction` (select: `new tab` \| `send to the board` \| `both`)
+  - `date` (text — the template's date parameter)
+- **defaults:** `source`, `box`, `page`, `section`, `project`, `linkAction`, `date`, `refreshSeconds`
+- **timeScope:** `point`
+- **emit:** the links it rendered, as `lines` — `outputs: { items: 'lines', selection: 'value' }` with `primary: items`, so the bare id means the link list and `#selection` is the clicked one
+- **renderer:** `WikiBoxCard`
+- **notes:** a link **inside** the box is a pick target (ISSUE-122/123) — with the brush armed, a click places a card for what the link points at, and a `File:` link is a file on any Wikimedia wiki
+
 ### 1.6 Queries & Power (1 widget)
 
 #### `sparql` — SPARQL Query
@@ -491,7 +520,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** `data.value` — passes the value through (number, lines, or JSON).
 - **renderer:** `EchoCard`
 
-### 1.8 Web & History (2 widgets)
+### 1.8 Web & History (3 widgets)
 
 #### `iaItem` — IA Item Stats
 - **dataSource:** `archive.org/metadata/{id}` + `be-api.us.archive.org/views/v1/short/{id}` (both CORS `*`, no key; verified 2026-09-10)
@@ -502,6 +531,17 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** the item's canonical URL (`outputs.kind: 'value'`) — the same link the card title opens
 - **renderer:** `CimSnapshotCard` (shared with the CIM snapshot widgets: image + stat tiles)
 - **notes:** views are **IA engagement**, not Wikimedia pageviews — one view per item/user/IP/day, refreshed daily; `have_data: false` means "no data yet" and a views failure degrades to dashes rather than blanking the card (metadata is the payload). Thumbnails come from `archive.org/services/img/{id}` — a plain `<img src>`, so no CORS header is needed
+
+#### `iaBook` — IA Book
+- **dataSource:** `iiif.archive.org` — the Presentation v3 manifest, the Image API v3 for page images, and IIIF Content Search for search-inside (all CORS `*`, no key)
+- **configFields:**
+  - `identifier` (text — the last part of an `archive.org/details/…` URL)
+  - `spread` (select: `auto` \| `on` \| `off`) — facing pages, with the leaf order reversed for right-to-left scans
+- **defaults:** `identifier`, `spread`, `refreshSeconds`
+- **timeScope:** `point`
+- **emit:** the current page's archive.org URL (`outputs.kind: 'value'`)
+- **renderer:** `PagedViewer` (shared with the Commons Document Reader)
+- **notes:** the page count comes from the **IIIF manifest**, not from the item metadata (the two disagree, and the manifest is the one that turns; fixed 2026-09-15). A search hit names its page and boxes the matched word on it
 
 #### `waybackGallery` — Wayback Snapshot Gallery ⚠️ alpha
 - **dataSource:** Wayback Machine availability + CDX/timemap (server batch)
@@ -773,7 +813,7 @@ When wiring dataflow chains, reference the emitter's `id`:
 
 ## Sources
 
-- WikiBento manifest: `public/manifest.json` (38 widget types)
+- WikiBento manifest: `public/manifest.json` (42 widget types)
 - WikiBento JSON format: `docs/JSON-FORMAT.md`
 - WikiBento widget development: `docs/WIDGET-DEVELOPMENT.md`
 - WikiBento guide: `docs/GUIDE.md`

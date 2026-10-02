@@ -7,7 +7,7 @@ design rationale: [docs/ISSUES.md](docs/ISSUES.md) · feature docs: [README.md](
 
 WikiBento is a dark-themed, drag-and-drop widget dashboard for Wikimedia —
 "insights and action". A single-page React app (React 19, Vite 8,
-react-grid-layout) with **no backend in the data path**: every live widget fetches
+react-grid-layout) whose **data path is client-side**: every live widget fetches
 directly from CORS-enabled APIs (Wikimedia's RESTBase pageviews, MediaWiki Action
 API, Commons, Wikistats, Commons Impact Metrics, WDQS/QLever, MinT — and the Internet
 Archive's metadata, IIIF and Wayback APIs), beside a **small bounded relay** for the
@@ -83,6 +83,27 @@ Gallery).
 | `npm run smoke:map` | the Map card in a real browser, and what draws on it: the header names the place the fetch resolved (`Q64` → "Berlin"), a failing relay shows **its own reason** (mocked 502) rather than a broken image, **Try again** recovers, the pin covers the coordinate the map was centred on, a **list of points** draws one marker each — inside the card, framed rather than lost in a world view, counted on the card, with no centre pin — and a **SPARQL result with coordinates** draws the same kind of map from a live query, a list can draw an **area**, geometry **travelled from another map** (its `source` field), and a **pasted GeoJSON path** drew with its date (26 checks); on a host without the relay it checks the honest message instead |
 | `npm run check:map-landmarks` | the map geometry against real rendered maps (ISSUE-132), in three phases (the third is a **live Wikidata geoshape**, Museum Island, drawn and then classified inside/outside: land in the island, the Spree just outside, with a mis-scaled control): **image space** — five maps and eleven Wikidata-anchored landmarks across both hemispheres (including a Fiji/Samoa pair **across the date line**, which is what a missing longitude wrap looks like), each predicted pixel classified water/land — and **card space** — the same landmarks on cards of a deliberately different aspect (wide/tall crop, letterbox), where the browser's own `object-fit` + `preserveAspectRatio` placement must match `overlayForPlaces` to the pixel and the map underneath must still be the landmark. Both phases carry a control (a mirrored/doubled projection; a naive stretch) and fail the run if nothing notices |
 | `node scripts/docs-facts.mjs --live` | the bundle HANDOFF claims is deployed is what production serves |
+
+### Keeping the docs true — what is gated, and what is still human work
+
+The counts are derived, never hand-maintained, and **every markdown file is scanned** (72 current-state sources, since
+2026-10-02 — it was `README.md` + `HANDOFF.md` + the boards before, which is how `docs/BOARD-COMPOSITION.md` kept
+"38 widget types" in three places and `docs/DEMO-IDEAS.md` kept 37). Five additional mechanisms, in the order they
+catch things:
+
+| mechanism | what it holds | how to satisfy it |
+|---|---|---|
+| **count rules** over every current-state doc + every `public/*.json` | `N widget types`, `all N widgets`, `N catalog widgets`, `N measurements`, `renders N cards` … must equal the registry (42 types / 43 catalog widgets) | fix the number, or **state it by reference** ("every type", "the catalog") — the better fix |
+| **dated records are printed, not ignored** | `ISSUES` · `DEPLOYMENTS` · `SCREENSHOTS` · `VERIFIED-WORKING` · `WHY-WIKIBENTO` · the bug report · `AGENT-MEMO` may keep the number that was true then; every mismatching claim in them is **listed** in the gate's output | nothing — but read the list; a *stale claim* wearing a record's clothes is what a human notices and a regex cannot |
+| **completeness claims** | a file that says "complete reference"/"all N types" must name every registered id, and each numbered section must list as many entries as its heading claims | add the missing entries (that is how `wikiBox`, `iaBook` and `documentReader` were found missing from `BOARD-COMPOSITION.md`) |
+| **retired names · retired claims** | names the registry no longer uses, and *sentences* that became false. The claims list is scoped: a global sweep ("no backend, no login, no proxy") is banned everywhere; the bare phrase is banned only in the four front-door files, because in `MODULARITY-AND-DATAFLOW.md` "no backend" is the design's own vocabulary | rewrite the sentence to say what is true, and add the finding to the list |
+| **generated artefacts** | `public/manifest.json`, `public/board-guide.md`, `docs/widget-map.*` are built from the registry + the docs, and the gate runs their `--check` | `npm run guide:board` · `npm run map:widgets` · regenerate after editing a source doc |
+
+Two habits make the rest cheap: **state volatile facts by reference** (counts, hashes, totals), and **spell out numbers
+under ten** ("all seven widgets") — which is house style anyway and keeps a dated, correct sentence from looking like a
+current count claim. What no gate can do is notice a sentence that is *wrong* rather than inconsistent: the README's
+"no proxy" and the guide's missing introduction were both found by a human reading the document. Read the front door
+after a release; the gate will tell you what else moved.
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`
 (the showcase) are both **derived artifacts** kept honest by tests, so they

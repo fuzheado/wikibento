@@ -2,7 +2,7 @@
 
 ## Overview
 
-WikiBento is a single-page React app whose **data path has no backend of ours**: every live widget fetches from
+WikiBento is a single-page React app whose **data path is client-side**: every live widget fetches from
 CORS-enabled APIs in the browser (Wikimedia's REST and Action APIs, Commons, Wikidata, Wikistats, the Internet
 Archive) and all state lives in the browser. Beside it sits a **small, bounded relay** (`deploy/server.js`) for the
 jobs a browser cannot do — a service that refuses browser-shaped requests, sources that send no CORS header, a
@@ -138,7 +138,7 @@ export/reset ──────────────────────�
 
 ## Key Design Decisions
 
-1. **No proxy.** All five endpoints already send CORS headers, so the app runs from any
+1. **No relay needed.** All five endpoints already send CORS headers, so the app runs from any
    static host. (The `origin=*` parameter on MediaWiki Action API calls is what unlocks
    browser access; RESTBase and Wikistats allow CORS natively.)
 2. **Registry over inheritance.** Widgets are data, not component subclasses — this is

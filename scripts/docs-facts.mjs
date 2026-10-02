@@ -105,17 +105,42 @@ const INTERNAL_DOCS = {
 const DOCS = ['README.md', 'HANDOFF.md'];
 const prose = Object.fromEntries(DOCS.map((d) => [d, read(d)]));
 
+/**
+ * The records that are allowed to hold the number they held at the time.
+ *
+ * `docs/ISSUES.md`, `docs/DEPLOYMENTS.md` and `docs/VERIFIED-WORKING.md` are logs — rewriting them to today's counts
+ * would make the record lie about what was true then. `docs/WHY-WIKIBENTO.md` is a ledger of measurements, and
+ * `docs/SCREENSHOTS.md` a dated gallery. The volatile-facts rules exempt these; so does the count check — but it
+ * **prints** their historical numbers rather than ignoring them (see below), because "exempt" was how three files
+ * nobody re-read kept a count that had been wrong for weeks.
+ */
+const DATED_RECORDS = new Set([
+  'docs/ISSUES.md', 'docs/DEPLOYMENTS.md', 'docs/SCREENSHOTS.md', 'docs/VERIFIED-WORKING.md',
+  'docs/BUG-REPORT-ios-safari-fetch.md', 'docs/WHY-WIKIBENTO.md', 'docs/AGENT-MEMO.md',
+]);
+
 // Board configs carry user-visible prose too (markdown cards, board titles) and
 // drift the same way: the demo hub's markdown claimed "37 widget types" while
 // the registry held 38, and nothing checked it because it lives in JSON. Count
 // claims are verified there as well; the volatile-facts rules are not (a board
 // may legitimately embed a hash in a QR payload or a URL).
+// COUNTED: every current-state markdown file, plus the boards' own prose (`public/*.json` carry markdown cards and
+// titles, and drift the same way — the demo hub once claimed "37 widget types" while the registry held 38).
+//
+// This list was `README.md` + `HANDOFF.md` + the boards until 2026-10-02, and the hole is the reason this file grew a
+// section: `docs/BOARD-COMPOSITION.md` claimed "38 widget types" in three places and `docs/WHY-WIKIBENTO.md` said "40
+// catalog …" while the registry held 42 — nothing ever read those files. Coverage, not rules, was the defect.
+const ALL_MD = [
+  'README.md', 'HANDOFF.md', 'AGENTS.md',
+  ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`),
+];
 const COUNT_SOURCES = [
-  ...Object.entries(prose),
+  ...ALL_MD.filter((f) => !DATED_RECORDS.has(f)).map((f) => [f, read(f)]),
   ...readdirSync(join(ROOT, 'public'))
     .filter((f) => f.endsWith('.json'))
     .map((f) => [`public/${f}`, read(`public/${f}`)]),
 ];
+const DATED_SOURCES = ALL_MD.filter((f) => DATED_RECORDS.has(f)).map((f) => [f, read(f)]);
 
 console.log('\ndocs-facts constitution — docs may not contradict the code\n');
 console.log(
@@ -158,6 +183,36 @@ const COUNT_RULES = [
     expect: () => [PANEL_MEASUREMENTS],
     why: `${PANEL_MEASUREMENTS} panel measurements`,
   },
+  // The ways the numbers above actually appear in this repository's prose — each one added after a real miss:
+  {
+    re: /all (\d+) types\b/g,
+    expect: () => [REGISTRY, CATALOG_TYPES],
+    why: `registry/catalog types (${REGISTRY}/${CATALOG_TYPES})`,
+  },
+  {
+    re: /(\d+)\s+catalog widgets?\b/g,
+    expect: () => [CATALOG_WIDGETS],
+    why: `${CATALOG_WIDGETS} catalog widgets`,
+  },
+  {
+    re: /(?:registry|catalog)\s+(?:now\s+)?(?:of|has|holds|with)\s+(\d+)\b/g,
+    expect: () => [REGISTRY, CATALOG_TYPES, CATALOG_WIDGETS],
+    why: `registry/catalog counts (${REGISTRY}/${CATALOG_TYPES}/${CATALOG_WIDGETS})`,
+  },
+  {
+    // "N catalog widgets/types" — NOT a bare "N catalog", which matched "48/48 catalog-only replies" (an audit
+    // measurement) the first time this rule ran over the whole docs tree.
+    re: /(\d+)\s+catalog\s+(?:widgets?|types?|cards?)\b/g,
+    expect: () => [CATALOG_TYPES, CATALOG_WIDGETS],
+    why: `catalog counts (${CATALOG_TYPES} types / ${CATALOG_WIDGETS} widgets)`,
+  },
+  {
+    // "…the showcase catalog renders N cards" — the CATALOG context is required. Without it this matched a board-level
+    // assertion ("renders 4 cards" in a dated verification record), which is a different thing entirely.
+    re: /(?:catalog|showcase)[^.\n]{0,60}?renders?\s+\*{0,2}(\d+)\*{0,2}\s+(?:cards|widgets)\b/gi,
+    expect: () => [CATALOG_WIDGETS],
+    why: `${CATALOG_WIDGETS} catalog widgets`,
+  },
   {
     re: /× (\d+) widgets at w3 h3/g,
     expect: () => [CATALOG_WIDGETS],
@@ -171,14 +226,32 @@ check('claimed widget counts match the registry and catalog', () => {
     for (const rule of COUNT_RULES) {
       for (const m of text.matchAll(rule.re)) {
         const claimed = Number(m[1]);
-        if (!rule.expect().includes(claimed)) {
-          bad.push(`${doc} claims "${m[0]}" but truth is ${rule.why}`);
-        }
+        if (!rule.expect().includes(claimed)) bad.push(`${doc} claims "${m[0]}" but truth is ${rule.why}`);
       }
     }
   }
-  if (bad.length) fail(bad.join('\n    '));
-  return `${COUNT_SOURCES.length} sources (docs + board configs) agree with ${REGISTRY} types / ${CATALOG_WIDGETS} catalog widgets`;
+  if (bad.length) {
+    fail(bad.join('\n    ')
+      + `\n    (a DATED record is allowed its own number; anything in ${ALL_MD.length - DATED_RECORDS.size} current-state`
+      + ' files must agree with the registry)');
+  }
+  // History is PRINTED, not silently exempt. Every number in a dated record that no longer matches today's — so a
+  // reader can see which files were last read when, and a stale *claim* (rather than a stale record) is likelier to be
+  // spotted by a human than by a regex.
+  const historical = [];
+  for (const [doc, text] of DATED_SOURCES) {
+    for (const rule of COUNT_RULES) {
+      for (const m of text.matchAll(rule.re)) {
+        if (!rule.expect().includes(Number(m[1]))) historical.push(`${doc}: "${m[0]}"`);
+      }
+    }
+  }
+  if (historical.length) {
+    console.log(`  ℹ ${historical.length} historical count claim(s) in dated records (allowed — the record is what was true then):`);
+    for (const h of historical) console.log(`      ${h}`);
+  }
+  return `${COUNT_SOURCES.length} current-state sources agree with ${REGISTRY} types / ${CATALOG_WIDGETS} catalog widgets`
+    + ` (${historical.length} historical claim(s) in ${DATED_SOURCES.length} dated records, listed above)`;
 });
 
 // ── 2. the prose static-widget list names every static widget ────────────────
@@ -218,7 +291,13 @@ check("the glam demo's institution count matches its collection param", () => {
   }
   const WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
   const bad = [];
-  for (const [doc, text] of COUNT_SOURCES) {
+  // Scoped to the README, HANDOFF and the boards — NOT to every doc: "two institutions" is ordinary English, and in
+  // `docs/ASK-ARCHITECTURE.md` it is a *quoted user request* ("…between two institutions and see their Commons
+  // stats"), while `docs/LIFELINE-WIDGET.md` uses it as a general example. A rule that reads English prose has to
+  // know which files are claiming something about the demo.
+  const INSTITUTION_SOURCES = [...Object.entries(prose),
+    ...readdirSync(join(ROOT, 'public')).filter((f) => f.endsWith('.json')).map((f) => [`public/${f}`, read(`public/${f}`)])];
+  for (const [doc, text] of INSTITUTION_SOURCES) {
     for (const m of text.matchAll(/([A-Za-z]+)\s+(?:CIM-registered\s+)?institutions\b/gi)) {
       const n = WORDS[m[1].toLowerCase()];
       if (n === undefined) continue; // e.g. the literal placeholder "N institutions"
@@ -313,16 +392,69 @@ check('every ISSUE heading has a unique number', () => {
 /** Names a widget used to have. Kept so that a rename can be *finished* rather than half-done — the drift that made
  *  this necessary: "File Usage Map" (there is no map; it is a per-wiki ranking) and "Internet Archive Item" in the
  *  README versus "IA Item" in the registry. A fossil name is a widget a reader cannot look up. */
+/**
+ * Claims this project has retired — the mechanism of the retired NAMES below, applied to sentences.
+ *
+ * The first version of this list banned the *phrase* "no backend" / "no proxy". It fired on **15 sentences across 12
+ * engineering docs**, and it was wrong about every one of them: `MODULARITY-AND-DATAFLOW.md` has a section literally
+ * titled *"no backend" is the ceiling*, `PROXIES.md` states the rule for adding a relay ("no proxy, no quota of ours"),
+ * `TAPESTRY-EVALUATION.md` and `TOOL-LANDSCAPE.md` are describing *other* software. In this repository "no backend" is
+ * the design's own vocabulary for a scope decision, and a gate that bans a vocabulary bans thought.
+ *
+ * What was actually broken (2026-10-02) was narrower and specific: **a sweeping claim in a front-door document** — the
+ * README's "no backend, no login, no proxy" for the whole app, contradicted eight screens below by its own
+ * Proxied-services table. So the rule is now the *defect*: a global sweep anywhere, or the bare phrase in a document a
+ * reader takes as the whole story.
+ */
+const RETIRED_CLAIMS = [
+  {
+    // The sweep: two of the three claims in one sentence. This is the shape the README had.
+    pattern: /no backend[^.\n]{0,30}no (?:proxy|login)|no (?:proxy|login)[^.\n]{0,30}no backend/gi,
+    now: 'client-driven, with a server side only where a browser cannot go — and point at docs/PROXIES.md',
+    scope: 'everywhere',
+  },
+  {
+    pattern: /\bno proxy\b|\bno backend\b|\bbackend-free\b/gi,
+    now: 'say what is true for the part you mean ("no relay needed for these five endpoints", "the data path is '
+      + 'client-side") — a reader of the front door takes the flat version as the whole story',
+    scope: 'front-door',   // README · HANDOFF · AGENTS · GUIDE — see FRONT_DOOR below
+  },
+];
+
 const RETIRED_WIDGET_NAMES = [
   { pattern: /File Usage Map/g, now: 'File Usage by Wiki' },
   { pattern: /Internet Archive Item/g, now: 'IA Item Stats' },
   { pattern: /\bIA Item\b(?! Stats| Views)/g, now: 'IA Item Stats' },
 ];
 /** Dated records keep their wording on purpose: they state what was true at the time. Everything else uses today's. */
-const DATED_RECORDS = new Set([
-  'docs/ISSUES.md', 'docs/DEPLOYMENTS.md', 'docs/SCREENSHOTS.md', 'docs/VERIFIED-WORKING.md',
-  'docs/BUG-REPORT-ios-safari-fetch.md', 'docs/WHY-WIKIBENTO.md', 'docs/AGENT-MEMO.md',
-]);
+
+check('a doc that claims to cover every widget type names every one', () => {
+  // `docs/BOARD-COMPOSITION.md` opens with "the **complete reference for wiring widgets into boards**. It covers all 38
+  // widget types" — and it named 39 of 42 for an unknown number of weeks (found 2026-10-02: `wikiBox`, `iaBook` and
+  // `documentReader` were missing, and the same file is where the stale "38" surfaced). The count rules catch a wrong
+  // NUMBER; this catches a wrong CLAIM, which is the half a reader trusts.
+  const CLAIMANTS = [
+    ['docs/BOARD-COMPOSITION.md', /complete reference/i, 'the complete wiring reference'],
+    ['docs/WIDGET-CATALOG.md', /(?:every|all)\s+\w+\s+types/i, 'the catalog in prose'],
+  ];
+  const problems = [];
+  for (const [file, claim] of CLAIMANTS) {
+    const text = read(file);
+    if (!claim.test(text)) continue;      // it stopped claiming completeness — nothing to hold it to
+    const missing = registry.filter((w) => !text.includes(w.id)).map((w) => w.id);
+    if (missing.length) problems.push(`${file} calls itself complete but never names: ${missing.join(', ')}`);
+    // …and each numbered section's own count must match the entries under it (a heading that says
+    // "(1 widget)" over five of them is the same lie in miniature).
+    for (const m of text.matchAll(/^#{2,3} \d+\.\d+ ([^\n]*?)\((\d+) widgets?[^)]*\)\n([\s\S]*?)(?=^#{2,3} |\Z)/gm)) {
+      const listed = [...m[3].matchAll(/^#### `([A-Za-z0-9]+)`/gm)].length;
+      if (listed && Number(m[2]) !== listed) {
+        problems.push(`${file}: "${m[1].trim()}" claims ${m[2]} widget(s) but lists ${listed}`);
+      }
+    }
+  }
+  if (problems.length) fail(problems.join('\n    '));
+  return `${CLAIMANTS.length} completeness claims held to ${REGISTRY} types`;
+});
 
 check('every widget is called the same thing in the catalog as in the registry', () => {
   // The registry's `name` is what the ⚙ panel and the Add-widget menu show, so the catalog has to agree — and the
@@ -368,6 +500,27 @@ check('the widget map places every registered type (docs/WIDGET-MAP.md is genera
     fail(`docs/WIDGET-MAP.md does not mention: ${missing.join(', ')} — run \`npm run map:widgets\` (it regenerates the page and the picture from the manifest)`);
   }
   return `${REGISTRY} types, every one placed`;
+});
+
+check('retired CLAIMS are gone from the current-state docs', () => {
+  // Two scopes, because the same words mean different things in different documents: a *global sweep* is wrong
+  // anywhere, while the bare phrase is only a defect in a front-door file (see RETIRED_CLAIMS).
+  const FRONT_DOOR = new Set(['README.md', 'HANDOFF.md', 'AGENTS.md', 'docs/GUIDE.md']);
+  const files = ['README.md', 'HANDOFF.md', 'AGENTS.md',
+    ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)]
+    .filter((f) => !DATED_RECORDS.has(f));
+  const hits = [];
+  for (const f of files) {
+    const text = read(f);
+    for (const { pattern, now, scope } of RETIRED_CLAIMS) {
+      if (scope === 'front-door' && !FRONT_DOOR.has(f)) continue;
+      const found = text.match(pattern);
+      if (found) hits.push(`${f}: ${found.length}× "${found[0]}" — say instead: ${now}`);
+    }
+  }
+  if (hits.length) fail(hits.join('\n    '));
+  const front = [...FRONT_DOOR].length;
+  return `${files.length} current-state files (${front} front-door) carry no retired claim`;
 });
 
 check('retired widget names are gone from the current-state docs', () => {

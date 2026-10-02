@@ -1,6 +1,6 @@
 # Roadmap — Next Steps
 
-Status as of the 2026-08-12 audit: **all 7 widgets verified live**, build clean,
+Status as of the 2026-08-12 audit: **all seven widgets verified live**, build clean,
 app fully functional as a v1. This document orders what comes next.
 
 ## Strategy — Power Widgets → Starter Packs → Spike Alert (2026-08-12 brainstorm)
@@ -50,7 +50,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 
 | Idea | Effort | Impact | Notes |
 |---|---|---|---|
-| ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all 7 widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
+| ~~**Import dashboard.json**~~ | S | High | **Done 2026-08-12** — ⬆ Import panel (file + paste) with `validateDashboard()`: precise per-field errors, non-fatal warnings, atomic apply. Also added ✨ Example dashboard (all seven widget types) and the **JSON format spec** (docs/JSON-FORMAT.md + dashboard.schema.json + `version: 1` on exports) |
 | **Shop-and-pick mode** (ISSUE-114) | S–M | High | An ADDITIONAL power-user mode beside `+ Widget` (not a replacement): pick a widget type as a brush, then click items in content you are reading. The *retarget* half already works (ISSUE-52 / 68: one card follows your clicks); the *spawn* half needs a `kind` on registry fields first (~20 one-line annotations), then a palette over the widget types whose kind matches the row |\n| **Shared fetch cache** | S | Medium | **Done 2026-08-12 for Wikistats** (5-min TTL + coalescing, `lib/fetchCache.js`); extend to other fetchers when needed |
 | **Time-range selectors** | M | High | Pageviews widget is hardcoded to 30 days. Add `days` config (7/30/90/365) — RESTBase supports arbitrary ranges. Natural fit for the config panel |
 | **Editable widget titles** | S | Low | `_title` exists but no configField renders it (ARCHITECTURE #7) |
@@ -96,7 +96,7 @@ Housekeeping found during the code audit. Safe for a first PR.
 - **Edit `refreshSeconds` from the config panel** — it's in `defaults` but has no
   configField today
 - **Escape-to-close + focus trap** on AddWidgetPanel (ARCHITECTURE #13)
-- **Categorized Add Widget catalog** (2026-08-13 note) — 30 widget types in a
+- **Categorized Add Widget catalog** (2026-08-13 note) — thirty widget types in a
   linear list is unwieldy. Add sections to the panel: each registry entry gets
   a `category` field (e.g. `commons` / `wikipedia-article` / `stats-tools` /
   `content`), and the panel groups + labels them ("Wikimedia Commons",

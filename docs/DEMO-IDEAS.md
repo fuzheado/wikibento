@@ -9,7 +9,7 @@ data-linked* boards.*
 
 *Companion to `WIDGET-IDEAS.md` (widget proposals), `ROADMAP.md`
 (prioritized plan), `MODULARITY-AND-DATAFLOW.md` (params + dataflow),
-`docs/BOARD-COMPOSITION.md` (complete wiring reference for all 37 widgets),
+`docs/BOARD-COMPOSITION.md` (complete wiring reference for all 42 widgets),
 and `docs/AGENT-MEMO.md` (conventions). Each entry lists what's on the board,
 which widgets are shipped vs. needed, and the venue it fits.*
 
@@ -367,7 +367,7 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 ## §Sources
 
 - Voyager Company (Wikipedia): https://en.wikipedia.org/wiki/Voyager_Company#CD-ROMs
-- WikiBento manifest: `public/manifest.json` (37 widget types)
+- WikiBento manifest: `public/manifest.json` (42 widget types)
 - WikiBento board composition guide: `docs/BOARD-COMPOSITION.md`
 - WikiBento demo ideas: `docs/DEMO-IDEAS.md`
 - WikiBento data sources: `docs/DATA-SOURCES.md`
