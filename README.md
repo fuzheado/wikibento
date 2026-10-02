@@ -261,14 +261,18 @@ npm run build          # tests, then production build → dist/
 npm run preview        # serve dist/ at http://localhost:4173
 npm test               # unit tests + the cross-document consistency gates
 npm run smoke          # grid geometry + panel reachability (every ⚙/ⓘ action at any panel size)
+npm run smoke:boards   # a board pasted through ⬆ Import draws — one card per widget, no waiting state
 npm run test:browsers  # the same board in Chromium + Firefox + WebKit
+npm run check:board -- board.json   # what the app will say about a board from outside (or: pbpaste | npm run check:board)
 npm run lint           # oxlint
 ```
 
-Also available: `npm run docs-facts` (the consistency gates alone; `:live` also checks what production
-serves), `smoke:map` (the Map card in a browser — resolved name, relay failure, Try again),
-`check:map-landmarks` (the map projection checked against real rendered maps), `smoke:panels`, `smoke:qr`,
-`smoke:share`, `smoke:wayback`, and `update:cim-allow-list`.
+Also available: `npm run docs-facts` (the consistency gates alone; `:live` also checks what production serves),
+`smoke:map` (the Map card in a browser — resolved name, relay failure, Try again), `check:map-landmarks` (the map
+projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`,
+`guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
+`check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
+`--check` fails on a stale one), and `update:cim-allow-list`.
 
 Browser runs need the engines installed **with the repo's own `playwright-core`**, and some hosts need a
 remote-browser daemon or an explicit engine path — see [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md).
@@ -357,7 +361,15 @@ size, and `npm run test:browsers` loads a real board in all three engines. **`np
 test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at desktop *and* phone widths**, asserting
 that each card renders, that none collapses, that no card shows a bare `—` in place of data and that no ranking is
 empty — checks written for the bugs they then found (an empty box on iPhone, a pageviews card with no count, a 360°
-widget that had never rendered; ISSUE-100). The
+widget that had never rendered; ISSUE-100).
+
+**A board written outside WikiBento is checked twice**, because "validates" and "renders" are different claims:
+`npm run check:board -- board.json` (and the served `/api/validate`, which is the same checker) reports what a board
+from a chat will do — what blocks it, what the app will repair silently, what it will quietly ignore — and
+`npm run smoke:boards` pastes boards through the app's own ⬆ Import panel and requires a card per widget with nothing
+left at "Waiting for a reference". Both exist because that path had a defect nothing checked: Import silently dropped a
+board's `params`, so every `{{param}}` card sat waiting, and the demo sweep never noticed because no demo board arrives
+that way. The
 feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url`,
 and `smoke:map` — four ways into a map card, including geometry over the wire) — and the map geometry has its own
 check against real rendered maps and a live Wikidata geoshape (`check:map-landmarks`: the projection, the card
