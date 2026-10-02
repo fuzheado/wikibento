@@ -10,6 +10,13 @@ npm run smoke:panels      # panel reachability only: every ⚙/ⓘ action reacha
 - **`npm run smoke:url`** — the URL keeps telling the truth (ISSUE-87): a `?config=` claim is dropped when the
   board diverges, Share embeds the board on screen, present params stay reversible, and a quiet load is not
   treated as an edit. Also runs against a deploy: `AUDIT_BASE=https://wikibento.toolforge.org npm run smoke:url`.
+- **`npm run smoke:boards`** — **a board that came from outside actually draws** (the Ask audit's fix #7): three demo
+  boards loaded from `?config=` *and* pasted through the app's own ⬆ Import panel, plus the frozen model replies
+  (`tests/assembly-fixtures.mjs`) pasted the same way. One card per widget by id, nothing left at "Waiting for a
+  reference", no page or console errors. It catches the class of defect the audit found — ⬆ Import silently dropping a
+  board's `params`, which no check drove before this one — and it is part of `npm test`. Note the waiting state is
+  *transient by design* (a consumer card waits for its producer to fetch), so the check polls for the condition rather
+  than sleeping: a fixed wait made it flaky.
 - **`npm run smoke:map`** — the Map card's browser half (ISSUE-131/132): the title bar names the place the fetch
   *resolved* (`Q64` → "Berlin", not the query the board stored), a failing relay shows the relay's own reason
   instead of a broken image, **Try again** re-requests and recovers, and the pin covers the coordinate the map was
@@ -22,6 +29,7 @@ npm run smoke:panels      # panel reachability only: every ⚙/ⓘ action reacha
   rendered maps, *and* the card transform (`src/lib/mapOverlay.js`) against cards of a deliberately different aspect,
   where the browser's own `object-fit` placement and the map under the marker both have to agree (see
   [WIDGET-IDEAS](WIDGET-IDEAS.md) → "what Tier 1 left to do").
+npm run smoke:boards      # a board from OUTSIDE draws: pasted through ⬆ Import, one card per widget, no waiting state
 npm run smoke:qr          # QR widget end-to-end (scan payload, quiet zone, param follow)
 npm run smoke:share       # share panel + lean/kiosk modes
 npm run smoke:wayback     # Wayback gallery states (loading / absent capture / error)

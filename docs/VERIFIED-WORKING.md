@@ -107,6 +107,24 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   the doctor reports what the app does); and the relay-type fact, which existed in **three hand-written lists** (guide,
   widget map, doctor) and is now `needsRelay: true` on the definitions, derived by all three — the map regenerated
   byte-identical, 🔌 badges intact.
+- 🧪 **The board path's regression net (#7, 2026-10-02)** — two halves, and both were verified by *restoring the defect
+  they exist for*, which is the only way to know a check bites.
+  - **Offline** (`tests/assembly-contract.test.mjs` over `tests/assembly-fixtures.mjs`): 18 replies the model really
+    wrote, frozen from three runs of the assembly suite — including the three that were not usable JSON, which must
+    degrade to *no board* rather than a crash. For every accepted board: unique ids, registered types, and every
+    reference resolvable **inside the surviving board**; then the same fragment applied the way
+    `App.handleAddAssembly` applies it must pass `validateDashboard`. Reverting the channel fix (one line: look the
+    whole `id#channel` string up as an id) makes the named case fail with *"the canonical chain lost a card (r1): got
+    2 — widget `speak-french` dropped — a reference it consumes is not on the board"*.
+  - **In a browser** (`npm run smoke:boards`, part of `npm test`): three demo boards loaded from `?config=`, the same
+    three **pasted through the app's own ⬆ Import panel**, and the frozen model boards pasted the same way — one card
+    per widget by id, nothing left at "Waiting for a reference", no page or console errors. Restoring the
+    Import-`params` defect fails it on two boards with the audit's exact symptom.
+  - **Two traps of its own, both found by using it**: its first version pasted only model boards, whose `params` were
+    empty — so the Import-`params` defect was invisible to it (coverage, not intent, is what makes a check bite; the
+    hosted boards are pasted too now); and a fixed 1.2 s wait after Import made it flaky inside `npm test`, because a
+    card wired to a producer legitimately shows "Waiting for a reference" until that producer has *fetched* (a live
+    Wikipedia call). It polls for the condition now and only fails when the producer never emits.
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).

@@ -1,0 +1,213 @@
+#!/usr/bin/env node
+/**
+ * The board-render check — does a board that came from OUTSIDE actually draw?
+ *
+ * What this replaces. The Ask audit's render probe (`tests/probe-ask-render.mjs`) was throwaway by design, and the
+ * audit's own finding is why the check has to be permanent: the ⬆ Import panel silently dropped a board's `params`,
+ * so every `{{param}}` card sat at "Waiting for a reference" — and **no check drove Import with a params board**,
+ * which is exactly why it survived. `npm test` runs the offline half of the same contract
+ * (`tests/assembly-contract.test.mjs`: the validator's verdict on frozen model replies); this is the half that needs a
+ * browser, because "validates" and "renders" are different claims.
+ *
+ * Two kinds of board, because there are two ways one arrives:
+ *
+ *   1. a board on this deployment (`?config=/params-demo.json` …) — loaded the way a reader loads it;
+ *   2. a board from a MODEL — the frozen assembly replies (`tests/assembly-fixtures.mjs`), converted to the Import
+ *      envelope the way `App.handleAddAssembly` does it (a layout built from the widget's own `w`/`h`) and pasted
+ *      through the app's own ⬆ Import panel. No scratch file: a file in `public/` trips the demos gate, and a file in
+ *      `dist/` is not loadable as a board.
+ *
+ * What it asserts, for each: one card per widget by id, no card left at "Waiting for a reference", and no page or
+ * console error (a report-only CSP note and a failed subresource are the environment talking — same policy as
+ * `smoke-built.mjs`).
+ *
+ * Usage: npm run build && npm run smoke:boards        (needs a built dist/, and refuses a stale one)
+ */
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import net from 'node:net';
+import { ASSEMBLY_REPLIES } from '../tests/assembly-fixtures.mjs';
+
+const require = createRequire(import.meta.url);
+let chromium;
+try {
+  ({ chromium } = require('playwright-core'));
+} catch {
+  console.error('playwright-core not resolvable — run npm install first');
+  process.exit(2);
+}
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// ── refuse a stale dist/ (the false negative that looks exactly like a broken feature) ────────────────────────────
+function assertFreshBuild() {
+  const newest = (dir) => {
+    let ms = 0;
+    for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true, recursive: true })) {
+      if (!entry.isFile()) continue;
+      ms = Math.max(ms, fs.statSync(path.join(entry.parentPath || entry.path || path.join(root, dir), entry.name)).mtimeMs);
+    }
+    return ms;
+  };
+  if (newest('src') > newest('dist/assets')) {
+    console.error('  ✘ dist/ is older than src/ — the built app is stale.');
+    console.error('    Run `npx vite build` first (a browser check against a stale dist/ reports a broken feature).');
+    process.exit(2);
+  }
+}
+assertFreshBuild();
+
+const port = await new Promise((res, rej) => {
+  const s = net.createServer();
+  s.on('error', rej);
+  s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
+});
+const base = `http://127.0.0.1:${port}`;
+const server = spawn('python3', ['-m', 'http.server', String(port), '--directory', path.join(root, 'dist')], { stdio: 'ignore' });
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+for (let i = 0; i < 40; i++) {
+  try { if ((await fetch(`${base}/index.html`)).ok) break; } catch { /* not up yet */ }
+  await wait(250);
+}
+
+// ── the boards ────────────────────────────────────────────────────────────────────────────────────────────────────
+// Our own: chosen because between them they carry a params switcher, a dataflow chain and a gallery.
+const HOSTED = ['params-demo.json', 'flow-demo.json', 'article-switcher-demo.json'];
+
+/** The Import envelope for a model fragment — exactly what `handleAddAssembly` builds from one. */
+const asBoard = (board) => ({
+  version: 1,
+  params: board.params || {},
+  widgets: board.widgets,
+  layout: board.widgets.map((w, i) => ({ i: w.id, x: 0, y: i * 4, w: w.w ?? 6, h: w.h ?? 4 })),
+});
+
+/**
+ * Wait until no card is left in the "waiting for a reference" state — it is TRANSIENT by design: a consumer card waits
+ * until its producer has fetched and emitted, and the producer fetches from a live API. A fixed sleep turned this into a
+ * flaky check (it failed under `npm test` load on a board whose producer was still in flight and passed standalone).
+ * Returns null when it settles, or the string to report when it does not.
+ */
+async function waitUntilWired(page, ms = 25000) {
+  try {
+    await page.waitForFunction(() => !document.body.innerText.includes('Waiting for a reference'), null, { timeout: ms, polling: 250 });
+    return null;
+  } catch {
+    return `a card is still at "Waiting for a reference" after ${ms / 1000}s — its producer never emitted`;
+  }
+}
+
+const problems = [];
+const results = [];
+const ok = (name, detail) => results.push(`  ✅ ${name.padEnd(34)} ${detail}`);
+const bad = (name, detail) => { problems.push(`${name}: ${detail}`); results.push(`  ❌ ${name.padEnd(34)} ${detail}`); };
+
+const browser = await chromium.launch({ headless: true });
+try {
+  for (const file of HOSTED) {
+    const board = JSON.parse(fs.readFileSync(path.join(root, 'public', file), 'utf8'));
+    const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const text = String(m.text());
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(text)) return;
+      errors.push(`console: ${text.slice(0, 110)}`);
+    });
+    await page.goto(`${base}/?config=/${file}`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+    const stuck = await waitUntilWired(page);
+    const state = await page.evaluate(() => ({
+      cards: [...document.querySelectorAll('[data-widget-id]')].map((el) => el.getAttribute('data-widget-id')),
+      waiting: document.body.innerText.includes('Waiting for a reference'),
+    }));
+    const expect = board.widgets.map((w) => w.id);
+    const missing = expect.filter((id) => !state.cards.includes(id));
+    if (state.cards.length !== expect.length) bad(file, `${state.cards.length} cards, expected ${expect.length}`);
+    else if (missing.length) bad(file, `missing cards: ${missing.join(', ')}`);
+    else if (stuck || state.waiting) bad(file, stuck || 'a card is stuck at "Waiting for a reference"');
+    else if (errors.length) bad(file, errors[0]);
+    else ok(file, `${state.cards.length} cards, wired, no errors`);
+    await page.close();
+  }
+
+  /**
+   * Paste a board through the app's own ⬆ Import panel and check what it drew.
+   *
+   * This is the path a board from OUTSIDE takes, and it is where the audit's second defect lived: Import dropped the
+   * `params` block, so every `{{param}}` card sat at "Waiting for a reference". The first version of this script pasted
+   * only model boards — and every frozen reply that parsed happened to carry `params: {}` — so restoring the defect
+   * changed nothing and the check passed. Coverage, not intent, is what makes a check bite: the boards we host are
+   * pasted too (below), and one of them is a params switcher.
+   */
+  const pasteAndCheck = async (board, name) => {
+    const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const text = String(m.text());
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(text)) return;
+      errors.push(`console: ${text.slice(0, 110)}`);
+    });
+    try {
+      await page.goto(`${base}/`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id]', { timeout: 30000 });
+      await page.getByRole('button', { name: /Import/ }).click();
+      await page.waitForSelector('.import-textarea', { timeout: 15000 });
+      await page.locator('.import-textarea').fill(JSON.stringify(board));
+      await page.locator('.import-panel button.btn-primary').click();
+      await page.waitForSelector('[data-widget-id]', { timeout: 20000 });
+      const stuck = await waitUntilWired(page);
+      const state = await page.evaluate(() => ({
+        cards: [...document.querySelectorAll('[data-widget-id]')].map((el) => el.getAttribute('data-widget-id')),
+        waiting: document.body.innerText.includes('Waiting for a reference'),
+        importErrors: [...document.querySelectorAll('.import-errors')].map((el) => el.innerText.trim()),
+      }));
+      const expect = board.widgets.map((w) => w.id);
+      const missing = expect.filter((id) => !state.cards.includes(id));
+      if (state.importErrors.length) bad(name, `Import refused it: ${state.importErrors[0].slice(0, 90)}`);
+      else if (state.cards.length !== expect.length) bad(name, `${state.cards.length} cards, expected ${expect.length}`);
+      else if (missing.length) bad(name, `missing cards: ${missing.join(', ')}`);
+      else if (stuck || state.waiting) bad(name, stuck || 'a card is stuck at "Waiting for a reference"');
+      else if (errors.length) bad(name, errors[0]);
+      else ok(name, `${state.cards.length} cards pasted through Import, no errors`);
+    } catch (e) {
+      bad(name, String(e).slice(0, 110));
+    }
+    await page.close();
+  };
+
+  // The same boards again, but through ⬆ Import: that is where a `params` block is most fragile, and `params-demo.json`
+  // is a switcher board — without it this check cannot see the defect it was written for.
+  for (const file of HOSTED) {
+    const board = JSON.parse(fs.readFileSync(path.join(root, 'public', file), 'utf8'));
+    await pasteAndCheck(board, `pasted: ${file.slice(0, 24)}`);
+  }
+
+  // And the boards from a model: the frozen replies, converted to the Import envelope.
+  const usable = ASSEMBLY_REPLIES.filter((r) => r.parses).map((r) => {
+    try { return { ...r, board: JSON.parse(r.raw)?.board }; } catch { return { ...r, board: null }; }
+  }).filter((r) => r.board?.widgets?.length);
+  if (usable.length < 4) {
+    bad('frozen model replies', `only ${usable.length} usable — the fixture or the validator changed`);
+  }
+  for (const reply of usable.slice(0, 6)) {
+    await pasteAndCheck(asBoard(reply.board), `model: ${reply.id.slice(0, 22)}`);
+  }
+} finally {
+  await browser.close();
+  server.kill();
+}
+
+console.log(results.join('\n'));
+if (problems.length) {
+  console.error(`\n  BOARD RENDER FAILED — ${problems.length} problem(s):`);
+  for (const p of problems) console.error(`    ✘ ${p}`);
+  process.exit(1);
+}
+console.log(`\n  ✔ board render: ${results.length} board(s) drew every card, no page errors`);

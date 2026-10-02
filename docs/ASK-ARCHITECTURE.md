@@ -353,10 +353,19 @@ the wayback case went 1/5 → 5/5 only by adding a targeted example.
    kept only `{key, type}` from a shared config-field constant, so a hint written there could never reach the
    manifest — the reader that must state the gate. The card was already honest (an unlisted category throws
    `CimUnregisteredError` naming the request process); the *advice* was the part that proposed a dead card.
-7. **Cover assembly mode offline** (S). `tests/board-fixtures.mjs` + `scoreChainOptions` score *options*; nothing
-   asserts the board contract. A small offline constitution (fixtures → `validateAssembly` → unique ids, known
-   types, no dangling refs, ≥2 widgets) is the shape `tests/assembly.test.mjs` already proves possible — it just
-   needs the model's own frozen replies as fixtures.
+7. ✅ **DONE 2026-10-02** — **Cover assembly mode offline, and render what comes out of it.** Two halves, because
+   "validates" and "renders" are different claims. `tests/assembly-fixtures.mjs` freezes **18 real replies** (three runs
+   of the assembly suite, `bench/results/2026-10-01-boards-assembly-r{1,2,3}.json`, including the three that were not
+   usable JSON), and `tests/assembly-contract.test.mjs` asserts on them: nothing throws, a non-JSON reply degrades to no
+   board, every accepted board holds together (unique ids, registered types, every reference resolvable *inside the
+   surviving board*), and the app can load each one through the `handleAddAssembly` path. `scripts/board-render-e2e.mjs`
+   (`npm run smoke:boards`, in `npm test`) is the browser half: our own boards loaded from `?config=`, the same boards
+   pasted through the ⬆ Import panel, and the frozen model boards pasted the same way — one card per widget, nothing
+   left at "Waiting for a reference", no page or console errors. Both were verified by restoring the defects they exist
+   for: the channel fix (the canonical chain test fails by name: *"the canonical chain lost a card (r1): got 2 —
+   `speak-french` dropped"*) and the Import-`params` fix (*two pasted boards stuck at "Waiting for a reference"*). The
+   first version of the render check could not see the second defect at all — every pasted board had `params: {}` — which
+   is why the hosted boards are pasted too.
 8. **Prefix caching** (S, but needs an ops answer). Unverifiable from the API (`prompt_tokens_details: null`); ask
    the LiftWing maintainers, or measure p95 latency on a stable prefix at real volume. Until then, do not assume the
    long prompt is free.
