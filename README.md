@@ -359,7 +359,8 @@ front door.
 
 - **Start here** — [GUIDE](docs/GUIDE.md) (the model + cookbook) · [TUTORIAL](docs/TUTORIAL.md) (build a board
   step by step, then store it on a wiki) · [EXPORT](docs/EXPORT.md) (getting data, a PDF or the whole
-  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 42, with APIs) ·
+  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 42, with APIs) · [WIDGET-MAP](docs/WIDGET-MAP.md) (all 42 on
+  one page, grouped by what you must supply — with the gates and the wiring; the picture is [widget-map.pdf](docs/widget-map.pdf)) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
 - **Build & extend** — [WIRING-BOARDS](docs/WIRING-BOARDS.md) (what travels between cards: sources, consumers,

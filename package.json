@@ -33,6 +33,7 @@
     "smoke:url": "node scripts/url-state-audit.mjs",
     "smoke:map": "node scripts/map-e2e.mjs",
     "check:map-landmarks": "node scripts/map-landmark-check.mjs",
+    "map:widgets": "node scripts/widget-map.mjs",
     "test:browsers:demos": "node scripts/browser-matrix.mjs --demos --wait 9000"
   },
   "dependencies": {

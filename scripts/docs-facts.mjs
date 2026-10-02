@@ -335,6 +335,17 @@ check('every widget is called the same thing in the catalog as in the registry',
   return `${REGISTRY} names, all present in the catalog`;
 });
 
+check('the widget map places every registered type (docs/WIDGET-MAP.md is generated, so this is drift, not judgement)', () => {
+  // scripts/widget-map.mjs builds the map from the manifest and refuses to write when something is unclassified; this is
+  // the same rule at the *docs* level, because the map is only useful if a newly added widget cannot quietly miss it.
+  const map = read('docs/WIDGET-MAP.md');
+  const missing = registry.filter((w) => !map.includes(`\`${w.id}\``)).map((w) => w.id);
+  if (missing.length) {
+    fail(`docs/WIDGET-MAP.md does not mention: ${missing.join(', ')} — run \`npm run map:widgets\` (it regenerates the page and the picture from the manifest)`);
+  }
+  return `${REGISTRY} types, every one placed`;
+});
+
 check('retired widget names are gone from the current-state docs', () => {
   const files = ['README.md', 'HANDOFF.md',
     ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)]
