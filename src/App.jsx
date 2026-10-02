@@ -977,14 +977,20 @@ const handleAutoHeight = useCallback((id, px) => {
         </div>
       </header>
 
-      <BoardNotice
-        kind={notice}
-        label={borrowed ? borrowed.label : null}
-        onKeep={keepBorrowedBoard}
-        onBack={backToMyBoard}
-        onRestore={restorePreviousBoard}
-        onDismiss={dismissNotice}
-      />
+      {/* Not in a display mode (ISSUE-120). kiosk and lean are chrome-free *presentation*: their promise is that
+          editing affordances are gone, and this notice is built out of them — two buttons (adopt, go back) and a
+          sentence that says "edit anything to make this copy yours", which is false when dragging and resizing are
+          both off. Its message is for a visitor who is *using* the app, not for a screen in a room. */}
+      {!kiosk && !lean && (
+        <BoardNotice
+          kind={notice}
+          label={borrowed ? borrowed.label : null}
+          onKeep={keepBorrowedBoard}
+          onBack={backToMyBoard}
+          onRestore={restorePreviousBoard}
+          onDismiss={dismissNotice}
+        />
+      )}
 
       {bootError && (
         <div className="boot-banner">

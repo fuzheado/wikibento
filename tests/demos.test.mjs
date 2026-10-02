@@ -79,6 +79,27 @@ test('demos: every {{widget:id}} and {{param}} resolves inside the board', () =>
   }
 });
 
+test('demos: no board layout overlaps itself (a file must not contradict the renderer)', () => {
+  // react-grid-layout compacts vertically on mount, so self-overlapping rectangles render fine — which is how three
+  // boards came to carry twelve overlapping pairs between them while every sweep passed: the renderer was quietly
+  // repairing the files (measured 2026-10-02; dashboard.json had grown from 7 pairs on 2026-09-18 to 9, because a new
+  // tile was added into a collision and nothing said so). The invariant belongs to the FILE. `npm run repack:layouts`
+  // stores what the browser already draws — verified render-neutral by measuring every card's rendered geometry
+  // before and after (43 + 9 + 6 cards, zero differences).
+  for (const f of boards) {
+    const layout = read(f).layout || [];
+    const hits = [];
+    for (let i = 0; i < layout.length; i++) {
+      for (let j = i + 1; j < layout.length; j++) {
+        const a = layout[i];
+        const b = layout[j];
+        if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) hits.push(`${a.i} × ${b.i}`);
+      }
+    }
+    assert.deepEqual(hits, [], `${f}: ${hits.length} overlapping layout pair(s) — ${hits.join(', ')} · run \`npm run repack:layouts\``);
+  }
+});
+
 test('demos: the hub links every board and each link exists', () => {
   const hub = read('demos.json');
   const md = hub.widgets.find((w) => w.widgetType === 'markdown');

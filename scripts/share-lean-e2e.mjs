@@ -116,6 +116,31 @@ try {
   check('full link boots editable (chrome visible)',
     !/\blean\b/.test(fullState.cls) && fullState.headerDisplay !== 'none', `class="${fullState.cls}"`);
 
+  // ── ISSUE-120: the borrowed-board notice is chrome, and a display mode has none ────────────────────────────────
+  // The notice only appears when something is at stake: the visitor has a board of their own AND the link points at a
+  // different one. So: visit the app first (it saves its board), then open another board — and the notice is the
+  // CONTROL here. Without it the assertion below would pass against a board that never shows the notice at all
+  // (Andrew asked for this on 2026-10-02: "we shouldn't see the notice when in kiosk or in lean mode").
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.waitForSelector('.grid-item', { timeout: 15000 });
+  const noticeSeen = async (url) => {
+    await page.goto(url, { waitUntil: 'networkidle' });
+    await page.waitForSelector('.grid-item', { timeout: 15000 });
+    return page.evaluate(() => {
+      const el = document.querySelector('[data-notice]');
+      return el ? { kind: el.getAttribute('data-notice'), visible: getComputedStyle(el).display !== 'none' } : null;
+    });
+  };
+  const borrowed = await noticeSeen(`${BASE}/?config=demos.json`);
+  check('control: a borrowed board DOES show the notice', borrowed && borrowed.visible === true,
+    borrowed ? `data-notice="${borrowed.kind}"` : 'no [data-notice] element at all');
+  const borrowedLean = await noticeSeen(`${BASE}/?config=demos.json&lean=1`);
+  check('ISSUE-120: lean shows no board notice', borrowedLean === null,
+    borrowedLean ? `still there: data-notice="${borrowedLean.kind}"` : 'absent');
+  const borrowedKiosk = await noticeSeen(`${BASE}/?config=demos.json&kiosk=1`);
+  check('ISSUE-120: kiosk shows no board notice', borrowedKiosk === null,
+    borrowedKiosk ? `still there: data-notice="${borrowedKiosk.kind}"` : 'absent');
+
   check('no page errors', errors.length === 0, errors.join(' | '));
 
   const failed = results.filter((r) => !r.ok);

@@ -57,6 +57,21 @@ build that was probed in a real browser is byte-for-byte the build that is live.
     the gate until the page is regenerated.
   - Verified: `node scripts/relay-guard-e2e.mjs` now asserts all of it against a real server (404 without paths, the
     three files cross-origin, `index.html` same-origin); 714 tests; docs-facts 14/14. **Not yet deployed.**
+- 🧹 **The demo boards now agree with their own layout** (2026-10-02). react-grid-layout compacts vertically and
+  pushes overlapping items apart on mount, so a board whose *authored* rectangles collide renders fine — and every
+  sweep passed while three boards carried twelve overlapping pairs between them (`dashboard.json` had grown from 7 on
+  2026-09-18 to **9**, i.e. new tiles kept being added into collisions and nothing noticed). `npm run repack:layouts`
+  reimplements rgl's own compaction and stores it; **verified render-neutral by measurement**, not by argument: the
+  browser was asked for every card's rendered geometry (rgl writes `translate(x,y)` + size inline) before and after,
+  and **all 58 cards across the three boards are identical** — 43 on the showcase board, 9 glam, 6 front page.
+  `tests/demos.test.mjs` now fails if any board in `public/` overlaps itself, and the repack moves `y` only (26 values
+  across three files; no reformatting, no reordering, emoji and escapes left as they were).
+- 👀 **Presentation modes no longer show the board notice** (ISSUE-120, owner's call 2026-10-02). `?kiosk=1` and
+  `?lean=1` are chrome-free presentation, and the borrowed-board notice is built out of the affordances they promise
+  to hide — two buttons and the sentence "edit anything to make this copy yours", which is false when dragging,
+  resizing and the ⚙ panel are already off. Esc (and the ✕ Exit button) remain the way out. Verified in a built
+  browser by `npm run smoke:share` — 17/17, **with a control that first proves the notice DOES appear on a borrowed
+  board**, so the new assertions cannot pass vacuously.
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).

@@ -35,7 +35,9 @@
     "check:map-landmarks": "node scripts/map-landmark-check.mjs",
     "map:widgets": "node scripts/widget-map.mjs",
     "test:browsers:demos": "node scripts/browser-matrix.mjs --demos --wait 9000",
-    "guide:board": "node scripts/board-guide.mjs"
+    "guide:board": "node scripts/board-guide.mjs",
+    "repack:layouts": "node scripts/repack-layout.mjs",
+    "check:layouts": "node scripts/repack-layout.mjs --check"
   },
   "dependencies": {
     "pannellum": "^2.5.7",

@@ -24,7 +24,7 @@
       "id": "note",
       "widgetType": "markdown",
       "config": {
-        "text": "# \ud83c\udfdb\ufe0f One template, five institutions\n\nEvery card is driven by the **Collection** buttons. The stats are **exact** \u2014 precomputed monthly by [Commons Impact Metrics](https://commons.wikimedia.org/wiki/Commons:Commons_Impact_Metrics), not sampled or estimated.\n\n*Views* = pageviews of the wiki pages that **use** the collection's files. Switch the collection and watch every card re-aim; step the month to see history.",
+        "text": "# 🏛️ One template, five institutions\n\nEvery card is driven by the **Collection** buttons. The stats are **exact** — precomputed monthly by [Commons Impact Metrics](https://commons.wikimedia.org/wiki/Commons:Commons_Impact_Metrics), not sampled or estimated.\n\n*Views* = pageviews of the wiki pages that **use** the collection's files. Switch the collection and watch every card re-aim; step the month to see history.",
         "refreshSeconds": 86400
       }
     },
@@ -183,7 +183,7 @@
     {
       "i": "toppages",
       "x": 4,
-      "y": 13,
+      "y": 14,
       "w": 4,
       "h": 6,
       "minW": 3,
@@ -192,7 +192,7 @@
     {
       "i": "topeditors",
       "x": 8,
-      "y": 13,
+      "y": 14,
       "w": 4,
       "h": 6,
       "minW": 3,

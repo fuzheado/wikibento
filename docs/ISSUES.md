@@ -5505,7 +5505,15 @@ failures; docs-facts 9/9.
 > that no panel's caption contains template syntax, an HTML entity or a tag: the report as a permanent invariant.
 > 13 unit tests cover the batch format, the split, the balance rule and the entity decoding.
 
-## ISSUE-120 · A shared board's notice appears in kiosk, where the chrome is meant to be gone — **open** (design question, low)
+## ISSUE-120 · A shared board's notice appears in kiosk, where the chrome is meant to be gone — **fixed 2026-10-02** (design question, low)
+
+> **Decided by Andrew on 2026-10-02: hide it.** *"if you can solve ... issue 120 so that we don't see the notice when
+> in kiosk or in lean mode."* The notice is not rendered in either mode now (`src/App.jsx`, one condition beside the
+> existing `picking = !!pickBrush && !kiosk && !lean`) — both are chrome-free *presentation*, and this notice is built
+> out of the affordances they promise to hide (two buttons, plus a sentence reading "edit anything to make this copy
+> yours", which is false when dragging, resizing and the ⚙ panel are all off in a display mode). Option (a) of the
+> three below; Esc remains the way out. Verified in a built browser by `npm run smoke:share` — with a **control** that
+> proves the notice *does* appear on a borrowed board first, so the assertion cannot pass vacuously (17/17).
 
 > **Seen** while screenshotting a story in `?kiosk=1` for ISSUE-119: *"Viewing a shared board — Story. Your own board is
 > saved and untouched — edit anything to make this copy yours."* with **[Save this as mine]** / **[Back to my board]**,
