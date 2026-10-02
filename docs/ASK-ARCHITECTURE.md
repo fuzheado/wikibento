@@ -113,6 +113,31 @@ All runs `llm-qwen36-27b`, `temperature 0.3`, `max_tokens 700`, through the Tool
 (`--via toolforge`). **171 fixture-runs, 0 upstream errors, 0 non-JSON replies, 0×429** — the pace never had to
 wait. Scoring is the bench's own (`scoreOptions` / `scoreChainOptions`).
 
+### Re-measured after the 2026-10-02 prompt edits (same fixtures, same model)
+
+The prompt changed while making room for the CIM gate, so it was re-measured rather than assumed. The *unchanged*
+number is the point: the trim bought budget without costing advice quality.
+
+| Suite | before (2026-10-01) | after (2026-10-02) | File |
+|---|---|---|---|
+| single-widget, suggest | top1 93% · keys 93% · subject 92% | **top1 93%** · top3 93% · keys 93% · subject 92% | `2026-10-02-suggest-after-v2.json` |
+| boards, suggest | chain 67% (83% lenient) | **chain 83%** · keys 100% · subject 100% | `2026-10-02-boards-after-v2.json` |
+
+Three prompt defects were found and fixed while checking the budget — the first two now have guards:
+
+- **The dataflow manual's EMITTERS list omitted every CHANNEL publisher** (`excerpt`, `gallery`, `wikiBox`,
+  `translate`), because it counted only `outputs.kind` — while the sentence above the list promised "only these N
+  produce output". The Translator, the middle of the chain this prompt recommends, was missing from the list of
+  things that can feed it. `tests/ask-validation.test.mjs` derives the publisher set from the manifest and fails if
+  the EMITTERS line omits one.
+- **The catalog carried each widget's full `defaults` key list** — ~660 tokens of the budget for something the field
+  list already conveys. Replaced by one VALUE RULE: an omitted field takes the registry default.
+- **`primary` did not travel into the catalog**, so nothing said what a bare `source: "id"` means for a widget that
+  publishes channels. The manifest already carried it; the catalog now does too.
+
+Budgets after the three: suggest **~12,111** / board **~11,989** tokens against the 12,600 cap (measured 4.13
+chars/token), i.e. ~490 tokens of headroom for the served guide's additions.
+
 ### Single-widget fixtures (15) — suggest mode
 
 | Run | top1 | top3 | keys | subject | File |

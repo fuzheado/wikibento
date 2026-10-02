@@ -56,7 +56,11 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 42 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see
-[docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way.
+[docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way. **Writing a
+board from outside the app** — in a chat, a notebook or another tool? Read the served contract instead:
+<https://wikibento.toolforge.org/board-guide.md> (generated from the manifest and the two specs above, with the whole
+catalog and the two reference grammars), and the machine-readable pair
+<https://wikibento.toolforge.org/manifest.json> + <https://wikibento.toolforge.org/dashboard.schema.json>.
 
 A ready-made dashboard hosted **on Wikimedia Commons** also loads from an on-wiki page —
 `?config=https://commons.wikimedia.org/wiki/Commons:WikiPortraits/Bento-demo.json` (or the short link

@@ -1,5 +1,9 @@
 # Dashboard JSON Format — Specification v1
 
+**Served twin:** <https://wikibento.toolforge.org/board-guide.md> — this specification *plus* the generated catalog,
+the reference grammars and the gates, assembled for anything writing a board from outside WikiBento
+(`npm run guide:board`; `scripts/board-guide.mjs` includes this file verbatim, so the two cannot drift).
+
 The dashboard configuration format used by **Export**, **Import**, and
 `localStorage` persistence. Validated at runtime by
 `src/lib/dashboardConfig.js` (`validateDashboard`); machine-readable schema at

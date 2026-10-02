@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-02T06:21:23.595Z",
+ "generatedAt": "2026-10-02T06:25:00.273Z",
  "widgetCount": 42,
  "widgets": [
   {
@@ -673,38 +673,63 @@
      "key": "article",
      "type": "text",
      "label": "Article",
-     "placeholder": "Albert Einstein"
+     "placeholder": "Albert Einstein",
+     "showIf": {
+      "from": "article"
+     }
     },
     {
      "key": "page",
      "type": "text",
      "label": "Commons gallery page",
      "hint": "The page title, exactly as it appears — galleries have NO prefix and live in the main namespace, so \"The Venetian Macao\", not \"Gallery:…\". Find one by searching Commons for hastemplate:\"Gallery page\".",
-     "placeholder": "The Venetian Macao"
+     "placeholder": "The Venetian Macao",
+     "showIf": {
+      "from": "page"
+     }
     },
     {
      "key": "category",
      "type": "text",
      "label": "Category",
      "hint": "Bare name, or with the Category: prefix. Subcategories are not walked.",
-     "placeholder": "Images from XBio"
+     "placeholder": "Images from XBio",
+     "showIf": {
+      "from": "category"
+     }
     },
     {
      "key": "files",
      "type": "textarea",
      "label": "Commons files (one per line)",
-     "placeholder": "File:Example.jpg\\nFile:Another photo.png"
+     "placeholder": "File:Example.jpg\\nFile:Another photo.png",
+     "showIf": {
+      "from": "list"
+     }
     },
     {
      "key": "project",
      "type": "project",
      "label": "Wiki",
-     "hint": "Defaults to the source's own wiki: en.wikipedia for an article, commons.wikimedia for a gallery page or a category."
+     "hint": "Defaults to the source's own wiki: en.wikipedia for an article, commons.wikimedia for a gallery page or a category.",
+     "showIf": {
+      "from": [
+       "article",
+       "page",
+       "category"
+      ]
+     }
     },
     {
      "key": "order",
      "type": "select",
      "label": "Order",
+     "showIf": {
+      "from": [
+       "list",
+       "category"
+      ]
+     },
      "options": [
       "listed",
       "random",
@@ -717,22 +742,37 @@
      "key": "minSize",
      "type": "number",
      "label": "Min image size (px)",
-     "placeholder": "200"
+     "placeholder": "200",
+     "showIf": {
+      "from": "article"
+     }
     },
     {
      "key": "includeAll",
      "type": "boolean",
-     "label": "All images (also caption-less gallery/table images)"
+     "label": "All images (also caption-less gallery/table images)",
+     "showIf": {
+      "from": "article"
+     }
     },
     {
      "key": "hideDecorative",
      "type": "boolean",
-     "label": "Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)"
+     "label": "Hide decorative caption-less images (flags, coats of arms, logos, locator maps …)",
+     "showIf": {
+      "from": "article"
+     }
     },
     {
      "key": "groupBy",
      "type": "select",
      "label": "Group by",
+     "showIf": {
+      "from": [
+       "article",
+       "page"
+      ]
+     },
      "options": [
       "none",
       "section",
@@ -1391,21 +1431,30 @@
      "type": "text",
      "label": "Page",
      "hint": "Any page — an article, a portal, a Wikipedia: page. Its own tables, images and references come with it, styled by the app rather than by Wikipedia\\u2019s skin.",
-     "placeholder": "Metropolitan Museum of Art"
+     "placeholder": "Metropolitan Museum of Art",
+     "showIf": {
+      "source": "Page"
+     }
     },
     {
      "key": "section",
      "type": "text",
      "label": "Part of the page",
      "hint": "Blank = the lead (light and link-rich) · a section number · a heading name like \"Collections\" · all = the whole page (large).",
-     "placeholder": "the lead"
+     "placeholder": "the lead",
+     "showIf": {
+      "source": "Page"
+     }
     },
     {
      "key": "box",
      "type": "text",
      "label": "Template",
      "hint": "In the news · Did you know · Today’s featured article — or a dated box: POTD/{date}, Wikipedia:Selected anniversaries/{monthname} {day}",
-     "placeholder": "In the news"
+     "placeholder": "In the news",
+     "showIf": {
+      "source": "Template"
+     }
     },
     {
      "key": "project",
@@ -1430,7 +1479,10 @@
      "type": "text",
      "label": "Date (blank = today)",
      "hint": "For dated boxes. The name may use {date} {year} {month} {monthname} {day} — e.g. POTD/{date}, or Wikipedia:Selected anniversaries/{monthname} {day}",
-     "placeholder": "today"
+     "placeholder": "today",
+     "showIf": {
+      "source": "Template"
+     }
     }
    ],
    "defaults": [

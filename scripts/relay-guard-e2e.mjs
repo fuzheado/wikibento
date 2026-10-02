@@ -80,6 +80,22 @@ if (LOCAL) {
 const get = (path) => fetch(`${base}${path}`);
 const LADDER_MAP = '/api/staticmap?z=11&lat=52.5167&lon=13.3833&w=640&h=480&lang=en';
 
+// ── 0. the door: the three files an outside producer reads, readable cross-origin ──
+for (const path of ['/manifest.json', '/board-guide.md', '/dashboard.schema.json']) {
+  const r = await get(path);
+  const acao = r.headers.get('access-control-allow-origin');
+  if (r.status !== 200) bad(`door: ${path}`, `HTTP ${r.status}`);
+  else if (acao !== '*') bad(`door: ${path}`, `no Access-Control-Allow-Origin (got ${acao})`);
+  else ok(`door: ${path}`, `HTTP 200, ACAO *`);
+}
+{
+  // …and the app's own files are NOT advertised that way: a dashboard bundle is not an API.
+  const r = await get('/index.html');
+  r.headers.get('access-control-allow-origin') === null
+    ? ok('door: index.html stays same-origin', 'no CORS header')
+    : bad('door: index.html', 'served with a CORS header');
+}
+
 // ── 1. the closed parameter surface ─────────────────────────────────────────
 {
   const r = await get('/api/staticmap?z=11&lat=52.5&lon=13.4&w=637&h=481');
@@ -88,6 +104,25 @@ const LADDER_MAP = '/api/staticmap?z=11&lat=52.5167&lon=13.3833&w=640&h=480&lang
 {
   const r = await get('/api/staticmap?z=99&lat=x&lon=13&w=640&h=480');
   r.status === 400 ? ok('map: absurd params refused', 'HTTP 400') : bad('map: absurd params', `HTTP ${r.status}`);
+}
+
+// ── 1b. the door's etiquette: a missing path is a 404 that names nothing ──────
+{
+  // Before 2026-10-02 an unknown path answered 500 with the thrown message, i.e.
+  // `ENOENT … open '/data/project/wikibento/www/js/dist/…'` — the deployment's own
+  // absolute layout, handed to anyone guessing a path (found while preparing the
+  // way an outside model walks in through /board-guide.md).
+  const r = await get('/this-path-does-not-exist');
+  const body = await r.text();
+  if (r.status !== 404) bad('unknown path', `HTTP ${r.status}`);
+  else if (/\/data\/|ENOENT|server\.js/.test(body)) bad('unknown path', `404 but the body leaks: ${body.slice(0, 90)}`);
+  else ok('unknown path: 404, no paths named', `HTTP 404`);
+}
+{
+  const r = await get('/api/no-such-route');
+  const body = await r.text();
+  const j = (() => { try { return JSON.parse(body); } catch { return null; } })();
+  r.status === 404 && j && j.error ? ok('unknown API route: 404 JSON', j.error) : bad('unknown API route', `HTTP ${r.status} ${body.slice(0, 60)}`);
 }
 
 // ── 2. the host allowlist (nothing here may reach the open internet) ─────────

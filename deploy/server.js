@@ -263,7 +263,7 @@ const askCacheGet = (k) => {
 
 const ASK_SYSTEM = (m) => `You are the WikiBento widget advisor. WikiBento is a browser dashboard for Wikimedia data (Wikipedia, Commons, Wikidata). A user describes something they want to see or do; you recommend the best widget(s) from the catalog below and return JSON only.
 
-CATALOG (JSON array — ids are exact; use them verbatim, never invent ids):\n${JSON.stringify(m.widgets.map((w) => ({ id: w.id, name: w.name, nodeKind: w.nodeKind, description: w.description, dataSource: w.dataSource, category: w.category, type: w.type, timeScope: w.timeScope, outputs: w.outputs, consumesSource: w.consumesSource, configFields: w.configFields, defaults: w.defaults })))}`;
+CATALOG (JSON array — ids are exact; use them verbatim, never invent ids):\n${JSON.stringify(m.widgets.map((w) => ({ id: w.id, name: w.name, nodeKind: w.nodeKind, description: w.description, dataSource: w.dataSource, category: w.category, type: w.type, timeScope: w.timeScope, outputs: w.outputs, consumesSource: w.consumesSource, configFields: w.configFields, primary: w.primary })))}`;   // `primary`: what the BARE id publishes when a widget has channels (the manifest carries it; without it the advisor cannot know what `source: "id"` means)
 
 /** Dataflow manual for the Ask prompt.
  *
@@ -275,7 +275,11 @@ CATALOG (JSON array — ids are exact; use them verbatim, never invent ids):\n${
  *  (ISSUE-65: qrCode emits its encoded text). */
 const askManual = (m) => {
   const widgets = Array.isArray(m?.widgets) ? m.widgets : [];
-  const emitters = widgets.filter((w) => w.outputs && w.outputs.kind);
+  // A widget publishes either ONE value (`outputs: { kind }`) or NAMED CHANNELS with a `primary` (the Translator
+  // publishes its translation and its speech). Counting only `outputs.kind` dropped four publishers from this list —
+  // including the Translator, the middle of the chain the prompt itself recommends — while the sentence above it
+  // promised "only these N produce output". Fixed 2026-10-02, found while trimming the prompt against its budget.
+  const emitters = widgets.filter((w) => w.outputs);
   const consumers = widgets.filter((w) => w.consumesSource).map((w) => w.id);
   const freeText = widgets
     .filter((w) => (w.configFields || []).some((f) => f.type === 'textarea' && !f.noRefs))
@@ -297,7 +301,15 @@ const askManual = (m) => {
         speech: 'the same text, typed as speech (text + language)',
         geojson: 'a geometry (a GeoJSON FeatureCollection: places, a path or an area, optionally with dates)',
       }[w.outputs.kind] || `a ${w.outputs.kind}`;
-      return `${w.id} emits ${what} (kind: ${w.outputs.kind})`;
+      if (w.outputs.kind) return `${w.id} emits ${what} (kind: ${w.outputs.kind})`;
+      const chan = Object.entries(w.outputs)
+        .map(([name, kind]) => `#${name} = ${what === `a ${kind}` ? kind : {
+          extract: 'the article extract text', lines: 'its lines (one per line)', count: 'a number',
+          value: 'its value', speech: 'the same text, typed as speech (text + language)',
+          geojson: 'a geometry (a GeoJSON FeatureCollection)',
+        }[kind] || kind}${name === w.primary ? ' ← the bare id' : ''}`)
+        .join(', ');
+      return `${w.id} emits channels: ${chan}`;
     })
     .join('; ');
   const freeTextList = freeText.length > 4 ? `${freeText.slice(0, 4).join(', ')}, …` : freeText.join(', ');
@@ -305,6 +317,7 @@ const askManual = (m) => {
 };
 
 const ASK_RULES = `\n\nRULES:\n- Use EXACT widget ids from the catalog. Never invent ids.\n- Recommend 1-3 widgets. Prefer the most specific fit; add a second or third alternative only when genuinely useful (e.g. a precomputed vs live source for the same need).\n- INTENT MATCHING: when the user names a category ("from a category", "category …"), prefer widgets whose input is a category (categorySize, glamorgan, cim*). Do NOT pick file-list widgets (fileGallery, gallery, mediaPlayer) for category inputs — those take individual files. When the user names files or media, pick the file-based widgets instead. cim* is GATED: Commons Impact Metrics is precomputed for a curated allow list, so cim* fits a named collection, institution or project — NOT a general or niche category; for those prefer glamorgan or categorySize (see the CIM GATE note above).\n- For each option: widgetType = exact id; config = pre-filled with the user's subject using REAL names from the request (never invent subjects the user did not name; when none is given use a placeholder like "Example" for a category or "Main_Page" for an article); mode = a display mode only if the widget's displayMode field lists one; reason = one plain-language sentence.\n- If nothing fits, return {"options": []}.\n- Reply with JSON only — no prose, no markdown fences, no commentary.\n\nVALUE RULES (critical — invalid values break the widget):\n- category values: the BARE category title, copied VERBATIM from the user's request — keep the FULL span including qualifiers like 'in the United States', years, and subcategory paths; never shorten, paraphrase, or truncate it. Never prepend 'Category:'; drop quotes.\n- SUBJECT COMPLETENESS: pre-fill EVERY subject field the user explicitly gave (article, file, url, category, domain, lang, dates…) — omitting one makes the widget show a placeholder instead of the user's subject.\n- wiki/project/lang values: one of the listed options EXACTLY (e.g. "commons.wikimedia", "en.wikipedia", "de.wikipedia", "fr.wikipedia", "en"). Never "commons.org", never .org suffixes, never full URLs.\n- file values: "File:Name.ext" with the File: prefix (multiple files: one per line, each with the prefix).\n- article/page values: the page title (spaces are fine; do not add prefixes).\n- domain values: bare domain only, no https:// or www. (e.g. "example.org").\n- url values: the full https:// URL exactly as given in the request.\n- number fields (sampleCount, maxRows, maxItems, topN, …): plain numbers, no commas.
+- OMITTED FIELDS ARE FINE: any config field you do not set takes that widget type's registry default. Pre-fill the subjects the user named; leave the rest out rather than guessing (the catalog lists every field name and type).
 - source/widget-reference values: NEVER set a 'source' config field (or a {{widget:…}} reference) to a made-up id — the user picks the producing widget on the board; explain the needed wiring in the option's reason instead.\n\nOUTPUT SCHEMA: ${JSON.stringify({ options: [{ widgetType: 'id', config: { key: 'value' }, mode: 'display mode', reason: 'one sentence' }] })}\n\nEXAMPLES:\nUser: Show a random sampling of images from Wikimedia Commons category "Featured pictures on Wikimedia Commons"\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'categorySize', config: { category: 'Featured pictures on Wikimedia Commons', wiki: 'commons.wikimedia', sampleCount: 6 }, reason: 'Category Size shows the category breakdown and samples random photos from it.' }] })}\nUser: I want to see how wikipedia.org looked in 2010 and 2020
 Assistant: ${JSON.stringify({ options: [{ widgetType: 'waybackGallery', config: { url: 'https://wikipedia.org', dates: '2010-01-01\n2020-01-01', toleranceDays: 365 }, reason: 'Wayback Snapshot Gallery shows one archived screenshot per requested date.' }] })}
 User: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}\nUser: count how many names in a list I paste contain the letter a\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'listSource', config: { title: 'Names', items: 'Ada Lovelace\nAlan Turing\nGrace Hopper' }, reason: 'Text List holds the lines you paste and publishes them to the board.' }, { widgetType: 'filterLines', config: { pattern: 'a', match: 'contains' }, reason: 'Filter Lines keeps only the matching lines — set its Source to the Text List card, which must come first.' }, { widgetType: 'lineCount', config: { label: 'names matching' }, reason: 'Line Count turns those lines into one number — set its Source to the Filter Lines card.' }] })}`;
@@ -328,6 +341,38 @@ const ASK_ASSEMBLY_MANUAL = `\n\nBOARD ASSEMBLY MODE: the user wants a set of wi
 const ASK_RULES_BOARD = `\n\nBOARD RULES:\n- Return JSON only: ${JSON.stringify({ board: { params: {}, widgets: [{ id: 'role-name-id', widgetType: 'id', config: { key: 'value or {{param:…}} or {{widget:…}}' }, w: 4, h: 3 }], summary: 'one sentence' } })}\n- widgetType: EXACT catalog ids. Use 2-6 widgets — the fewest that serve the request; add widgets only when the request implies them (a chain, a switcher + driven widgets, or complementary views). If the request is for ONE simple widget, prefer a normal recommendation instead (no board needed).\n- ids: kebab-case, unique within the board, descriptive of the role. Never reuse a catalog id as an instance id.\n- config: pre-fill subjects from the request using the value rules below; leave other fields out (defaults apply).\n- summary: one plain-language sentence describing the board.`;
 
 const stripThink = (s) => String(s).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+
+/**
+ * Read a file for the static handler, answering the two failures that are not
+ * this request's fault — and, more importantly, answering them *without the
+ * thrown message*.
+ *
+ * Before 2026-10-02 a missing path fell into the outer catch, so
+ * `/this-path-does-not-exist` answered **500** with
+ * `{"error":"request failed: ENOENT: no such file or directory, open
+ * '/data/project/wikibento/www/js/dist/this-path-does-not-exist'"}` — a wrong
+ * status *and* the deployment's absolute layout, handed to anyone who guessed a
+ * path. Found while preparing the door an outside model walks through.
+ *
+ * Returns the buffer, or null when it has already answered.
+ */
+async function readStatic(filePath, pathname, res) {
+  try {
+    return await readFile(filePath);
+  } catch (e) {
+    const code = (e && e.code) || '';
+    if (code !== 'ENOENT' && code !== 'EISDIR' && code !== 'ENOTDIR') throw e;
+    if (pathname.startsWith('/api/')) {
+      // An unknown API route is a contract question, not a missing file: answer
+      // in the shape every other route answers in, and name nothing.
+      json(res, 404, { error: 'unknown API route' });
+      return null;
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end('404 Not found');
+    return null;
+  }
+}
 
 async function callLlm(model, system, user) {
   const ctrl = new AbortController();
@@ -1221,11 +1266,17 @@ const server = createServer(async (req, res) => {
       res.end('Forbidden');
       return;
     }
-    const data = await readFile(filePath);
+    const data = await readStatic(filePath, pathname, res);
+    if (!data) return;
     const immutable = pathname.startsWith('/assets/');
+    // The door's public files are meant to be read from *outside* this origin — a
+    // browsing model, a notebook, another tool. Everything else is the app's own
+    // business (2026-10-02, Slice 1 of the Ask door).
+    const publicFile = pathname === '/manifest.json' || pathname === '/board-guide.md' || pathname === '/dashboard.schema.json';
     res.writeHead(200, {
       'Content-Type': MIME[extname(filePath)] || 'application/octet-stream',
       'Content-Length': data.length,
+      ...(publicFile ? { 'Access-Control-Allow-Origin': '*' } : {}),
       // Assets are content-hashed → cache hard. index.html must always
       // revalidate so new builds propagate (old hashed bundles get deleted
       // on rsync --delete; a stale index.html would 404 on them).

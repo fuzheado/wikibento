@@ -39,6 +39,24 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   inside the same lesson: that parser's `prop()` only recognises a property preceded by `,` or `{`, so a `//` comment
   line between two properties silently drops the second — the failure mode is *silence*, which is why
   `tests/ask-validation.test.mjs` now asserts the hint actually arrives, derived from the manifest.
+- 🚪 **The door's prerequisites (Slice 1, 2026-10-02): a 404 that names nothing, CORS on the public files, and a
+  generated board guide.** Three real defects, one artifact:
+  - an unknown path answered **500** with the thrown message — `ENOENT … open
+    '/data/project/wikibento/www/js/dist/…'`, i.e. the deployment's absolute layout, to anyone who guessed a path.
+    It is a plain **404** now, with a body that names nothing; an unknown **`/api/*`** route answers **404 JSON**
+    instead, so a caller probing the API gets an answer in the API's own shape.
+  - `/manifest.json` sent **no CORS header**, so a browser-based tool could not read the catalog it is meant to
+    offer. `/manifest.json`, `/board-guide.md` and `/dashboard.schema.json` now carry
+    `Access-Control-Allow-Origin: *` — and `index.html` deliberately does **not**, which the same check asserts.
+  - **`public/board-guide.md`** is served at `/board-guide.md`: the contract for writing a board outside WikiBento,
+    **assembled** (never written twice) from `public/manifest.json`, `docs/JSON-FORMAT.md`,
+    `docs/WIRING-BOARDS.md` and the widget map's chains, by `npm run guide:board`. Its §1 example is checked by the
+    suite — `tests/demos.test.mjs` pastes it through `validateDashboard` and requires zero errors *and* zero
+    warnings — because an example that does not import would teach the failure the guide exists to prevent (the
+    audit's 48/48 envelope misses). `docs-facts` runs the guide's own `--check`, so an edit to any source doc fails
+    the gate until the page is regenerated.
+  - Verified: `node scripts/relay-guard-e2e.mjs` now asserts all of it against a real server (404 without paths, the
+    three files cross-origin, `index.html` same-origin); 714 tests; docs-facts 14/14. **Not yet deployed.**
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).

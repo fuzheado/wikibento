@@ -105,6 +105,15 @@ function parseField(slice) {
   // filter and the gate can check (docs/MEDIA-DATAFLOW.md). `prop()` reads quoted scalars only, so it needs its own parse.
   const kindsMatch = slice.match(/kinds:\s*\[([^\]]*)\]/);
   if (kindsMatch) field.kinds = [...kindsMatch[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+  // `showIf` says which value of the widget's source selector makes this field apply — the Gallery's `category` only
+  // matters when `from` is "category" (ISSUE-XX: 12 of its 17 fields are source-specific). It travels into the manifest
+  // for the same reason `kinds` does: a reader of the catalog alone would otherwise pre-fill fields the card ignores,
+  // which is one of the three "nonexistent field" classes the 2026-10-01 Ask audit counted. Shape: { <selector>: 'value' | ['v1','v2'] }.
+  const showIfMatch = slice.match(/showIf:\s*\{\s*([\w$]+):\s*(\[[^\]]*\]|'[^']*')/);
+  if (showIfMatch) {
+    const vals = [...showIfMatch[2].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+    if (vals.length) field.showIf = { [showIfMatch[1]]: vals.length === 1 ? vals[0] : vals };
+  }
   const om = slice.match(/options:\s*\[([\s\S]*?)\]/);
   if (om) {
     for (const v of om[1].matchAll(/value:\s*'([^']*)'/g)) field.options ??= [], field.options.push(v[1]);

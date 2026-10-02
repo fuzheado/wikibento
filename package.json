@@ -34,7 +34,8 @@
     "smoke:map": "node scripts/map-e2e.mjs",
     "check:map-landmarks": "node scripts/map-landmark-check.mjs",
     "map:widgets": "node scripts/widget-map.mjs",
-    "test:browsers:demos": "node scripts/browser-matrix.mjs --demos --wait 9000"
+    "test:browsers:demos": "node scripts/browser-matrix.mjs --demos --wait 9000",
+    "guide:board": "node scripts/board-guide.mjs"
   },
   "dependencies": {
     "pannellum": "^2.5.7",

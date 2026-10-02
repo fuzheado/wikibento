@@ -26,6 +26,22 @@ test('demos: every board validates (format v1, known types, layout matches)', ()
   }
 });
 
+test("the served board guide's example imports cleanly (the door must be copyable)", () => {
+  // public/board-guide.md is assembled by scripts/board-guide.mjs and its §1 example is the first thing an outside
+  // producer copies. An example that does not import would teach the failure the guide exists to prevent — the
+  // 2026-10-01 audit measured 48/48 envelope misses from a model given the catalog alone.
+  const guide = readFileSync(`${DIR}/board-guide.md`, 'utf8');
+  const block = (guide.match(/```json\n([\s\S]*?)\n```/) || [])[1];
+  assert.ok(block, 'the board guide has no ```json example to check');
+  const r = validateDashboard(block);
+  assert.ok(r.valid, `the guide's example does not import: ${r.errors.join('; ')}`);
+  assert.deepEqual(r.warnings, [], `the guide's example imports with warnings: ${r.warnings.join('; ')}`);
+  for (const w of r.widgets) assert.ok(WIDGET_TYPES[w.widgetType], `the guide's example uses the unregistered type ${w.widgetType}`);
+  const ids = new Set(r.widgets.map((w) => w.id));
+  for (const l of r.layout) assert.ok(ids.has(l.i), `the guide's example has a layout item naming no widget: ${l.i}`);
+  assert.ok(r.params?.article, 'the guide\'s example lost its params block');
+});
+
 test('demos: ids are unique and every widgetType is registered', () => {
   for (const f of boards) {
     const d = read(f);

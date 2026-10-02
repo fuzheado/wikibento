@@ -92,6 +92,23 @@ test('the advisor is warned off CIM for categories that are not on the allow lis
   }
 });
 
+test('the manual names every publisher — including the ones that publish CHANNELS', () => {
+  // `askManual` writes "only these N produce output", so the list has to be every widget that publishes. It counted
+  // only `outputs.kind` until 2026-10-02, which silently omitted the four channel publishers — excerpt, gallery,
+  // wikiBox and the Translator, i.e. the middle of the chain this very prompt recommends. Derived from the manifest,
+  // so a channel publisher added later is covered without editing this test.
+  const manual = askManual(manifest);
+  const publishers = manifest.widgets.filter((w) => w.outputs).map((w) => w.id);
+  assert.ok(publishers.length >= 13, `expected the publisher set in the manifest, found ${publishers.length}`);
+  const emittersLine = (manual.match(/- EMITTERS \(only these [\s\S]*?(?=\n- )/) || [])[0] || '';
+  assert.ok(emittersLine, 'the manual has no EMITTERS line');
+  for (const id of publishers) assert.ok(emittersLine.includes(id), `the EMITTERS line omits the publisher ${id}`);
+  for (const id of ['translate', 'gallery', 'excerpt', 'wikiBox']) {
+    assert.match(emittersLine, new RegExp(`${id} emits channels:`), `${id} publishes channels — the manual should say so`);
+  }
+  assert.match(emittersLine, /#speech/, 'the Translator\'s speech channel is what the canonical chain consumes');
+});
+
 const categorySize = defs.get('categorySize');
 const gallery = defs.get('gallery');
 const topPages = defs.get('topPages');

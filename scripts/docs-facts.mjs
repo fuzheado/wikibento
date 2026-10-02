@@ -37,6 +37,7 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import { execFileSync } from 'node:child_process';   // the board guide's own --check is the comparison; not reimplemented here
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LIVE = process.argv.includes('--live');
@@ -333,6 +334,21 @@ check('every widget is called the same thing in the catalog as in the registry',
       + ' — the registry name is what the app shows, so the catalog has to match it');
   }
   return `${REGISTRY} names, all present in the catalog`;
+});
+
+check('the board guide is current, and describes every registered type', () => {
+  // public/board-guide.md is ASSEMBLED (manifest + docs/JSON-FORMAT.md + docs/WIRING-BOARDS.md + the map's chains), and
+  // `--check` is that assembly. Spawned rather than reimplemented here: one comparison, not two that can disagree.
+  // The door's whole point is that an outside producer reads one page; a stale page teaches the old shape.
+  try {
+    execFileSync('node', ['scripts/board-guide.mjs', '--check'], { cwd: ROOT, stdio: 'pipe' });
+  } catch (e) {
+    fail(`public/board-guide.md is not what its sources say — run \`npm run guide:board\` (${String(e.stdout || '').trim()}${String(e.stderr || '').trim()})`);
+  }
+  const guide = read('public/board-guide.md');
+  const missing = registry.filter((w) => !guide.includes(`### \`${w.id}\``)).map((w) => w.id);
+  if (missing.length) fail(`the board guide does not describe: ${missing.join(', ')} — run \`npm run guide:board\``);
+  return `current, all ${REGISTRY} types described`;
 });
 
 check('the widget map places every registered type (docs/WIDGET-MAP.md is generated, so this is drift, not judgement)', () => {
