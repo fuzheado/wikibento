@@ -31,7 +31,10 @@ export default function ImportPanel({ onImport, onClose }) {
     setWarnings(result.warnings);
     if (result.valid && result.widgets) {
       setImported(true);
-      onImport({ widgets: result.widgets, layout: result.layout });
+      // `params` travels with the board (ISSUE-50): without it a pasted parameterised board lost its switcher and every
+      // {{param}} card showed "Waiting for a reference" (found by the Ask audit, 2026-10-01). `applyDashboard` already
+      // reads `dashboard.params`, so the gap was here and in validateDashboard's return.
+      onImport({ widgets: result.widgets, layout: result.layout, ...(result.params ? { params: result.params } : {}) });
     }
   };
 

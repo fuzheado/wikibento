@@ -29,10 +29,11 @@ dated and reproducible — the raw runs are `bench/results/2026-10-01-*.json`, t
   few-shots) scores **top1 93%** on the single-widget suite (content-scored) and **78% chain** on the board suite —
   the same as, or better than, the shipped prompt. What the 1,410 tokens of rules/manual/few-shots actually buy is
   the **output envelope** (catalog-only replies satisfy it 0/48) and **subject formatting** (subject 69% → 92%).
-- Two defects found while measuring, both outside this doc's remit and **not fixed here**: `validateAssembly` prunes
-  the app's own channel-qualified references (`id#channel`, ISSUE-91) — it deleted the third card of the canonical
-  chain in 3/3 runs; and the ⬆ Import panel drops the `params` block, so a pasted params board renders
-  "Waiting for a reference".
+- Two defects found while measuring — **both fixed 2026-10-01**, with tests, after the audit landed: `validateAssembly`
+  pruned the app's own channel-qualified references (`id#channel`, ISSUE-91 — it deleted the third card of the canonical
+  chain in 3/3 runs; the id is now what must resolve, and a channel must be one the producer publishes), and the ⬆ Import
+  panel dropped a board's `params` block (validateDashboard now returns it, ImportPanel passes it, verified in the built
+  app: default shown, switcher live, a click drives the board).
 
 ---
 
@@ -299,18 +300,18 @@ Fixtures that would close the most (each is one interview session with `scripts/
 Ordered by (evidence × cheapness). The 2026-09-09 finding stands: **rules set intent, few-shots change behaviour** —
 the wayback case went 1/5 → 5/5 only by adding a targeted example.
 
-1. **Accept `id#channel` references in `validateAssembly`** (S, ~5 lines + one test). The app's source picker offers
+1. ✅ **DONE 2026-10-01** — **Accept `id#channel` references in `validateAssembly`** (S, ~5 lines + one test). The app's source picker offers
    channel-qualified ids (ISSUE-91), the model emits them, and the validator deletes the card — 3/3 runs of the
    canonical `excerpt → translate → speaker` chain lost its third widget. Split on `#` before the `liveIds` check
    (widget refs, bare `source` refs) and add the case to `tests/assembly.test.mjs`.
-2. **One chain few-shot in `ASK_RULES` EXAMPLES** (S). `chain-list-display` fails 5/5 in suggest mode (wrong order /
+2. ✅ **DONE 2026-10-01** — **One chain few-shot in `ASK_RULES` EXAMPLES** (S). `chain-list-display` fails 5/5 in suggest mode (wrong order /
    missing producer); board mode's id licence fixes it, and the cheapest way to move suggest mode is one example
    showing producer-before-consumer. Ground it in the shipped `public/translate-demo.json` chain.
-3. **Teach `project` vs `wiki`** (S). 3/30 single-widget rows wrote `wiki: "commons.wikimedia"` on `gallery` /
+3. ✅ **DONE 2026-10-01** — **Teach `project` vs `wiki`** (S). 3/30 single-widget rows wrote `wiki: "commons.wikimedia"` on `gallery` /
    `glamorgan`, where the field is `project` — `normalizeConfig` silently drops it and the card falls back to its
    own default project (a silent wrong-wiki). Either add the field name to VALUE RULES or alias `wiki` → `project`
    in `normalizeConfig` when the widget has no `wiki` field.
-4. **A token constitution with the measured ratio** (S). `tests/*` does not assemble the prompt today. Assert
+4. ✅ **DONE 2026-10-01** — **A token constitution with the measured ratio** (S). `tests/*` does not assemble the prompt today. Assert
    `ASK_SYSTEM + askManual + <rules> + 700 output ≤ 14,000` using **4.13 chars/token** (or the API count), and fail
    with the block that grew.
 5. **Reconcile `category-sample-photos`** (S, owner's call). It fails 5/5 today against a prompt whose own few-shot

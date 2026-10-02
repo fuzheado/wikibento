@@ -71,6 +71,48 @@ test('assembly: a bare source-field id must reference a declared widget', () => 
   assert.ok(r.warnings.some((w) => w.includes('cnt')));
 });
 
+test('assembly: a channel-qualified reference is NOT dangling (ISSUE-91 — the app offers these ids)', () => {
+  // The defect the 2026-10-01 Ask audit found: `translate-widget#speech` is what the ⚙ source picker offers, and the
+  // whole string was looked up in the board's ids, so the canonical chain lost its speaker in 3/3 runs.
+  const r = validateAssembly(boardOf([
+    { id: 'ex', widgetType: 'excerpt', config: { article: 'Albert Einstein' } },
+    { id: 'tr', widgetType: 'translate', config: { text: '{{widget:ex}}', to: 'es' } },
+    { id: 'sp', widgetType: 'speaker', config: { text: '{{widget:tr#speech}}' } },
+  ]), defs);
+  assert.deepEqual(r.widgets.map((w) => w.id), ['ex', 'tr', 'sp'], 'the whole chain survives');
+  assert.ok(!r.warnings.some((w) => w.includes('sp')), 'and nothing is reported as dangling');
+});
+
+test('assembly: a channel the producer does not publish IS dangling', () => {
+  // Still strict where it counts: `translate` publishes translation+speech, not `#geojson`; a single-kind producer
+  // publishes only its bare id, so any `#channel` on it is a miss. The card is pruned rather than left waiting.
+  const noSuchChannel = validateAssembly(boardOf([
+    { id: 'tr', widgetType: 'translate', config: { text: 'hola', to: 'es' } },
+    { id: 'mp', widgetType: 'map', config: { source: 'tr#geojson' } },
+  ]), defs);
+  assert.deepEqual(noSuchChannel.widgets.map((w) => w.id), ['tr']);
+  assert.ok(noSuchChannel.warnings.some((w) => w.includes('mp')));
+
+  const singleKind = validateAssembly(boardOf([
+    { id: 'qr', widgetType: 'qrCode', config: { text: 'hello' } },
+    { id: 'mp2', widgetType: 'map', config: { source: 'qr#value' } },
+  ]), defs);
+  assert.deepEqual(singleKind.widgets.map((w) => w.id), ['qr'], 'a single-kind emitter has no channels');
+});
+
+test('assembly: `wiki` is repaired onto `project` (the audit found 3/30 rows writing the wrong field name)', () => {
+  const r = validateAssembly(boardOf([
+    { id: 'gl', widgetType: 'gallery', config: { from: 'category', category: 'Featured pictures', wiki: 'commons.wikimedia' } },
+  ]), defs);
+  assert.equal(r.widgets[0].config.project, 'commons.wikimedia', 'read as the registry’s own field');
+  assert.equal(r.widgets[0].config.wiki, undefined, 'and not left as a key the widget ignores');
+  // An explicit `project` wins over a repaired `wiki`.
+  const both = validateAssembly(boardOf([
+    { id: 'gl', widgetType: 'gallery', config: { project: 'de.wikipedia', wiki: 'commons.wikimedia' } },
+  ]), defs);
+  assert.equal(both.widgets[0].config.project, 'de.wikipedia');
+});
+
 test('assembly: a dangling {{param}} reference prunes the widget', () => {
   const r = validateAssembly(boardOf([
     { id: 'ex', widgetType: 'excerpt', config: { article: '{{no-such-param}}' } },

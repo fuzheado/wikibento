@@ -61,6 +61,14 @@ function migrateLegacyFrame(config, def) {
 
 export function normalizeConfigForDef(config, def) {
   const out = migrateLegacyFrame({ ...(config || {}) }, def);
+  // `wiki: "commons.wikimedia"` where the registry says `project`: the Ask advisor writes this (3 of 30 rows in the
+  // 2026-10-01 audit) and so do people. Dropped, the card quietly used its *default* project — a wrong wiki with no
+  // error, the worst kind. Repaired here so every intake path gets it (Import, ?config=, localStorage, a board another
+  // model produced); `validateWidgetConfig` warns when it happens, because it changes meaning.
+  if (out.wiki !== undefined && out.project === undefined && (def?.configFields || []).some((f) => f.key === 'project')) {
+    out.project = out.wiki;
+    delete out.wiki;
+  }
   for (const field of def?.configFields || []) {
     if (out[field.key] === undefined && def?.defaults && def.defaults[field.key] !== undefined) {
       out[field.key] = def.defaults[field.key];

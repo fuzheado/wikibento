@@ -300,7 +300,7 @@ const askManual = (m) => {
 const ASK_RULES = `\n\nRULES:\n- Use EXACT widget ids from the catalog. Never invent ids.\n- Recommend 1-3 widgets. Prefer the most specific fit; add a second or third alternative only when genuinely useful (e.g. a precomputed vs live source for the same need).\n- INTENT MATCHING: when the user names a category ("from a category", "category …"), prefer widgets whose input is a category (categorySize, glamorgan, cim*). Do NOT pick file-list widgets (fileGallery, gallery, mediaPlayer) for category inputs — those take individual files. When the user names files or media, pick the file-based widgets instead.\n- For each option: widgetType = exact id; config = pre-filled with the user's subject using REAL names from the request (never invent subjects the user did not name; when none is given use a placeholder like "Example" for a category or "Main_Page" for an article); mode = a display mode only if the widget's displayMode field lists one; reason = one plain-language sentence.\n- If nothing fits, return {"options": []}.\n- Reply with JSON only — no prose, no markdown fences, no commentary.\n\nVALUE RULES (critical — invalid values break the widget):\n- category values: the BARE category title, copied VERBATIM from the user's request — keep the FULL span including qualifiers like 'in the United States', years, and subcategory paths; never shorten, paraphrase, or truncate it. Never prepend 'Category:'; drop quotes.\n- SUBJECT COMPLETENESS: pre-fill EVERY subject field the user explicitly gave (article, file, url, category, domain, lang, dates…) — omitting one makes the widget show a placeholder instead of the user's subject.\n- wiki/project/lang values: one of the listed options EXACTLY (e.g. "commons.wikimedia", "en.wikipedia", "de.wikipedia", "fr.wikipedia", "en"). Never "commons.org", never .org suffixes, never full URLs.\n- file values: "File:Name.ext" with the File: prefix (multiple files: one per line, each with the prefix).\n- article/page values: the page title (spaces are fine; do not add prefixes).\n- domain values: bare domain only, no https:// or www. (e.g. "example.org").\n- url values: the full https:// URL exactly as given in the request.\n- number fields (sampleCount, maxRows, maxItems, topN, …): plain numbers, no commas.
 - source/widget-reference values: NEVER set a 'source' config field (or a {{widget:…}} reference) to a made-up id — the user picks the producing widget on the board; explain the needed wiring in the option's reason instead.\n\nOUTPUT SCHEMA: ${JSON.stringify({ options: [{ widgetType: 'id', config: { key: 'value' }, mode: 'display mode', reason: 'one sentence' }] })}\n\nEXAMPLES:\nUser: Show a random sampling of images from Wikimedia Commons category "Featured pictures on Wikimedia Commons"\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'categorySize', config: { category: 'Featured pictures on Wikimedia Commons', wiki: 'commons.wikimedia', sampleCount: 6 }, reason: 'Category Size shows the category breakdown and samples random photos from it.' }] })}\nUser: I want to see how wikipedia.org looked in 2010 and 2020
 Assistant: ${JSON.stringify({ options: [{ widgetType: 'waybackGallery', config: { url: 'https://wikipedia.org', dates: '2010-01-01\n2020-01-01', toleranceDays: 365 }, reason: 'Wayback Snapshot Gallery shows one archived screenshot per requested date.' }] })}
-User: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}`;
+User: how often is an image used in a certain category\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'fileUsage', config: { file: 'File:Example.jpg' }, reason: 'File Usage Map lists every wiki page that uses the file.' }, { widgetType: 'cimFileSpotlight', config: { file: 'File:Example.jpg' }, reason: 'CIM File Spotlight shows the file\'s usage wikis and view trend (precomputed).' }] })}\nUser: count how many names in a list I paste contain the letter a\nAssistant: ${JSON.stringify({ options: [{ widgetType: 'listSource', config: { title: 'Names', items: 'Ada Lovelace\nAlan Turing\nGrace Hopper' }, reason: 'Text List holds the lines you paste and publishes them to the board.' }, { widgetType: 'filterLines', config: { pattern: 'a', match: 'contains' }, reason: 'Filter Lines keeps only the matching lines — set its Source to the Text List card, which must come first.' }, { widgetType: 'lineCount', config: { label: 'names matching' }, reason: 'Line Count turns those lines into one number — set its Source to the Filter Lines card.' }] })}`;
 
 // ── Board-assembly mode (ISSUE-44 Phase 3a) ──
 // The client may request mode:'board' — the advisor returns a COMPLETE wired
@@ -369,10 +369,19 @@ const LANGUAGE_WORDS = {
 };
 const fieldOf = (widgetDef, key) => (widgetDef?.configFields || []).find((f) => f.key === key);
 
+/** Field names the model — and people — reach for that mean a field the registry calls something else. */
+const FIELD_ALIASES = { wiki: 'project' };
+
 function normalizeConfig(config, widgetDef) {
   const out = {};
-  for (const [key, raw] of Object.entries(config || {})) {
-    if (key.startsWith('_')) { out[key] = String(raw).slice(0, 200); continue; } // custom props pass through
+  for (const [rawKey, raw] of Object.entries(config || {})) {
+    if (rawKey.startsWith('_')) { out[rawKey] = String(raw).slice(0, 200); continue; } // custom props pass through
+    // `wiki: "commons.wikimedia"` where the registry says `project` (the Ask audit found 3 of 30 rows doing this on
+    // gallery/glamorgan). Dropped silently, it made the card use its default project — a wrong wiki with no error — so
+    // it is repaired onto the registry's own key. An explicit `project` always wins over a repaired `wiki`.
+    const aliased = !fieldOf(widgetDef, rawKey) && FIELD_ALIASES[rawKey] && fieldOf(widgetDef, FIELD_ALIASES[rawKey]);
+    const key = aliased ? FIELD_ALIASES[rawKey] : rawKey;
+    if (aliased && out[key] !== undefined) continue;
     const field = fieldOf(widgetDef, key);
     if (!field) continue; // unknown key for this widget → drop
     if (field.type === 'number') {
@@ -520,6 +529,7 @@ function validateAssembly(parsed, widgetDefs) {
   while (changed && widgets.length) {
     changed = false;
     const liveIds = new Set(widgets.map((w) => w.id));
+    const typeById = new Map(widgets.map((w) => [w.id, w.widgetType]));
     for (let i = widgets.length - 1; i >= 0; i--) {
       const w = widgets[i];
       const cfgStr = JSON.stringify(w.config || {});
@@ -527,9 +537,25 @@ function validateAssembly(parsed, widgetDefs) {
       const paramRefs = [...cfgStr.matchAll(/\{\{(?!widget:)([^}]+)\}\}/g)].map((m) => m[1].trim());
       const sourceFields = (widgetDefs.get(w.widgetType)?.configFields || []).filter((f) => f.type === 'source').map((f) => f.key);
       const sourceRefs = sourceFields.map((k) => String(w.config?.[k] ?? '').trim()).filter(Boolean);
-      const dangling = widgetRefs.some((r) => !liveIds.has(r))
+      // A reference may name a **channel**: `translate-widget#speech` is the form the app's own source picker offers
+      // (ISSUE-91). So the *id* is what must exist, and when a channel is named the producer must publish it. Before
+      // 2026-10-01 the whole string was looked up in `liveIds`, so every channel-qualified reference counted as
+      // dangling and the card was pruned — 3/3 runs of the canonical `excerpt → translate → speaker` chain lost its
+      // speaker, which is the chain the advisor itself recommends. Found by the Ask audit (docs/ASK-ARCHITECTURE.md).
+      const refOk = (ref) => {
+        const [rawId, rawChannel] = String(ref).split('#');
+        const id = rawId.trim();
+        if (!liveIds.has(id)) return false;
+        const channel = String(rawChannel ?? '').trim();
+        if (!channel) return true;
+        const outputs = widgetDefs.get(typeById.get(id))?.outputs;
+        if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) return false;
+        if ('kind' in outputs) return false;          // a single-kind widget publishes its bare id, no channels
+        return Object.prototype.hasOwnProperty.call(outputs, channel);
+      };
+      const dangling = widgetRefs.some((r) => !refOk(r))
         || paramRefs.some((r) => !(r in params))
-        || sourceRefs.some((r) => !liveIds.has(r));
+        || sourceRefs.some((r) => !refOk(r));
       if (dangling) {
         warnings.push(`widget "${w.id}" dropped — a reference it consumes is not on the board`);
         widgets.splice(i, 1);

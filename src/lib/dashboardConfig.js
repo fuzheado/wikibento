@@ -224,21 +224,42 @@ export function validateDashboard(input) {
     try {
       parsed = JSON.parse(input);
     } catch (e) {
-      return { valid: false, errors: [`Not valid JSON: ${e.message}`], warnings: [], widgets: null, layout: null };
+      return { valid: false, errors: [`Not valid JSON: ${e.message}`], warnings: [], widgets: null, layout: null, params: null };
     }
   }
 
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { valid: false, errors: ['Dashboard must be a JSON object like { "widgets": [...], "layout": [...] }'], warnings: [], widgets: null, layout: null };
+    return { valid: false, errors: ['Dashboard must be a JSON object like { "widgets": [...], "layout": [...] }'], warnings: [], widgets: null, layout: null, params: null };
   }
 
   const { widgets, layout } = parsed;
   if (!Array.isArray(widgets)) errors.push('"widgets" must be an array');
   if (!Array.isArray(layout)) errors.push('"layout" must be an array');
-  if (errors.length) return { valid: false, errors, warnings, widgets: null, layout: null };
+  if (errors.length) return { valid: false, errors, warnings, widgets: null, layout: null, params: null };
 
   if (parsed.version !== undefined && parsed.version !== CONFIG_VERSION) {
     errors.push(`Unsupported "version": ${JSON.stringify(parsed.version)} (this app supports version ${CONFIG_VERSION})`);
+  }
+
+  // ── params ── (ISSUE-50: Board Controls declares them; widgets reference {{name}})
+  // This block was validated and then *not returned* until 2026-10-01, so ⬆ Import silently dropped a parameterised
+  // board's switcher and every {{param}} card read "Waiting for a reference". The Ask audit found it by pasting an
+  // assembled params board (docs/ASK-ARCHITECTURE.md). Light on purpose: Board Controls is the editor, so the shape is
+  // checked and the grammar is reported, but a working board is never refused here.
+  let params = null;
+  // `"params": null` is how this app's own Export writes a board that has none (public/*.json carry it), so null means
+  // absent — treating it as a type error refused every parameterless exported board (caught by the demos constitution).
+  if (parsed.params !== undefined && parsed.params !== null) {
+    if (!parsed.params || typeof parsed.params !== 'object' || Array.isArray(parsed.params)) {
+      errors.push('"params" must be an object of named specs');
+    } else {
+      params = parsed.params;
+      const names = Object.keys(params);
+      if (names.length > 8) warnings.push(`"params" declares ${names.length} parameters — the panel is built for a handful`);
+      names.forEach((name) => {
+        if (!/^[a-zA-Z0-9_-]+$/.test(name)) warnings.push(`params."${name}": a name outside [A-Za-z0-9_-] cannot be referenced as {{${name}}}`);
+      });
+    }
   }
 
   // ── widgets ──
@@ -327,7 +348,7 @@ export function validateDashboard(input) {
     }
   });
 
-  return { valid: errors.length === 0, errors, warnings, widgets, layout };
+  return { valid: errors.length === 0, errors, warnings, widgets, layout, params };
 }
 
 /** Check one widget's config against its registry configFields. */
@@ -344,6 +365,11 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
   const fieldMap = {};
   (def.configFields || []).forEach(f => { fieldMap[f.key] = f; });
 
+  // `wiki` is not a field of this widget — it is read as `project` (normalizeConfigForDef repairs it). Say so, because
+  // it changes *which wiki* the card reads: the silent version showed a different project with no warning at all.
+  if (c.wiki !== undefined && fieldMap.project && c.project === undefined && String(c.wiki).trim()) {
+    warnings.push(`${where}: config "wiki" is not a field of this widget — read as "project" (${JSON.stringify(String(c.wiki).trim())})`);
+  }
   for (const [key, field] of Object.entries(fieldMap)) {
     const v = c[key];
     if (v === undefined || v === null || v === '') continue; // missing → widget default

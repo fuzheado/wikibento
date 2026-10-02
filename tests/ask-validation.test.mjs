@@ -7,7 +7,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, validateOptions } from '../deploy/server.js';
+import { normalizeConfig, validateOptions, ASK_SYSTEM, askManual, ASK_RULES, ASK_RULES_BOARD, ASK_ASSEMBLY_MANUAL } from '../deploy/server.js';
 
 // Widget definitions straight from the build-generated manifest (the same
 // file the server prompts with) — single source of truth. Tests run from the
@@ -18,6 +18,34 @@ import { join } from 'node:path';
 
 const manifest = JSON.parse(await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'));
 const defs = new Map(manifest.widgets.map((w) => [w.id, w]));
+
+/**
+ * The static prompt has a **constitution**, not a habit (the Ask audit's fix #4, 2026-10-01).
+ *
+ * The fallback model binds: `llm-qwen36-27b` has a 32K window but `llm-qwen3-14b` has 16K, so a prompt that outgrows
+ * the budget turns a primary-model outage into a 502. The first version of this budget used the `chars / 3.5` rule of
+ * thumb, which over-estimated by ~15% (it read "at the ceiling" when there were ~3.5K tokens of room); the ratio below
+ * is **measured** — the API reported `usage.prompt_tokens: 11,386` for the 47,066-character suggest prompt.
+ */
+test('the static prompt stays inside its measured token budget (the 16K fallback binds)', () => {
+  const CHARS_PER_TOKEN = 4.13;   // measured 2026-10-01 (API usage.prompt_tokens), not the 3.5 heuristic
+  const CEILING_TOKENS = 12600;   // ≤ 14K design ceiling, leaving room for the user prompt + 700 output in 16K
+  const tokenCount = (s) => Math.round(String(s).length / CHARS_PER_TOKEN);
+  const catalog = ASK_SYSTEM(manifest);
+  const manual = askManual(manifest);
+  const valueRules = ASK_RULES.slice(ASK_RULES.indexOf('\n\nVALUE RULES (critical'), ASK_RULES.indexOf('\n\nOUTPUT SCHEMA:'));
+  const modes = {
+    suggest: `${catalog}${manual}${ASK_RULES}`,
+    board: `${catalog}${manual}${ASK_ASSEMBLY_MANUAL}${ASK_RULES_BOARD}${valueRules}`,
+  };
+  for (const [mode, prompt] of Object.entries(modes)) {
+    const tokens = tokenCount(prompt);
+    assert.ok(tokens <= CEILING_TOKENS,
+      `${mode} prompt is ~${tokens} tokens (cap ${CEILING_TOKENS}). Blocks: catalog ${tokenCount(catalog)}`
+      + ` · manual ${tokenCount(manual)} · rules ${tokenCount(mode === 'board' ? ASK_ASSEMBLY_MANUAL + ASK_RULES_BOARD + valueRules : ASK_RULES)}`
+      + ' — the block that grew is the one to trim (docs/ASK-ARCHITECTURE.md, "How to re-measure")');
+  }
+});
 const categorySize = defs.get('categorySize');
 const gallery = defs.get('gallery');
 const topPages = defs.get('topPages');

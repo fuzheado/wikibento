@@ -10,6 +10,66 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseParams, resolveParams, parseParamSpecText, paramSpecToText } from '../src/lib/params.js';
+import { validateDashboard } from '../src/lib/dashboardConfig.js';
+import { normalizeConfigForDef } from '../src/lib/configNormalize.js';
+import { WIDGET_TYPES } from '../src/widgets/index.js';
+
+test('validateDashboard RETURNS the params block (⬆ Import used to drop it — Ask audit, 2026-10-01)', () => {
+  // The defect: `validateDashboard` validated a board and returned `{valid, errors, warnings, widgets, layout}` — no
+  // params — and ImportPanel passed only widgets+layout on. A pasted parameterised board therefore lost its switcher
+  // and every card reading {{name}} showed "Waiting for a reference", with nothing to say why.
+  const board = {
+    version: 1,
+    params: { institution: { label: 'Institution', type: 'buttons', options: ['Met', 'Smithsonian'], value: 'Met' } },
+    widgets: [{ id: 'note', widgetType: 'markdown', config: { text: '{{institution}}' } }],
+    layout: [{ i: 'note', x: 0, y: 0, w: 4, h: 3 }],
+  };
+  const ok = validateDashboard(JSON.stringify(board));
+  assert.equal(ok.valid, true, ok.errors.join('; '));
+  assert.deepEqual(Object.keys(ok.params), ['institution'], 'the params travel with the board');
+  assert.deepEqual(parseParams(ok.params).values, { institution: 'Met' }, 'and they still parse');
+
+  // The invalid paths answer with a shape the caller can rely on (params: null), so `result.params` is never undefined.
+  const badJson = validateDashboard('{ not json');
+  assert.equal(badJson.valid, false);
+  assert.equal(badJson.params, null);
+  const badParams = validateDashboard(JSON.stringify({ ...board, params: ['nope'] }));
+  assert.equal(badParams.valid, false);
+  assert.ok(badParams.errors.some((e) => e.includes('"params" must be an object')));
+
+  // A board WITHOUT params is written by our own Export as `"params": null` — absent, not invalid (the demos carry it).
+  const noParams = validateDashboard(JSON.stringify({ version: 1, params: null, widgets: [{ id: 'n', widgetType: 'markdown', config: { text: 'x' } }], layout: [{ i: 'n', x: 0, y: 0, w: 4, h: 3 }] }));
+  assert.equal(noParams.valid, true, noParams.errors.join('; '));
+  assert.equal(noParams.params, null);
+
+  // A parameter name that cannot be referenced is a warning, not a refusal (the board still renders).
+  const oddName = validateDashboard(JSON.stringify({ ...board, params: { 'my param': { label: 'x', type: 'text' } } }));
+  assert.equal(oddName.valid, true);
+  assert.ok(oddName.warnings.some((w) => w.includes('my param')));
+});
+
+test('`wiki` is read as `project` on the app side too, and the validator says so', () => {
+  // The advisor writes `wiki:` where the registry says `project:` (3 of 30 rows in the audit). Repaired at *render*
+  // time so every intake path gets it, and reported by the validator because it changes which wiki is read.
+  const gallery = WIDGET_TYPES.gallery;
+  const repaired = normalizeConfigForDef({ from: 'category', category: 'Featured pictures', wiki: 'commons.wikimedia' }, gallery);
+  assert.equal(repaired.project, 'commons.wikimedia');
+  assert.equal(repaired.wiki, undefined);
+  // An explicit project wins over the alias.
+  assert.equal(normalizeConfigForDef({ project: 'de.wikipedia', wiki: 'commons.wikimedia' }, gallery).project, 'de.wikipedia');
+  // A widget with its own `wiki` field keeps it (nothing is aliased away by accident).
+  const withWiki = (WIDGET_TYPES.categorySize || {});
+  if ((withWiki.configFields || []).some((f) => f.key === 'wiki')) {
+    assert.equal(normalizeConfigForDef({ wiki: 'commons.wikimedia' }, withWiki).wiki, 'commons.wikimedia');
+  }
+
+  const result = validateDashboard(JSON.stringify({
+    version: 1,
+    widgets: [{ id: 'gl', widgetType: 'gallery', config: { from: 'category', category: 'X', wiki: 'commons.wikimedia' } }],
+    layout: [{ i: 'gl', x: 0, y: 0, w: 4, h: 4 }],
+  }));
+  assert.ok(result.warnings.some((w) => w.includes('read as "project"')), result.warnings.join(' | '));
+});
 
 test('parseParams: defaults to first option; explicit value wins', () => {
   const { specs, values } = parseParams({

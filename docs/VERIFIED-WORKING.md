@@ -11,6 +11,28 @@ Re-run the checks with `npm test`, `npm run smoke`, `npm run smoke:panels`, `npm
 
 Back to the [README](../README.md).
 
+## The Ask audit's two defects, fixed (2026-10-01)
+
+The Phase 2 audit (`docs/ASK-ARCHITECTURE.md`) found two defects by driving the system, and both were real, small, and
+silent. Verified rather than assumed — each has a test now, and the second was checked in the built app.
+
+- ✅ **`validateAssembly` pruned channel-qualified references.** The prune loop looked the *whole* captured string up in
+  the board's id set, so `{{widget:translate-widget#speech}}` and a `source: "…-translation#speech"` — the forms the ⚙
+  source picker offers (ISSUE-91) — counted as dangling and the card was dropped, **cascading**: 3/3 runs of the
+  canonical `excerpt → translate → speaker` chain lost its speaker, the chain the advisor itself recommends. The id is
+  now what must resolve, and a named channel must be one the producer publishes (a single-kind emitter publishes only
+  its bare id). Two tests: the chain survives; a bogus channel is still pruned.
+- ✅ **⬆ Import dropped a board's `params`.** `validateDashboard` never returned the block and `ImportPanel` called
+  `onImport({ widgets, layout })`, so a pasted parameterised board lost its switcher and every `{{name}}` card showed
+  "Waiting for a reference" — with nothing to say why. The validator now validates and returns `params` (object shape,
+  name grammar reported, a name outside `[A-Za-z0-9_-]` is a warning rather than a refusal), and Import passes it on.
+  **Verified in the built app** by pasting a small board through the app's own ⬆ Import panel: the default value shows,
+  the Board Controls buttons render, and clicking **Smithsonian** re-aims the other card (`{{institution}}`).
+- Also fixed in the same pass, both from the audit's ranked list: **`wiki` is read as `project`** (3 of 30 advisor rows
+  wrote the wrong field name, and the card silently used its *default* project — repaired in both normalisers, warned by
+  the validator because it changes which wiki is read), and a **chain few-shot** was added to the Ask prompt
+  (`chain-list-display` failed 5/5 in suggest mode without one).
+
 ## Geometry: paths, polygons and time, as a standard (ISSUE-132, 2026-10-01)
 
 The overlay's geometry was verified on 2026-09-30; this is what draws on it. The design question was *“are we inventing
