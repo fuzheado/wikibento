@@ -6182,3 +6182,36 @@ chrome, not the captions); section grouping is a v2 question.
 
 **Effort:** about a day — a fetcher, one pure parser (highly testable: `<gallery>` blocks and pipe-separated lines),
 a registry entry, a lookup source, a demo, docs. No new format, no migration.
+
+## ISSUE-134 · A *repairable* value is refused, not repaired: `"200"` for a number blocks ⬆ Import — **open** (doctrine question, found 2026-10-02)
+
+> **Found while building the board doctor** (`src/lib/boardDoctor.js`, `npm run check:board`), whose job is to say what
+> the app will say about a board from outside. Its first version assumed the documented model and asserted that a
+> numeric field written as a string is a *repair*. It is not — the doctor was right to report it and my assumption was
+> wrong.
+>
+> **The two documented promises.** [`docs/JSON-FORMAT.md`](JSON-FORMAT.md) → *The severity model* puts **`"200"` for a
+> number** in the **Repairable** row: *"Normalise silently, and report it if it changed anything… `normalizeConfigForDef`
+> coerces by the field's declared type"*. `AGENTS.md` says the same as operating doctrine: boards arrive from files,
+> links and other tools, *"their types are as untrustworthy as their values (`!!"False"` is `true`). Coerce by the
+> registry's declared field type."*
+>
+> **What the code does.** `src/lib/dashboardConfig.js` pushes `config "topN" must be a number (got "200")` into
+> **`errors`**, and `ImportPanel` only imports when `errors` is empty — so a board whose only sin is a stringy number is
+> **refused outright**, `normalizeConfigForDef` never gets the chance to coerce it, and the reader is told the board is
+> unusable rather than that a value was read as a number. `tests/config-ranges.test.mjs` pins one instance of this
+> behaviour for `fileBudget`, so it is deliberate rather than accidental drift.
+>
+> **Why it matters now.** This is precisely the traffic the Ask door invites: a board written by a chat, where `"200"`
+> and `"False"` are ordinary. The audit's 18 board fixtures happened not to contain a stringy number, which is why the
+> baseline never surfaced it.
+>
+> **Two ways out, and it is a doctrine call rather than a bug fix:**
+> 1. **Follow the documented model** — coerce-and-warn for any value the field's declared type can read (a number
+>    written as a string, `"True"`/`"False"` for a boolean), keep the error for something the type cannot read at all,
+>    and update `tests/config-ranges.test.mjs` to the new contract. Bigger blast radius: it changes what ⬆ Import
+>    accepts, and every board already on disk that today's app refuses becomes importable.
+> 2. **Change the documentation** — say that a mistyped config value is refused, and keep the coercer's tolerance for
+>    the paths that do not run the validator first (a board's *own* saved state, a `#/d/` link).
+>
+> Until one is chosen, `npm run check:board` reports it under **ERRORS**, which is honest: that is what Import will do.

@@ -58,13 +58,12 @@ const allowList = JSON.parse(await read('public/cim-allow-list.json'));
 // brace at the end. Nothing clever: the served page shows `{{param}}`, unaltered.
 const P = '@@P@@';
 
-// The types that need THIS deployment's relay — the same three the widget map badges 🔌 (scripts/widget-map.mjs).
-// Listed by hand because the manifest does not say "needs a relay"; the assertion turns a renamed or retired id into a
-// loud failure rather than a wrong promise in the door.
-const RELAY_TYPES = ['map', 'topPages', 'waybackGallery'];
-const unknownRelay = RELAY_TYPES.filter((id) => !widgets.some((w) => w.id === id));
-if (unknownRelay.length) {
-  console.error(`✘ RELAY_TYPES names types that are not in the manifest: ${unknownRelay.join(', ')} — fix this list`);
+// The types that need THIS deployment's relay. Derived from the manifest (`relay`, which comes from `needsRelay` on
+// the widget definition) — it used to be a hand-written list here, and the widget map keeps its own, which is how three
+// copies of one fact drift apart. The assertion keeps the sentence from silently becoming "(none)".
+const relayTypes = widgets.filter((w) => w.relay).map((w) => w.id);
+if (relayTypes.length < 3) {
+  console.error(`✘ expected the relay-needing types in the manifest, found ${relayTypes.length}: ${relayTypes.join(', ') || 'none'}`);
   process.exit(1);
 }
 
@@ -83,11 +82,15 @@ const wiring = await read('docs/WIRING-BOARDS.md');
 const absLinks = (md) => md.replace(/\]\(([^)\s]+)\)/g, (whole, href) => {
   if (/^(https?:|mailto:|#)/.test(href)) return whole;
   const [path, frag] = href.split('#');
+  if (!path) return whole;
   if (path === 'dashboard.schema.json') return `](${LIVE}/dashboard.schema.json${frag ? `#${frag}` : ''})`;
   if (path === 'manifest.json') return `](${LIVE}/manifest.json${frag ? `#${frag}` : ''})`;
-  if (!path.endsWith('.md')) return whole;
-  const rel = path.startsWith('../') ? path.slice(3) : `docs/${path}`;
-  return `](${REPO}/blob/main/${rel}${frag ? `#${frag}` : ''})`;
+  // Every other relative path is a file in the repository — .md, .js, .png, .pdf alike. The first version handled only
+  // `.md`, so a link added to a doc in a different form slipped through as a 404 on this host (found 2026-10-02 by the
+  // docs-facts rule that forbids relative links in a served page: it named `boardDoctor.js`).
+  const rel = path.replace(/^\.\//, '').replace(/^\.\.\//, '');
+  const inRepo = /^(docs|src|public|scripts|tests|deploy)\//.test(rel) ? rel : `docs/${rel}`;
+  return `](${REPO}/blob/main/${inRepo}${frag ? `#${frag}` : ''})`;
 });
 
 /** Demote a document's headings one level so the two included docs nest under this file's sections. */
@@ -332,8 +335,8 @@ ${catalog}
   and names the request process — but it is an empty card.
 - **Needs this deployment's relay**: a few types depend on a same-origin relay that WikiBento itself runs (the map image
   service refuses browser-shaped requests; two others read sources with no CORS header). They render **in WikiBento**;
-  the config is still valid anywhere. The three: ${RELAY_TYPES.map((id) => `\`${id}\``).join(', ')}. For a board meant
-  for another host, prefer a type that reads its source directly.
+  the config is still valid anywhere. The ${relayTypes.length} are: ${relayTypes.map((id) => `\`${id}\``).join(', ')}. For a
+  board meant for another host, prefer a type that reads its source directly.
 - **Experimental**: ${experimental.length ? experimental.map((id) => `\`${id}\``).join(', ') : '(none declared)'} —
   shipped but not yet proven in the field; the catalog marks them and the Add-widget panel says so.
 - **Heavy**: a type whose \`dataSource\` implies many upstream calls (a gallery over a large category, a page rendering a
@@ -364,7 +367,9 @@ otherwise wait forever. (This was a real bug in the app's own validator until 20
 ## 6. Check it before you ship it
 
 1. **Paste it into ⬆ Import.** It validates and reports: errors that block (an unregistered type, a broken layout), and
-   warnings for everything it repaired. Nothing is written to the reader's board until they accept.
+   warnings for everything it repaired. Nothing is written to the reader's board until they accept. With a terminal,
+   \`npm run check:board -- board.json\` runs the same checks before you paste anything, and says which rule each
+   finding comes from — useful when the board came from a chat, where fixing it in the conversation is cheaper.
 2. **Then look at it.** A board that imports cleanly can still show an empty card: a category with no CIM data, a wiki
    the field does not accept, a title that does not exist. Import validates the *shape*; the widgets validate the world,
    in their own error states.

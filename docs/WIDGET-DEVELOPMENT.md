@@ -211,6 +211,25 @@ on an effector/compositor consumer (WIDGET-IDEAS family 7).
 The registry pattern means a new widget is **one entry in `WIDGET_TYPES`** plus
 (usually) one fetcher in `dataSources.js`. No changes to the grid, frame, or panels.
 
+## The two flags that are part of a type's contract
+
+Properties on a widget definition are read by everything that describes the catalog, and two of them exist precisely
+so that a *reader* can say something true about the type:
+
+- **`needsRelay: true`** — this type cannot fetch its data from a browser at all (Wikimedia's map service answers a
+  browser-shaped request with `403` + HTML; two other sources send no CORS header), so it asks **this deployment's
+  relay**. `scripts/generate-manifest.mjs` carries it as `relay`, and the board guide, the widget map and the board
+  doctor each derive their warning from that one fact — before 2026-10-02 all three kept their own hand-written list,
+  which is how one of them goes stale.
+- **`experimental: true`** — shipped but not yet proven in the field; travels as `experimental`, and is what the
+  widget map's α badge and the doctor's note read.
+
+The same applies to the rest of the metadata that travels: `outputs` and `primary` (what a type publishes, and which
+channel the bare id means), each field's `showIf` (which selector value makes it apply), and `kinds` on a field. All of
+them reach `public/manifest.json`, which is what an outside producer reads — so a property that is only in the registry
+is a property the door cannot state. One trap while editing a shared `configFields` constant: a property that follows a
+comment line is invisible to the generator's parser (see the note in `src/widgets/index.js`).
+
 ## Anatomy of a Widget
 
 Every widget is defined by 5 things:

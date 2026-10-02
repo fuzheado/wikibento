@@ -218,6 +218,10 @@ while ((m = blockRe.exec(src)) !== null) {
     type: TYPE_BY_RENDERER[renderer] || 'stat',
     intensity: prop(block, 'intensity') || 'low',
     experimental: /experimental:\s*true/.test(block),
+    // A type that cannot fetch its data from a browser at all (the map image service refuses browser-shaped requests;
+    // two sources send no CORS header) asks THIS deployment's relay. Carried so the catalog readers — the Ask advisor,
+    // the board guide, the board doctor — can say so without each keeping a hand-written list.
+    relay: /needsRelay:\s*true/.test(block),
     timeScope: prop(block, 'timeScope') || 'point',
     nodeKind,
     consumesSource: configFields.some((f) => f.type === 'source'),

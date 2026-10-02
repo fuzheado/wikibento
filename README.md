@@ -376,6 +376,10 @@ front door.
   one page, grouped by what you must supply — with the gates and the wiring; the picture is [widget-map.pdf](docs/widget-map.pdf)) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
+- **Bring a board from outside** — `npm run check:board -- board.json` runs the app's own validation over a board that
+  came from a chat, a notebook or another tool: what will block the import, what the app will repair silently, what it
+  will quietly ignore ([docs/JSON-FORMAT.md](docs/JSON-FORMAT.md) is the contract it checks). Serving that contract to
+  an outside model is [`/board-guide.md`](https://wikibento.toolforge.org/board-guide.md).
 - **Build & extend** — [WIRING-BOARDS](docs/WIRING-BOARDS.md) (what travels between cards: sources, consumers,
   channels, references — the advanced guide after the GUIDE) · [ARCHITECTURE](docs/ARCHITECTURE.md) · [WIDGET-DEVELOPMENT](docs/WIDGET-DEVELOPMENT.md)
   · [BOARD-COMPOSITION](docs/BOARD-COMPOSITION.md) (every widget, wired) · [DATA-SOURCES](docs/DATA-SOURCES.md)

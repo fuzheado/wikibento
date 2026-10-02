@@ -499,6 +499,7 @@ export const WIDGET_TYPES = {
 
   topPages: {
     id: 'topPages',
+    needsRelay: true,   // via /api/proxy — top.hatnote.com sends no CORS header
     category: 'Rankings & Platforms', intensity: 'medium',
 
     timeScope: 'day',    name: 'Top Wikipedia Articles',
@@ -1885,6 +1886,11 @@ export const WIDGET_TYPES = {
 
   map: {
     id: 'map',
+    // This type asks THIS deployment's relay (/api/staticmap): Wikimedia's map service answers a browser-shaped request
+    // with 403 + HTML, which the browser then refuses as an image. Declared here rather than in three hand-written
+    // lists (the widget map, the board guide and the doctor each kept one) — the manifest carries it, so every reader
+    // derives it. See docs/PROXIES.md.
+    needsRelay: true,
     nodeKind: 'display',
     category: 'Content & Embeds', intensity: 'low',
 
@@ -2101,6 +2107,7 @@ export const WIDGET_TYPES = {
     category: 'Web & History', intensity: 'high', loadingHint: 'Looking up Wayback captures — may take a few seconds',
 
     timeScope: 'range',    name: 'Wayback Snapshot Gallery',
+    needsRelay: true,   // via /api/wayback-gallery — the CDX endpoint sends no CORS header
     icon: '🕰️',
     experimental: true,
     description: 'Screenshot tiles of a website across history — one Wayback capture per requested date. Experimental: depends on the Wayback Machine backend health; failed lookups retry on refresh',

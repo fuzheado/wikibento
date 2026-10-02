@@ -101,8 +101,6 @@ const FAMILY_COLOURS = {
 
 /** Facts the manifest does not carry, declared here with the reason (all verified against the registry/docs). */
 const STATIC = new Set(['markdown', 'qrCode', 'boardControls', 'speaker', 'wikiPage', 'listSource', 'filterLines', 'lineCount', 'echo']); // the README's own nine
-const RELAY = new Set(['map', 'topPages', 'waybackGallery']);   // /api/staticmap · top.hatnote.com · /api/wayback-gallery
-const ALPHA = new Set(['waybackGallery']);                      // README: "alpha"
 
 /** How each renderer family reads to a person — the shape of what you get. */
 const SHAPE = {
@@ -144,6 +142,12 @@ const dateLabel = new Date().toLocaleDateString('en-CA');   // local date, not U
 
 const manifest = JSON.parse(await readFile(join(root, 'public/manifest.json'), 'utf8'));
 const widgets = manifest.widgets;
+
+// Both derived from the manifest — which carries them from the widget definitions (`needsRelay`, `experimental`).
+// They used to be hand-written here AND in the board guide AND in the board doctor: three copies of one fact, which
+// is how one of them silently goes stale. Declared after the manifest load because that is where the facts come from.
+const RELAY = new Set(widgets.filter((w) => w.relay).map((w) => w.id));          // /api/staticmap · hatnote · wayback-gallery
+const ALPHA = new Set(widgets.filter((w) => w.experimental).map((w) => w.id));   // README: "alpha"
 const byId = new Map(widgets.map((w) => [w.id, w]));
 
 // ── the coverage assertion: every widget exactly once, and every id real ──────────────────────────────────────────

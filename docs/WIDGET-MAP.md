@@ -30,7 +30,7 @@ show me?* So the map groups by **what you must supply**, colours by the panel's 
 
 *aggregate statistics about wikis and articles, no subject of yours*
 
-- **Top Articles** `topPages` — Rankings & Platforms, source 🔌: Most-visited articles on a Wikipedia language edition (top.hatnote.com)
+- **Top Articles** `topPages` — , source 🔌: Most-visited articles on a Wikipedia language edition (top.hatnote.com)
 - **Top 10 Wikipedias** `topWikipedias` — Rankings & Platforms, source: Largest Wikipedias by article count
 - **Wiki Stats** `wikistats` — Rankings & Platforms, source: Articles, edits, editors and admins for one language edition — read live from that wiki’s own API (MediaWiki siteinfo)
 

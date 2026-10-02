@@ -461,8 +461,8 @@ Show whatever another widget outputs (number, lines, JSON) — the debug/pipe en
   and names the request process — but it is an empty card.
 - **Needs this deployment's relay**: a few types depend on a same-origin relay that WikiBento itself runs (the map image
   service refuses browser-shaped requests; two others read sources with no CORS header). They render **in WikiBento**;
-  the config is still valid anywhere. The three: `map`, `topPages`, `waybackGallery`. For a board meant
-  for another host, prefer a type that reads its source directly.
+  the config is still valid anywhere. The 3 are: `topPages`, `map`, `waybackGallery`. For a
+  board meant for another host, prefer a type that reads its source directly.
 - **Experimental**: `waybackGallery` —
   shipped but not yet proven in the field; the catalog marks them and the Add-widget panel says so.
 - **Heavy**: a type whose `dataSource` implies many upstream calls (a gallery over a large category, a page rendering a
@@ -493,7 +493,9 @@ otherwise wait forever. (This was a real bug in the app's own validator until 20
 ## 6. Check it before you ship it
 
 1. **Paste it into ⬆ Import.** It validates and reports: errors that block (an unregistered type, a broken layout), and
-   warnings for everything it repaired. Nothing is written to the reader's board until they accept.
+   warnings for everything it repaired. Nothing is written to the reader's board until they accept. With a terminal,
+   `npm run check:board -- board.json` runs the same checks before you paste anything, and says which rule each
+   finding comes from — useful when the board came from a chat, where fixing it in the conversation is cheaper.
 2. **Then look at it.** A board that imports cleanly can still show an empty card: a category with no CIM data, a wiki
    the field does not accept, a title that does not exist. Import validates the *shape*; the widgets validate the world,
    in their own error states.
@@ -844,8 +846,15 @@ next read, and a trim is lossless because the default comes back at render time.
 The lint that decides "is this repairable, and is it worth telling anyone?" is the same one that should run over the
 boards in this repo. `scripts/docs-facts.mjs` exists because *"a rule in prose is not a check"*; board files deserve
 the same treatment, and a single `lintWidgetConfig(config, def)` can serve both the loader (warn the reader) and a
-build-time pass over `public/*.json` (fail the PR). That is the piece still to build — the severity model above is
-what it should implement.
+build-time pass over `public/*.json` (fail the PR).
+
+**The reporting half now exists**: [`src/lib/boardDoctor.js`](https://github.com/fuzheado/wikibento/blob/main/src/lib/boardDoctor.js) — `npm run check:board -- board.json` —
+returns this severity model for a board that came from somewhere else, delegating the shape/config verdicts to
+`validateDashboard` itself and adding the checks a validator cannot make (references that name nothing, a channel the
+producer does not publish, a field the current source mode ignores, a CIM category outside the allow list). It is what
+an outside model is pointed at before it hands a board over. One disagreement between this table and the code is filed
+as **ISSUE-134** (a mistyped config value is documented as *Repairable* and is currently refused — the doctor reports
+what the app will do, which is refuse).
 
 # Appendix B — wiring boards together, included verbatim
 

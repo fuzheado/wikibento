@@ -347,5 +347,12 @@ next read, and a trim is lossless because the default comes back at render time.
 The lint that decides "is this repairable, and is it worth telling anyone?" is the same one that should run over the
 boards in this repo. `scripts/docs-facts.mjs` exists because *"a rule in prose is not a check"*; board files deserve
 the same treatment, and a single `lintWidgetConfig(config, def)` can serve both the loader (warn the reader) and a
-build-time pass over `public/*.json` (fail the PR). That is the piece still to build — the severity model above is
-what it should implement.
+build-time pass over `public/*.json` (fail the PR).
+
+**The reporting half now exists**: [`src/lib/boardDoctor.js`](../src/lib/boardDoctor.js) — `npm run check:board -- board.json` —
+returns this severity model for a board that came from somewhere else, delegating the shape/config verdicts to
+`validateDashboard` itself and adding the checks a validator cannot make (references that name nothing, a channel the
+producer does not publish, a field the current source mode ignores, a CIM category outside the allow list). It is what
+an outside model is pointed at before it hands a board over. One disagreement between this table and the code is filed
+as **ISSUE-134** (a mistyped config value is documented as *Repairable* and is currently refused — the doctor reports
+what the app will do, which is refuse).

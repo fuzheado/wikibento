@@ -36,8 +36,8 @@
 <rect x="22" y="145" width="4" height="55" rx="2" fill="#1f2937"/>
 <text x="34" y="158" fill="#e5e7eb" font-size="10.5" font-weight="700">Nothing at all — a platform-wide ranking</text>
 <text x="34" y="168" fill="#7f8794" font-size="8.2">aggregate statistics about wikis and articles, no subject of yours</text>
-<rect x="34" y="172" width="100" height="23" rx="4" fill="#0f1115" stroke="#f59e0b" stroke-opacity="0.75"/>
-<rect x="34" y="172" width="3" height="23" rx="1.5" fill="#f59e0b"/>
+<rect x="34" y="172" width="100" height="23" rx="4" fill="#0f1115" stroke="#6b7280" stroke-opacity="0.75"/>
+<rect x="34" y="172" width="3" height="23" rx="1.5" fill="#6b7280"/>
 <text x="41" y="182.5" fill="#f9fafb" font-size="8.4" font-weight="600">Top Articles</text>
 <text x="41" y="191.5" fill="#8b93a1" font-size="7.8">🏆 🔌 <tspan fill="#5f6875">source</tspan></text>
 <rect x="138" y="172" width="100" height="23" rx="4" fill="#0f1115" stroke="#f59e0b" stroke-opacity="0.75"/>
