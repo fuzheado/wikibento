@@ -56,6 +56,15 @@ build that was probed in a real browser is byte-for-byte the build that is live.
     GitHub URL** and every one was checked (`200`): the guide was previously handing out `](GUIDE.md)`, which on this
     host is a 404 — the repository's docs are not served here. `docs-facts` now fails if a relative link reappears in
     the served guide, or if it stops naming both the repository and the live host.
+  - **And the catalog is not only Wikimedia** (Andrew, 2026-10-02: *"we also have internet archive content … it may be
+    useful to say we have some adjunct/partner content too"*). The preamble had claimed "the catalog is about
+    *Wikimedia* data", which was simply false for **four** types: `iaItem`, `iaBook`, `mediaPlayer` (a Commons file
+    *or* a direct `archive.org/download/…` URL) and `waybackGallery`. It now names the two families, in a sensible
+    reading order, and adds the third-party reads worth knowing before choosing (`map` = Wikimedia's map service over
+    **OpenStreetMap** data, `sparql` = WDQS *or* **QLever**, `topPages` = a third-party pageviews mirror), with §2's
+    per-type `reads:` line as the stated authority. The list is derived from the manifest's `dataSource` and checked in
+    **both directions** — a family member with no description, or a description left by a retired type, fails the
+    generator rather than sitting there looking plausible (verified by temporarily removing one entry).
   - **`public/board-guide.md`** is served at `/board-guide.md`: the contract for writing a board outside WikiBento,
     **assembled** (never written twice) from `public/manifest.json`, `docs/JSON-FORMAT.md`,
     `docs/WIRING-BOARDS.md` and the widget map's chains, by `npm run guide:board`. Its §1 example is checked by the

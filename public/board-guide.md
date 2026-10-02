@@ -29,10 +29,23 @@ counts, category sizes, file usage, GLAM impact stats, listings and feeds you ca
 output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they chain: a translation
 carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
 
-Read this page and you can write a board without ever opening the app. But the catalog is about *Wikimedia* data:
-every card names a subject — an article, a Commons category or file, a Wikidata item, a wiki, a language — and fetches
-it live in the reader's browser (the widgets read Wikimedia's own APIs; a few types route through this deployment's
-relay, listed in §3). So the useful half of "which widget" is knowing what the user's subject *is*.
+Read this page and you can write a board without ever opening the app — and if you are a model: §1 is the shape,
+§2 is the field names, §6 is how to check the result before handing it over.
+
+What a card needs is a **subject**, and the catalog is broader than it looks. Most of it reads **Wikimedia** — an
+article, a Commons category or file, a Wikidata item, a wiki, a language, a Wikisource text, Wikistats — and
+4 types read the **Internet Archive** instead:
+
+- `iaItem` — an Internet Archive item — its metadata, engagement views and thumbnail
+- `iaBook` — a book's pages, with images and full-text search inside
+- `mediaPlayer` — audio or video — a Commons file, or a direct archive.org/download/… URL
+- `waybackGallery` — how a URL looked on given dates (Wayback Machine)
+
+A few read other public sources, which is worth knowing before choosing one: `map` draws Wikimedia's own map service
+over **OpenStreetMap** data, `sparql` can go to Wikidata's WDQS *or* the third-party **QLever** endpoint, and
+`topPages` reads a third-party pageviews mirror. Whatever a card fetches, it says so: the `reads:` line under every
+type in §2 is the authority, and §3 lists the gates (precomputed data, relays, experimental types). So the useful half
+of "which widget" is knowing what the user's subject *is* — an item in an archive counts.
 
 **Where to read more** — this page is self-contained for *writing* a board. These are for the rest of it: what the app
 looks like, and what each card is *for*.

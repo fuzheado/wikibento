@@ -151,6 +151,28 @@ const catalog = widgets.map((w) => {
   ].join('\n');
 }).join('\n');
 
+// ── the two families in the catalog ────────────────────────────────────────────────────────────────────────────────
+// The preamble used to say "the catalog is about Wikimedia data". That was wrong, and Andrew caught it (2026-10-02):
+// a second family reads the Internet Archive. Derived from the manifest so the sentence stays true when a type is
+// added or retired — and asserted, because a preamble that lists the wrong widgets is the failure this page exists to
+// prevent.
+const IA_NOTE = {
+  iaItem: 'an Internet Archive item — its metadata, engagement views and thumbnail',
+  iaBook: "a book's pages, with images and full-text search inside",
+  mediaPlayer: 'audio or video — a Commons file, or a direct archive.org/download/… URL',
+  waybackGallery: 'how a URL looked on given dates (Wayback Machine)',
+};
+const iaFamily = widgets.filter((w) => /archive\.org|wayback/i.test(w.dataSource || '')).map((w) => w.id);
+// IA_NOTE is also the display ORDER (item → book → media → web archive), which reads better than manifest order for a
+// list whose point is "there is more here than Wikipedia". Checked in BOTH directions: a family member with no
+// description, or a description left behind by a retired type, both fail rather than sit there looking plausible.
+const iaOrdered = Object.keys(IA_NOTE).filter((id) => iaFamily.includes(id));
+if (iaOrdered.length < 4 || iaOrdered.length !== iaFamily.length) {
+  console.error(`✘ the Internet Archive family changed (manifest: ${iaFamily.join(', ') || 'none'}; described: ${iaOrdered.join(', ') || 'none'})`
+    + ' — update IA_NOTE and the preamble in this script');
+  process.exit(1);
+}
+
 // ── gates: the ones an outside producer gets wrong by choosing a widget that cannot load ───────────────────────────
 const cim = widgets.filter((w) => String(w.dataSource || '').startsWith('CIM ')).map((w) => w.id);
 const experimental = widgets.filter((w) => w.experimental).map((w) => w.id);
@@ -213,10 +235,20 @@ files are absolute GitHub links (§0 lists the useful ones). Reading this page n
 
 ${readmeIntro}
 
-Read this page and you can write a board without ever opening the app. But the catalog is about *Wikimedia* data:
-every card names a subject — an article, a Commons category or file, a Wikidata item, a wiki, a language — and fetches
-it live in the reader's browser (the widgets read Wikimedia's own APIs; a few types route through this deployment's
-relay, listed in §3). So the useful half of "which widget" is knowing what the user's subject *is*.
+Read this page and you can write a board without ever opening the app — and if you are a model: §1 is the shape,
+§2 is the field names, §6 is how to check the result before handing it over.
+
+What a card needs is a **subject**, and the catalog is broader than it looks. Most of it reads **Wikimedia** — an
+article, a Commons category or file, a Wikidata item, a wiki, a language, a Wikisource text, Wikistats — and
+${iaFamily.length} types read the **Internet Archive** instead:
+
+${iaOrdered.map((id) => `- \`${id}\` — ${IA_NOTE[id]}`).join('\n')}
+
+A few read other public sources, which is worth knowing before choosing one: \`map\` draws Wikimedia's own map service
+over **OpenStreetMap** data, \`sparql\` can go to Wikidata's WDQS *or* the third-party **QLever** endpoint, and
+\`topPages\` reads a third-party pageviews mirror. Whatever a card fetches, it says so: the \`reads:\` line under every
+type in §2 is the authority, and §3 lists the gates (precomputed data, relays, experimental types). So the useful half
+of "which widget" is knowing what the user's subject *is* — an item in an archive counts.
 
 **Where to read more** — this page is self-contained for *writing* a board. These are for the rest of it: what the app
 looks like, and what each card is *for*.
