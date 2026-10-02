@@ -88,7 +88,7 @@ Gallery).
 
 The counts are derived, never hand-maintained, and **every markdown file is scanned** (72 current-state sources, since
 2026-10-02 — it was `README.md` + `HANDOFF.md` + the boards before, which is how `docs/BOARD-COMPOSITION.md` kept
-"38 widget types" in three places and `docs/DEMO-IDEAS.md` kept 37). Five additional mechanisms, in the order they
+a stale count in three places and `docs/DEMO-IDEAS.md` kept another <!-- docs-facts: quotation ("38 widget types", "37") -->). Five additional mechanisms, in the order they
 catch things:
 
 | mechanism | what it holds | how to satisfy it |
@@ -96,13 +96,13 @@ catch things:
 | **count rules** over every current-state doc + every `public/*.json` | `N widget types`, `all N widgets`, `N catalog widgets`, `N measurements`, `renders N cards` … must equal the registry (42 types / 43 catalog widgets) | fix the number, or **state it by reference** ("every type", "the catalog") — the better fix |
 | **dated records are printed, not ignored** | `ISSUES` · `DEPLOYMENTS` · `SCREENSHOTS` · `VERIFIED-WORKING` · `WHY-WIKIBENTO` · the bug report · `AGENT-MEMO` may keep the number that was true then; every mismatching claim in them is **listed** in the gate's output | nothing — but read the list; a *stale claim* wearing a record's clothes is what a human notices and a regex cannot |
 | **completeness claims** | a file that says "complete reference"/"all N types" must name every registered id, and each numbered section must list as many entries as its heading claims | add the missing entries (that is how `wikiBox`, `iaBook` and `documentReader` were found missing from `BOARD-COMPOSITION.md`) |
-| **retired names · retired claims** | names the registry no longer uses, and *sentences* that became false. The claims list is scoped: a global sweep ("no backend, no login, no proxy") is banned everywhere; the bare phrase is banned only in the four front-door files, because in `MODULARITY-AND-DATAFLOW.md` "no backend" is the design's own vocabulary | rewrite the sentence to say what is true, and add the finding to the list |
+| **retired names · retired claims** | names the registry no longer uses, and *sentences* that became false. The claims list is scoped: a global sweep is banned everywhere, the bare phrase only in the four front-door files, because in the design docs it is this project's own vocabulary for a scope decision <!-- docs-facts: quotation ("no backend, no login, no proxy") --> | rewrite the sentence to say what is true, and add the finding to the list. Quote a retired claim on a line marked `docs-facts: quotation` |
 | **generated artefacts** | `public/manifest.json`, `public/board-guide.md`, `docs/widget-map.*` are built from the registry + the docs, and the gate runs their `--check` | `npm run guide:board` · `npm run map:widgets` · regenerate after editing a source doc |
 
 Two habits make the rest cheap: **state volatile facts by reference** (counts, hashes, totals), and **spell out numbers
 under ten** ("all seven widgets") — which is house style anyway and keeps a dated, correct sentence from looking like a
 current count claim. What no gate can do is notice a sentence that is *wrong* rather than inconsistent: the README's
-"no proxy" and the guide's missing introduction were both found by a human reading the document. Read the front door
+sweeping claim and the guide's missing introduction were both found by a human reading the document <!-- docs-facts: quotation ("no proxy") -->. Read the front door
 after a release; the gate will tell you what else moved.
 
 `public/manifest.json` (the Ask advisor's catalog) and `public/dashboard.json`

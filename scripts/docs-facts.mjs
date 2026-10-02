@@ -61,6 +61,19 @@ const fail = (msg) => {
   throw new Error(msg);
 };
 
+/**
+ * Remove the lines a document marks as QUOTATIONS before a rule reads it.
+ *
+ * A rule has to be writable *about*: this file's own section on retired claims quotes the retired phrase, and the count
+ * rules' examples quote the wrong numbers, so without an escape hatch the gate forbade documenting itself. Mark a line
+ * with `docs-facts: quotation` (an HTML comment is fine) and the rules skip it — which is visible in review, unlike a
+ * renamed phrase that quietly stops being findable.
+ */
+const withoutQuotations = (text) => String(text)
+  .split('\n')
+  .filter((l) => !/docs-facts:\s*quotation/.test(l))
+  .join('\n');
+
 // ── derived truth (never hand-maintained) ────────────────────────────────────
 
 const registrySource = read('src/widgets/index.js');
@@ -222,7 +235,8 @@ const COUNT_RULES = [
 
 check('claimed widget counts match the registry and catalog', () => {
   const bad = [];
-  for (const [doc, text] of COUNT_SOURCES) {
+  for (const [doc, raw] of COUNT_SOURCES) {
+    const text = withoutQuotations(raw);
     for (const rule of COUNT_RULES) {
       for (const m of text.matchAll(rule.re)) {
         const claimed = Number(m[1]);
@@ -511,7 +525,7 @@ check('retired CLAIMS are gone from the current-state docs', () => {
     .filter((f) => !DATED_RECORDS.has(f));
   const hits = [];
   for (const f of files) {
-    const text = read(f);
+    const text = withoutQuotations(read(f));
     for (const { pattern, now, scope } of RETIRED_CLAIMS) {
       if (scope === 'front-door' && !FRONT_DOOR.has(f)) continue;
       const found = text.match(pattern);
