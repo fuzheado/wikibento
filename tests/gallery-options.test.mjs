@@ -227,12 +227,14 @@ test('gallery registry: new config fields validate (booleans typed, groupBy enum
   assert.equal(ok.valid, true);
   assert.equal(ok.errors.length, 0);
   assert.equal(ok.warnings.length, 0);
+  // A mistyped boolean or enum does not refuse the board (ISSUE-134): the coercer reads `'yes'` as true, and an
+  // unknown enum makes the renderer fall back — so both are repairs, reported by name.
   const badBool = validateDashboard(dashboard({ includeAll: 'yes' }));
-  assert.equal(badBool.valid, false);
-  assert.ok(badBool.errors.find((e) => e.includes('"includeAll" must be true or false')));
+  assert.equal(badBool.valid, true);
+  assert.ok(badBool.repairs.find((e) => e.includes('"includeAll"') && e.includes('read as true')), badBool.repairs.join(' | '));
   const badEnum = validateDashboard(dashboard({ groupBy: 'sections' }));
-  assert.equal(badEnum.valid, false);
-  assert.ok(badEnum.errors.find((e) => e.includes('"groupBy" must be one of none, section, gallery')));
+  assert.equal(badEnum.valid, true);
+  assert.ok(badEnum.repairs.find((e) => e.includes('"groupBy"') && e.includes('none, section, gallery')), badEnum.repairs.join(' | '));
 });
 
 test('gallery registry: new options declared in defaults + configFields + fetcher wiring', () => {

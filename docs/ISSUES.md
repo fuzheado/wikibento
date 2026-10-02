@@ -6183,7 +6183,40 @@ chrome, not the captions); section grouping is a v2 question.
 **Effort:** about a day — a fetcher, one pure parser (highly testable: `<gallery>` blocks and pipe-separated lines),
 a registry entry, a lookup source, a demo, docs. No new format, no migration.
 
-## ISSUE-134 · A *repairable* value is refused, not repaired: `"200"` for a number blocks ⬆ Import — **open** (doctrine question, found 2026-10-02)
+## ISSUE-134 · A *repairable* value is refused, not repaired: `"200"` for a number blocks ⬆ Import — **done 2026-10-02** (doctrine question, resolved by Andrew: follow the documentation)
+
+> **Resolution (owner's call, 2026-10-02): option 1 — the code follows the documented model.** A value the registry's
+> declared type can read is **normalised and reported**, never a reason to refuse the board. What still refuses one is
+> structural: an unknown `widgetType`, a board that is not an object, `params` that is not an object, a wrong `version`.
+>
+> **What changed.**
+> - `validateDashboard` reports the severity model's three rows as **three lists**: `errors` (refuse), `repairs` (the app
+>   normalised it, and here is what it read), `warnings` (this will load, and probably not as you meant). The first two
+>   shared one list before, which is why "read as the number 200" and "this category has no CIM data" arrived in the same
+>   shape — and why the board doctor could not tell a repair from a warning (it funnels all three now).
+> - A mistyped **value** is a repair in all four cases the registry declares: a number written as a string (`"200"` →
+>   read as 200), a number that cannot be read at all (`"twelve"` → left exactly as written, and said so), a boolean
+>   written as a word (`"False"` → read as false — the `!!"False"` trap, now visible), an unknown **select** option (the
+>   card falls back to its default, named in the message), and text holding a number or an object. `_title` is repaired
+>   the same way. Unknown keys and a missing `config` moved to `repairs` too: the app drops the first and fills the
+>   second, so describing either as a "warning" was a category error.
+> - **The clamp the warning promised is real.** `validateDashboard` has said "out of range … (will be clamped)" since
+>   2026-08-17 while nothing clamped most fields — the fetchers clamp their own numbers, which is not the same promise.
+>   `coerceFieldValue` applies a field's declared `min`/`max` now, for every intake path (Import, `?config=`,
+>   localStorage, `#/z/`), and the message names the value it becomes (`clamped to 30000`).
+> - **The refresh floor is enforced** rather than refused: `refreshSeconds: 5` used to refuse the whole board, and a
+>   board arriving by a path that skipped the validator would have polled Wikimedia every five seconds. `MIN_REFRESH_SECONDS`
+>   moved to `configNormalize.js` (where values are read), the normaliser raises it to the floor for every path, and the
+>   validator warns that it did.
+>
+> **Tests moved with the contract**: `tests/config-ranges.test.mjs` (its pinned "type errors block the import" case is
+> now the opposite, with the clamp asserted for real), `tests/gallery-options.test.mjs` (a mistyped boolean/enum is a
+> repair), `tests/board-doctor.test.mjs` (the doctor's verdict for `"200"` is *importable*, with the repair quoted).
+> `src/components/ImportPanel.jsx` shows repairs before warnings.
+>
+> **Why it mattered**: this was precisely the traffic the Ask door invites — a board written by a chat, where `"200"`
+> and `"False"` are ordinary. The audit's eighteen board fixtures happened not to contain one, which is why the baseline
+> never surfaced it.
 
 > **Found while building the board doctor** (`src/lib/boardDoctor.js`, `npm run check:board`), whose job is to say what
 > the app will say about a board from outside. Its first version assumed the documented model and asserted that a

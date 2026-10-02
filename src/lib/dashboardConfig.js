@@ -11,7 +11,10 @@ import { widgetDef } from '../widgets';
 export const CONFIG_VERSION = 1;
 
 /** Minimum sensible refresh interval (seconds) — protects the APIs. */
-export const MIN_REFRESH_SECONDS = 30;
+// The floor lives in `configNormalize.js` since 2026-10-02 (it is enforced there, for every intake path) and is
+// re-exported here because this is where callers have always imported it from.
+export { MIN_REFRESH_SECONDS } from './configNormalize';
+import { MIN_REFRESH_SECONDS } from './configNormalize';
 
 // ── Example dashboard: one of every widget type, real working assets ──
 
@@ -218,24 +221,29 @@ export const EXAMPLE_DASHBOARD = {
 export function validateDashboard(input) {
   const errors = [];
   const warnings = [];
+  // The severity model's middle row, as its own list (2026-10-02, ISSUE-134). `errors` refuse the board; `repairs` are
+  // what the app normalises for the reader and reports; `warnings` are judgements about a board that will load. The two
+  // were one list before, which is why "the app will read this as 200" and "this category has no CIM data" arrived in
+  // the same shape — and why the board doctor could not tell a repair from a warning either.
+  const repairs = [];
 
   let parsed = input;
   if (typeof input === 'string') {
     try {
       parsed = JSON.parse(input);
     } catch (e) {
-      return { valid: false, errors: [`Not valid JSON: ${e.message}`], warnings: [], widgets: null, layout: null, params: null };
+      return { valid: false, errors: [`Not valid JSON: ${e.message}`], warnings: [], repairs: [], widgets: null, layout: null, params: null };
     }
   }
 
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { valid: false, errors: ['Dashboard must be a JSON object like { "widgets": [...], "layout": [...] }'], warnings: [], widgets: null, layout: null, params: null };
+    return { valid: false, errors: ['Dashboard must be a JSON object like { "widgets": [...], "layout": [...] }'], warnings: [], repairs: [], widgets: null, layout: null, params: null };
   }
 
   const { widgets, layout } = parsed;
   if (!Array.isArray(widgets)) errors.push('"widgets" must be an array');
   if (!Array.isArray(layout)) errors.push('"layout" must be an array');
-  if (errors.length) return { valid: false, errors, warnings, widgets: null, layout: null, params: null };
+  if (errors.length) return { valid: false, errors, warnings, repairs, widgets: null, layout: null, params: null };
 
   if (parsed.version !== undefined && parsed.version !== CONFIG_VERSION) {
     errors.push(`Unsupported "version": ${JSON.stringify(parsed.version)} (this app supports version ${CONFIG_VERSION})`);
@@ -288,7 +296,7 @@ export function validateDashboard(input) {
     } else if (!widgetDef(w.widgetType)) {
       errors.push(`${where}: unknown widgetType "${w.widgetType}" (known: ${Object.keys(WIDGET_TYPES).join(', ')})`);
     } else {
-      validateWidgetConfig(w, widgetDef(w.widgetType), where, errors, warnings);
+      validateWidgetConfig(w, widgetDef(w.widgetType), where, errors, warnings, repairs);
     }
   });
 
@@ -348,14 +356,14 @@ export function validateDashboard(input) {
     }
   });
 
-  return { valid: errors.length === 0, errors, warnings, widgets, layout, params };
+  return { valid: errors.length === 0, errors, warnings, repairs, widgets, layout, params };
 }
 
 /** Check one widget's config against its registry configFields. */
-function validateWidgetConfig(w, def, where, errors, warnings) {
+function validateWidgetConfig(w, def, where, errors, warnings, repairs = []) {
   const c = w.config;
   if (c === undefined) {
-    warnings.push(`${where}: missing "config" — defaults will be used`);
+    repairs.push(`${where}: missing "config" — the registry's defaults are used`);
     return;
   }
   if (typeof c !== 'object' || c === null || Array.isArray(c)) {
@@ -379,16 +387,31 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
           break; // board-param placeholder (ISSUE-50) — resolved at fetch time; skip numeric checks
         }
         if (typeof v !== 'number' || !Number.isFinite(v)) {
-          errors.push(`${where}: config "${key}" must be a number (got ${JSON.stringify(v)})`);
+          // A *repair*, not a refusal (2026-10-02, ISSUE-134, the owner's call). `coerceFieldValue` reads a numeric
+          // string and leaves an unreadable one exactly as written — which is what docs/JSON-FORMAT.md has always
+          // said the app does, and what AGENTS.md means by "coerce by the registry's declared field type". Refusing
+          // the whole board over `"200"` contradicted both, and it is precisely the traffic a board from a chat
+          // brings (the door: `npm run check:board`, and `/api/validate`).
+          const readable = typeof v === 'string' && Number.isFinite(Number(String(v).trim()));
+          repairs.push(readable
+            ? `${where}: config "${key}" is the string ${JSON.stringify(v)} — read as the number ${Number(String(v).trim())}`
+            : `${where}: config "${key}" is not a number (${JSON.stringify(v)}) — left as written; the card may ignore it or show nothing`);
         } else if (field.min !== undefined && (v < field.min || v > field.max)) {
-          warnings.push(`${where}: config "${key}" is ${v} — out of range ${field.min}–${field.max} (will be clamped)`);
+          warnings.push(`${where}: config "${key}" is ${v} — out of range ${field.min}–${field.max} (clamped to ${Math.min(Math.max(v, field.min), field.max)})`);
         }
         break;
-      case 'boolean':
+      case 'boolean': {
         if (typeof v !== 'boolean') {
-          errors.push(`${where}: config "${key}" must be true or false (got ${JSON.stringify(v)})`);
+          // `!!"False"` is `true`, which is why the coercer knows the words (and why this is worth saying out loud
+          // rather than refusing: the board renders as the registry says, and the reader is told what was read).
+          const t = String(v).trim().toLowerCase();
+          const readable = ['true', 'yes', '1', 'on', 'false', 'no', '0', 'off', ''].includes(t);
+          repairs.push(readable
+            ? `${where}: config "${key}" is ${JSON.stringify(v)} — read as ${['true', 'yes', '1', 'on'].includes(t)}`
+            : `${where}: config "${key}" is not true or false (${JSON.stringify(v)}) — left as written; a non-empty string counts as true`);
         }
         break;
+      }
       case 'select':
         // An option is a string, because a <select> yields strings — but a hand-written board may write
         // `"rate": 1` for the option `"1"`, which is the same choice, not an error. Compare numerically when
@@ -397,21 +420,35 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
         if (!field.options.some(o => o.value === v
           || (o.value !== '' && v !== '' && Number.isFinite(Number(o.value)) && Number.isFinite(Number(v))
               && Number(o.value) === Number(v)))) {
-          errors.push(`${where}: config "${key}" must be one of ${field.options.map(o => o.value).join(', ')} (got "${v}")`);
+          // An option list is a vocabulary, and a value outside it is unreadable *as that vocabulary* — but the card
+          // still has a default (every renderer resolves an unknown mode to something), so this is a warning that
+          // names the options rather than a refusal. A typo is still visible; a board is not thrown away over it.
+          repairs.push(`${where}: config "${key}" is "${v}", which is not one of ${field.options.map(o => o.value).join(', ')} — the card will use its default`);
         }
         break;
       default: // text
         if (typeof v !== 'string') {
-          errors.push(`${where}: config "${key}" must be a string (got ${JSON.stringify(v)})`);
+          // Numbers and booleans in a text field are usually intended (a year, a label) and render as their string
+          // form; an object renders as "[object Object]", which the message names.
+          const shape = Array.isArray(v) ? 'a list' : (v && typeof v === 'object' ? 'an object' : `a ${typeof v}`);
+          repairs.push(`${where}: config "${key}" expects text but holds ${shape} (${JSON.stringify(v).slice(0, 40)}) — read as its string form`);
         }
     }
   }
 
-  if (c.refreshSeconds !== undefined && (typeof c.refreshSeconds !== 'number' || c.refreshSeconds < MIN_REFRESH_SECONDS)) {
-    errors.push(`${where}: "refreshSeconds" must be a number ≥ ${MIN_REFRESH_SECONDS} (got ${JSON.stringify(c.refreshSeconds)})`);
+  if (c.refreshSeconds !== undefined) {
+    // A rate rule, not a value rule — and it is ENFORCED now (`normalizeConfigForDef` raises it to the floor for every
+    // intake path, which is what makes accepting the board safe rather than merely polite). The message says what
+    // happened; before 2026-10-02 the board was refused and the floor was never applied at all.
+    const secs = Number(c.refreshSeconds);
+    if (!Number.isFinite(secs) || secs <= 0) {
+      repairs.push(`${where}: "refreshSeconds" is ${JSON.stringify(c.refreshSeconds)} — the card will use its default`);
+    } else if (secs < MIN_REFRESH_SECONDS) {
+      warnings.push(`${where}: "refreshSeconds" is ${secs}s — raised to the ${MIN_REFRESH_SECONDS}s floor (Wikimedia's APIs are not ours to poll harder)`);
+    }
   }
   if (c._title !== undefined && typeof c._title !== 'string') {
-    errors.push(`${where}: "_title" must be a string`);
+    repairs.push(`${where}: "_title" is not text (${JSON.stringify(c._title)}) — the card will use its own title`);
   }
 
   // Unknown keys are tolerated (forward compatibility) but flagged.
@@ -421,6 +458,8 @@ function validateWidgetConfig(w, def, where, errors, warnings) {
   // elsewhere (forward compatibility) without flagging.
   const hasSourceField = fieldMap.source;
   Object.keys(c).forEach(k => {
-    if (!known.has(k) && !(k === 'source' && hasSourceField)) warnings.push(`${where}: unknown config key "${k}" (ignored)`);
+    // A key the registry does not declare is DROPPED, and the reader is told — the severity model's middle row. It sat
+    // in `warnings` until 2026-10-02, which made "the app ignores this key" look like a judgement call.
+    if (!known.has(k) && !(k === 'source' && hasSourceField)) repairs.push(`${where}: unknown config key "${k}" (ignored)`);
   });
 }

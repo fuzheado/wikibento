@@ -193,14 +193,21 @@ test('a repair the app will make silently is reported as a repair, not an error'
   assert.equal(r.verdict, 'importable', 'a board with repairs is importable, not clean');
 });
 
-test('the doctor is faithful to the app even where the app disagrees with its own documentation (ISSUE-134)', () => {
-  // `docs/JSON-FORMAT.md` calls `"200"` for a number *Repairable* ("normalise silently, and report it"), and AGENTS.md
-  // says to coerce by the field's declared type — but `validateDashboard` puts it in ERRORS, so ⬆ Import refuses the
-  // board. The doctor DELEGATES and therefore says what Import will say; the disagreement is filed as ISSUE-134 rather
-  // than smoothed over here. If that issue is resolved in favour of the documentation, this test is the one to change.
+test('a mistyped value is a REPAIR, not a refusal (ISSUE-134 resolved 2026-10-02, the documented model)', () => {
+  // The app's own docs called this *Repairable* while the validator refused the board — and a chat writes `"200"` all
+  // the time, so the door was refusing exactly its own traffic. Fixed in favour of the docs: the board imports, the
+  // coercer reads the value, and the reader is told. The doctor delegates, so it reports a repair.
   const r = diagnoseBoard(board([
-    { id: 't', widgetType: 'topPages', config: { project: 'en.wikipedia', topN: '200' } },
+    { id: 't', widgetType: 'topPages', config: { topN: '200' } },
   ]), { allowList });
-  assert.equal(r.verdict, 'unusable');
-  assert.match(messages(r, 'errors'), /topN.*must be a number/);
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.verdict, 'importable');
+  assert.match(messages(r, 'repairs'), /topN.*read as the number 200/);
+
+  // And the value it cannot read is still reported, as a repair with the consequence spelled out.
+  const unreadable = diagnoseBoard(board([
+    { id: 't', widgetType: 'topPages', config: { topN: 'twelve' } },
+  ]), { allowList });
+  assert.deepEqual(unreadable.errors, []);
+  assert.match(messages(unreadable, 'repairs'), /not a number/);
 });

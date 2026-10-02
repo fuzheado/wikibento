@@ -15,15 +15,25 @@
  * Both are driven by the registry's own field types, so a new widget gets this without anyone remembering.
  */
 
+/**
+ * The refresh floor, enforced here because this is where values are READ.
+ *
+ * It lives in this file since 2026-10-02 because the validator stopped refusing boards over values it can normalise,
+ * and a floor that is only a refusal is no protection at all: the card would have polled the API every 5 s. Import,
+ * `?config=`, localStorage and `#/z/` all pass through `normalizeConfigForDef`, so this is the one place that covers
+ * every intake path.
+ */
+export const MIN_REFRESH_SECONDS = 30;
+
 /** Coerce one value according to its field definition. Unknown shapes are left alone rather than guessed at. */
 export function coerceFieldValue(field, value) {
   if (value === undefined || value === null) return value;
   switch (field?.type) {
     case 'number': {
-      if (typeof value === 'number') return value;
+      if (typeof value === 'number') return clampToField(field, value);
       // A string from a hand-written board: '200' → 200, 'twelve' → the value as written (validate, don't invent).
       const n = Number(String(value).trim());
-      return Number.isFinite(n) ? n : value;
+      return Number.isFinite(n) ? clampToField(field, n) : value;
     }
     case 'boolean': {
       if (typeof value === 'boolean') return value;
@@ -59,6 +69,16 @@ function migrateLegacyFrame(config, def) {
   return config;
 }
 
+/**
+ * A number field's declared range is a rule, not a hint: the panel already clamps its inputs, and `validateDashboard`
+ * has always promised "(will be clamped)" while nothing clamped. Now it does — for every intake path.
+ */
+function clampToField(field, n) {
+  if (field?.min !== undefined && n < field.min) return field.min;
+  if (field?.max !== undefined && n > field.max) return field.max;
+  return n;
+}
+
 export function normalizeConfigForDef(config, def) {
   const out = migrateLegacyFrame({ ...(config || {}) }, def);
   // `wiki: "commons.wikimedia"` where the registry says `project`: the Ask advisor writes this (3 of 30 rows in the
@@ -74,6 +94,12 @@ export function normalizeConfigForDef(config, def) {
       out[field.key] = def.defaults[field.key];
     }
     if (out[field.key] !== undefined) out[field.key] = coerceFieldValue(field, out[field.key]);
+  }
+  // The refresh floor is the one rule that belongs to the CARD rather than to a field: a board may write any
+  // `refreshSeconds` it likes, and the app must not poll Wikimedia seven times as often as it promised.
+  if (out.refreshSeconds !== undefined) {
+    const secs = Number(out.refreshSeconds);
+    out.refreshSeconds = Number.isFinite(secs) && secs > 0 ? Math.max(MIN_REFRESH_SECONDS, secs) : out.refreshSeconds;
   }
   // Keys the registry does not declare (frame-level `_title`, a retired field) are left exactly as they arrived.
   return out;

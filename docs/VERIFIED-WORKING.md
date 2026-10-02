@@ -125,6 +125,16 @@ build that was probed in a real browser is byte-for-byte the build that is live.
     hosted boards are pasted too now); and a fixed 1.2 s wait after Import made it flaky inside `npm test`, because a
     card wired to a producer legitimately shows "Waiting for a reference" until that producer has *fetched* (a live
     Wikipedia call). It polls for the condition now and only fails when the producer never emits.
+- 🧰 **ISSUE-134 resolved — a repairable value is repaired (2026-10-02, owner's call: follow the documentation).** The
+  validator refused a board over `"200"` for a number while `docs/JSON-FORMAT.md` called it *Repairable* and AGENTS.md
+  said to coerce by declared type — and a board from a chat writes exactly that. Now: **three lists** in the verdict
+  (`errors` refuse · `repairs` normalised-and-reported · `warnings` loads-but-probably-not-as-you-meant), a mistyped
+  value in any of the four registry cases is a repair with the consequence spelled out (`"False"` → *read as false*),
+  an unknown key and a missing `config` moved to `repairs` (the app drops one and fills the other — calling either a
+  "warning" was a category error), **the clamp the message promised is enforced** (`min`/`max` applied in
+  `coerceFieldValue` on every intake path, where before only the fetchers clamped their own numbers), and
+  `refreshSeconds` below the floor is raised to it rather than refusing the board — which is what makes accepting it
+  safe instead of merely polite. Four tests moved with the contract, including the one that pinned the old behaviour.
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).

@@ -28,7 +28,9 @@ export default function ImportPanel({ onImport, onClose }) {
   const handleImport = () => {
     const result = validateDashboard(text);
     setErrors(result.errors);
-    setWarnings(result.warnings);
+    // Repairs first, then warnings: both are things the reader should know, and "read as the number 200" is the more
+    // surprising of the two (ISSUE-134 — a value the app can read is normalised and reported, not refused).
+    setWarnings([...(result.repairs || []), ...result.warnings]);
     if (result.valid && result.widgets) {
       setImported(true);
       // `params` travels with the board (ISSUE-50): without it a pasted parameterised board lost its switcher and every

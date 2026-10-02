@@ -86,7 +86,11 @@ export function diagnoseBoard(input, { allowList = null, source = 'board' } = {}
   // `validateDashboard` already reports unreadable JSON, a missing `widgets`/`layout`, an unknown type, and every
   // repair it performs (a coerced number, a dropped unknown key) — so its verdicts are taken as given.
   for (const m of v.errors) add(errors, 'shape', m);
-  for (const m of v.warnings) add(repairs, 'repair', m);
+  // `validateDashboard` reports the severity model's three rows in three lists (2026-10-02): errors refuse the board,
+  // repairs are what the app normalises and reports, warnings are judgements about a board that will load. The doctor
+  // used to funnel its warnings into `repairs`, which made every judgement look like a silent fix.
+  for (const m of v.repairs || []) add(repairs, 'repair', m);
+  for (const m of v.warnings) add(warnings, 'not-as-meant', m);
 
   if (!v.valid || !v.widgets) {
     // The one shape error worth naming precisely, because it is the commonest: the Ask advisor's *fragment* (widgets
