@@ -1,0 +1,710 @@
+{
+  "probe": "phase2-ask-audit",
+  "at": "2026-10-02T04:01:16.464Z",
+  "model": "llm-qwen36-27b",
+  "suite": "intent",
+  "promptMode": "suggest",
+  "systemPromptChars": 47066,
+  "systemPromptTokens": 11386,
+  "manifestVersion": 3,
+  "widgetTypes": 42,
+  "repeats": 1,
+  "pooled": {
+    "n": 15,
+    "top1Rate": 0.9333333333333333,
+    "top3Rate": 0.9333333333333333,
+    "keysRate": 0.9333333333333333,
+    "subjectRate": 0.9230769230769231
+  },
+  "pooledLenient": {
+    "n": 15,
+    "top1Rate": 0.9333333333333333,
+    "top3Rate": 0.9333333333333333,
+    "keysRate": 0.9333333333333333,
+    "subjectRate": 0.6923076923076923
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "summary": {
+        "n": 15,
+        "top1Rate": 0.9333333333333333,
+        "top3Rate": 0.9333333333333333,
+        "keysRate": 0.9333333333333333,
+        "subjectRate": 0.9230769230769231
+      },
+      "lenientSummary": {
+        "n": 15,
+        "top1Rate": 0.9333333333333333,
+        "top3Rate": 0.9333333333333333,
+        "keysRate": 0.9333333333333333,
+        "subjectRate": 0.6923076923076923
+      },
+      "assemblyAccepted": null,
+      "dashboardAccepted": null,
+      "fixtures": [
+        {
+          "id": "pageviews-article",
+          "prompt": "How many pageviews has the article Ada Lovelace gotten in the last 30 days?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "pageviews"
+          ],
+          "returned": "pageviews",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"pageviews\",\"config\":{\"article\":\"Ada Lovelace\",\"project\":\"en.wikipedia\",\"displayMode\":\"stat\"},\"reason\":\"Article Pageviews shows the 30-day view count for the specified Wikipedia article.\"}]}",
+          "options": [
+            {
+              "widgetType": "pageviews",
+              "config": {
+                "article": "Ada Lovelace",
+                "project": "en.wikipedia",
+                "displayMode": "stat"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "pageviews"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "linkcount-domain",
+          "prompt": "How many English Wikipedia articles link to example.org?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "linkcount"
+          ],
+          "returned": "linkcount",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"linkcount\",\"config\":{\"domain\":\"example.org\",\"wiki\":\"en.wikipedia\",\"namespace\":\"0\"},\"reason\":\"External Link Count shows how many pages on a specific wiki link to a given domain.\"}]}",
+          "options": [
+            {
+              "widgetType": "linkcount",
+              "config": {
+                "domain": "example.org",
+                "wiki": "en.wikipedia",
+                "namespace": "0"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "linkcount"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "category-sample-photos",
+          "prompt": "Show me a random sampling of images from the category Featured pictures on Wikimedia Commons",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [
+            "gallery"
+          ],
+          "returned": "gallery",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"gallery\",\"config\":{\"from\":\"category\",\"category\":\"Featured pictures on Wikimedia Commons\",\"wiki\":\"commons.wikimedia\",\"order\":\"random\",\"displayMode\":\"grid\",\"showCaptions\":true,\"maxItems\":12},\"reason\":\"The Gallery widget can pull images directly from a Commons category and display them in a random grid.\"}]}",
+          "options": [
+            {
+              "widgetType": "gallery",
+              "config": {
+                "from": "category",
+                "category": "Featured pictures on Wikimedia Commons",
+                "order": "random",
+                "displayMode": "grid",
+                "showCaptions": true,
+                "maxItems": 12
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "field-that-does-not-exist",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "field-that-does-not-exist": "gallery.wiki=\"commons.wikimedia\""
+          },
+          "lenient": {
+            "ids": [
+              "gallery"
+            ],
+            "top1": false,
+            "top3": false,
+            "keysOk": false,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "wikistats-language",
+          "prompt": "How many articles, edits and active users does the German Wikipedia have?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "wikistats"
+          ],
+          "returned": "wikistats",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"wikistats\",\"config\":{\"lang\":\"de.wikipedia\",\"table\":\"wikipedias\"},\"reason\":\"Wiki Stats reads live from the German Wikipedia's API to show article count, edits, editors, and admins.\"}]}",
+          "options": [
+            {
+              "widgetType": "wikistats",
+              "config": {
+                "lang": "de",
+                "table": "wikipedias"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "value-repaired-by-normalizer"
+          ],
+          "issueExamples": {
+            "value-repaired-by-normalizer": "wikistats.lang: \"de.wikipedia\" → \"de\""
+          },
+          "lenient": {
+            "ids": [
+              "wikistats"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "file-usage-map",
+          "prompt": "Which wikis and pages use the file File:Earth from space.jpg?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "fileUsage"
+          ],
+          "returned": "fileUsage",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"fileUsage\",\"config\":{\"filename\":\"Earth from space.jpg\",\"topN\":10,\"showImage\":true,\"showCaption\":true},\"reason\":\"File Usage by Wiki lists the wikis and pages that use a specific Commons file.\"}]}",
+          "options": [
+            {
+              "widgetType": "fileUsage",
+              "config": {
+                "filename": "File:Earth from space.jpg",
+                "topN": 10,
+                "showImage": true,
+                "showCaption": true
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "value-repaired-by-normalizer"
+          ],
+          "issueExamples": {
+            "value-repaired-by-normalizer": "fileUsage.filename: \"Earth from space.jpg\" → \"File:Earth from space.j"
+          },
+          "lenient": {
+            "ids": [
+              "fileUsage"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "glam-category-impact",
+          "prompt": "What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "glamorgan",
+            "cimSnapshot"
+          ],
+          "returned": "glamorgan, cimSnapshot",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"glamorgan\",\"config\":{\"category\":\"Wiki Loves Monuments 2024 in the United States\",\"wiki\":\"commons.wikimedia\",\"depth\":0,\"year\":2024,\"month\":12,\"negcats\":\"\",\"negdepth\":0,\"fileBudget\":500,\"topN\":5,\"showDetail\":false},\"reason\":\"GLAM Category Usage provides the specific impact stats requested: file count, used files, page count, and total views for the category.\"},{\"widgetType\":\"cimSnapshot\",\"config\":{\"category\":\"Wiki Loves Monuments 2024 in the United States\",\"scope\":\"deep\",\"month\":12},\"reason\":\"CIM Category Snapshot offers precomputed, exact metrics for files, used files, wikis, and pages for CIM-registered categories.\"}]}",
+          "options": [
+            {
+              "widgetType": "glamorgan",
+              "config": {
+                "category": "Wiki Loves Monuments 2024 in the United States",
+                "depth": 0,
+                "year": 2024,
+                "month": 12,
+                "negcats": "",
+                "negdepth": 0,
+                "fileBudget": 500,
+                "topN": 5,
+                "showDetail": false
+              },
+              "id": null
+            },
+            {
+              "widgetType": "cimSnapshot",
+              "config": {
+                "category": "Wiki Loves Monuments 2024 in the United States",
+                "scope": "deep",
+                "month": 12
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "field-that-does-not-exist"
+          ],
+          "issueExamples": {
+            "field-that-does-not-exist": "glamorgan.wiki=\"commons.wikimedia\""
+          },
+          "lenient": {
+            "ids": [
+              "glamorgan",
+              "cimSnapshot"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "top-wikipedias",
+          "prompt": "What are the ten largest Wikipedias by article count?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": false,
+          "matched": true,
+          "ids": [
+            "topWikipedias"
+          ],
+          "returned": "topWikipedias",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"topWikipedias\",\"config\":{},\"reason\":\"Top 10 Wikipedias lists the largest language editions by article count.\"}]}",
+          "options": [
+            {
+              "widgetType": "topWikipedias",
+              "config": {},
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "topWikipedias"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "top-articles-de",
+          "prompt": "What were the most visited articles on the German Wikipedia yesterday?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "topPages"
+          ],
+          "returned": "topPages",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"topPages\",\"config\":{\"lang\":\"de.wikipedia\",\"dateMode\":\"date\",\"year\":2026,\"month\":5,\"day\":21,\"topN\":10,\"filterNoise\":true,\"showExpanded\":false},\"reason\":\"Top Wikipedia Articles lists the most-visited pages for a specific language edition and date.\"}]}",
+          "options": [
+            {
+              "widgetType": "topPages",
+              "config": {
+                "lang": "de",
+                "dateMode": "date",
+                "year": 2026,
+                "month": 5,
+                "day": 21,
+                "topN": 10,
+                "filterNoise": true,
+                "showExpanded": false
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "value-repaired-by-normalizer"
+          ],
+          "issueExamples": {
+            "value-repaired-by-normalizer": "topPages.lang: \"de.wikipedia\" → \"de\""
+          },
+          "lenient": {
+            "ids": [
+              "topPages"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "excerpt-article",
+          "prompt": "Display the first paragraph and short description of the article Albert Einstein",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "excerpt"
+          ],
+          "returned": "excerpt",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"excerpt\",\"config\":{\"article\":\"Albert Einstein\",\"project\":\"en.wikipedia\"},\"reason\":\"Article Excerpt fetches the lead paragraph, short description and lead image from the REST summary API.\"}]}",
+          "options": [
+            {
+              "widgetType": "excerpt",
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "excerpt"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "edit-history-article",
+          "prompt": "Show me the recent edits to Albert Einstein with the byte changes",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "edithistory"
+          ],
+          "returned": "edithistory",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"edithistory\",\"config\":{\"article\":\"Albert Einstein\",\"project\":\"en.wikipedia\",\"limit\":10},\"reason\":\"Edit History displays the most recent edits to the article with their byte deltas.\"}]}",
+          "options": [
+            {
+              "widgetType": "edithistory",
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia",
+                "limit": 10
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "edithistory"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "quality-article",
+          "prompt": "What is the predicted quality class of the article Albert Einstein?",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "quality"
+          ],
+          "returned": "quality",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"quality\",\"config\":{\"article\":\"Albert Einstein\",\"project\":\"en.wikipedia\"},\"reason\":\"Article Quality (ORES) shows the predicted quality class for the specified Wikipedia article.\"}]}",
+          "options": [
+            {
+              "widgetType": "quality",
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "quality"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "gallery-article",
+          "prompt": "Show me the significant images with captions from the article Mona Lisa",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "gallery"
+          ],
+          "returned": "gallery",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"gallery\",\"config\":{\"from\":\"article\",\"article\":\"Mona Lisa\",\"project\":\"en.wikipedia\",\"showCaptions\":true,\"displayMode\":\"grid\",\"hideDecorative\":true},\"reason\":\"The Gallery widget pulls images from the specified article, and enabling captions and hiding decorative images ensures you see the significant photos with their descriptions.\"}]}",
+          "options": [
+            {
+              "widgetType": "gallery",
+              "config": {
+                "from": "article",
+                "article": "Mona Lisa",
+                "project": "en.wikipedia",
+                "showCaptions": true,
+                "displayMode": "grid",
+                "hideDecorative": true
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "gallery"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "sparql-count",
+          "prompt": "Run a SPARQL query on Wikidata that counts all human beings",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": false,
+          "matched": true,
+          "ids": [
+            "sparql"
+          ],
+          "returned": "sparql",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"sparql\",\"config\":{\"endpoint\":\"wdqs\",\"query\":\"SELECT (COUNT(?item) AS ?count) WHERE { ?item wdt:P31 wd:Q5. }\",\"renderer\":\"stat\",\"title\":\"Total Humans\"},\"reason\":\"Executes a SPARQL query on Wikidata to count all items classified as human beings (instance of Q5).\"}]}",
+          "options": [
+            {
+              "widgetType": "sparql",
+              "config": {
+                "endpoint": "wdqs",
+                "query": "SELECT (COUNT(?item) AS ?count) WHERE { ?item wdt:P31 wd:Q5. }",
+                "renderer": "stat",
+                "title": "Total Humans"
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "sparql"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "panorama-360",
+          "prompt": "Show me the 360 degree panorama of the Commons file File:Example.jpg",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "panorama360"
+          ],
+          "returned": "panorama360",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"panorama360\",\"config\":{\"filename\":\"File:Example.jpg\",\"project\":\"commons.wikimedia\",\"autoRotate\":false,\"edgeToEdge\":true},\"reason\":\"The 360° Panorama Viewer renders an interactive equirectangular panorama from the specified Commons file.\"}]}",
+          "options": [
+            {
+              "widgetType": "panorama360",
+              "config": {
+                "filename": "File:Example.jpg",
+                "project": "commons.wikimedia",
+                "autoRotate": false,
+                "edgeToEdge": true
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "panorama360"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        },
+        {
+          "id": "wayback-snapshots",
+          "prompt": "Show me archived snapshots of https://example.org from 2015, 2018 and 2020",
+          "top1": true,
+          "top3": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "matched": true,
+          "ids": [
+            "waybackGallery"
+          ],
+          "returned": "waybackGallery",
+          "error": null,
+          "parseError": null,
+          "raw": "{\"options\":[{\"widgetType\":\"waybackGallery\",\"config\":{\"url\":\"https://example.org\",\"dates\":\"2015-01-01\\n2018-01-01\\n2020-01-01\",\"toleranceDays\":365},\"reason\":\"Wayback Snapshot Gallery shows one archived screenshot per requested date.\"}]}",
+          "options": [
+            {
+              "widgetType": "waybackGallery",
+              "config": {
+                "url": "https://example.org",
+                "dates": "2015-01-01\n2018-01-01\n2020-01-01",
+                "toleranceDays": 365
+              },
+              "id": null
+            }
+          ],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "waybackGallery"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "options"
+        }
+      ]
+    }
+  ]
+}

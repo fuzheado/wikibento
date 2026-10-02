@@ -1,0 +1,310 @@
+{
+  "probe": "phase2-ask-audit",
+  "at": "2026-10-02T03:54:46.123Z",
+  "model": "llm-qwen36-27b",
+  "suite": "board",
+  "promptMode": "catalog",
+  "systemPromptChars": 41235,
+  "systemPromptTokens": 9976,
+  "manifestVersion": 3,
+  "widgetTypes": 42,
+  "repeats": 1,
+  "pooled": {
+    "n": 6,
+    "chainRate": 0,
+    "keysRate": 0.3333333333333333,
+    "subjectRate": 0
+  },
+  "pooledLenient": {
+    "n": 6,
+    "chainRate": 0.6666666666666666,
+    "keysRate": 1,
+    "subjectRate": 1
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "summary": {
+        "n": 6,
+        "chainRate": 0,
+        "keysRate": 0.3333333333333333,
+        "subjectRate": 0
+      },
+      "lenientSummary": {
+        "n": 6,
+        "chainRate": 0.6666666666666666,
+        "keysRate": 1,
+        "subjectRate": 1
+      },
+      "assemblyAccepted": null,
+      "dashboardAccepted": null,
+      "fixtures": [
+        {
+          "id": "chain-translate-article",
+          "prompt": "Take the first paragraph of the article Albert Einstein and translate it to Spanish",
+          "chainOk": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [
+            {
+              "type": "excerpt",
+              "found": false,
+              "missing": [
+                "article"
+              ]
+            },
+            {
+              "type": "translate",
+              "found": false,
+              "missing": [
+                "to"
+              ]
+            }
+          ],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"excerpt\",\n      \"config\": {\n        \"article\": \"Albert Einstein\",\n        \"project\": \"en.wikipedia\"\n      }\n    },\n    {\n      \"id\": \"translate\",\n      \"config\": {\n        \"source\": \"excerpt\",\n        \"from\": \"en\",\n        \"to\": \"es\",\n        \"display\": \"translation\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [excerpt,translate] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 2-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "translate"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "chain-speak-article",
+          "prompt": "Show me the intro of the article Marie Curie and read it out loud",
+          "chainOk": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [
+            {
+              "type": "excerpt",
+              "found": false,
+              "missing": [
+                "article"
+              ]
+            }
+          ],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"excerpt\",\n      \"config\": {\n        \"article\": \"Marie Curie\",\n        \"project\": \"en.wikipedia\"\n      }\n    },\n    {\n      \"id\": \"speaker\",\n      \"config\": {\n        \"source\": \"excerpt\",\n        \"speakOnChange\": true\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [excerpt,speaker] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 2-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "speaker"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "chain-filter-count",
+          "prompt": "I'll paste a list of museum names. Keep only the ones containing 'art' and tell me how many are left",
+          "chainOk": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [
+            {
+              "type": "filterLines",
+              "found": false,
+              "missing": [
+                "pattern"
+              ]
+            }
+          ],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"listSource\",\n      \"config\": {\n        \"title\": \"Museum List\",\n        \"items\": \"Paste your museum names here, one per line\"\n      }\n    },\n    {\n      \"id\": \"filterLines\",\n      \"config\": {\n        \"source\": \"listSource\",\n        \"title\": \"Art Museums\",\n        \"pattern\": \"art\",\n        \"match\": \"contains\",\n        \"caseSensitive\": false\n      }\n    },\n    {\n      \"id\": \"lineCount\",\n      \"config\": {\n        \"source\": \"filterLines\",\n        \"label\": \"Count\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied",
+            "keys-incomplete"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [listSource,filterLines,lineCount] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 3-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "listSource",
+              "filterLines",
+              "lineCount"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "chain-list-display",
+          "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+          "chainOk": false,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"articleList\",\n      \"config\": {\n        \"articles\": \"Paste your list of article titles here, one per line.\\nExample:\\nAlbert Einstein\\nAda Lovelace\\nMona Lisa\",\n        \"enrich\": true,\n        \"maxItems\": 0\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [listSource,articleList] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 2-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "articleList"
+            ],
+            "chainOk": false,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "chain-summary-translate-speak",
+          "prompt": "Build me a card that shows an article summary, translates it to French, and can speak the translation aloud",
+          "chainOk": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [
+            {
+              "type": "translate",
+              "found": false,
+              "missing": [
+                "to"
+              ]
+            }
+          ],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"excerpt\",\n      \"config\": {\n        \"article\": \"Albert Einstein\",\n        \"project\": \"en.wikipedia\",\n        \"verticalAlign\": \"top\"\n      }\n    },\n    {\n      \"id\": \"translate\",\n      \"config\": {\n        \"text\": \"{{widget:excerpt}}\",\n        \"from\": \"en\",\n        \"to\": \"fr\",\n        \"display\": \"translation\"\n      }\n    },\n    {\n      \"id\": \"speaker\",\n      \"config\": {\n        \"source\": \"translate#speech\",\n        \"lang\": \"fr\",\n        \"rate\": \"1\",\n        \"speakOnChange\": false\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied",
+            "keys-incomplete"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [excerpt,translate,speaker] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 3-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "translate",
+              "speaker"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "board-switcher-institutions",
+          "prompt": "Make a dashboard where I can switch between the Metropolitan Museum of Art and the Library of Congress and see their Commons collection stats",
+          "chainOk": false,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [],
+          "perWidget": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"boardControls\",\n      \"config\": {\n        \"title\": \"Collection Selector\",\n        \"spec\": \"category | buttons | Collection | Images from the Metropolitan Museum of Art, Images from the Library of Congress\"\n      }\n    },\n    {\n      \"id\": \"glamorgan\",\n      \"config\": {\n        \"category\": \"{{category}}\",\n        \"depth\": 1,\n        \"year\": 2026,\n        \"month\": 1,\n        \"fileBudget\": 500,\n        \"topN\": 5,\n        \"showDetail\": true\n      }\n    },\n    {\n      \"id\": \"cimTrend\",\n      \"config\": {\n        \"category\": \"{{category}}\",\n        \"wiki\": \"en.wikipedia\",\n        \"months\": 12,\n        \"zeroY\": false\n      }\n    },\n    {\n      \"id\": \"cimTopFiles\",\n      \"config\": {\n        \"category\": \"{{category}}\",\n        \"wiki\": \"en.wikipedia\",\n        \"topN\": 10\n      }\n    },\n    {\n      \"id\": \"cimTopWikis\",\n      \"config\": {\n        \"category\": \"{{category}}\",\n        \"topN\": 10\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "wrong-widgets",
+            "board-no-wiring-where-implied"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]",
+            "wrong-widgets": "expected [boardControls,cimSnapshot] · got []",
+            "board-no-wiring-where-implied": "no {{widget:}}/source reference emitted for a 2-widget chain"
+          },
+          "lenient": {
+            "ids": [
+              "boardControls",
+              "glamorgan",
+              "cimTrend",
+              "cimTopFiles",
+              "cimTopWikis"
+            ],
+            "chainOk": false,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        }
+      ]
+    }
+  ]
+}

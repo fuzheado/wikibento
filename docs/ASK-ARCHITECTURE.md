@@ -1,223 +1,392 @@
-# Ask Architecture — widget-catalog LLM advisor: audit, context budget & manifest v3 plan
+# Ask Architecture — the widget-catalog LLM advisor: live audit, context budget, and what the catalog alone buys
 
-*Prepared 2026-09-09. Audit of the Ask subsystem (ISSUE-44) after the dataflow
-era (ISSUE-50 params, ISSUE-52/53 widget-to-widget emit/consume, ISSUE-58
-excerpt emitter, MinT translator): does the manifest we feed the LiftWing
-Qwen LLM carry enough metadata to answer **compound** queries ("get the
-article text, filter it, translate it to French"), not just simple ones
-("images from a category")? Includes a measured context-budget analysis and a
-manifest v3 / prompt-engineering plan.*
-
-*Companion to `docs/DATA-SOURCES.md` §23 (Ask facility record), `ISSUES.md`
-(ISSUE-44), and `MODULARITY-AND-DATAFLOW.md` (params/dataflow).*
+*Rewritten **2026-10-01** (first prepared 2026-09-09, ISSUE-44). The 2026-09-09 sections are kept as status rows
+rather than history: this is a current-state doc, and its job is to say what is true today. Every number below is
+dated and reproducible — the raw runs are `bench/results/2026-10-01-*.json`, the method is
+`tests/probe-ask-live.mjs` (throwaway, deleted after the audit) plus the shipped
+`scripts/benchmark-ask-variants.mjs`. Companion docs: `bench/README.md` (results write-up),
+`docs/INTENT-BENCHMARK.md` (fixtures + coverage), `docs/ISSUES.md` → ISSUE-44 (design and abuse defence),
+`docs/DATA-SOURCES.md` §23 (LiftWing).*
 
 ---
 
 ## TL;DR
 
-- **Simple queries: well set up.** 37-widget `manifest.json` v2, value rules,
-  few-shots, server-side id validation, intent benchmark + fixtures.
-- **Compound dataflow queries: NOT yet.** Three blockers, none architectural:
-  1. the manifest carries **no dataflow vocabulary** (no emitters, output
-     shapes, consume semantics, `{{widget:id}}`);
-  2. a **generator bug truncates descriptions at apostrophes** — including
-     exactly the two core transformer widgets (`filterLines`, `lineCount` →
-     "Consume another widget");
-  3. the **output contract is single-widget** (1–3 independent options, no
-     chain/wiring) and AskPanel adds each option standalone (ISSUE-44 phases
-     2–3, multi-widget assembly, still open).
-- **Context budget is comfortable but bounded:** primary `qwen36-27b` has a
-  32K window; the **fallback `qwen3-14b` has 16K** — treat ~12–14K tokens as
-  the design ceiling for the static prompt so the fallback always fits.
-  Current payload ≈ 6K tokens → ~6–8K of headroom for a targeted manual +
-  few-shots before hitting the ceiling.
-- The Ask loop is a degenerate one-shot RAG; the biggest architectural win is
-  a retrieval stage using **LiftWing's own `qwen3-embedding` model** (0.6B,
-  in-infra), plus a human-authored **recipe library**.
+- **The prompt is measured, not estimated.** Static prefix = **11,386 tokens** in suggest mode and **11,493** in
+  board mode (`usage.prompt_tokens` from the API itself, 2026-10-01). The 2026-09-09 audit's "≈13.4K, at the
+  12–14K design ceiling" came from a chars/3.5 heuristic; the real ratio is **4.13 chars/token**, so the fallback
+  (16K) has ~4.5K tokens of slack, not ~0.5K.
+- **The single-widget suite is no longer saturated.** 15 fixtures score **top1 93% · top3 93% · keys 93% ·
+  subject 92%** — identical in 3/3 shipped runs and 2/2 probe runs. The 2026-09-09 record says 100%; the same
+  fixture (`category-sample-photos` → `gallery` instead of `categorySize`) fails in **5/5** runs today, so this is a
+  stable behaviour change, not noise.
+- **Boards: 77% chain (67–83%), 100% keys/subject** in suggest mode over 5 runs — the recurring failure is
+  `chain-list-display` (**5/5**: `articleList` without `listSource`, twice in the wrong order).
+- **Board-assembly mode (what ships as "🧩 Whole board") is better on shape and safe on application:**
+  chain 67% (4/6, identical 3/3), keys 100%, and **18/18 boards accepted by `validateAssembly` AND by the app's own
+  `validateDashboard`**, plus **6/6 rendered in the built app in a real browser** with no page errors.
+- **The catalog alone buys almost all of the quality.** Sending *only* the catalog (no manual, no rules, no
+  few-shots) scores **top1 93%** on the single-widget suite (content-scored) and **78% chain** on the board suite —
+  the same as, or better than, the shipped prompt. What the 1,410 tokens of rules/manual/few-shots actually buy is
+  the **output envelope** (catalog-only replies satisfy it 0/48) and **subject formatting** (subject 69% → 92%).
+- Two defects found while measuring, both outside this doc's remit and **not fixed here**: `validateAssembly` prunes
+  the app's own channel-qualified references (`id#channel`, ISSUE-91) — it deleted the third card of the canonical
+  chain in 3/3 runs; and the ⬆ Import panel drops the `params` block, so a pasted params board renders
+  "Waiting for a reference".
 
 ---
 
 ## How Ask works today (machinery map)
 
-- **Manifest:** `scripts/generate-manifest.mjs` parses `src/widgets/index.js`
-  (regex-based, no import — the registry pulls in JSX) → `public/manifest.json`
-  **v2**, 37 widgets, run before vite build. Per-widget fields: `id, name,
-  icon, description, dataSource, category, type (stat/trend/table/media/
-  query/embed), intensity, experimental, configFields [{key,type,options?}],
-  defaults [keys]`.
-- **Server:** `deploy/server.js` `/api/ask` narrow-function relay. System
-  prompt = `ASK_SYSTEM(manifest)` (catalog subset: id/name/description/
-  dataSource/category/type/configFields/defaults) + `ASK_RULES` (~2.8K chars:
-  exact ids, value rules, output schema, 2 few-shots). Model
-  `llm-qwen36-27b`, fallback `llm-qwen3-14b`; `max_tokens` 700; exact-match
-  cache `sha(prompt + manifest.version)`; output ids validated against the
-  manifest (`validateOptions`), non-JSON → empty options. Rate-limited
-  (~10/min/IP) + per-IP daily cap + session token handshake.
-- **Client:** `AskPanel.jsx` renders options and adds each via
-  `onAdd({id, widgetType, config})` — **always a standalone widget**;
-  `src/lib/askLocal.js` = offline keyword fallback scoring the same manifest.
-- **Tests/benchmarks:** `ask-validation.test.mjs`, `intent-fixtures.mjs` +
-  `intent-benchmark.test.mjs`, `scripts/benchmark-ask.mjs`.
+- **Catalog:** `public/manifest.json` **v3**, **42 widget types**, 55,874 chars on disk (56,207 as deployed,
+  2026-10-01). Per widget: `id, name, icon, description, dataSource, category, type, timeScope, nodeKind, outputs,
+  consumesSource, configFields [{key,type,label,options?,hint?,placeholder?,showIf?}], defaults`. The registry
+  declares dataflow (`outputs`, `consumesSource`) and `scripts/generate-manifest.mjs` copies it, so a new emitter
+  appears in the prompt automatically: **9 emitters** today (`listSource`/lines, `filterLines`/lines,
+  `lineCount`/count, `echo`/value, `qrCode`/value, `map`/geojson, `iaItem`, `iaBook`, `documentReader`/value) and
+  **5 `source`-field consumers** (`speaker, map, filterLines, lineCount, echo`).
+- **Server:** `deploy/server.js` `/api/ask` — a narrow-function relay (server owns the prompt, model, params;
+  the client sends only `{prompt, token, mode?}`). Prompt =
+  `ASK_SYSTEM(manifest)` (preamble + the trimmed catalog array) + `askManual(manifest)` (dataflow, **derived from
+  the manifest**, not hardcoded) + `ASK_RULES` (ids, intent matching, VALUE RULES, output schema, 3 few-shots) for
+  `mode:'suggest'`, or `+ ASK_ASSEMBLY_MANUAL + ASK_RULES_BOARD +` the VALUE-RULES slice for `mode:'board'`.
+  Model `llm-qwen36-27b` (32K), fallback `llm-qwen3-14b` (16K); `max_tokens 700`, `temperature 0.3`,
+  `response_format json_object`, 45 s timeout; exact-match cache `sha(mode|prompt|manifest.version)`, 10-min TTL,
+  200 entries; per-IP limits + session-token handshake.
+- **Validation:** `validateOptions()` (suggest) drops unknown ids and unknown config keys, checks select values
+  against the real options, coerces numbers/booleans, and repairs near-miss project/lang/file values;
+  `validateAssembly()` (board) additionally sanitizes/dedupes ids, clamps `w`/`h`, caps params/widgets, and
+  **prunes any widget whose `{{widget:id}}`, `{{param}}` or `source` reference does not resolve — cascading**.
+- **Client:** `src/components/AskPanel.jsx` — two modes (🔧 Widgets / 🧩 Whole board), an "Add" per option, and
+  "＋ Add N widgets" for an assembled board → `App.handleAddAssembly` (id collision remap → param merge → defaults
+  underlay → layout append → **full-board `validateDashboard` gate** → apply with undo). Offline tier:
+  `src/lib/askLocal.js`.
+- **Tests/bench:** `tests/ask-validation.test.mjs`, `tests/assembly.test.mjs`,
+  `tests/intent-benchmark.test.mjs` (offline schema constitution + local-tier floor),
+  `tests/intent-fixtures.mjs` (15), `tests/board-fixtures.mjs` (6), `tests/intent-benchmark-lib.mjs`
+  (`scoreOptions`, `scoreChainOptions`), `scripts/benchmark-ask.mjs`,
+  `scripts/benchmark-ask-variants.mjs` (`--via toolforge`).
 
-## Audit findings (2026-09-09)
+## Status of the 2026-09-09 findings and plan
 
-### F1 — Manifest has no dataflow vocabulary
-
-The generator extracts UI/config metadata only. It does **not** extract:
-
-- **Emitters** — five widgets emit runtime outputs, none declared in the
-  manifest: `excerpt` (article extract text, ISSUE-58), `listSource` (lines),
-  `filterLines` (lines), `lineCount` (count), `echo` (value passthrough).
-- **Output shapes** (scalar / lines / count / extract) — invisible.
-- **Consumer semantics** — `filterLines`/`lineCount`/`echo` DO surface a
-  `source` config field of `type: 'source'`, but the string is opaque; nothing
-  says "pick an emitting widget on the board," and the second consume path —
-  `{{widget:id}}` interpolation in any string field — appears nowhere.
-- **Node kinds** (source / controller / transformer / reducer / effector /
-  AI-native per the Node Algebra taxonomy) — the UI "Dataflow" category is a
-  hint, not a role.
-- Config-field **labels/help text** (what does `pattern`/`match`/`spec` mean?)
-  and `timeScope` are also dropped.
-
-### F2 — Description-truncation bug (generator)
-
-`q('description')` regex (`description:\s*'([^']*)'`) stops at the **first
-apostrophe**, so any description containing an escaped `\'` is truncated.
-**Affected ids:** `cimTrend`, `cimTopWikis`, `cimTopPages`, `filterLines`,
-`lineCount` — the two core transformers read literally *"Consume another
-widget"* in the manifest. Root cause is in `generate-manifest.mjs`; the
-registry source is correct.
-
-### F3 — Single-widget output contract
-
-`ASK_RULES` output schema = `options: [{widgetType, config, mode, reason}]`,
-1–3 **independent** options. No way to express "then filter, then translate";
-no `source`/wiring reference among options; AskPanel adds each option
-standalone. Multi-widget board assembly = ISSUE-44 phases 2–3 (open). Even a
-perfect manifest cannot produce a wired chain through the current contract.
-
-### F4 (minor)
-
-- Type taxonomy (stat/trend/table/media/query/embed) reflects *renderer*
-  family, not node kind.
-- No `timeScope` — trend/range widgets can't be advised with correct temporal
-  config.
-- `boardControls` `spec` (textarea DSL) is documented nowhere the LLM sees.
-
-**What works well:** exact-id + value rules prevent most invalid configs;
-`validateOptions` + re-prompt repair handles hallucinated ids; local fallback
-+ benchmark keep the simple path healthy.
-
-## Context budget (measured 2026-09-09)
-
-- **Models** (wikitech Machine_Learning/LiftWing/Large_Language_Models):
-  `qwen36-27b` = Qwen3.6-27B, FP8, vLLM on AMD MI300X (2-way tensor
-  parallel), 32K ctx (verified in ISSUE-44); `qwen3-14b` fallback = 16K ctx.
-  Also available on the same platform: **`qwen3-embedding` (0.6B)**.
-- **Current payload:** mapped catalog ≈ 19.8K chars + ASK_RULES ≈ 2.8K +
-  boiler ≈ **23.0K chars ≈ ~6K tokens** (~5.1–7.2K). Output cap 700 tokens.
-- **Headroom:** 32K window → ~25K tokens free on the primary. **BUT the
-  fallback binds:** a prompt that exceeds 16K turns a primary-model outage
-  into a 502 on the fallback. **Design ceiling for the static prefix:
-  ~12–14K tokens** (16K − 700 output − user prompt − margin).
-- **Latency/etiquette:** prefill scales with prompt length on shared on-prem
-  GPUs; every uncached ask pays full prefill. vLLM supports automatic prefix
-  caching — **verify it is enabled on the LiftWing deployment**; if yes, a
-  stable long prefix is nearly free after the first call per version.
-
-## Manifest v3 / prompt plan (ranked)
-
-1. **Fix the truncation bug** (S) — apostrophe-safe extraction; add a
-   constitution-style test: no manifest description ends in `\` or contains
-   `\'` artifacts; assert ≥ 35 widgets extracted.
-2. **Registry-declared dataflow metadata** (S–M) — next to each `emit:`, add
-   declarative `outputs: {kind: 'extract'|'lines'|'count'|'value'}`, plus
-   `consumes: ['source'|'{{widget:id}}']` and a Node-Algebra `nodeKind`;
-   generator copies them into **manifest v3**. (No regex-inference from
-   runtime code.)
-3. **Richer config fields** (M) — include per-field `label`/`help` in the
-   manifest (semantics of `pattern`/`match`/`caseSensitive`/`spec`, and a
-   note on `type: 'source'`: "id of a widget on the board that emits").
-   Include `timeScope`.
-4. **System manual section** (~1.5–2.5K tokens, machine-generated or static
-   in server.js) — dataflow model: who emits what; `source` field vs
-   `{{widget:id}}` vs `{{param}}`; chain semantics; value rules; repair rule
-   (drop/refuse unknown ids). Placed after the catalog.
-5. **Curated few-shots incl. chains** (S) — add 2–3 chain examples; ground
-   truth = the shipped `public/translate-demo.json` 4-widget chain and the
-   "article text → filter → translate → display" query.
-6. **Chain-capable output contract** (M — ISSUE-44 phase 2/3 slice) —
-   options may carry `chain: [{widgetType, config, wiring: {source | set of
-   {{widget:id}} refs}}]`; server validates ids AND refs resolve; AskPanel
-   applies in order and sets `source` fields. Single-widget stays the default.
-7. **Token-budget constitution** (S) — build-time test: assembled static
-   prefix (manifest + manual + rules + few-shots) must be ≤ ~14K tokens
-   (chars/3.5 heuristic); fail the build otherwise. Keeps the fallback safe
-   and the prefix stable (cache-friendly).
-8. **Extend the intent benchmark** (S) — compound fixtures in
-   `intent-fixtures.mjs` ("translate this article's first paragraph to
-   French") scored by `benchmark-ask.mjs`; requires (6) to assert chain
-   shape.
-
-## Beyond one-shot: RAG optimizations
-
-The Ask loop is a degenerate RAG (whole static corpus in the prompt, one
-shot, one answer). Mature fixes, in order of leverage:
-
-- **True RAG in Wikimedia infra** — embed the intent with LiftWing
-  `qwen3-embedding`, retrieve top-K widgets (+ recipes) by cosine similarity,
-  send candidates + manual only. Order-of-magnitude prompt shrink, better
-  focus; no new infra.
-- **Recipe/template library** — retrieve over human-authored "recipes"
-  (translate chain, GLAM overview, article-vitals pack — the starter-packs
-  idea as few-shot skeletons). Recipe carries the wiring; the LLM fills
-  subjects. Highest reliability-per-token.
-- **Two-stage local-first** — `askLocal` answers simple intents at zero LLM
-  cost (instant, offline); only ambiguous/compound escalate. Most traffic is
-  simple.
-- **Prompt as a build artifact** — assemble manifest + manual + few-shots at
-  build time into one versioned file (content-hash version); stable prefix →
-  prefix caching, reviewable diffs, token-budget test applies to a real
-  artifact.
-- **Semantic cache** — beyond exact `sha(prompt+version)`: near-duplicate
-  intents (embedding cosine) hit cache; matters at ~10 req/min/IP.
-- **Chunkable manifest** — per-widget blocks + per-field docs, so a future
-  marketplace or per-widget doc growth can be served by retrieval instead of
-  a fatter prompt.
-
-## Follow-ups (work items)
-
-**Status 2026-09-09:** plan items 1–4 implemented in `ask-manifest-v3` (PR #36)
-— truncation fix + test, dataflow metadata → manifest v3, richer config
-fields, `ASK_MANUAL` system manual. Verified: 169/169 tests; live
-`llm-qwen36-27b` functional test — the compound "article text → filter →
-translate" query now recommends the `excerpt → filterLines → translate` chain
-with wiring explained, no invented board ids. Static prefix grew ≈6K → ≈8.5K
-tokens, still under the 12–14K ceiling. Also: `npm test` now regenerates the
-manifest before running (stale-manifest false passes eliminated).
-
-**Follow-up landed 2026-09-10 (qrCode widget):** the dataflow manual is now
-**derived from the manifest** (`askManual(m)` in `deploy/server.js`) instead of
-hardcoding "only these five emit" — the emitter list, the `source`-field
-consumer list and the free-text-field list are read out of the catalog, so a
-new widget appears in the Ask prompt automatically. Verified with the first
-widget added after the change (QR Code, the 6th emitter): the live
-`llm-qwen36-27b` answers a QR request with `qrCode` and uses the new
-`{{widget:…}}` guidance for "follow whatever my pageviews card shows".
-Static prefix ≈9.3K tokens (38 widgets).
-
-| Item | Effort | Status |
+| 2026-09-09 item | Status 2026-10-01 | Evidence |
 |---|---|---|
-| Fix F2 truncation + test | S | done (PR #36) |
-| F1 dataflow metadata → manifest v3 (plan items 2–3) | S–M | done (PR #36) |
-| Item 4 system manual | S | done (PR #36, `ASK_MANUAL`) |
-| Item 5 curated few-shots incl. chains | S | not started |
-| Item 6 chain contract (client+server) | M | ISSUE-44 phase 2/3 |
-| Item 7 token constitution | S | not started (test wiring landed; budget test still open) |
-| Item 8 compound benchmark fixtures | S | not started |
-| Verify vLLM prefix caching on LiftWing | S | open question |
-| Embedding retrieval prototype (qwen3-embedding) | M–L | research |
+| **F1** manifest has no dataflow vocabulary | **Done** | `outputs`/`consumesSource`/`nodeKind`/`timeScope` on 42/42; the manual is derived from them (`askManual`) |
+| **F2** description truncation at apostrophes | **Done** | generator fix + constitution test; no description ends mid-word |
+| **F3** single-widget output contract | **Superseded** | `mode:'board'` + `ASK_ASSEMBLY_MANUAL` + `validateAssembly` + `handleAddAssembly` shipped; suggestions still 1–3 standalone options |
+| **F4** type taxonomy, no `timeScope`, `spec` DSL undocumented | **Done** | `timeScope` 42/42; `nodeKind` 42/42; `boardControls.spec` carries its own hint in the catalog |
+| Plan 1 truncation fix | **Done** | as F2 |
+| Plan 2 dataflow metadata → manifest v3 | **Done** | as F1 |
+| Plan 3 richer config fields (labels/help) | **Done** | `label` on 41/42 types, `hint` on 19, `placeholder` on 39 |
+| Plan 4 system manual | **Done** | `askManual`, manifest-derived |
+| Plan 5 curated few-shots incl. chains | **Not started** | `ASK_RULES` EXAMPLES are still 3 single-widget/value examples — **no chain example** |
+| Plan 6 chain-capable output contract | **Superseded** by board assembly | `ASK_RULES_BOARD` asks for `{board:{params,widgets,summary}}`, not `options[].chain` |
+| Plan 7 token-budget constitution | **Not built** | no test assembles the prompt and asserts a budget; see "Prompt constitution" for the measured numbers it should assert |
+| Plan 8 compound benchmark fixtures | **Partly** | 6 chain fixtures + `scoreChainOptions` exist and are schema-checked offline — but they are scored in **suggest** mode, and **assembly mode has no offline fixture/scorer at all** |
+| Verify vLLM prefix caching on LiftWing | **Still unverified** | 3 timed calls on the same 11.4K prefix: 2.57 / 2.05 / 2.25 s wall incl. a ~1.3–1.7 s SSH hop; the API returns `prompt_tokens_details: null`, so there is no cache signal to read |
+| Embedding retrieval (`qwen3-embedding`) | **Not started** | direction unchanged; the catalog-only result below is the strongest argument for it — and against it |
 
-*Sources: code paths above (HEAD 3404cf8, 2026-09-09); wikitech
-Machine_Learning/LiftWing/Large_Language_Models; ISSUE-44 verification notes
-(32K/16K contexts).*
+## Prompt constitution (measured 2026-10-01)
+
+`usage.prompt_tokens` from the API, not a heuristic. Model `llm-qwen36-27b`, `max_tokens 700`.
+
+| Prompt | Chars | **Tokens (API)** | Δ |
+|---|---|---|---|
+| `ASK_SYSTEM` (preamble 327 + catalog array 40,908) | 41,235 | **9,976** | — |
+| + `askManual` + `ASK_RULES` (**suggest**, shipped) | 47,066 | **11,386** | +1,410 |
+| + `ASK_ASSEMBLY_MANUAL` + `ASK_RULES_BOARD` + VALUE RULES (**board**, shipped) | 47,434 | **11,493** | +107 |
+| `public/manifest.json` on disk | 55,874 | — | the catalog array is a 73% subset of the file |
+
+- **Measured ratio: 4.13 chars/token** for this prompt (47,066 / 11,386). A budget test should assert tokens with
+  this ratio (or ask the API), not chars/3.5 — the old heuristic overestimates by ~15%.
+- **What one widget type costs:** 40,908 chars / 42 types ≈ **974 chars ≈ 236 tokens**. The design band was
+  12–14K tokens for the static prefix so the 16K fallback always fits (16K − 700 output − user prompt − margin):
+  at 11,493 the board prompt sits **507 tokens below the band's floor** (≈2 more widget types) and **2.5K below its
+  ceiling** (≈10 more types). Item 7 (plan item 7) is not hypothetical any more.
+- **What the extra 1,410 tokens buy** is measured in "What the catalog alone buys" below: the envelope, and value
+  formatting — not widget discrimination.
+
+## Measured baselines (2026-10-01)
+
+All runs `llm-qwen36-27b`, `temperature 0.3`, `max_tokens 700`, through the Toolforge bastion
+(`--via toolforge`). **171 fixture-runs, 0 upstream errors, 0 non-JSON replies, 0×429** — the pace never had to
+wait. Scoring is the bench's own (`scoreOptions` / `scoreChainOptions`).
+
+### Single-widget fixtures (15) — suggest mode
+
+| Run | top1 | top3 | keys | subject | File |
+|---|---|---|---|---|---|
+| shipped script r1 | 93% | 93% | 93% | 92% | `2026-10-01-single-widget-r1.json` |
+| shipped script r2 | 93% | 93% | 93% | 92% | `…-r2.json` |
+| shipped script r3 | 93% | 93% | 93% | 92% | `…-r3.json` |
+| probe r1 / r2 (raw replies kept) | 93% | 93% | 93% | 92% | `…-probe-r1/r2.json` |
+
+`scripts/benchmark-ask.mjs` has **no `--via` flag** (it always calls from the local IP), so the repeats above used
+`benchmark-ask-variants.mjs --variants baseline --via toolforge` — same prompt (`ASK_SYSTEM + askManual +
+ASK_RULES`), same `validateOptions`, same scoring library.
+
+**The one failure, stable 5/5:** `category-sample-photos` ("Show me a random sampling of images from the category
+Featured pictures on Wikimedia Commons") returns **`gallery`** with `from: 'category'`, not `categorySize` — even
+though this exact prompt shape is the prompt's own canonical few-shot for `categorySize`. It also carries a
+hallucinated field name (`wiki`, where `gallery` declares `project`), which `normalizeConfig` silently drops. The
+2026-09-09 record has this fixture at top1 ✓, so either the gallery merge (the three gallery widgets became one with
+a `category` source) made `gallery` the better answer, or the example needs sharpening — **a fixture-ground-truth
+decision, not one this audit should make silently**.
+
+### Board fixtures (6) — suggest mode (options, chain as in-order subsequence)
+
+| Run | chain | keys | subject | File |
+|---|---|---|---|---|
+| shipped r1 | 83% | 100% | 100% | `2026-10-01-boards-suggest-r1.json` |
+| shipped r2 | 67% | 100% | 100% | `…-r2.json` |
+| shipped r3 | 83% | 100% | 100% | `…-r3.json` |
+| probe r1 | 83% | 100% | 100% | `…-suggest-probe-r1.json` |
+| probe r2 | 67% | 100% | 100% | `…-suggest-probe-r2.json` |
+
+**chain ≈ 77% (67–83%) over 5 runs.** The recurring miss is `chain-list-display` **5/5** — the model answers
+`articleList` alone (defensible: `articleList` takes a pasted list directly), or returns
+`articleList, listSource` (right widgets, wrong dataflow order). `board-switcher-institutions` also misses **2/5**
+(`glamorgan + categorySize` instead of `boardControls + cimSnapshot`) — a defensible alternative reading of "switch
+between two institutions and see their Commons stats". The 2026-09-09 "boards are saturated at 100%" conclusion
+does not reproduce.
+
+### Board fixtures (6) — assembly mode (`mode:'board'`, what the UI's 🧩 toggle sends)
+
+| Run | chain | keys | subject | assembly accepted | app accepted (`validateDashboard`) |
+|---|---|---|---|---|---|
+| r1 / r2 / r3 (identical) | 67% | 100% | 100% | **18/18** | **18/18** |
+
+- **`validateAssembly` accepted every board, 18/18**, with 3 warnings total — see below.
+- **`validateDashboard` accepted every board, 18/18, with 0 warnings and 0 errors** when the fragment is applied
+  the way `App.handleAddAssembly` applies it (defaults underlay, layout built from `w`/`h`, params merged).
+- **`chain-list-display` passes 3/3 here** — being allowed to invent instance ids gives the model the ordering it
+  cannot express in suggest mode.
+- The 4/6 chain misses are:
+  1. `chain-summary-translate-speak` **3/3** — the model *did* emit `excerpt → translate → speaker`, but wired the
+     speaker as `source: "french-translation#speech"` — **the app's own channel-qualified id form** (ISSUE-91) —
+     and `validateAssembly` only accepts bare widget ids, so it **deleted the third card**
+     (`widget "speak-french" dropped — a reference it consumes is not on the board`). This is a server-side bug, not
+     a model failure, and it is the cheapest fix in this document.
+  2. `board-switcher-institutions` **3/3** — `gallery`/`cimTopFiles`/`cimTrend` where the fixture expects
+     `cimSnapshot`; the board is coherent, parameterised (`{{institution}}`) and renders.
+
+### Does it render? (built app, real browser, 2026-10-01)
+
+`tests/probe-ask-render.mjs` — the built `dist/` loaded in Chromium, each accepted board pasted through the app's
+own ⬆ Import panel (the `scripts/pick-mode-e2e.mjs` pattern), then loaded a second way through the app's `#/d/`
+share hash:
+
+| Board | cards | Import panel | `#/d/` hash |
+|---|---|---|---|
+| chain-translate-article | 2/2 | renders, wired | renders, wired |
+| chain-speak-article | 2/2 | renders, wired | renders, wired |
+| chain-filter-count | 3/3 | renders, wired (holder → filter → count all resolved) | same |
+| chain-list-display | 2/2 | renders, wired (`{{widget:}}` → 4 articles) | same |
+| chain-summary-translate-speak | 2/2 | renders, wired (3rd card was pruned server-side) | same |
+| board-switcher-institutions | 4/4 | renders, **3 cards stuck "Waiting for a reference"** | renders, **`{{institution}}` resolves**; 2 CIM cards report "No precomputed (CIM) data yet" |
+
+**6/6 boards render with no page errors and no error frames; 5/6 are fully wired through the Import path.** The
+boards are 496–1,277 chars of JSON and compress to **394–696-char** share links (`#/z/`) — comfortably inside the
+1,500-char QR ceiling (`QR_MAX_CHARS`, `src/components/SharePanel.jsx`), so an Ask-built board is shareable by QR.
+Two findings, both recorded rather than fixed:
+
+- **The ⬆ Import panel drops the `params` block** (`src/components/ImportPanel.jsx` hands the parent
+  `{widgets, layout}` only). The `?config=` and `#/d/` loaders both apply `params` (App boot), so a pasted board
+  with `{{param}}` references renders every driven card as "Waiting for a reference". The Ask path itself is fine —
+  `handleAddAssembly` merges params properly — so this is an **import-path bug**, and it is also why the audit had
+  to load the params board twice.
+- **The CIM cards are wired but have no data**: the model put `cimTopFiles`/`cimTrend` on a category that is not on
+  the Commons Impact Metrics allow-list. The card says so honestly. Nothing in the catalog tells the advisor that
+  the CIM family only serves allow-listed categories.
+
+## Failure taxonomy (2026-10-01, 171 fixture-runs)
+
+Classes are decided from the **raw** reply (before validation can hide the defect), by
+`tests/probe-ask-live.mjs`. Production paths only (60 fixture-runs: 30 suggest/intent, 12 suggest/board,
+18 board/board); the catalog-only variant is scored separately below.
+
+| # | Class | Where | Count | Real example |
+|---|---|---|---|---|
+| 1 | **wrong widget** (expected id absent from the reply) | suggest/intent, suggest/board, board/board | 2/30 · 2/12 · 6/18 | `category-sample-photos` → `gallery`; `board-switcher` → `glamorgan, categorySize` |
+| 2 | **chain order** (all expected ids present, wrong order) | suggest/board | 1/12 | `[articleList, listSource]` for `listSource → articleList` |
+| 3 | **reference the server rejects** (`id#channel`) | board/board | 3/18 | `speaker.source = "french-translation#speech"` → card pruned |
+| 4 | **field that does not exist** | suggest/intent | 3/30 | `gallery.wiki = "commons.wikimedia"` (the field is `project`); `glamorgan.wiki` |
+| 5 | **value the field will not accept** | suggest/intent | 1/30 | `linkcount.namespace = ""` → dropped |
+| 6 | **wiring reference with no instance id** | suggest/board | 6/12 | `speaker.source = "excerpt"` — a *type*, not a board id (the contract forbids inventing ids, so the user must wire by hand) |
+| 7 | **no wiring emitted where the chain implies it** | suggest/board | 4/12 | `listSource → filterLines → lineCount` returned with three standalone configs |
+| 8 | **subject field omitted** | — | **0** | SUBJECT COMPLETENESS + the wayback few-shot hold on all 15 |
+| 9 | **hallucinated widget id** | — | **0** | the "exact ids" rule + `validateOptions` drop: zero unknown types in 171 runs |
+| 10 | **non-JSON reply** | — | **0** | `response_format: json_object` |
+| 11 | **upstream error (429/503/timeout)** | — | **0** | all 171 calls via the bastion, no backoff needed |
+| — | *not a failure but worth counting* | suggest/intent | 6/30 | `value-repaired-by-normalizer`: `lang: "de.wikipedia"` → `de`, `filename: "Earth from space.jpg"` → `File:…` |
+| — | *catalog-only variant* | catalog/* | **48/48** | `output-schema-miss` — every reply was a coherent `{widgets:[…]}` that is not the contract's `{options:[…]}` |
+
+Interpretation: the **safety bar is the strongest part of the prompt** (no invented ids, no non-JSON, no upstream
+failures, no omitted subjects); the **soft spot is chain *expression*, not chain *knowledge*** — classes 1, 2, 6 and
+7 are all the same underlying thing: the model knows the chain and cannot say it in the suggest schema. Give it a
+schema that can (board mode), and 4 of the 6 board fixtures pass today — 5 of 6 once class 3 is fixed.
+
+## What the catalog alone buys (the ablation that matters)
+
+Prompt variant: **`ASK_SYSTEM` only** — the catalog array and the role sentence; **no `askManual`, no RULES, no
+VALUE RULES, no few-shots, no output schema** (41,235 chars / 9,976 tokens — 1,410 tokens less than shipped).
+
+| Suite | Scored as the bench scores it | Content-scored (envelope repaired) | Runs |
+|---|---|---|---|
+| board fixtures | **0%** chain (0 options — schema miss 6/6 every run) | **78%** chain (83 / 67 / 83), keys 100%, subject 100% | `2026-10-01-catalog-only-boards-r1..r3.json` |
+| single-widget fixtures | **0%** top1 (schema miss 15/15) | **93%** top1, 93% keys, **69% subject** | `2026-10-01-catalog-only-widgets-r1/r2.json` |
+
+**Read the two columns together.** As shipped, the variant scores 0 — the finding is that *the output contract is
+the part of the prompt that cannot be inferred from the catalog*. Scored on content, the catalog alone matches the
+shipped prompt's widget choice exactly on single-widget intents (93% vs 93%) and on board chains (78% vs 77%), and
+the replies even volunteer the app's own wiring vocabulary (`{{widget:excerpt}}`, `source: "translate#speech"`,
+`{{institution}}` params).
+
+**Delta, stated honestly:**
+
+- **Widget choice and chain shape: ~0.** The 1,410 tokens of manual + rules + few-shots buy no measurable accuracy
+  on either suite. This repeats the 2026-09-09 variant result (three variants scored identically) from the other
+  direction — removing the engineering changes nothing either.
+- **Output envelope: everything.** 48/48 catalog-only replies violate the contract (they emit `{widgets:[{id:…}]}`
+  or a bare `{widgetId, config}`); 0/48 shipped-prompt replies do.
+- **Value formatting: ~23 points of "subject"** (69% → 92%). Two of the three recurring faults (`File:` prefix,
+  `de.wikipedia` → `de`) are repaired by the server's `normalizeConfig` anyway, so the *user-visible* delta is
+  smaller than the raw gap — the remaining real one is `wiki` vs `project` (taxonomy class 4) and the
+  date-mode/"latest" choice.
+- **Caveat, and it is a real one:** the "content-scored" column is a repair the bench does not ship — it hands the
+  model credit for an envelope no client could parse. It is the right measure for "what does the catalog teach",
+  not for "would this work today". 6 board fixtures is also a wide confidence interval: one fixture is 17%.
+
+**Consequence for design.** If Ask is ever handed to an external/bigger LLM, the catalog is a portable artifact and
+the *contract* is what must be specified precisely and validated strictly — which is what `validateOptions` /
+`validateAssembly` already do. Conversely, the 1,410 tokens that carry no accuracy are the first place to cut if
+the 16K fallback ever binds (but keep the VALUE RULES: they carry the formatting that the normalizer cannot fix).
+
+## Coverage: what the current numbers actually describe
+
+- **15 of 42 widget types have single-widget ground truth** (`node scripts/interview-fixtures.mjs --list`), one
+  English, single-subject, single-sentence prompt each; 13 of 15 have `requireSubject`. They cover the article /
+  file / category / GLAM / ranking core: `pageviews, linkcount, categorySize, wikistats, fileUsage, glamorgan,
+  topWikipedias, topPages, excerpt, edithistory, quality, gallery, sparql, panorama360, waybackGallery`.
+- **The 6 board fixtures name 9 types** — `excerpt, translate, speaker, listSource, filterLines, lineCount,
+  articleList, boardControls, cimSnapshot` — but only inside chains, with 2 of 6 `requireSubject`. **Union: 23/42.**
+- **19 types appear nowhere in ground truth:** `markdown, qrCode, assessments, cimTrend, cimTopFiles, cimTopWikis,
+  cimTopPages, cimTopEditors, cimLeaderboard, cimFileSpotlight, cimFileTraffic, wikiBox, wikiPage, map,
+  mediaPlayer, iaItem, iaBook, documentReader, echo`. That is the whole **CIM family (9 types)**, the map and its
+  geometry fields, the whole media/IA family, and the embeds.
+- So "top1 93%" means: *the model picks the right widget for a single-subject English request in the core
+  data family*. It says nothing about the 19 types above, about multi-subject requests, about non-English prompts
+  (the 2026-09-09 es/fr/de/it/pt probe, `tests/fixture-multilingual.mjs`, is the only evidence there), or about
+  refusal behaviour.
+
+Fixtures that would close the most (each is one interview session with `scripts/interview-fixtures.mjs --add`):
+
+1. **CIM family, one per slice** (9 fixtures): snapshot, trend, top files, top wikis, top pages, top editors,
+   leaderboard, file spotlight, file traffic — plus the distinguishing phrasing vs `glamorgan` / `fileUsage`.
+2. **The map** (3): places list → auto-fit; "draw this GeoJSON"; "map whatever the SPARQL card returned" (a
+   geometry-kind wiring case, new in ISSUE-132).
+3. **Media & IA** (5): `mediaPlayer`, `iaItem`, `iaBook`, `documentReader`, `qrCode` (an emitter, and the only
+   widget whose config is a *reference*).
+4. **Embeds & text** (4): `markdown`, `wikiBox`, `wikiPage`, `assessments`.
+5. **Dataflow as single-widget intents** (7): `listSource`, `filterLines`, `lineCount`, `articleList`, `translate`,
+   `speaker`, `boardControls` — today they are only ever seen inside a chain, so nothing measures whether the model
+   picks them for their own sake.
+6. **Board fixtures that exercise the schema, not just the chain** (3): a params board with two params; a 4-widget
+   pipeline with a branch; and one unbuildable request, to test that it declines instead of inventing.
+
+## Ranked cheap fixes
+
+Ordered by (evidence × cheapness). The 2026-09-09 finding stands: **rules set intent, few-shots change behaviour** —
+the wayback case went 1/5 → 5/5 only by adding a targeted example.
+
+1. **Accept `id#channel` references in `validateAssembly`** (S, ~5 lines + one test). The app's source picker offers
+   channel-qualified ids (ISSUE-91), the model emits them, and the validator deletes the card — 3/3 runs of the
+   canonical `excerpt → translate → speaker` chain lost its third widget. Split on `#` before the `liveIds` check
+   (widget refs, bare `source` refs) and add the case to `tests/assembly.test.mjs`.
+2. **One chain few-shot in `ASK_RULES` EXAMPLES** (S). `chain-list-display` fails 5/5 in suggest mode (wrong order /
+   missing producer); board mode's id licence fixes it, and the cheapest way to move suggest mode is one example
+   showing producer-before-consumer. Ground it in the shipped `public/translate-demo.json` chain.
+3. **Teach `project` vs `wiki`** (S). 3/30 single-widget rows wrote `wiki: "commons.wikimedia"` on `gallery` /
+   `glamorgan`, where the field is `project` — `normalizeConfig` silently drops it and the card falls back to its
+   own default project (a silent wrong-wiki). Either add the field name to VALUE RULES or alias `wiki` → `project`
+   in `normalizeConfig` when the widget has no `wiki` field.
+4. **A token constitution with the measured ratio** (S). `tests/*` does not assemble the prompt today. Assert
+   `ASK_SYSTEM + askManual + <rules> + 700 output ≤ 14,000` using **4.13 chars/token** (or the API count), and fail
+   with the block that grew.
+5. **Reconcile `category-sample-photos`** (S, owner's call). It fails 5/5 today against a prompt whose own few-shot
+   teaches `categorySize`. Either the ground truth is stale after the gallery merge or the example needs sharpening;
+   decide, then re-measure — do not let a permanent 1/15 sit in the baseline.
+6. **Warn the advisor off CIM for non-allow-listed categories** (S–M). One manual line ("the CIM family only serves
+   categories on the published Commons Impact Metrics allow-list; prefer `glamorgan`/`categorySize` for anything
+   else") or a `hint` on the CIM `category` field. Evidence: the switcher board renders two CIM cards that can never
+   load.
+7. **Cover assembly mode offline** (S). `tests/board-fixtures.mjs` + `scoreChainOptions` score *options*; nothing
+   asserts the board contract. A small offline constitution (fixtures → `validateAssembly` → unique ids, known
+   types, no dangling refs, ≥2 widgets) is the shape `tests/assembly.test.mjs` already proves possible — it just
+   needs the model's own frozen replies as fixtures.
+8. **Prefix caching** (S, but needs an ops answer). Unverifiable from the API (`prompt_tokens_details: null`); ask
+   the LiftWing maintainers, or measure p95 latency on a stable prefix at real volume. Until then, do not assume the
+   long prompt is free.
+
+### Defects found while measuring (reported, not fixed here)
+
+- **`validateAssembly` vs `id#channel`** — item 1 above; it is a correctness bug in the shipped board path.
+- **The ⬆ Import panel drops `params`** (`ImportPanel.jsx` → `{widgets, layout}`). `?config=` and `#/d/` apply the
+  params block; a pasted board does not, so every `{{param}}`-driven card shows "Waiting for a reference". Ask's own
+  board path is unaffected (`handleAddAssembly` merges params) but the import path is not.
+- Also verified 2026-10-01 and out of scope: an unknown path answers **500** and leaks the server's absolute path
+  (`/data/project/wikibento/www/js/dist/…`); it should be 404. `/manifest.json` is public (200,
+  `application/json`, 56,207 bytes) with **no CORS header**, so another origin cannot read it from a browser.
+
+## Beyond one-shot: RAG optimisations (direction unchanged, evidence updated)
+
+1. **True RAG over the catalog** — embed the intent with LiftWing `qwen3-embedding` and send the top-K widget
+   blocks plus the manual. The catalog-only result says the *selection* knowledge is already in the catalog and the
+   model finds it at 9,976 tokens, so retrieval's win is budget and focus, not accuracy — worth doing only when the
+   budget binds (≈10 more widget types), not before.
+2. **Recipe library** — human-authored chains (translate chain, GLAM overview, article vitals) that the model fills
+   in. This attacks the actual soft spot (chain *expression*, classes 2/6/7) in a way more prose cannot.
+3. **Two-stage local-first** — `askLocal` for simple intents, LLM for compound. Unchanged; the offline tier is the
+   graceful degradation and costs nothing.
+4. **Prompt as a build artifact** — assemble catalog + manual + rules into one versioned file with a content hash.
+   Now also the precondition for item 4 in the fixes list (a real budget test) and for any caching claim.
+5. **Prompt-injection and abuse posture** — unchanged and still sound: narrow function, server-owned prompt, caps,
+   session token, origin allowlist, per-IP limits.
+
+## How to re-measure
+
+```bash
+# single-widget + board fixtures, suggest mode (shipped scripts, high tier via the bastion)
+WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --variants baseline --via toolforge --out X.json
+WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --boards --variants baseline --via toolforge --out X.json
+```
+
+The rest of this audit used **three throwaway probes** (the `tests/probe-*.mjs` pattern — deleted when the audit
+finished, so they are described rather than pointed at). Each is a few dozen lines on top of the shipped pieces and
+is worth re-creating rather than trusting the numbers:
+
+- **`probe-ask-live.mjs`** — sends the exact suggest / board / catalog-only system prompt through the Toolforge
+  helper, runs the reply through `validateOptions` *and* `validateAssembly`, scores it with the bench's own
+  `scoreOptions` / `scoreChainOptions`, and records the raw reply, the API's `usage.prompt_tokens`, and a
+  per-fixture diagnosis (hallucinated id, unknown field, dropped value, omitted subject, dangling ref, chain
+  order, schema miss). A `--analyze` mode aggregates those classes across result files.
+- **`probe-dashboard-check.mjs`** (esbuild-bundled, because the registry imports JSX) — mirrors
+  `App.handleAddAssembly` steps 1–5 for an empty starting board and runs the app's real `validateDashboard`, so the
+  same fragment can be checked under node *and* pasted into the app.
+- **`probe-ask-render.mjs`** — starts `vite preview`, pastes each accepted board through the app's own ⬆ Import
+  panel and then loads it again through `#/d/`, asserting one card per widget, no page errors, and no
+  "Waiting for a reference" state.
+
+```bash
+# rendering (built app, real browser) — needs the probe above
+npx vite build
+```
+
+Rate limits: the public endpoint is ≈90 req/h per IP, so every repeat above went through the Toolforge bastion
+(`--via toolforge`, `ssh $USER@dev.toolforge.org`; ~1.3–1.7 s of that is the SSH hop). 171 calls, zero 429s.
+Noise: single-shot runs wobble ±1 fixture — repeat before claiming a regression, and remember that 1 fixture is 17%
+of the board suite and 7% of the single-widget suite.
+
+*Sources: `bench/results/2026-10-01-*.json` (this audit); `deploy/server.js`, `src/components/AskPanel.jsx`,
+`src/components/ImportPanel.jsx`, `src/App.jsx`, `src/lib/dashboardConfig.js`, `public/manifest.json`
+(2026-10-01); wikitech `Machine_Learning/LiftWing/Large_Language_Models`; ISSUE-44, ISSUE-91, ISSUE-132.*

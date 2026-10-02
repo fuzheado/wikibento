@@ -8,8 +8,9 @@ into widget choices.
 
 ## Why this exists
 
-As the catalog grows (30 → 50 widgets planned: slideshow, ticker, map
-family…), widgets become confusable — e.g. `fileUsage` vs `cimFileSpotlight`
+As the catalog grows (42 widget types today: the map family, geometry fields, QR Code, the IA/document readers
+and the whole CIM family all landed after this suite was written — and none of them is covered), widgets become
+confusable — e.g. `fileUsage` vs `cimFileSpotlight`
 (live vs precomputed file usage), `gallery` vs `categorySize` (article media
 vs category media). One-line descriptions stop being enough to distinguish
 them. This suite:
@@ -21,9 +22,17 @@ them. This suite:
 3. **Guides the interviewer tool** — the fastest way to grow the catalog
    with human phrasing rather than machine-typed JSON.
 
-**Baseline (2026-08-16):** LLM tier 15/15 top-1 (keys 100%, subject 100%);
-local tier 15/15 top-3 (100% top-1 after pattern fixes). The suite already
-caught 3 real local-matcher bugs — see [Findings](#findings).
+**Current baseline (2026-10-01, `llm-qwen36-27b`):** LLM tier **top1 93% · top3 93% · keys 93% ·
+subject 92%**, identical in 3/3 shipped runs and 2/2 diagnostic re-runs — the
+one miss (`category-sample-photos` → `gallery`) is stable **5/5**. Boards:
+**chain 77% (67–83% over 5 runs) · keys 100% · subject 100%**; in assembly mode
+(`mode:'board'`) **chain 67%**, with 18/18 boards accepted by both the server
+and the app. Local tier 15/15 top-3. Full numbers, run files and the failure
+taxonomy: `docs/ASK-ARCHITECTURE.md` + `bench/results/2026-10-01-*.json`.
+*(Historical: the 2026-08-16 baseline was 15/15 top-1, keys 100%
+subject 100% — quoted only to show what moved. The 2026-09-09 record of a
+100% top-1 baseline no longer reproduces.)* The suite already caught 3 real
+local-matcher bugs — see [Findings](#findings).
 
 ## The three artifacts
 
@@ -64,6 +73,9 @@ node scripts/interview-fixtures.mjs --add \
 ```
 
 ### Interactive walkthrough
+
+*(Transcript from 2026-08-16, when the catalog had 30 types — the shape of the tool, not today's coverage;
+for that see [Coverage](#coverage).)*
 
 ```
 Coverage: 15/30 · 15 uncovered
@@ -159,6 +171,11 @@ WIKIBENTO_TEST=1 node scripts/benchmark-ask.mjs --model llm-qwen3-14b  # fallbac
 WIKIBENTO_TEST=1 node scripts/benchmark-ask.mjs --gate 0.8             # exit 1 unless top-3 ≥ 80%
 WIKIBENTO_TEST=1 node scripts/benchmark-ask.mjs --out bench.json       # machine-readable, incl. extracted configs
 WIKIBENTO_TEST=1 node scripts/benchmark-ask.mjs --fixtures ./probe.mjs # score a throwaway probe file
+
+# repeats, board fixtures, and the high rate tier — benchmark-ask.mjs has NO --via flag
+# (it always calls from the local IP, ~90 req/h), so repeats go through the variants runner:
+WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --variants baseline --via toolforge --out run.json
+WIKIBENTO_TEST=1 node scripts/benchmark-ask-variants.mjs --boards --variants baseline --via toolforge --out run.json
 ```
 
 Notes:
@@ -191,13 +208,57 @@ Notes:
    scorecard's subject column; the rate is computed only over fixtures where
    a subject applies.
 
-## Board-construction fixtures (2026-09-09)
+## Findings (2026-10-01) — the live audit
 
-Single-widget fixtures saturate (LLM top1 100%) and can no longer measure
-prompt enrichment — a 3-variant comparison (baseline / +compact wiring ref /
-+expanded manual) scored **identically** on all 15 fixtures. The second half
-of the Ask question — "is the info enough for BOARD construction" — is
-measured by a second fixture set and scorer:
+Measured with the shipped prompts (`llm-qwen36-27b`, `temperature 0.3`,
+`max_tokens 700`) via the Toolforge bastion: 171 fixture-runs, **0 upstream
+errors, 0 non-JSON replies, 0×429**. Everything below is reproducible from
+`bench/results/2026-10-01-*.json`; the method and the full taxonomy are in
+`docs/ASK-ARCHITECTURE.md`.
+
+1. **Single-widget: 93% top1, stable.** One fixture fails in 5/5 runs —
+   `category-sample-photos` returns `gallery` (`from: 'category'`) instead of
+   `categorySize`, i.e. against the prompt's own canonical few-shot. It also
+   writes `wiki:` where `gallery` declares `project`, so the value is silently
+   dropped. Both are one-line fixes; the fixture's ground truth is a call for
+   its author, not for the audit.
+2. **Boards (suggest mode) 77%, not 100%.** `chain-list-display` fails 5/5 —
+   `articleList` alone, or `[articleList, listSource]` (right widgets, wrong
+   dataflow order). `board-switcher-institutions` also misses 2/5 with a
+   defensible alternative (`glamorgan + categorySize`). One targeted chain
+   few-shot is the cheap lever (for value-level behaviour, the wayback case
+   went 1/5 → 5/5 only after an example was added).
+3. **Assembly mode (`mode:'board'`) is the stronger contract:** chain 67%
+   (4/6, identical 3/3), keys/subject 100%, **18/18 accepted by
+   `validateAssembly` and by the app's own `validateDashboard`**, and **6/6
+   rendered in the built app in a real browser**. `chain-list-display` passes
+   here — being allowed to assign instance ids is what suggest mode lacks.
+4. **One of the two assembly misses is a server bug, not a model miss.** The
+   model emitted the full `excerpt → translate → speaker` chain with
+   `speaker.source = "translate#speech"` — the app's own channel-qualified id
+   (ISSUE-91) — and `validateAssembly` pruned the card as dangling **3/3 runs**.
+5. **The catalog alone carries the knowledge.** With `ASK_SYSTEM` only (no
+   manual, no rules, no few-shots, no output schema): as shipped it scores 0%
+   (48/48 replies use an invented envelope, `{widgets:[{id:…}]}`), but scored on
+   content it matches the shipped prompt — **top1 93%** on single-widget
+   intents, **chain 78%** on boards. What the rules buy is the envelope, and
+   subject formatting (69% → 92%, with the server repairing two of the three
+   recurring faults anyway).
+6. **Coverage is the weakest part of the number.** 15 of 42 types have
+   single-widget ground truth; the board fixtures name 9 more, so 19 types are
+   unmeasured — the whole CIM family, the map/geometry fields, media and the
+   embeds. See [Coverage](#coverage).
+
+## Board-construction fixtures (2026-09-09, numbers refreshed 2026-10-01)
+
+The single-widget fixtures were saturated when this suite was written (LLM
+top1 100%) so they could not measure prompt enrichment — a 3-variant
+comparison (baseline / +compact wiring ref / +expanded manual) scored
+**identically** on all 15. They are no longer saturated (top1 93%,
+2026-10-01), but the reason for a second suite stands: the first half of the
+Ask question is "which widget", the second is "which widgets, in what
+order" — and only the second needs the dataflow manual. The board suite is
+measured by:
 
 | Artifact | What it does |
 |---|---|
@@ -214,23 +275,30 @@ gated as literal `{{widget:…}}` tokens — askManual(manifest) (correctly) tel
 model never to invent board ids; the scorer records volunteered tokens
 informationally.
 
-Findings (2026-09-09, llm-qwen36-27b, `bench/results/2026-09-09-boards-v1.json`):
+Findings (**refreshed 2026-10-01** — five runs in suggest mode, three in
+assembly mode; the 2026-09-09 numbers are in `bench/results/2026-09-09-boards-v1.json`):
 
-1. **Chains work:** 3-widget chains (`excerpt → translate → speaker`,
-   `listSource → filterLines → lineCount`) are recommended in correct order
-   with correct subjects/configs; board-switcher chains (`boardControls →
-   cimSnapshot`) too. chain 83% · keys 100% · subject 100% (5/6; the one
-   baseline failure was a transient 503).
+1. **Chains work, at ~77% not 100%:** 3-widget chains (`excerpt → translate →
+   speaker`, `listSource → filterLines → lineCount`) come back in order with
+   correct subjects/configs, and `boardControls → cimSnapshot` usually does.
+   chain 83 / 67 / 83 / 83 / 67 over five runs · keys 100% · subject 100%.
+   The recurring failure is `chain-list-display` (**5/5**); the 2026-09-09
+   note that it was a transient 503 does not hold — it is a real answer.
 2. **Prompt fixes from the single-widget residuals** (deploy/server.js VALUE
    RULES): categories are now "copied VERBATIM … keep the FULL span" (fixed
    the `glam-category-impact` truncation ✓ re-verified) and a new SUBJECT
    COMPLETENESS rule fills every subject the user named (fixes
    `wayback-snapshots` dropping `url` ✓ re-verified after the rate window).
-3. **The model wants to wire:** it volunteered `{{widget:<invented-id>}}`
-   tokens in ~20% of chain options despite the never-invent-ids rule. That is
-   the case for ISSUE-44 Phase 3 (a board-assembly output schema): for a NEW
-   board the advisor could generate ids + params + wiring deterministically,
-   turning recommendations into one-click board construction.
+   **Both still hold on 2026-10-01**: no fixture in 171 runs omitted a subject
+   it named.
+3. **The model wants to wire, and the contract cannot say it:** on 2026-10-01
+   the suggest-mode replies carried a wiring reference the board cannot use in
+   **6/12** runs (`speaker.source = "excerpt"` — the widget *type* where an
+   instance id goes; `{{widget:excerpt}}` with no id to point at) and no
+   reference at all in **4/12**. That contradiction — the manual says never
+   invent ids, the model wires anyway — is what the assembly contract
+   (`mode:'board'`, ISSUE-44 Phase 3, shipped since this section was written)
+   resolves by letting the model assign the ids itself.
 4. **Rules alone don't make the model pre-fill config fields:** the SUBJECT
    COMPLETENESS rule fixed `wayback-snapshots` (dropped `url`) only 1/5
    repeat runs; adding ONE targeted few-shot to the EXAMPLES block (url +
@@ -238,16 +306,40 @@ Findings (2026-09-09, llm-qwen36-27b, `bench/results/2026-09-09-boards-v1.json`)
    behavior, few-shots are the reliable lever; rules set intent only.
 5. **LiftWing rate window:** direct ~90 calls/IP/hour before persistent 429s
    — run benchmarks with `--via toolforge` (bastion egress = higher tier,
-   effectively unlimited; ~140 ms/req). Full write-up in `bench-README.md`.
+   effectively unlimited; ~140 ms/req before this round's ~1.3–1.7 s SSH hop).
+   171 calls on 2026-10-01 produced zero 429s. Full write-up in
+   `bench/README.md`.
+6. **Assembly mode needs its own fixtures** (2026-10-01): the board fixtures
+   above are scored in *suggest* mode (options, chain as a subsequence), while
+   the shipped 🧩 path returns a different shape (`{board:{params,widgets}}`).
+   Nothing offline asserts the board contract yet; `tests/assembly.test.mjs`
+   shows how cheap that would be.
 
 ## Coverage
 
-Current: **15/30 widgets covered** (15 fixtures). Uncovered — interview
-these first: `markdown`, `assessments`, `gallery`, `articleList`,
-`cimSnapshot`, `cimTrend`, `cimTopFiles`, `cimTopWikis`, `cimTopPages`,
-`cimTopEditors`, `cimLeaderboard`, `cimFileSpotlight`, `cimFileTraffic`,
-`wikiPage`, `mediaPlayer`. The CIM family (8 widgets) is the highest-value
-target: its members differ mainly in which precomputed slice they show.
+Current: **15/42 widgets covered** (15 fixtures), 27 uncovered. The board
+fixtures name 9 more types but do not give them a single-widget intent, so
+**23/42 types appear anywhere in ground truth** and **19 appear nowhere**:
+`markdown`, `qrCode`, `assessments`, `cimTrend`, `cimTopFiles`, `cimTopWikis`,
+`cimTopPages`, `cimTopEditors`, `cimLeaderboard`, `cimFileSpotlight`,
+`cimFileTraffic`, `wikiBox`, `wikiPage`, `map`, `mediaPlayer`, `iaItem`,
+`iaBook`, `documentReader`, `echo`.
+
+The highest-value targets, in order:
+
+1. **The CIM family (9 widgets)** — the biggest unmeasured block, and its
+   members differ only in which precomputed slice they show. Note the
+   allow-list caveat: a CIM card on a non-allow-listed category renders and
+   then reports no data (found 2026-10-01).
+2. **The map and its geometry fields** (ISSUE-132) — a places list, pasted
+   GeoJSON, and geometry arriving from another widget.
+3. **Media & IA** — `mediaPlayer`, `iaItem`, `iaBook`, `documentReader`,
+   `qrCode` (the only widget whose config is a *reference*).
+4. **Embeds & text** — `markdown`, `wikiBox`, `wikiPage`, `assessments`.
+5. **Dataflow types as standalone intents** — `listSource`, `filterLines`,
+   `lineCount`, `articleList`, `translate`, `speaker`, `boardControls` are only
+   ever seen inside a chain today, so nothing measures choosing them for their
+   own sake.
 
 Coverage check: `node scripts/interview-fixtures.mjs --list`.
 

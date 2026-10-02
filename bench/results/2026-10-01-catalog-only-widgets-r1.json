@@ -1,0 +1,572 @@
+{
+  "probe": "phase2-ask-audit",
+  "at": "2026-10-02T03:58:07.980Z",
+  "model": "llm-qwen36-27b",
+  "suite": "intent",
+  "promptMode": "catalog",
+  "systemPromptChars": 41235,
+  "systemPromptTokens": 9979,
+  "manifestVersion": 3,
+  "widgetTypes": 42,
+  "repeats": 1,
+  "pooled": {
+    "n": 15,
+    "top1Rate": 0,
+    "top3Rate": 0,
+    "keysRate": 0,
+    "subjectRate": 0
+  },
+  "pooledLenient": {
+    "n": 15,
+    "top1Rate": 0.9333333333333333,
+    "top3Rate": 0.9333333333333333,
+    "keysRate": 0.9333333333333333,
+    "subjectRate": 0.6923076923076923
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "summary": {
+        "n": 15,
+        "top1Rate": 0,
+        "top3Rate": 0,
+        "keysRate": 0,
+        "subjectRate": 0
+      },
+      "lenientSummary": {
+        "n": 15,
+        "top1Rate": 0.9333333333333333,
+        "top3Rate": 0.9333333333333333,
+        "keysRate": 0.9333333333333333,
+        "subjectRate": 0.6923076923076923
+      },
+      "assemblyAccepted": null,
+      "dashboardAccepted": null,
+      "fixtures": [
+        {
+          "id": "pageviews-article",
+          "prompt": "How many pageviews has the article Ada Lovelace gotten in the last 30 days?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"pageviews\",\n      \"config\": {\n        \"article\": \"Ada Lovelace\",\n        \"project\": \"en.wikipedia\",\n        \"displayMode\": \"stat\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "pageviews"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "linkcount-domain",
+          "prompt": "How many English Wikipedia articles link to example.org?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"linkcount\",\n      \"config\": {\n        \"domain\": \"example.org\",\n        \"wiki\": \"en.wikipedia\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "linkcount"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "category-sample-photos",
+          "prompt": "Show me a random sampling of images from the category Featured pictures on Wikimedia Commons",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"gallery\",\n      \"config\": {\n        \"from\": \"category\",\n        \"category\": \"Featured pictures on Wikimedia Commons\",\n        \"project\": \"commons.wikimedia\",\n        \"order\": \"random\",\n        \"displayMode\": \"grid\",\n        \"maxItems\": 12,\n        \"showCaptions\": true,\n        \"iconSize\": \"large\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "gallery"
+            ],
+            "top1": false,
+            "top3": false,
+            "keysOk": false,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "wikistats-language",
+          "prompt": "How many articles, edits and active users does the German Wikipedia have?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"wikistats\",\n      \"config\": {\n        \"lang\": \"de.wikipedia\",\n        \"table\": \"wikipedias\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "wikistats"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "file-usage-map",
+          "prompt": "Which wikis and pages use the file File:Earth from space.jpg?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"fileUsage\",\n      \"config\": {\n        \"filename\": \"Earth from space.jpg\",\n        \"topN\": 10,\n        \"showImage\": true,\n        \"showCaption\": true\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "fileUsage"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "glam-category-impact",
+          "prompt": "What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"glamorgan\",\n      \"config\": {\n        \"category\": \"Wiki Loves Monuments 2024 in the United States\",\n        \"depth\": 1,\n        \"year\": 2024,\n        \"month\": 12,\n        \"fileBudget\": 500,\n        \"topN\": 5,\n        \"showDetail\": true\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "glamorgan"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "top-wikipedias",
+          "prompt": "What are the ten largest Wikipedias by article count?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"topWikipedias\",\n      \"config\": {}\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "topWikipedias"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "top-articles-de",
+          "prompt": "What were the most visited articles on the German Wikipedia yesterday?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"topPages\",\n      \"config\": {\n        \"lang\": \"de.wikipedia\",\n        \"dateMode\": \"date\",\n        \"year\": 2026,\n        \"month\": 5,\n        \"day\": 21,\n        \"topN\": 10,\n        \"filterNoise\": true,\n        \"showExpanded\": false\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "topPages"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "excerpt-article",
+          "prompt": "Display the first paragraph and short description of the article Albert Einstein",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgetId\": \"excerpt\",\n  \"config\": {\n    \"article\": \"Albert Einstein\",\n    \"project\": \"en.wikipedia\"\n  }\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgetId\",\"config\"]"
+          },
+          "lenient": {
+            "ids": [
+              "excerpt"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgetId,config"
+        },
+        {
+          "id": "edit-history-article",
+          "prompt": "Show me the recent edits to Albert Einstein with the byte changes",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"id\": \"edithistory\",\n  \"config\": {\n    \"article\": \"Albert Einstein\",\n    \"project\": \"en.wikipedia\",\n    \"limit\": 10\n  }\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"id\",\"config\"]"
+          },
+          "lenient": {
+            "ids": [
+              "edithistory"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "id,config"
+        },
+        {
+          "id": "quality-article",
+          "prompt": "What is the predicted quality class of the article Albert Einstein?",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"quality\",\n      \"config\": {\n        \"article\": \"Albert Einstein\",\n        \"project\": \"en.wikipedia\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "quality"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "gallery-article",
+          "prompt": "Show me the significant images with captions from the article Mona Lisa",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgetId\": \"gallery\",\n  \"config\": {\n    \"from\": \"article\",\n    \"article\": \"Mona Lisa\",\n    \"project\": \"en.wikipedia\",\n    \"displayMode\": \"grid\",\n    \"showCaptions\": true,\n    \"hideDecorative\": true,\n    \"order\": \"listed\",\n    \"maxItems\": 0\n  }\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgetId\",\"config\"]"
+          },
+          "lenient": {
+            "ids": [
+              "gallery"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgetId,config"
+        },
+        {
+          "id": "sparql-count",
+          "prompt": "Run a SPARQL query on Wikidata that counts all human beings",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"sparql\",\n      \"config\": {\n        \"endpoint\": \"wdqs\",\n        \"query\": \"SELECT (COUNT(?item) AS ?count) WHERE {\\n  ?item wdt:P31 wd:Q5.\\n}\",\n        \"renderer\": \"stat\",\n        \"title\": \"Total Humans on Wikidata\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "sparql"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "panorama-360",
+          "prompt": "Show me the 360 degree panorama of the Commons file File:Example.jpg",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"widgets\": [\n    {\n      \"id\": \"panorama360\",\n      \"config\": {\n        \"filename\": \"File:Example.jpg\",\n        \"project\": \"commons.wikimedia\"\n      }\n    }\n  ]\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"widgets\"]"
+          },
+          "lenient": {
+            "ids": [
+              "panorama360"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "widgets"
+        },
+        {
+          "id": "wayback-snapshots",
+          "prompt": "Show me archived snapshots of https://example.org from 2015, 2018 and 2020",
+          "top1": false,
+          "top3": false,
+          "keysOk": false,
+          "subjectOk": false,
+          "matched": false,
+          "ids": [],
+          "returned": "(none)",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"id\": \"waybackGallery\",\n  \"config\": {\n    \"url\": \"https://example.org\",\n    \"dates\": \"2015-01-01\\n2018-01-01\\n2020-01-01\",\n    \"toleranceDays\": 365\n  }\n}",
+          "options": [],
+          "assembly": null,
+          "dashboard": null,
+          "issues": [
+            "output-schema-miss",
+            "keys-incomplete",
+            "subject-mismatch"
+          ],
+          "issueExamples": {
+            "output-schema-miss": "[\"id\",\"config\"]"
+          },
+          "lenient": {
+            "ids": [
+              "waybackGallery"
+            ],
+            "top1": true,
+            "top3": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "id,config"
+        }
+      ]
+    }
+  ]
+}

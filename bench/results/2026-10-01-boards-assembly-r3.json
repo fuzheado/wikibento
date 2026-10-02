@@ -1,0 +1,697 @@
+{
+  "probe": "phase2-ask-audit",
+  "at": "2026-10-02T04:04:40.281Z",
+  "model": "llm-qwen36-27b",
+  "suite": "board",
+  "promptMode": "board",
+  "systemPromptChars": 47434,
+  "systemPromptTokens": 11493,
+  "manifestVersion": 3,
+  "widgetTypes": 42,
+  "repeats": 1,
+  "pooled": {
+    "n": 6,
+    "chainRate": 0.6666666666666666,
+    "keysRate": 1,
+    "subjectRate": 1
+  },
+  "pooledLenient": {
+    "n": 6,
+    "chainRate": 0.8333333333333334,
+    "keysRate": 1,
+    "subjectRate": 1
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "summary": {
+        "n": 6,
+        "chainRate": 0.6666666666666666,
+        "keysRate": 1,
+        "subjectRate": 1
+      },
+      "lenientSummary": {
+        "n": 6,
+        "chainRate": 0.8333333333333334,
+        "keysRate": 1,
+        "subjectRate": 1
+      },
+      "assemblyAccepted": 6,
+      "dashboardAccepted": 6,
+      "fixtures": [
+        {
+          "id": "chain-translate-article",
+          "prompt": "Take the first paragraph of the article Albert Einstein and translate it to Spanish",
+          "chainOk": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "ids": [
+            "excerpt",
+            "translate"
+          ],
+          "perWidget": [
+            {
+              "type": "excerpt",
+              "found": true,
+              "missing": [],
+              "subjectOk": true,
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia"
+              }
+            },
+            {
+              "type": "translate",
+              "found": true,
+              "missing": [],
+              "subjectOk": true,
+              "config": {
+                "text": "{{widget:einstein-excerpt}}",
+                "from": "en",
+                "to": "es",
+                "display": "translation"
+              }
+            }
+          ],
+          "returned": "excerpt, translate",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {},\n    \"widgets\": [\n      {\n        \"id\": \"einstein-excerpt\",\n        \"widgetType\": \"excerpt\",\n        \"config\": {\n          \"article\": \"Albert Einstein\",\n          \"project\": \"en.wikipedia\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"spanish-translation\",\n        \"widgetType\": \"translate\",\n        \"config\": {\n          \"text\": \"{{widget:einstein-excerpt}}\",\n          \"from\": \"en\",\n          \"to\": \"es\",\n          \"display\": \"translation\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      }\n    ],\n    \"summary\": \"Extracts the lead paragraph of the English Wikipedia article on Albert Einstein and translates it into Spanish.\"\n  }\n}",
+          "options": [
+            {
+              "widgetType": "excerpt",
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia"
+              },
+              "id": "einstein-excerpt"
+            },
+            {
+              "widgetType": "translate",
+              "config": {
+                "text": "{{widget:einstein-excerpt}}",
+                "from": "en",
+                "to": "es",
+                "display": "translation"
+              },
+              "id": "spanish-translation"
+            }
+          ],
+          "assembly": {
+            "widgets": 2,
+            "params": [],
+            "warnings": []
+          },
+          "boardFragment": {
+            "params": {},
+            "widgets": [
+              {
+                "id": "einstein-excerpt",
+                "widgetType": "excerpt",
+                "config": {
+                  "article": "Albert Einstein",
+                  "project": "en.wikipedia"
+                },
+                "w": 4,
+                "h": 3
+              },
+              {
+                "id": "spanish-translation",
+                "widgetType": "translate",
+                "config": {
+                  "text": "{{widget:einstein-excerpt}}",
+                  "from": "en",
+                  "to": "es",
+                  "display": "translation"
+                },
+                "w": 4,
+                "h": 3
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 2
+          },
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "translate"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "board"
+        },
+        {
+          "id": "chain-speak-article",
+          "prompt": "Show me the intro of the article Marie Curie and read it out loud",
+          "chainOk": true,
+          "keysOk": true,
+          "subjectOk": true,
+          "ids": [
+            "excerpt",
+            "speaker"
+          ],
+          "perWidget": [
+            {
+              "type": "excerpt",
+              "found": true,
+              "missing": [],
+              "subjectOk": true,
+              "config": {
+                "article": "Marie Curie",
+                "project": "en.wikipedia"
+              }
+            }
+          ],
+          "returned": "excerpt, speaker",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {},\n    \"widgets\": [\n      {\n        \"id\": \"curie-intro\",\n        \"widgetType\": \"excerpt\",\n        \"config\": {\n          \"article\": \"Marie Curie\",\n          \"project\": \"en.wikipedia\"\n        },\n        \"w\": 6,\n        \"h\": 4\n      },\n      {\n        \"id\": \"curie-reader\",\n        \"widgetType\": \"speaker\",\n        \"config\": {\n          \"source\": \"curie-intro\",\n          \"lang\": \"en\",\n          \"speakOnChange\": true\n        },\n        \"w\": 6,\n        \"h\": 4\n      }\n    ],\n    \"summary\": \"Displays the lead paragraph of the Marie Curie article and automatically reads it aloud using text-to-speech.\"\n  }\n}",
+          "options": [
+            {
+              "widgetType": "excerpt",
+              "config": {
+                "article": "Marie Curie",
+                "project": "en.wikipedia"
+              },
+              "id": "curie-intro"
+            },
+            {
+              "widgetType": "speaker",
+              "config": {
+                "source": "curie-intro",
+                "lang": "en",
+                "speakOnChange": true
+              },
+              "id": "curie-reader"
+            }
+          ],
+          "assembly": {
+            "widgets": 2,
+            "params": [],
+            "warnings": []
+          },
+          "boardFragment": {
+            "params": {},
+            "widgets": [
+              {
+                "id": "curie-intro",
+                "widgetType": "excerpt",
+                "config": {
+                  "article": "Marie Curie",
+                  "project": "en.wikipedia"
+                },
+                "w": 6,
+                "h": 4
+              },
+              {
+                "id": "curie-reader",
+                "widgetType": "speaker",
+                "config": {
+                  "source": "curie-intro",
+                  "lang": "en",
+                  "speakOnChange": true
+                },
+                "w": 6,
+                "h": 4
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 2
+          },
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "speaker"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": true
+          },
+          "parsedShape": "board"
+        },
+        {
+          "id": "chain-filter-count",
+          "prompt": "I'll paste a list of museum names. Keep only the ones containing 'art' and tell me how many are left",
+          "chainOk": true,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [
+            "listSource",
+            "filterLines",
+            "lineCount"
+          ],
+          "perWidget": [
+            {
+              "type": "filterLines",
+              "found": true,
+              "missing": [],
+              "subjectOk": true,
+              "config": {
+                "source": "museum-names-input",
+                "title": "Museums with 'art'",
+                "pattern": "art",
+                "match": "contains",
+                "caseSensitive": false
+              }
+            }
+          ],
+          "returned": "listSource, filterLines, lineCount",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {},\n    \"widgets\": [\n      {\n        \"id\": \"museum-names-input\",\n        \"widgetType\": \"listSource\",\n        \"config\": {\n          \"title\": \"Museum Names\",\n          \"items\": \"\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"filter-art-museums\",\n        \"widgetType\": \"filterLines\",\n        \"config\": {\n          \"source\": \"museum-names-input\",\n          \"title\": \"Museums with 'art'\",\n          \"pattern\": \"art\",\n          \"match\": \"contains\",\n          \"caseSensitive\": false\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"count-art-museums\",\n        \"widgetType\": \"lineCount\",\n        \"config\": {\n          \"source\": \"filter-art-museums\",\n          \"label\": \"Count\"\n        },\n        \"w\": 4,\n        \"h\": 2\n      }\n    ],\n    \"summary\": \"A dataflow chain that takes a pasted list of museum names, filters for those containing 'art', and displays the final count.\"\n  }\n}",
+          "options": [
+            {
+              "widgetType": "listSource",
+              "config": {
+                "title": "Museum Names",
+                "items": ""
+              },
+              "id": "museum-names-input"
+            },
+            {
+              "widgetType": "filterLines",
+              "config": {
+                "source": "museum-names-input",
+                "title": "Museums with 'art'",
+                "pattern": "art",
+                "match": "contains",
+                "caseSensitive": false
+              },
+              "id": "filter-art-museums"
+            },
+            {
+              "widgetType": "lineCount",
+              "config": {
+                "source": "filter-art-museums",
+                "label": "Count"
+              },
+              "id": "count-art-museums"
+            }
+          ],
+          "assembly": {
+            "widgets": 3,
+            "params": [],
+            "warnings": []
+          },
+          "boardFragment": {
+            "params": {},
+            "widgets": [
+              {
+                "id": "museum-names-input",
+                "widgetType": "listSource",
+                "config": {
+                  "title": "Museum Names",
+                  "items": ""
+                },
+                "w": 4,
+                "h": 3
+              },
+              {
+                "id": "filter-art-museums",
+                "widgetType": "filterLines",
+                "config": {
+                  "source": "museum-names-input",
+                  "title": "Museums with 'art'",
+                  "pattern": "art",
+                  "match": "contains",
+                  "caseSensitive": false
+                },
+                "w": 4,
+                "h": 3
+              },
+              {
+                "id": "count-art-museums",
+                "widgetType": "lineCount",
+                "config": {
+                  "source": "filter-art-museums",
+                  "label": "Count"
+                },
+                "w": 4,
+                "h": 2
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 3
+          },
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "listSource",
+              "filterLines",
+              "lineCount"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "board"
+        },
+        {
+          "id": "chain-list-display",
+          "prompt": "I want a card that always shows my current list of favorite articles with thumbnails — I'll keep editing the list in one place and the card should follow it automatically",
+          "chainOk": true,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [
+            "listSource",
+            "articleList"
+          ],
+          "perWidget": [],
+          "returned": "listSource, articleList",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {},\n    \"widgets\": [\n      {\n        \"id\": \"favorites-list\",\n        \"widgetType\": \"listSource\",\n        \"config\": {\n          \"title\": \"My Favorite Articles\",\n          \"items\": \"Albert Einstein\\nAda Lovelace\\nMarie Curie\\nNikola Tesla\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"favorites-display\",\n        \"widgetType\": \"articleList\",\n        \"config\": {\n          \"articles\": \"{{widget:favorites-list}}\",\n          \"project\": \"en.wikipedia\",\n          \"enrich\": true\n        },\n        \"w\": 8,\n        \"h\": 6\n      }\n    ],\n    \"summary\": \"A two-widget setup where you maintain your article list in the 'listSource' widget, and the 'articleList' widget automatically displays them with thumbnails and intros.\"\n  }\n}",
+          "options": [
+            {
+              "widgetType": "listSource",
+              "config": {
+                "title": "My Favorite Articles",
+                "items": "Albert Einstein\nAda Lovelace\nMarie Curie\nNikola Tesla"
+              },
+              "id": "favorites-list"
+            },
+            {
+              "widgetType": "articleList",
+              "config": {
+                "articles": "{{widget:favorites-list}}",
+                "project": "en.wikipedia",
+                "enrich": true
+              },
+              "id": "favorites-display"
+            }
+          ],
+          "assembly": {
+            "widgets": 2,
+            "params": [],
+            "warnings": []
+          },
+          "boardFragment": {
+            "params": {},
+            "widgets": [
+              {
+                "id": "favorites-list",
+                "widgetType": "listSource",
+                "config": {
+                  "title": "My Favorite Articles",
+                  "items": "Albert Einstein\nAda Lovelace\nMarie Curie\nNikola Tesla"
+                },
+                "w": 4,
+                "h": 3
+              },
+              {
+                "id": "favorites-display",
+                "widgetType": "articleList",
+                "config": {
+                  "articles": "{{widget:favorites-list}}",
+                  "project": "en.wikipedia",
+                  "enrich": true
+                },
+                "w": 8,
+                "h": 6
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 2
+          },
+          "issues": [],
+          "issueExamples": {},
+          "lenient": {
+            "ids": [
+              "listSource",
+              "articleList"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "board"
+        },
+        {
+          "id": "chain-summary-translate-speak",
+          "prompt": "Build me a card that shows an article summary, translates it to French, and can speak the translation aloud",
+          "chainOk": false,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [
+            "excerpt",
+            "translate"
+          ],
+          "perWidget": [
+            {
+              "type": "translate",
+              "found": true,
+              "missing": [],
+              "subjectOk": true,
+              "config": {
+                "text": "{{widget:article-summary}}",
+                "from": "en",
+                "to": "fr",
+                "display": "translation"
+              }
+            }
+          ],
+          "returned": "excerpt, translate",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {},\n    \"widgets\": [\n      {\n        \"id\": \"article-summary\",\n        \"widgetType\": \"excerpt\",\n        \"config\": {\n          \"article\": \"Albert Einstein\",\n          \"project\": \"en.wikipedia\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"french-translation\",\n        \"widgetType\": \"translate\",\n        \"config\": {\n          \"text\": \"{{widget:article-summary}}\",\n          \"from\": \"en\",\n          \"to\": \"fr\",\n          \"display\": \"translation\"\n        },\n        \"w\": 4,\n        \"h\": 3\n      },\n      {\n        \"id\": \"speak-french\",\n        \"widgetType\": \"speaker\",\n        \"config\": {\n          \"source\": \"french-translation#speech\",\n          \"lang\": \"fr\",\n          \"speakOnChange\": false\n        },\n        \"w\": 4,\n        \"h\": 3\n      }\n    ],\n    \"summary\": \"A dataflow chain that fetches an English article summary, translates it to French, and provides a button to speak the French text aloud.\"\n  }\n}",
+          "options": [
+            {
+              "widgetType": "excerpt",
+              "config": {
+                "article": "Albert Einstein",
+                "project": "en.wikipedia"
+              },
+              "id": "article-summary"
+            },
+            {
+              "widgetType": "translate",
+              "config": {
+                "text": "{{widget:article-summary}}",
+                "from": "en",
+                "to": "fr",
+                "display": "translation"
+              },
+              "id": "french-translation"
+            }
+          ],
+          "assembly": {
+            "widgets": 2,
+            "params": [],
+            "warnings": [
+              "widget \"speak-french\" dropped — a reference it consumes is not on the board"
+            ]
+          },
+          "boardFragment": {
+            "params": {},
+            "widgets": [
+              {
+                "id": "article-summary",
+                "widgetType": "excerpt",
+                "config": {
+                  "article": "Albert Einstein",
+                  "project": "en.wikipedia"
+                },
+                "w": 4,
+                "h": 3
+              },
+              {
+                "id": "french-translation",
+                "widgetType": "translate",
+                "config": {
+                  "text": "{{widget:article-summary}}",
+                  "from": "en",
+                  "to": "fr",
+                  "display": "translation"
+                },
+                "w": 4,
+                "h": 3
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 2
+          },
+          "issues": [
+            "wrong-widgets",
+            "assembly-repaired"
+          ],
+          "issueExamples": {
+            "wrong-widgets": "expected [excerpt,translate,speaker] · got [excerpt,translate]",
+            "assembly-repaired": "widget \"speak-french\" dropped — a reference it consumes is not on the board"
+          },
+          "lenient": {
+            "ids": [
+              "excerpt",
+              "translate",
+              "speaker"
+            ],
+            "chainOk": true,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "board"
+        },
+        {
+          "id": "board-switcher-institutions",
+          "prompt": "Make a dashboard where I can switch between the Metropolitan Museum of Art and the Library of Congress and see their Commons collection stats",
+          "chainOk": false,
+          "keysOk": true,
+          "subjectOk": false,
+          "ids": [
+            "boardControls",
+            "glamorgan",
+            "gallery"
+          ],
+          "perWidget": [],
+          "returned": "boardControls, glamorgan, gallery",
+          "error": null,
+          "parseError": null,
+          "raw": "{\n  \"board\": {\n    \"params\": {\n      \"institution\": {\n        \"label\": \"Institution\",\n        \"type\": \"buttons\",\n        \"options\": [\n          \"Images from the Metropolitan Museum of Art\",\n          \"Images from the Library of Congress\"\n        ],\n        \"value\": \"Images from the Metropolitan Museum of Art\"\n      }\n    },\n    \"widgets\": [\n      {\n        \"id\": \"switcher\",\n        \"widgetType\": \"boardControls\",\n        \"config\": {\n          \"title\": \"Select Institution\",\n          \"spec\": \"institution | buttons | Collection | Images from the Metropolitan Museum of Art, Images from the Library of Congress\"\n        },\n        \"w\": 4,\n        \"h\": 2\n      },\n      {\n        \"id\": \"collection-stats\",\n        \"widgetType\": \"glamorgan\",\n        \"config\": {\n          \"category\": \"{{institution}}\",\n          \"depth\": 1,\n          \"year\": 2026,\n          \"month\": 1,\n          \"topN\": 5,\n          \"showDetail\": true\n        },\n        \"w\": 4,\n        \"h\": 4\n      },\n      {\n        \"id\": \"collection-gallery\",\n        \"widgetType\": \"gallery\",\n        \"config\": {\n          \"from\": \"category\",\n          \"category\": \"{{institution}}\",\n          \"displayMode\": \"grid\",\n          \"iconSize\": \"medi",
+          "options": [
+            {
+              "widgetType": "boardControls",
+              "config": {
+                "title": "Select Institution",
+                "spec": "institution | buttons | Collection | Images from the Metropolitan Museum of Art, Images from the Library of Congress"
+              },
+              "id": "switcher"
+            },
+            {
+              "widgetType": "glamorgan",
+              "config": {
+                "category": "{{institution}}",
+                "depth": 1,
+                "year": 2026,
+                "month": 1,
+                "topN": 5,
+                "showDetail": true
+              },
+              "id": "collection-stats"
+            },
+            {
+              "widgetType": "gallery",
+              "config": {
+                "from": "category",
+                "category": "{{institution}}",
+                "displayMode": "grid",
+                "iconSize": "medium",
+                "maxItems": 12,
+                "order": "random"
+              },
+              "id": "collection-gallery"
+            }
+          ],
+          "assembly": {
+            "widgets": 3,
+            "params": [
+              "institution"
+            ],
+            "warnings": []
+          },
+          "boardFragment": {
+            "params": {
+              "institution": {
+                "label": "Institution",
+                "type": "buttons",
+                "options": [
+                  "Images from the Metropolitan Museum of Art",
+                  "Images from the Library of Congress"
+                ],
+                "value": "Images from the Metropolitan Museum of Art"
+              }
+            },
+            "widgets": [
+              {
+                "id": "switcher",
+                "widgetType": "boardControls",
+                "config": {
+                  "title": "Select Institution",
+                  "spec": "institution | buttons | Collection | Images from the Metropolitan Museum of Art, Images from the Library of Congress"
+                },
+                "w": 4,
+                "h": 2
+              },
+              {
+                "id": "collection-stats",
+                "widgetType": "glamorgan",
+                "config": {
+                  "category": "{{institution}}",
+                  "depth": 1,
+                  "year": 2026,
+                  "month": 1,
+                  "topN": 5,
+                  "showDetail": true
+                },
+                "w": 4,
+                "h": 4
+              },
+              {
+                "id": "collection-gallery",
+                "widgetType": "gallery",
+                "config": {
+                  "from": "category",
+                  "category": "{{institution}}",
+                  "displayMode": "grid",
+                  "iconSize": "medium",
+                  "maxItems": 12,
+                  "order": "random"
+                },
+                "w": 4,
+                "h": 4
+              }
+            ]
+          },
+          "dashboard": {
+            "valid": true,
+            "errors": [],
+            "warnings": [],
+            "widgetCount": 3
+          },
+          "issues": [
+            "wrong-widgets"
+          ],
+          "issueExamples": {
+            "wrong-widgets": "expected [boardControls,cimSnapshot] · got [boardControls,glamorgan,gallery]"
+          },
+          "lenient": {
+            "ids": [
+              "boardControls",
+              "glamorgan",
+              "gallery"
+            ],
+            "chainOk": false,
+            "keysOk": true,
+            "subjectOk": false
+          },
+          "parsedShape": "board"
+        }
+      ]
+    }
+  ]
+}
