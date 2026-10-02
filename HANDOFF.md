@@ -30,7 +30,7 @@ Feature-complete for v1 and deployed.
 | production bundle | `index-BLgBsdHN.js` (+ `index-Cq05y3dY.css`) and `server.js` (the map relay, rate-limited per route) |
 | deployed | 2026-10-01 (latest) — **paths and polygons, as GeoJSON** (ISSUE-132). The Map widget draws markers, a path or an area from its own list, accepts pasted GeoJSON, and consumes another widget's geometry through a kind-filtered `source` field — and it **publishes what it draws**, so one map draws another's shape. The format is RFC 7946 with STAC/OGC time names, and the rules (repairs, refusals, caps, time precision) are in `docs/GEOMETRY.md`. Verified in production with `npm run smoke:map --base https://wikibento.toolforge.org` (26/26, including a drawn area, geometry over the wire and a pasted path with its date) and against a live geoshape in `npm run check:map-landmarks` phase 3. |
 | registry | 42 widget types — 33 data-driven, 9 static |
-| showcase catalog | `?config=/dashboard.json` — 42 widgets covering all 41 types |
+| showcase catalog | `?config=/dashboard.json` — 43 widgets covering all 42 types |
 | front door for demos | `?config=/demos.json` (the hub) |
 | entry board | ✨ Example (3 starter widgets), or `?config=/article-switcher-demo.json` |
 | pending deploy | none — production serves this branch's tip; verified with the demos sweep, `npm run smoke:map` (26/26) and `node scripts/docs-facts.mjs --live` |
@@ -137,7 +137,7 @@ integrity) · `src/lib/borrowedBoard.js` (borrowed boards, the recovery stash, t
 notice's rule) · `src/lib/reference.js` (a page plus its wiki: `enwiki:Weddell Sea`,
 and the one project→host mapping) · `src/lib/projects.js` (every wiki, ordered
 recency → default → curated → rest) · `src/lib/wikiBox.js` (rendering a wiki template:
-sanitise, scope, rewrite, and what a click means) · `src/lib/speech.js` (the typed speech value — text + language — and choosing a voice by language) · `src/lib/mapImage.js` (the static-map URL, the size ladder, and `mercatorPixel`) · `src/lib/mapOverlay.js` (where a place lands on a card: the image→card transform, the SVG twin of `object-fit`, and the crop's own visibility) · `src/lib/paramSources.js` (the validated lookup sources: Commons categories, galleries, files, articles, QIDs) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
+sanitise, scope, rewrite, and what a click means) · `src/lib/speech.js` (the typed speech value — text + language — and choosing a voice by language) · `src/lib/mapImage.js` (the static-map URL, the size ladder, and `mercatorPixel`) · `src/lib/mapOverlay.js` (where a place lands on a card: the image→card transform, the SVG twin of `object-fit`, and the crop's own visibility) · `src/lib/geojson.js` (geometry in and out: RFC 7946 intake, repairs, refusals, the size cap, time, and the rows a timeline reads) · `src/lib/paramSources.js` (the validated lookup sources: Commons categories, galleries, files, articles, QIDs) · `src/widgets/index.js` (registry) · `src/widgets/dataSources.js`
 (fetchers, one per type, batched) · `src/widgets/WidgetFrame.jsx` (lifecycle +
 renderers) · `src/lib/dashboardConfig.js` (format + `validateDashboard()` + the
 example board) · `src/lib/params.js` (board params, reference resolution) ·
@@ -171,6 +171,14 @@ is must be allowed to shrink, or the README becomes a changelog and stops being 
 (which is exactly what happened: it reached 639 lines, ~250 of them an appended test log).
 
 ## Hard-won gotchas (don't rediscover these)
+
+37. **A helper that returns early silently drops the rest — and a read-modify-write in one expression truncates the file.**
+   Two traps from the geometry work (2026-10-01), both invisible when reading the code back: `Array.prototype.some` stops at
+   the first truthy result, so the feature-collection intake kept **one** feature out of an array of three (the shape a board
+   or another widget hands you most often), and `open(path,'w').write(open(path).read())` truncates a 127 KB file to zero
+   *before* the read happens — and then the bundle and the tests still pass, because an empty module is a valid module. The
+   habits that catch both: assert the *count* of what you expect to be processed (the intake test counts features), and write
+   with a tool that re-reads and verifies (`scripts/assert-edit.mjs`), never a bare find-and-replace.
 
 36. **A field whose box is empty while the card shows data is a lie about the widget.** Two of the ways that
    happens are invisible in code review: `configFieldValue` not consulting the registry default (so a boolean
@@ -442,12 +450,13 @@ actually broken or unfinished today:
   whose promise is that editing affordances are gone (Esc already exits kiosk). A design question, filed with options.
 - **ISSUE-125** — one genuine JavaScript error in WebKit, found by the demos sweep and left fatal there:
   `Argument 1 ('blob') to FileReader.readAsBinaryString must be an instance of Blob`. Most likely the CORS-image PNG
-- **ISSUE-132** — the **map backlog**: **points are done** (the Map widget's list + framing, and the SPARQL map renderer,
-  2026-09-30). What remains, in `docs/WIDGET-IDEAS.md` → *"Map widget — what Tier 1 left to do"*: **paths and polygons**
-  (a polyline through the points in order, a geoshape fill beneath — the sources are verified), **icon shapes, sizes and
-  labels** (with collision as the real problem), the **itinerary** animation stepped with ▶ ◀ over a board param, and
-  **interactivity** (pan/zoom/layers — Tier 2, Leaflet, a separate widget type by design). Multilingual labels already work
-  via `?lang=`, and the static-layer question is answered by a style picker in the ⚙ panel.
+- **ISSUE-132** — the **map backlog**: **points, paths and polygons are done** (2026-09-30/10-01: the points list with
+  framing, the SPARQL map renderer, and geometry as **GeoJSON** — `docs/GEOMETRY.md` settles the format, the intake rules and
+  the time names). What remains, in `docs/WIDGET-IDEAS.md` → *"Map widget — what Tier 1 left to do"*: **icon shapes, sizes
+  and labels** (drawing them is easy; **collision** is the real problem), the **itinerary** animation stepped with ▶ ◀ over a
+  board param, a **time filter / replay** on the card (the data already carries `datetime`/`times`), and **interactivity**
+  (pan/zoom/layers — Tier 2, Leaflet, a separate widget type by design). Multilingual labels already work via `?lang=`, and
+  the static-layer question is answered by a style picker in the ⚙ panel.
   export or a document reader handing a cross-origin value to a `FileReader`; a hypothesis for the next session.
   asked directly, so it is intermittent and most likely an upstream timeout; recorded rather than guessed at.
 
@@ -545,8 +554,8 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
    - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
      usually transcluded rather than linked, so there is little in content to click.
-   - **ISSUE-96 — finish the emitter audit.** 12 of 42 widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
-     2026-09-18: captions as `lines`, the clicked file as `selection`), and the audit ranks the
+   - **ISSUE-96 — finish the emitter audit.** **13 of 42** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
+     2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
      is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The
@@ -636,6 +645,12 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
   hop. Ready-made: `scripts/benchmark-ask-variants.mjs --via toolforge` and
   `scripts/probe-ask-edge.mjs`; canonical write-up in the `wikimedia-ml-services`
   skill and `docs/DATA-SOURCES.md`.
+- **The geometry format is settled — do not re-litigate it.** `docs/GEOMETRY.md` records the decision (2026-10-01): **GeoJSON
+  (RFC 7946)** in a typed envelope, `[lon, lat]` WGS84, STAC/OGC time names with `times` per vertex, intake that repairs and
+  refuses by name, and the caps (200 features · 2,000 vertices · 256 KB). `src/lib/geojson.js` is the only door in and out,
+  and paths/polygons/areas already flow: the points list, pasted geometry, and another widget's shape over a kind-filtered
+  `source` field. The next map work is icons+labels (collision), the itinerary stepper, and a time filter — each already
+  possible without changing the format.
 - **Docs have a constitution now.** `scripts/docs-facts.mjs` derives the truth
   (registry counts, catalog coverage, the panel-measurement count, build-size
   magnitude) and fails the build when prose contradicts it. Volatile facts are

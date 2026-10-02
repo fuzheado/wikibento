@@ -87,7 +87,7 @@ combinations, and the five remaining failures are the sources above (Wayback ×1
 iframe ×1 — ISSUE-115 — the Wikistats/External-Link cards ×1, and `depicts` ×2). Nothing in the sweep now fails for a
 reason that is ours.
 
-- Artifacts: `/tmp/demos-sweep.log` (before) · `/tmp/demos-sweep2.log` (after) — the per-board lines are the evidence.
+- Artifacts: `cache/sweeps/2026-10-01-demos-sweep-before.log` · `cache/sweeps/2026-10-01-demos-sweep-after.log` (kept\n  beside the other run evidence; the per-board lines are the evidence) — `/tmp` was where they were first written, which is\n  not durable.
 - Re-run: `npm run test:browsers:demos -- --base https://wikibento.toolforge.org` (~15 min) · `npm run smoke:relay`.
 
 ## Points on a map, and a query as a map (ISSUE-132 items 1–2, 2026-09-30)

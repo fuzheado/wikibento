@@ -15,7 +15,7 @@ behaviour (timeouts, CORS realities, honest failure states) that a one-shot dash
 widgets are the demo; the ledger is the product.
 
 It's a single-page React app built on [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the grid engine behind Grafana and Kibana), ≈0.6 MB (~175 KB gzipped), hostable as static files on Toolforge
+(the grid engine behind Grafana and Kibana), ≈0.8 MB (~235 KB gzipped), hostable as static files on Toolforge
 or anywhere. Every widget hits **real Wikimedia APIs** (RESTBase, the MediaWiki Action API, Commons,
 Wikistats) straight from the browser — no backend, no login, no proxy. `npm run build` prints exact figures.
 
@@ -40,7 +40,7 @@ Wikistats) straight from the browser — no backend, no login, no proxy. `npm ru
 | 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
 | 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
-| 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever |
+| 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever — and a result's coordinates drawn as a **map** |
 | 🌍 [Born in 1929](https://wikibento.toolforge.org/?config=/anne-frank-mlk-demo.json) | one board, one story: two lives on a shared timeline (21 dated events), plus each subject as prose, images and traffic — Anne Frank and Martin Luther King Jr., both born in 1929 |
 | 🕰️ [Two lives, one axis](https://wikibento.toolforge.org/?config=/parallel-lives-demo.json) | lives on a shared timeline, two ways (calendar or aligned at birth), **zoomable 8×**, per-card title and light/dark card theme — Anne Frank × Martin Luther King Jr., Marie × Pierre Curie |
 | 📄 [Embed any page](https://wikibento.toolforge.org/?config=/embed-demo.json) | frame a 3D model (Objectium) in a card |
@@ -344,8 +344,11 @@ test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at 
 that each card renders, that none collapses, that no card shows a bare `—` in place of data and that no ranking is
 empty — checks written for the bugs they then found (an empty box on iPhone, a pageviews card with no count, a 360°
 widget that had never rendered; ISSUE-100). The
-feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url` —
-what each of them caught is in [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md)). The same suite holds the dataflow contract honest: an
+feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url`,
+and `smoke:map` — four ways into a map card, including geometry over the wire) — and the map geometry has its own
+check against real rendered maps and a live Wikidata geoshape (`check:map-landmarks`: the projection, the card
+transform, and a drawn shape classified inside and out). What each of them caught is in
+[docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md). The same suite holds the dataflow contract honest: an
 emitter that publishes prose must declare where it came from, a widget with named channels must say what its bare
 id means, a channel a board references must exist, and no widget may hard-code a language list.
 
@@ -356,7 +359,7 @@ front door.
 
 - **Start here** — [GUIDE](docs/GUIDE.md) (the model + cookbook) · [TUTORIAL](docs/TUTORIAL.md) (build a board
   step by step, then store it on a wiki) · [EXPORT](docs/EXPORT.md) (getting data, a PDF or the whole
-  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 41, with APIs) ·
+  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 42, with APIs) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
 - **Build & extend** — [WIRING-BOARDS](docs/WIRING-BOARDS.md) (what travels between cards: sources, consumers,
