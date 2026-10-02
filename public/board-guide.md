@@ -15,8 +15,38 @@ eight different inventions of the top-level shape. The catalog is not the hard p
 vocabulary, and a way to check the result. Those are the first four sections; the last two are the repository's own
 specification, included verbatim.
 
-A note on reading it: links to `*.md` files point at files in the WikiBento repository (this host serves only this
-page, the manifest and the schema). Nothing here needs them.
+A note on reading it: this host serves only this page, the manifest and the schema, so links to other repository
+files are absolute GitHub links (§0 lists the useful ones). Reading this page never requires them.
+
+---
+
+## 0. What WikiBento is, if you have never seen it
+
+WikiBento is a drag-and-drop dashboard for Wikimedia. The things worth keeping an eye on live in many
+places — pageview and stats APIs, wiki pages, recent changes, Commons — and WikiBento brings them onto one
+reactive board you can arrange, point at a subject, and send as a link: article metrics, external link
+counts, category sizes, file usage, GLAM impact stats, listings and feeds you can click through — plus
+output widgets that speak (🔊 Speaker) or translate (🌐 Translator) what they hold — and they chain: a translation
+carries its language, so a speaker reads a French paragraph in a French voice (ISSUE-97).
+
+Read this page and you can write a board without ever opening the app. But the catalog is about *Wikimedia* data:
+every card names a subject — an article, a Commons category or file, a Wikidata item, a wiki, a language — and fetches
+it live in the reader's browser (the widgets read Wikimedia's own APIs; a few types route through this deployment's
+relay, listed in §3). So the useful half of "which widget" is knowing what the user's subject *is*.
+
+**Where to read more** — this page is self-contained for *writing* a board. These are for the rest of it: what the app
+looks like, and what each card is *for*.
+
+- [The README](https://github.com/fuzheado/wikibento#readme) — what it is, the demo boards, screenshots.
+- [The GUIDE](https://github.com/fuzheado/wikibento/blob/main/docs/GUIDE.md) — using the app: cards, the ⚙ panel, params, sharing, print.
+- [The widget catalog](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-CATALOG.md) — every type in prose, with what each one is for.
+- [**The widget map**](https://github.com/fuzheado/wikibento/blob/main/docs/widget-map.pdf) — all 42 types on **one page** (A4
+  landscape), grouped by what you must supply, with the gates and the shipping chains. The best two minutes a human
+  can spend before writing a board.
+- [The board specification](https://github.com/fuzheado/wikibento/blob/main/docs/JSON-FORMAT.md) — Appendix A here, with the repository's own
+  cross-links; [wiring](https://github.com/fuzheado/wikibento/blob/main/docs/WIRING-BOARDS.md) is Appendix B.
+- Try it on a real board: <https://wikibento.toolforge.org/?config=/demos.json> (the hub) — and the app's own Ask panel writes these boards
+  from a sentence.
 
 ---
 
@@ -970,9 +1000,9 @@ left to right.
 
 ### Where to go next
 
-- **Every widget, wired** — [BOARD-COMPOSITION.md](BOARD-COMPOSITION.md) is the complete reference of what each
+- **Every widget, wired** — [BOARD-COMPOSITION.md](https://github.com/fuzheado/wikibento/blob/main/docs/BOARD-COMPOSITION.md) is the complete reference of what each
   card publishes and what it accepts.
-- **If you are writing a widget** — [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md) has *The Emitter Contract*: the
+- **If you are writing a widget** — [WIDGET-DEVELOPMENT.md](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-DEVELOPMENT.md) has *The Emitter Contract*: the
   rules a new emitter must follow, including channels and references.
-- **If you want the design reasoning** — [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md) (why the wire is
-  text-shaped) and [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md) (how other tools solved the same problem).
+- **If you want the design reasoning** — [MODULARITY-AND-DATAFLOW.md](https://github.com/fuzheado/wikibento/blob/main/docs/MODULARITY-AND-DATAFLOW.md) (why the wire is
+  text-shaped) and [WIDGET-MESSAGING.md](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-MESSAGING.md) (how other tools solved the same problem).

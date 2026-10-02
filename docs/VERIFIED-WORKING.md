@@ -48,6 +48,14 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   - `/manifest.json` sent **no CORS header**, so a browser-based tool could not read the catalog it is meant to
     offer. `/manifest.json`, `/board-guide.md` and `/dashboard.schema.json` now carry
     `Access-Control-Allow-Origin: *` — and `index.html` deliberately does **not**, which the same check asserts.
+  - **It says what the thing IS first** (Andrew, 2026-10-02: *"it seems to assume lots of knowledge about WikiBento"*).
+    §0 quotes the README's own opening paragraph rather than describing the project a second time (the generator fails
+    if that paragraph ever moves), adds the one thing an outside writer has to know that the JSON cannot convey — every
+    card names a *Wikimedia* subject and fetches it live — and points at the README, the GUIDE, the widget catalog, the
+    one-page **widget map**, the specification and the live demo hub. Every one of those pointers is an **absolute
+    GitHub URL** and every one was checked (`200`): the guide was previously handing out `](GUIDE.md)`, which on this
+    host is a 404 — the repository's docs are not served here. `docs-facts` now fails if a relative link reappears in
+    the served guide, or if it stops naming both the repository and the live host.
   - **`public/board-guide.md`** is served at `/board-guide.md`: the contract for writing a board outside WikiBento,
     **assembled** (never written twice) from `public/manifest.json`, `docs/JSON-FORMAT.md`,
     `docs/WIRING-BOARDS.md` and the widget map's chains, by `npm run guide:board`. Its §1 example is checked by the

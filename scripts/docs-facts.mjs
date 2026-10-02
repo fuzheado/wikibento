@@ -348,7 +348,15 @@ check('the board guide is current, and describes every registered type', () => {
   const guide = read('public/board-guide.md');
   const missing = registry.filter((w) => !guide.includes(`### \`${w.id}\``)).map((w) => w.id);
   if (missing.length) fail(`the board guide does not describe: ${missing.join(', ')} — run \`npm run guide:board\``);
-  return `current, all ${REGISTRY} types described`;
+  // A SERVED page may not hand out relative pointers: `](GUIDE.md)` on this host is a 404 (the repository's docs are
+  // not served here), and a broken pointer in the one document whose job is to be the way in is the defect this check
+  // exists for. Anchors and absolute URLs are the only two shapes allowed.
+  const relative = [...guide.matchAll(/\]\((?!https?:|#)([^)]+)\)/g)].map((m) => m[1]);
+  if (relative.length) fail(`the board guide links to ${relative.length} relative path(s) — a served page must link absolutely: ${relative.slice(0, 3).join(', ')}`);
+  if (!guide.includes('https://github.com/fuzheado/wikibento') || !guide.includes('https://wikibento.toolforge.org')) {
+    fail('the board guide does not name both the repository and the live host — an outside reader has nowhere to go');
+  }
+  return `current, all ${REGISTRY} types described, links absolute`;
 });
 
 check('the widget map places every registered type (docs/WIDGET-MAP.md is generated, so this is drift, not judgement)', () => {

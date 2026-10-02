@@ -40,7 +40,11 @@ the browser was already drawing (`npm run repack:layouts`, measured render-neutr
 `tests/demos.test.mjs` refuses a board that overlaps itself · 🚪 **the door, and its prerequisites** (2026-10-02): **`/board-guide.md`** is served — the contract for writing a
 board *outside* WikiBento, **assembled** (not a second copy) from the manifest, `docs/JSON-FORMAT.md`,
 `docs/WIRING-BOARDS.md` and the widget map by `npm run guide:board`, with its §1 example pasted through
-`validateDashboard` by the suite and `docs-facts` running its own `--check`; the two bugs under it are fixed (an
+`validateDashboard` by the suite and `docs-facts` running its own `--check`. It **opens by saying what WikiBento is**
+(§0, quoted from the README rather than described a second time) and points at the README, the GUIDE, the widget
+catalog, the one-page **widget map**, the spec and the live demo hub — as **absolute GitHub links**, because a served
+page that hands out relative paths hands out 404s (the docs are not served here; `docs-facts` fails if one of those
+comes back); the two bugs under it are fixed (an
 unknown path was a **500 leaking `/data/project/wikibento/www/js/dist/…`**, now a plain 404 that names nothing, and
 `/manifest.json` sent no CORS header, now `*` on the three public files and deliberately not on `index.html`); and the
 advisor is **warned off CIM** for categories outside the allow list — the ⚙ hint, the catalog and the manual all say
