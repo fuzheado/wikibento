@@ -72,6 +72,14 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   resizing and the ⚙ panel are already off. Esc (and the ✕ Exit button) remain the way out. Verified in a built
   browser by `npm run smoke:share` — 17/17, **with a control that first proves the notice DOES appear on a borrowed
   board**, so the new assertions cannot pass vacuously.
+- 🪤 **A gate that lied: the built-artefact smoke failed while its own output said ✅.** One `npm test` run exited 1
+  with `demos.json: no cards rendered within the timeout` — *after* printing `✅ demos.json 4 cards · no page errors`.
+  The cause was in the check, not the app: `waitForSelector` expired a moment before the cards painted, the timeout was
+  pushed onto the problem list, and the card *count* — the evidence the check exists for — was taken afterwards and
+  found four. Two runs since pass, and it is now the count that decides: the wait's expiry is reported only when
+  **zero** cards rendered, which is what a bundle that throws before its first render actually looks like.
+  (The rule this is an instance of: a check whose failure message contradicts its own output is a check people stop
+  reading.)
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).

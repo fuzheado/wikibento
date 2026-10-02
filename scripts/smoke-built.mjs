@@ -126,14 +126,20 @@ try {
     for (const board of BOARDS) {
       pageErrors.length = 0;
       const url = `${base}/?config=/${board}`;
+      let waitNote = '';
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('[data-widget-id]', { timeout: TIMEOUT_MS });
       } catch (e) {
-        problems.push(`${board}: ${/Timeout/.test(String(e)) ? 'no cards rendered within the timeout' : String(e).slice(0, 100)}`);
+        waitNote = /Timeout/.test(String(e)) ? `no cards rendered within the timeout (${TIMEOUT_MS} ms)` : String(e).slice(0, 100);
       }
+      // The VERDICT follows the card count, not the wait's outcome. A wait that expires a moment before the cards paint
+      // is a slow machine, not a broken bundle — and reporting it as a failure made this gate flake (2026-10-02: it
+      // printed "✅ demos.json 4 cards" and failed the run in the same breath, because the count is taken after the
+      // catch). What this check exists to catch — a bundle that throws before its first render — shows up as ZERO
+      // cards, so that is what fails it. The timeout is still reported when it happens AND nothing rendered.
       const cards = await page.locator('[data-widget-id]').count().catch(() => 0);
-      if (!cards) problems.push(`${board}: 0 cards`);
+      if (!cards) problems.push(`${board}: ${waitNote || '0 cards'}`);
       // The first error is the one that matters; the rest are usually its cascade.
       if (pageErrors.length) problems.push(`${board}: ${pageErrors[0]}`);
       console.log(`  ${cards && !pageErrors.length ? '✅' : '❌'} ${board.padEnd(30)} ${String(cards).padStart(3)} cards · ${pageErrors.length ? pageErrors[0] : 'no page errors'}`);
