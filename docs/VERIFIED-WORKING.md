@@ -135,6 +135,25 @@ build that was probed in a real browser is byte-for-byte the build that is live.
   `coerceFieldValue` on every intake path, where before only the fetchers clamped their own numbers), and
   `refreshSeconds` below the floor is raised to it rather than refusing the board — which is what makes accepting it
   safe instead of merely polite. Four tests moved with the contract, including the one that pinned the old behaviour.
+- 🤖 **The MCP endpoint, spoken to (2026-10-02).** `/mcp` is live and verified against production by
+  `node scripts/mcp-e2e.mjs --base https://wikibento.toolforge.org` — 14/14 of the read-only checks: `initialize`
+  (instructions 499 chars), revision negotiation, a notification's 202 with no body, `tools/list` with schemas, all four
+  tools (`get_catalog` 42 types, `get_board_guide` §1 2.4 KB of 64 KB, `validate_board` clean for a good board and
+  `unusable` naming the missing card for a broken one, `make_board_url` giving a `#/d/` link of 538 chars and a `#/z/`
+  of 336 that fits a QR), the two protocol errors (-32601, -32602) and `GET` → 405. Locally two more run: a foreign
+  `Origin` → 403 and an oversized body → 413.
+- 📊 **Where the docs drifted, and what now holds them (2026-10-02).** The count gate was reading `README.md`,
+  `HANDOFF.md` and the boards — **no `docs/*.md`** — so it reported "29 sources agree with 42 types" while five documents
+  disagreed. It reads **72 sources** now and found: `docs/BOARD-COMPOSITION.md` at 38/41, `docs/DEMO-IDEAS.md` at 37,
+  three *dated* claims in `docs/ROADMAP.md` (spelled out, not updated — they are correct for their date) and
+  `docs/DATA-SOURCES.md`'s grown CIM family (now stated by reference). Dated records keep their numbers but every
+  mismatching claim in them is **listed** in the gate's output (22 of them) rather than exempted in silence. The same
+  scan found the other half of that drift: **`BOARD-COMPOSITION.md` called itself "the complete reference" while naming
+  39 of 42 types** — `wikiBox`, `iaBook` and `documentReader` were missing, and all three are written up now, with a new
+  gate that holds a completeness claim to every registered id. A **retired-claims** list was added beside the retired
+  names; its first version banned the *phrase* "no backend", fired on 15 legitimate sentences in 12 engineering docs, and
+  was rewritten to encode the *defect* (a global sweep anywhere; the bare phrase only in the front-door files). And a
+  rule now has an escape hatch for quoting what it bans — a line marked `docs-facts: quotation`.
 - 📌 **Decided, not fixed: `category-sample-photos` stays as it is** (owner, 2026-10-02). Its 1/15 in the intent
   baseline is now an *accepted* difference rather than an open item — see the ranked fixes in
   [ASK-ARCHITECTURE](ASK-ARCHITECTURE.md).
