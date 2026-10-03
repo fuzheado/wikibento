@@ -8,8 +8,9 @@
  * 1. Description integrity — no apostrophe-truncation artifacts (the v2
  *    regex bug that cut filterLines/lineCount descriptions to "Consume
  *    another widget").
- * 2. Emitter declarations — the five emitting widgets must declare the
- *    output kind that their `emit` produces.
+ * 2. Emitter declarations — the emitting widgets whose kind is pinned must declare the
+ *    output kind that their `emit` produces, every declared kind must be in
+ *    `OUTPUT_KINDS` (src/lib/dataflow.js), and no documented kind may be dead.
  * 3. Consumer declarations — source-field widgets must be flagged
  *    consumesSource and document their source field.
  * 4. Node roles + scope — every widget carries a valid nodeKind and
@@ -22,6 +23,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { OUTPUT_KINDS } from '../src/lib/dataflow';
 
 const manifest = JSON.parse(
   await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'),
@@ -34,6 +36,11 @@ const KNOWN_EMITTERS = {
   filterLines: 'lines',
   lineCount: 'count',
   echo: 'value',
+  // The CIM family's emitters (2026-10-03, ISSUE-96's checklist): a stats/trend card publishes the subject it
+  // resolved, and a ranking publishes the ranked names.
+  cimStats: 'value',
+  cimTrend: 'value',
+  cimRanking: 'lines',
 };
 const KNOWN_NODE_KINDS = {
   filterLines: 'transformer',
@@ -170,7 +177,7 @@ test('config fields are well-formed and documented', () => {
 test('a consumer’s declared kinds are documented, and something publishes them (ISSUE-132)', () => {
   // The consumer side of the emitter contract: a field that says `kinds: ['geojson']` narrows the source picker, so the
   // kinds have to be real and *producible* — a field wired only to nothing would look like an empty dropdown.
-  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
+  const DOCUMENTED = OUTPUT_KINDS;
   const published = new Set();
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
@@ -188,14 +195,18 @@ test('a consumer’s declared kinds are documented, and something publishes them
       }
     }
   }
-  assert.ok(declared >= 1, 'expected at least one kind-aware source field (the map’s geometry input)');
+  assert.ok(declared >= 4, `expected several kind-aware source fields (map's geometry input, the filter, the counter, the speaker), found ${declared}`);
+  // …and no documented kind may be *dead*: a kind in the list that nothing publishes is a label the doc and the
+  // pickers offer for nothing (ISSUE-97 — this is what makes the list load-bearing rather than a description).
+  const dead = OUTPUT_KINDS.filter((k) => !published.has(k));
+  assert.deepEqual(dead, [], `documented output kinds nothing publishes: ${dead.join(', ')}`);
 });
 
 test('emitter output kinds stay within the documented set (emitter contract)', () => {
   // docs/WIDGET-DEVELOPMENT.md -> "The Emitter Contract": a new output kind is a
   // design act (a real consumer, doc entries, an askManual() phrase, a size
   // policy) — this allowlist makes that decision loud instead of accidental.
-  const DOCUMENTED = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
+  const DOCUMENTED = OUTPUT_KINDS;
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
     const kinds = 'kind' in w.outputs ? [w.outputs.kind] : Object.values(w.outputs);

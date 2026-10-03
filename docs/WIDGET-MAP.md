@@ -58,9 +58,9 @@ show me?* So the map groups by **what you must supply**, colours by the panel's 
 
 *Commons Impact Metrics — precomputed, and only for ~1,775 registered primary categories*
 
-- **CIM Snapshot** `cimStats` — Categories & GLAM, source: Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
-- **CIM Views / time** `cimTrend` — Categories & GLAM, source: Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
-- **CIM Top-N** `cimRanking` — Categories & GLAM, source: Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
+- **CIM Snapshot** `cimStats` — Categories & GLAM, source ✧: Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
+- **CIM Views / time** `cimTrend` — Categories & GLAM, source ✧: Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
+- **CIM Top-N** `cimRanking` — Categories & GLAM, source ✧: Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
 
 ## Files & media (5)
 
@@ -99,7 +99,7 @@ show me?* So the map groups by **what you must supply**, colours by the panel's 
 ## How they relate
 
 - **Board parameters** — Board Controls declares `params`; any config field may reference `{{name}}`, so one click re-aims every card that uses it.
-- **13 publishers (✧)**: `qrCode` (value), `excerpt` (extract/value), `gallery` (lines/value), `wikiBox` (lines/value), `translate` (value/speech), `map` (geojson), `iaItem` (value), `iaBook` (value), `documentReader` (value), `listSource` (lines), `filterLines` (lines), `lineCount` (count), `echo` (value).
+- **16 publishers (✧)**: `qrCode` (value), `excerpt` (extract/value), `gallery` (lines/value), `cimStats` (value), `cimTrend` (value), `cimRanking` (lines), `wikiBox` (lines/value), `translate` (value/speech), `map` (geojson), `iaItem` (value), `iaBook` (value), `documentReader` (value), `listSource` (lines), `filterLines` (lines), `lineCount` (count), `echo` (value).
 - **5 consumers (⇢)**: `speaker`, `map`, `filterLines`, `lineCount`, `echo` — a `source` field names a publisher; `{{widget:id}}` works in any text field.
 - **Shipping chains**: Article Excerpt → Translator → Speaker (text → language → voice) · Text List → Filter Lines → Line Count → Value Display (lines → a number) · Gallery → Media Player / Article List (files and lines → a card).
 - The CIM row is a **gate, not a topic**: those nine widgets only answer for a category from the Commons Impact Metrics allow list (~1,775 registered primary categories; additions go through a Phabricator request). `glamorgan` next to them walks any category live — slower, but nobody's list has to contain it.

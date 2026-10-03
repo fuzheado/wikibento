@@ -20,6 +20,8 @@
  * A board is not always ours to rewrite, so nothing is migrated on load — the meaning is inferred instead.
  */
 
+import { dbnameOf } from './reference';
+
 /** The two subjects a CIM stats/trend card can be about. */
 export const CIM_SUBJECTS = ['category', 'file'];
 
@@ -74,4 +76,73 @@ export function cimFacet(config = {}, typeId) {
   if (CIM_FACETS.includes(config.facet)) return config.facet;
   const legacy = LEGACY_CIM_IDS[typeId];
   return (legacy && legacy.config.facet) || 'files';
+}
+
+/**
+ * What a CIM card publishes (ISSUE-96).
+ *
+ * A CIM card is *about* something — one Commons category, or one Commons file — and **that** is what belongs on the
+ * wire. The counts and the trend do not: ISSUE-96's second rule is that a number is not automatically worth
+ * publishing, and the question each one has to answer is "what would consume this?". A list of names is what boards
+ * actually pipe into Filters, Galleries and Maps; a pageview total is a reading, not a token.
+ *
+ * The form is a **reference**, not a bare name (ISSUE-92): `commonswiki:Category:Files from the BHL`,
+ * `commonswiki:File:Dogs, jackals.jpg`, `enwiki:Marie Curie`. A title without its wiki is ambiguous the moment a
+ * board crosses languages, and a CIM ranking is the first `lines` emitter whose every line carries its own project —
+ * which is what `resolveRefLines` was written to read.
+ */
+
+/** `Dogs,_jackals.jpg` → `File:Dogs, jackals.jpg`: the title form Commons itself uses, idempotent if already given. */
+function commonsTitle(raw, prefix) {
+  let name = String(raw ?? '').trim();
+  if (!name) return '';
+  if (name.toLowerCase().startsWith(prefix.toLowerCase())) name = name.slice(prefix.length);
+  name = name.replace(/_/g, ' ').trim();
+  return name ? `${prefix}${name}` : '';
+}
+
+/** The subject of a stats/trend card as a reference. `''` when there is nothing to name (the emitter skips it). */
+export function cimSubjectRef(config = {}, data = {}) {
+  const subject = cimSubject(config);
+  const title = subject === 'file'
+    ? commonsTitle(data.file || config.filename, 'File:')
+    : commonsTitle(data.category || config.category, 'Category:');
+  return title ? `commonswiki:${title}` : '';
+}
+
+/**
+ * One ranked row → one line of `cimRanking`'s output.
+ *
+ * Four of the five arms name a thing that lives somewhere, so four carry a reference. Two cannot, and say so rather
+ * than inventing one: the wiki arm publishes the wiki code itself (`enwiki` — the dbname every Wikimedia API, dump
+ * and replica already uses, so nothing has to be translated on the way out), and the editor arm publishes a bare
+ * user name, because `top-editors-monthly` returns no wiki for the editor — a consumer that needs one must be
+ * configured with it.
+ */
+export function cimRankingLine(facet, row = {}) {
+  if (facet === 'files') {
+    const title = commonsTitle(row.title, 'File:');
+    return title ? `commonswiki:${title}` : '';
+  }
+  if (facet === 'wikis') return dbnameOf(row.wiki) || String(row.wiki ?? '').trim();
+  if (facet === 'pages') {
+    const title = String(row.page ?? '').trim();
+    if (!title) return '';
+    const dbname = dbnameOf(row.wiki);
+    return dbname ? `${dbname}:${title}` : title;
+  }
+  if (facet === 'editors') return String(row.user ?? '').trim();
+  if (facet === 'categories') {
+    const title = commonsTitle(row.category, 'Category:');
+    return title ? `commonswiki:${title}` : '';
+  }
+  return '';
+}
+
+/** The ranked list as the newline-joined text the wire carries. `''` when nothing survives. */
+export function cimRankingLines(facet, rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => cimRankingLine(facet, row))
+    .filter(Boolean)
+    .join('\n');
 }
