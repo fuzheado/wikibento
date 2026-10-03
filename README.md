@@ -47,6 +47,7 @@ inventory is [docs/PROXIES.md](docs/PROXIES.md). No accounts, no login, nothing 
 | 🌐 [Translate chain](https://wikibento.toolforge.org/?config=/translate-demo.json) | two params + a three-step dataflow (excerpt → translator → 🔊 speaker), where the translation's language picks the spoken voice |
 | 🎛️ [Params & galleries](https://wikibento.toolforge.org/?config=/params-demo.json) | buttons, a slider and a month stepper driving galleries |
 | 🔀 [Dataflow pipeline](https://wikibento.toolforge.org/?config=/flow-demo.json) | Text List → Filter → Count → Display |
+| ⚖️ [A Wikimedian in Residence, four years in](https://wikibento.toolforge.org/?config=/wipo-wir-demo.json) | a programme measured in full: three residents in four languages, the impact of their Commons uploads from **Commons Impact Metrics** (12- and 24-month trends, top files, the 108 wikis that use them), one file's 15-month traffic, and the core articles' language coverage from Wikidata |
 | 🏛️ [One template, any institution](https://wikibento.toolforge.org/?config=/glam-demo.json) | exact GLAM impact stats (Commons Impact Metrics) — **type any institution/category in one box** and every CIM card follows; five flagship collections are the starting shortlist |
 | 🔎 [Article vitals](https://wikibento.toolforge.org/?config=/article-vitals-demo.json) | summary, traffic, ORES quality, WikiProjects, edits, images |
 | 🧠 [Query power](https://wikibento.toolforge.org/?config=/sparql-demo.json) | live SPARQL across WDQS, Humaniki and QLever — and a result's coordinates drawn as a **map** |
@@ -364,6 +365,11 @@ test:browsers:demos` sweeps every demo board in Chromium, Firefox and WebKit at 
 that each card renders, that none collapses, that no card shows a bare `—` in place of data and that no ranking is
 empty — checks written for the bugs they then found (an empty box on iPhone, a pageviews card with no count, a 360°
 widget that had never rendered; ISSUE-100).
+
+**An agent can write a board and check it itself.** `/mcp` speaks the Model Context Protocol — four read-only tools
+(`get_catalog`, `get_board_guide`, `validate_board`, `make_board_url`) — so Claude or ChatGPT can read the contract, write
+a board, validate it against the app's own rules and hand back a link, with no JSON carried by hand
+([docs/MCP.md](docs/MCP.md)); `npm run smoke:mcp` drives the protocol as a client (16 checks, in `npm test`).
 
 **A board written outside WikiBento is checked twice**, because "validates" and "renders" are different claims:
 `npm run check:board -- board.json` (and the served `/api/validate`, which is the same checker) reports what a board

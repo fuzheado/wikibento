@@ -979,3 +979,68 @@ contract to satisfy — they read `{{param}}` / `{{widget:<id>}}` and put someth
 on the screen. That means every one of them is **one registry entry + one card +
 one widget-test**, the shape the QR widget just proved end to end. The open
 design work is the *Stage* (dimming/sequencing), not the individual cards.
+
+## Aggregate pageviews for a list: Massviews, and the PagePile source that feeds it (2026-10-02 note)
+
+**The gap, measured.** A Wikimedian-in-Residence board reported *≈37 million views a month* for the 759 English
+articles its project had tracked — and no card could show it: `pageviews` reads one article, `topPages` reads a
+wiki's most-visited articles. Every aggregate-views figure a GLAM project puts in a report is therefore a screenshot
+from a third-party tool rather than a live card. This note scopes the two widgets that close it, in the order they
+have to be built.
+
+### What was verified (2026-10-02, live)
+
+| fact | evidence |
+|---|---|
+| **PagePile serves JSON, CORS `*`** | `GET https://pagepile.toolforge.org/api.php?id=105694&action=get_data&format=json` → `200`, `access-control-allow-origin: *`. Pile 105694 (the WIPO English list) returned 842 pages. |
+| **PagePile's shape already carries a reference** | `{ pages: ["19th_SAARC_summit", …], wiki: "enwiki", pages_returned: 842, pages_total: 842, sort_order: "ns_title", language: "en", project: "wikipedia" }` — `wiki` + `pages[]` is the `enwiki:Title` form the wiring grammar wants (ISSUE-92), so a PagePile source can emit **references**, not just lines. |
+| **Massviews has no public JSON API** | Three conventional shapes probe to `404` (`/massviews/api/`, `/massviews/api.php`, `/api/massviews/`). Its results page embeds an internal `apiToken` (JWT, `sub: anon`), and the suite's tools each point at their own base (e.g. `https://wikinav.wmcloud.org/api/v1`). The tool is maintained at `gitlab.wikimedia.org/repos/data-engineering/pageviews`. |
+| **The official REST API is per-article** | `metrics/pageviews/per-article/{project}/all-access/all-agents/{article}/{granularity}/{start}/{end}` — one article per request, which is why an aggregate needs N calls and a visible cap. |
+
+**Conclusion: do not depend on Massviews.** It is a viewer over data the app can read itself; the aggregate belongs
+in the app, with its own cap and its own honest subtitle.
+
+### 1. `pagepile` — a list source that emits references (effort S)
+
+Extends the list-source vocabulary already shipped as the pasted-list textarea (2026-08-13 note above): a widget that
+takes a **pile ID** and publishes its pages. Prerequisite for §2, and the cheapest high-value item in this file.
+
+- **Input:** `pile` (text, the numeric ID — accept a full PagePile URL too) · `form` (`lines` | `references`) ·
+  `project` (optional override; otherwise the pile's own `wiki`).
+- **Fetch:** the PagePile API above — one request, CORS `*`, no relay needed.
+- **Output:** `lines` (one page per line, in the pile's own order). **Primary = the bare lines**; the reference form
+  (`enwiki:19th SAARC summit`) on a second channel, so a consumer that is about pages reads `pile#references`.
+- **Cap and honesty:** `limit` (default 500) with `pages_total` in the subtitle — *"500 of 842 pages"*. A pile that
+  truncated itself (`pages_returned` < `pages_total`) must say so: a silent partial list is the failure mode a GLAM
+  report cannot afford.
+- **Consumers, all of them existing:** `articleList` (`"articles": "{{widget:pile}}"`), `gallery` (`from: list` →
+  `files`), `mediaPlayer`, `filterLines`, `lineCount`, and §2.
+- **Failure states:** unreadable pile ID; a wiki code we cannot map to a project; `pages_returned` < `pages_total`.
+
+### 2. `massviews` — aggregate pageviews over a list (effort M)
+
+Consumes a list source (§1, `listSource`, `filterLines`, or `{{widget:id}}`) and reports the views of those pages: a
+single month as a stat, a window as a trend — the `pageviews` card, for a list.
+
+- **Config:** `source` (a `source` field, `kinds: ['lines']`) · `months` (1–24; 1 renders the stat) ·
+  `cap` (default 100).
+- **Fetch:** the official REST API per article, through the existing batched/retrying layer (4 concurrent,
+  `Retry-After` honoured). 100 pages = 100 small requests, and the card should say so before it runs.
+- **The subtitle is the contract:** `100 of 842 pages · 12 months · capped`, beside the sum. A capped aggregate must
+  never present itself as the whole list.
+- **Failure states:** no source yet (the app's "Waiting for a reference" state) · cap reached · pages with no data
+  (counted: "3 pages had no data") · a pile spanning several wikis (the REST API is per-project; the pile's `wiki`
+  decides, and a foreign page counts as missing rather than being skipped in silence).
+- **Why it beats the tool it replaces:** live, reproducible, refreshing with the board — the figure in a report has a
+  card behind it. The comparison to make when it ships: pile 105694 for one month, this card against Massviews' own
+  number (the project page quotes ≈37 M/month for its English list).
+
+### Open questions for the owner
+
+1. **Cap value** — 100 (cheap, covers most GLAM lists) or 500 (a report-grade figure at 5× the requests)? Or offer
+   "top N by views" instead of a sum — a different number with a different meaning.
+2. **References or lines by default** — references (`enwiki:Title`) travel better; lines read better in a card.
+   Recommendation: references on the channel, lines in the card.
+3. **A list *mode* on existing widgets, or the emitter in §1 with consumers wired to it?** The original architecture
+   idea was "every list consumer accepts a pile ID" (N widgets, no wiring); §1 is one widget and one contract.
+   Recommendation: §1 now, modes later if the demand is real.
