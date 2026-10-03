@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-03T16:37:09.106Z",
+ "generatedAt": "2026-10-03T18:39:01.739Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -483,6 +483,12 @@
      "type": "text",
      "label": "Caption (optional)",
      "placeholder": "Scan for the Commons category"
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -847,6 +853,12 @@
       "send to the board",
       "both"
      ]
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -991,6 +1003,12 @@
      "showIf": {
       "subject": "category"
      }
+    },
+    {
+     "key": "month",
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1078,6 +1096,12 @@
      "showIf": {
       "subject": "category"
      }
+    },
+    {
+     "key": "month",
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1190,6 +1214,12 @@
        "editors"
       ]
      }
+    },
+    {
+     "key": "month",
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1721,6 +1751,12 @@
      "type": "boolean",
      "label": "Pin the place",
      "hint": "The map service draws no marker of its own, so this one is ours — at the centre, which is the coordinate you asked for."
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -1865,6 +1901,12 @@
      "type": "textarea",
      "label": "Your annotation (Markdown)",
      "placeholder": "Free-form caption for this board — **bold**, [links](https://…), credit lines…"
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -1985,6 +2027,12 @@
       "on",
       "off"
      ]
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -2046,6 +2094,12 @@
       "on",
       "off"
      ]
+    },
+    {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [

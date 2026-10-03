@@ -171,9 +171,21 @@ while ((m = blockRe.exec(src)) !== null) {
     const field = parseField(block.slice(cfm.index, end + 1));
     if (field) configFields.push(field);
   }
-  // Resolve constant references (CIM_CATEGORY_FIELD etc.) inside configFields.
-  for (const ref of block.matchAll(/configFields:\s*\[([^\]]*)\]/g)) {
-    for (const ident of ref[1].matchAll(/\b([A-Z][A-Z0-9_]+)\b/g)) {
+  // Resolve constant references (CIM_CATEGORY_FIELD etc.) inside configFields. The array is scanned at
+  // bracket depth, not with a first-']' capture: a merged entry's inline fields carry nested arrays
+  // (extras: [{…}], showIf: { facet: ['a','b'] }), and a [^\]]* capture truncated at the first one — hiding
+  // every constant listed after it (2026-10-03: CIM_MONTH_FIELD sat last and vanished from the manifest).
+  for (const cf of block.matchAll(/configFields:/g)) {
+    const open = block.indexOf('[', cf.index);
+    if (open === -1) continue;
+    let depth = 0;
+    let end = -1;
+    for (let k = open; k < block.length; k++) {
+      if (block[k] === '[') depth++;
+      else if (block[k] === ']') { depth--; if (depth === 0) { end = k; break; } }
+    }
+    if (end === -1) continue;
+    for (const ident of block.slice(open, end + 1).matchAll(/\b([A-Z][A-Z0-9_]+)\b/g)) {
       if (constFields[ident[1]] && !configFields.some((f) => f.key === constFields[ident[1]].key)) {
         configFields.push(constFields[ident[1]]);
       }

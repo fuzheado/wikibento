@@ -193,7 +193,7 @@ Turns any text or URL into a scannable QR code — a phone-readable bridge from 
 
 - role: `display` · publishes `value` (the bare id)
 - reads: static (no fetch — local encoding, qrcode-generator)
-- fields: `text`:textarea · `ecLevel`:select [auto | L | M | Q | H] · `margin`:number · `caption`:text
+- fields: `text`:textarea · `ecLevel`:select [auto | L | M | Q | H] · `margin`:number · `caption`:text · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `text`, `ecLevel`, `margin`, `caption`, `refreshSeconds`
 
 ### `excerpt` — Article Excerpt
@@ -233,7 +233,7 @@ Images from one source — an article, a Commons gallery page, a wiki category, 
 
 - role: `display` · publishes: `#lines` (`lines`) ← the bare id · `#selection` (`value`)
 - reads: four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)
-- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `maxItems`:number · `linkAction`:select [new tab | send to the board | both]
+- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `maxItems`:number · `linkAction`:select [new tab | send to the board | both] · `edgeToEdge`:boolean
 - defaults: may be omitted: `from`, `article`, `page`, `category`, `files`, `displayMode`, `showCaptions`, `edgeToEdge`, `iconSize`, `imageFit`, `order`, `minSize`, `maxItems`, `includeAll`, `hideDecorative`, `groupBy`, `linkAction`, `refreshSeconds`
 
 ### `articleList` — Article List
@@ -249,7 +249,7 @@ Exact precomputed stats for one Commons category or one Commons file — files, 
 
 - role: `source`
 - reads: CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)
-- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `subject`:select [category | file] · `category`:text only when `subject` is `category`
+- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
 
 ### `cimTrend` — CIM Views Over Time · CIM-allow-list
@@ -257,7 +257,7 @@ Monthly pageview trend over a window you choose — the pages using a Commons ca
 
 - role: `source`
 - reads: CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly
-- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project · `months`:number · `zeroY`:boolean only when `subject` is `category` · `subject`:select [category | file] · `category`:text only when `subject` is `category`
+- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project · `months`:number · `zeroY`:boolean only when `subject` is `category` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `wiki`, `months`, `filename`, `month`, `zeroY`, `refreshSeconds`
 
 ### `cimRanking` — CIM Top-N · CIM-allow-list
@@ -265,7 +265,7 @@ Ranked rows for one month — the top files, wikis, pages or editors of a CIM ca
 
 - role: `source`
 - reads: CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly
-- fields: `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors`
+- fields: `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `month`:number
 - defaults: may be omitted: `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
 
 ### `boardControls` — Board Controls
@@ -321,7 +321,7 @@ A static map of a place — a coordinate, a Wikidata item, or a page title — d
 
 - role: `display` · consumes another widget's output (a `source` field) · publishes `geojson` (the bare id)
 - reads: Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki's own prop=coordinates
-- fields: `place`:text · `points`:textarea · `shape`:select [markers | path | area] · `geojson`:textarea · `source`:source kinds:geojson · `framePoints`:boolean · `project`:project · `zoom`:number · `lang`:text · `imageFit`:select [cover | contain] · `showPin`:boolean
+- fields: `place`:text · `points`:textarea · `shape`:select [markers | path | area] · `geojson`:textarea · `source`:source kinds:geojson · `framePoints`:boolean · `project`:project · `zoom`:number · `lang`:text · `imageFit`:select [cover | contain] · `showPin`:boolean · `edgeToEdge`:boolean
 - defaults: may be omitted: `place`, `points`, `shape`, `geojson`, `framePoints`, `project`, `zoom`, `lang`, `imageFit`, `showPin`, `edgeToEdge`, `refreshSeconds`
 
 ### `panorama360` — 360° Panorama Viewer
@@ -337,7 +337,7 @@ Play video or audio — Commons files, or any direct media URL such as an archiv
 
 - role: `source`
 - reads: Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call
-- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `annotation`:textarea
+- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `annotation`:textarea · `edgeToEdge`:boolean
 - defaults: may be omitted: `files`, `mediaType`, `quality`, `loopPlaylist`, `shuffle`, `autoplay`, `showDescription`, `objectFit`, `edgeToEdge`, `annotation`, `refreshSeconds`
 
 ### `waybackGallery` — Wayback Snapshot Gallery · experimental · heavy (many API calls)
@@ -361,7 +361,7 @@ A scanned Internet Archive book, page by page — turn, zoom to read, jump to a 
 
 - role: `source` · publishes `value` (the bare id)
 - reads: iiif.archive.org (Presentation v3 manifest + Image API v3 + Content Search)
-- fields: `identifier`:text · `spread`:select [auto | on | off]
+- fields: `identifier`:text · `spread`:select [auto | on | off] · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `identifier`, `spread`, `refreshSeconds`
 
 ### `documentReader` — Document Reader
@@ -369,7 +369,7 @@ Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn,
 
 - role: `source` · publishes `value` (the bare id)
 - reads: Commons API imageinfo — pagecount + a page-N thumbnail template (one call)
-- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off]
+- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
 
 ### `listSource` — Text List
