@@ -123,3 +123,26 @@ export function compactConfig(config, def) {
   }
   return out;
 }
+
+/**
+ * The top-level keys a board document carries that this format does not define — `version`, `widgets`, `layout` and
+ * `params` are ours; anything else belongs to whoever wrote it.
+ *
+ * The rule these implement is the one JSON Canvas learned the hard way and states as its extension contract:
+ * *retain what you do not model*. A reader that keeps only the fields it understands makes every save a silent
+ * pruning — the file stays valid, still opens, and something is quietly missing (measured, 2026-10-03: this project
+ * already did it at **config** level, via `compactConfig` above carrying unmodelled config keys through, and at
+ * **widget** level, via `savedBoardPayload`'s spread — and pruned at **board** level, which is where a plugin
+ * namespace or a future version would put its state). This closes the third level.
+ *
+ * Returns `null` when there is nothing foreign, so a plain board keeps exactly the shape it had.
+ */
+export function boardExtras(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const extras = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (key === 'version' || key === 'widgets' || key === 'layout' || key === 'params') continue;
+    extras[key] = v;
+  }
+  return Object.keys(extras).length ? extras : null;
+}

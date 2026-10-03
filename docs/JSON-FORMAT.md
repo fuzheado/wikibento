@@ -335,6 +335,18 @@ own `showIf` hides — and a board is trimmed whenever it is **written**: the sh
 go through `savedBoardPayload`. So an old board's "Inefficient" leftovers disappear at its next save rather than at its
 next read, and a trim is lossless because the default comes back at render time.
 
+**Foreign top-level keys are carried, not pruned.** A document may hold keys this format does not define — another tool's
+namespace, or a state a future version will read — and they survive a round trip: `boardExtras()`
+(`src/lib/configNormalize.js`) takes them off a document as it is read (localStorage, ⬆ Import, `?config=`) and
+`savedBoardPayload(…, extras)` writes them back **ahead of** `widgets`/`layout`/`params`, so a foreign key can never
+shadow one of ours. This is JSON Canvas's extension contract — *retain what you do not model* — because a reader that
+keeps only the fields it understands makes every save a silent pruning: the file stays valid, opens, and something is
+quietly missing. It is the same rule this codebase already applied at **config** level (`compactConfig` carries an
+unmodelled config key through, and `validateDashboard` reports it rather than dropping it) and at **widget** level (the
+payload spreads the widget object). The one deliberate exception is the **URL payload** (`urlState.js`): a URL is a wire
+with a size budget that has to survive a QR code, so unknown keys stop there — a board shared by link carries its
+widgets, layout and params, and its documents carry anything else.
+
 ### Prompting the user
 
 **Report, do not interrupt**, and only when a repair changed the *meaning* rather than the shape:

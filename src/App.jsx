@@ -20,6 +20,8 @@ import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dash
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
 import { applyUrl, boardFingerprint, claimIsFresh, dropBoardClaimOnScreen, parseUrlState, setParams } from './lib/urlState.js';
 import { readSavedBoard, savedBoardPayload } from './lib/savedBoard';
+import { boardExtras } from './lib/configNormalize';
+import { boardToCanvas, canvasFilename } from './lib/jsonCanvas';
 import {
   STASH_KEY, boardLabelFromConfig, stashPayload, readStash, stashIsLive, noticeState,
 } from './lib/borrowedBoard';
@@ -94,6 +96,12 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const [savedFingerprint, setSavedFingerprint] = useState(null); // the visitor's own board, for the notice
   const [stash, setStash] = useState(() => readStash(localStorage.getItem(STASH_KEY))); // displaced board (24h)
   const savedBoardRef = useRef(null);              // the raw payload we are protecting, as loaded at boot
+  // The board document's *foreign* top-level keys — anything beside version/widgets/layout/params — held so the
+  // next write can put them back. A ref rather than state: nothing renders from them, they only have to survive
+  // from a document's arrival to the next save (the rule and its provenance are on configNormalize.boardExtras;
+  // it comes from JSON Canvas's extension contract, "retain what you do not model"). Cleared whenever a board
+  // arrives that has none, so board A's keys can never be attached to board B.
+  const boardExtrasRef = useRef(null);
   const borrowedRef = useRef(null);                // mirror of `borrowed`, set synchronously with the state
   const layoutTouchedRef = useRef(false);          // a real drag/resize happened (not a mount-time placement)
   const [initialized, setInitialized] = useState(false);
@@ -163,7 +171,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     if (urlState.kiosk) setKiosk(true);
     else if (urlState.lean) setLean(true); // ?lean=1 — chrome-free, no fullscreen
     // `persist: false` shows a board without adopting it (ISSUE-88). Everything else is unchanged.
-    const apply = (widgets, layout, paramsBlock, { persist: doPersist = true } = {}) => {
+    const apply = (widgets, layout, paramsBlock, { persist: doPersist = true, extras = null } = {}) => {
+      boardExtrasRef.current = extras || null;
       const { specs, values } = parseParams(paramsBlock);
       setParamBlock(paramsBlock || null);
       setParamSpecs(specs);
@@ -171,7 +180,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
       setWidgets(widgets);
       setLayout(layout);
       if (!doPersist) return;
-      const payload = savedBoardPayload(widgets, layout, paramsBlock);
+      const payload = savedBoardPayload(widgets, layout, paramsBlock, boardExtrasRef.current);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       savedBoardRef.current = payload;
     };
@@ -179,7 +188,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
       // readSavedBoard distinguishes "the user saved an empty board" (honour it) from
       // "nothing saved" (use the starter set) by the shape of the blob — see src/lib/savedBoard.js.
       const board = readSavedBoard(localStorage.getItem(STORAGE_KEY));
-      if (board) { apply(board.widgets, board.layout, board.params); return; }
+      if (board) { apply(board.widgets, board.layout, board.params, { extras: board.extras }); return; }
       apply(DEFAULT_WIDGETS, DEFAULT_LAYOUT);
     };
     const boot = async () => {
@@ -205,7 +214,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           if (!r.valid) throw new Error(r.errors[0]);
           const borrowedParams = JSON.parse(text).params;
           const borrowedPrint = boardFingerprint(r.widgets, r.layout, borrowedParams, { includeLayout: false });
-          apply(r.widgets, r.layout, borrowedParams, { persist: false });
+          apply(r.widgets, r.layout, borrowedParams, { persist: false, extras: r.extras });
           setBorrowedNow({ label: boardLabelFromConfig(configUrl), fingerprint: borrowedPrint });
           setUrlClaim({ kind: 'config', value: configUrl, fingerprint: borrowedPrint });
           loadedFromUrl = true;
@@ -220,7 +229,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
           const r = validateDashboard(json);
           if (!r.valid) throw new Error(r.errors[0]);
           const borrowedPrint = boardFingerprint(r.widgets, r.layout, json.params, { includeLayout: false });
-          apply(r.widgets, r.layout, json.params, { persist: false });
+          apply(r.widgets, r.layout, json.params, { persist: false, extras: r.extras });
           setBorrowedNow({ label: 'a shared board', fingerprint: borrowedPrint });
           setUrlClaim({ kind: 'embed', value: hashPayload, fingerprint: borrowedPrint });
           loadedFromUrl = true;
@@ -319,7 +328,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   // reload came back without its controls (found 2026-09-11 while testing the share round-trip).
   const persist = useCallback((newWidgets, newLayout, paramsBlock) => {
     const params = paramsBlock === undefined ? paramBlockRef.current : paramsBlock;
-    const payload = savedBoardPayload(newWidgets, newLayout, params);
+    const payload = savedBoardPayload(newWidgets, newLayout, params, boardExtrasRef.current);
     // ISSUE-88: the single place a board is written is also the place an adoption happens. If the board on
     // screen was borrowed, this write is the visitor saying "I mean it" — so the board it displaces is kept
     // (one deep, for a day) before it goes, and the notice switches from borrowed to recovery.
@@ -339,7 +348,8 @@ const [showAskPanel, setShowAskPanel] = useState(false);
 
   /** Load a board as the visitor's OWN — their saved board, or a restore. Not a borrow: it is written, and
    *  nothing is stashed, because nothing is being displaced. */
-  const applyMyBoard = useCallback((nextWidgets, nextLayout, params) => {
+  const applyMyBoard = useCallback((nextWidgets, nextLayout, params, extras = null) => {
+    boardExtrasRef.current = extras || null;
     const { specs, values } = parseParams(params);
     setParamBlock(params || null);
     setParamSpecs(specs);
@@ -347,7 +357,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     setWidgets(nextWidgets);
     setLayout(nextLayout);
     setWidgetOutputs({});
-    const payload = savedBoardPayload(nextWidgets, nextLayout, params);
+    const payload = savedBoardPayload(nextWidgets, nextLayout, params, boardExtrasRef.current);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     savedBoardRef.current = payload;
     setSavedFingerprint(boardFingerprint(nextWidgets, nextLayout, params, { includeLayout: false }));
@@ -376,7 +386,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     setUrlClaim(null);
     setBorrowedNow(null);
     const board = readSavedBoard(localStorage.getItem(STORAGE_KEY));
-    if (board) applyMyBoard(board.widgets, board.layout, board.params);
+    if (board) applyMyBoard(board.widgets, board.layout, board.params, board.extras);
     else applyMyBoard(DEFAULT_WIDGETS, DEFAULT_LAYOUT, null);
     setReloadKey((k) => k + 1);
   }, [applyMyBoard, setBorrowedNow]);
@@ -384,7 +394,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   /** Put back the board an adoption displaced (step 3's recovery), then stop offering it. */
   const restorePreviousBoard = useCallback(() => {
     if (!stash) return;
-    applyMyBoard(stash.payload.widgets, stash.payload.layout, stash.payload.params);
+    applyMyBoard(stash.payload.widgets, stash.payload.layout, stash.payload.params, boardExtras(stash.payload));
     localStorage.removeItem(STASH_KEY);
     setStash(null);
     setReloadKey((k) => k + 1);
@@ -680,6 +690,9 @@ const handleAutoHeight = useCallback((id, px) => {
     dropBoardClaimOnScreen();
     setUrlClaim(null);
     const { specs, values } = parseParams(dashboard.params);
+    // The incoming document's foreign top-level keys (an ⬆ Import, ✨ Example or ISSUE-86 paste); `persist` below
+    // reads the ref, so they travel with the board from here on.
+    boardExtrasRef.current = dashboard.extras || null;
     setParamBlock(dashboard.params || null);
     setParamSpecs(specs);
     setParamValues(values);
@@ -828,7 +841,7 @@ const handleAutoHeight = useCallback((id, px) => {
     // config minus the fields that merely repeat a registry default — a gallery whose source is an article no longer
     // exports the other three sources' defaults (found in Andrew's export, 2026-09-24). Lossless: the default is
     // restored at render time, and the ⚙ panel shows it (the ISSUE-110 rule).
-    const config = { version: CONFIG_VERSION, ...savedBoardPayload(widgets, layout, paramBlock) };
+    const config = { version: CONFIG_VERSION, ...savedBoardPayload(widgets, layout, paramBlock, boardExtrasRef.current) };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -837,6 +850,28 @@ const handleAutoHeight = useCallback((id, px) => {
     a.click();
     URL.revokeObjectURL(url);
   }, [widgets, layout, paramBlock]);
+
+  /**
+   * Export the board as a **JSON Canvas** document (jsoncanvas.org) — the open format Obsidian and other canvas
+   * tools read. The projection rules (which card becomes a link, which a text node, how `{{widget:id}}` references
+   * become drawn edges) live in `lib/jsonCanvas.js` beside their reasons; this handler only names the file.
+   */
+  const handleExportCanvas = useCallback(() => {
+    const first = (widgets || []).find((w) => WIDGET_TYPES[w?.widgetType]);
+    const doc = boardToCanvas({
+      widgets,
+      layout,
+      defs: WIDGET_TYPES,
+      extras: boardExtrasRef.current,
+    });
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = canvasFilename({ label: first ? WIDGET_TYPES[first.widgetType].name : '' });
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [widgets, layout]);
 
   /** Open the Share panel (QR code + copyable link). */
   const openShare = useCallback(() => setShowShare(true), []);
@@ -955,6 +990,9 @@ const handleAutoHeight = useCallback((id, px) => {
 </span>
           <button className="btn" onClick={handleExport} title="Export dashboard config as JSON">
             ⬇ Export
+          </button>
+          <button className="btn" onClick={handleExportCanvas} title="Export as a JSON Canvas (.canvas) document — opens in Obsidian and other canvas tools">
+            ⬇ Canvas
           </button>
           <button className="btn btn-danger" onClick={() => setShowResetDialog(true)} title="Reset to defaults">
             ↺ Reset

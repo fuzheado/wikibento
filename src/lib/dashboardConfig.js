@@ -14,7 +14,7 @@ export const CONFIG_VERSION = 1;
 // The floor lives in `configNormalize.js` since 2026-10-02 (it is enforced there, for every intake path) and is
 // re-exported here because this is where callers have always imported it from.
 export { MIN_REFRESH_SECONDS } from './configNormalize';
-import { MIN_REFRESH_SECONDS } from './configNormalize';
+import { MIN_REFRESH_SECONDS, boardExtras } from './configNormalize';
 
 // ── Example dashboard: one of every widget type, real working assets ──
 
@@ -356,7 +356,12 @@ export function validateDashboard(input) {
     }
   });
 
-  return { valid: errors.length === 0, errors, warnings, repairs, widgets, layout, params };
+  // Foreign top-level keys ride along with the validated board (the rule and its provenance are on
+  // configNormalize.boardExtras): this format defines `version`, `widgets`, `layout` and `params`, and a document
+  // written by someone else may carry more. Only present when there is something foreign, so a normal board's
+  // shape — and every deepEqual written against it — is unchanged.
+  const extras = boardExtras(parsed);
+  return { valid: errors.length === 0, errors, warnings, repairs, widgets, layout, params, ...(extras ? { extras } : {}) };
 }
 
 /** Check one widget's config against its registry configFields. */

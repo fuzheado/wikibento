@@ -92,3 +92,39 @@ test('a written board drops fields that only repeat a registry default', () => {
   assert.equal(cfg.article, 'Hunter Museum of American Art');
   assert.equal(cfg.project, 'en.wikipedia');
 });
+
+// ── Foreign top-level keys (2026-10-03) ────────────────────────────────────────────────────────────────────────
+// The rule comes from JSON Canvas's extension contract: a reader retains what it does not model, because a save
+// that keeps only the fields you understand is a silent pruning — the file stays valid, opens, and something is
+// missing. Already true here at config level and widget level; these are the board-level cases.
+
+test('foreign top-level keys survive a round trip through savedBoardPayload', () => {
+  const raw = JSON.stringify({
+    version: 1, widgets: [w('q1')], layout: [l('q1')], params: null,
+    pluginState: { z: 1 }, notes: ['a', 'b'],
+  });
+  const board = readSavedBoard(raw);
+  assert.deepEqual(board.extras, { pluginState: { z: 1 }, notes: ['a', 'b'] });
+
+  const payload = savedBoardPayload(board.widgets, board.layout, board.params, board.extras);
+  assert.deepEqual(payload.pluginState, { z: 1 });
+  assert.deepEqual(payload.notes, ['a', 'b']);
+  // …and reading it back gives the identical board, which is the whole point.
+  assert.deepEqual(readSavedBoard(JSON.stringify(payload)).extras, board.extras);
+});
+
+test('a board with nothing foreign keeps exactly the shape it always had', () => {
+  const board = readSavedBoard(JSON.stringify({ widgets: [], layout: [], params: null }));
+  assert.deepEqual(Object.keys(board), ['widgets', 'layout', 'params']);
+  assert.deepEqual(Object.keys(savedBoardPayload([], [], null)), ['widgets', 'layout', 'params']);
+  assert.deepEqual(Object.keys(savedBoardPayload([], [], null, null)), ['widgets', 'layout', 'params']);
+  assert.deepEqual(Object.keys(savedBoardPayload([], [], null, {})), ['widgets', 'layout', 'params']);
+});
+
+test('a foreign key can never shadow the board’s own — carrying through is additive', () => {
+  const payload = savedBoardPayload([w('q1')], [l('q1')], null, { widgets: 'rogue', layout: 'rogue', params: 'rogue' });
+  assert.ok(Array.isArray(payload.widgets), 'our widgets win');
+  assert.ok(Array.isArray(payload.layout));
+  assert.equal(payload.params, null);
+});
+
