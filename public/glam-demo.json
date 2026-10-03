@@ -39,8 +39,9 @@
     },
     {
       "id": "snapshot",
-      "widgetType": "cimSnapshot",
+      "widgetType": "cimStats",
       "config": {
+        "subject": "category",
         "category": "{{collection}}",
         "scope": "deep",
         "month": "{{month}}",
@@ -51,6 +52,7 @@
       "id": "trend",
       "widgetType": "cimTrend",
       "config": {
+        "subject": "category",
         "category": "{{collection}}",
         "scope": "deep",
         "wiki": "all-wikis",
@@ -61,8 +63,9 @@
     },
     {
       "id": "topfiles",
-      "widgetType": "cimTopFiles",
+      "widgetType": "cimRanking",
       "config": {
+        "facet": "files",
         "category": "{{collection}}",
         "scope": "deep",
         "wiki": "all-wikis",
@@ -73,8 +76,9 @@
     },
     {
       "id": "toppages",
-      "widgetType": "cimTopPages",
+      "widgetType": "cimRanking",
       "config": {
+        "facet": "pages",
         "category": "{{collection}}",
         "scope": "deep",
         "wiki": "all-wikis",
@@ -85,8 +89,9 @@
     },
     {
       "id": "topeditors",
-      "widgetType": "cimTopEditors",
+      "widgetType": "cimRanking",
       "config": {
+        "facet": "editors",
         "category": "{{collection}}",
         "scope": "deep",
         "editType": "all-edit-types",
@@ -107,8 +112,9 @@
     },
     {
       "id": "leaderboard",
-      "widgetType": "cimLeaderboard",
+      "widgetType": "cimRanking",
       "config": {
+        "facet": "categories",
         "scope": "shallow",
         "wiki": "all-wikis",
         "month": "{{month}}",

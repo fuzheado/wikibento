@@ -63,7 +63,10 @@ test('the static prompt stays inside its measured token budget (the 16K fallback
  */
 test('the advisor is warned off CIM for categories that are not on the allow list', () => {
   const cimIds = manifest.widgets.filter((w) => String(w.dataSource || '').startsWith('CIM ')).map((w) => w.id);
-  assert.ok(cimIds.length >= 9, `expected the CIM family in the manifest, found ${cimIds.length}`);
+  // Three since 2026-10-03: the nine types over nine endpoints became one per result shape (cimStats / cimTrend /
+  // cimRanking). The gate itself is unchanged — every CIM type the catalog advertises must be named in the manual,
+  // and every category-taking one must carry the warning — so the counts follow the catalog, not the other way round.
+  assert.ok(cimIds.length >= 3, `expected the CIM family in the manifest, found ${cimIds.length}`);
 
   const manual = askManual(manifest);
   for (const id of cimIds) assert.ok(manual.includes(id), `the manual does not name the gated type ${id}`);
@@ -85,7 +88,7 @@ test('the advisor is warned off CIM for categories that are not on the allow lis
   const hinted = manifest.widgets
     .filter((w) => cimIds.includes(w.id))
     .flatMap((w) => (w.configFields || []).filter((f) => f.key === 'category').map((f) => ({ id: w.id, hint: String(f.hint || '') })));
-  assert.ok(hinted.length >= 6, `expected the six category-taking CIM types, found ${hinted.length}`);
+  assert.ok(hinted.length >= 2, `expected the category-taking CIM types (cimStats, cimRanking), found ${hinted.length}`);
   for (const { id, hint } of hinted) {
     assert.match(hint, /ALLOW LIST/, `the category field of ${id} carries no allow-list hint`);
     assert.match(hint, /GLAM Category Usage|Category Size/, `the hint on ${id} names no live alternative`);

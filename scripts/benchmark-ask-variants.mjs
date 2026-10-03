@@ -208,7 +208,7 @@ MULTI-STEP WIRING:
   - Connect via {{widget:<id>}} interpolation in the translate's text field
   - Or use the source picker on filterLines to consume from excerpt
 - "Show me images from a category, then pick the most-viewed one":
-  - cimSnapshot → cimTopFiles → fileUsage (for cross-wiki usage)
+  - cimStats → cimRanking → fileUsage (for cross-wiki usage)
 - "Compare two institutions":
   - boardControls (buttons param) → CIM snapshot + trend + top files for each institution
 

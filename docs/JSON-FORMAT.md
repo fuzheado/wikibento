@@ -115,17 +115,22 @@ The dashboard configuration format used by **Export**, **Import**, and
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
 | | `mobile` | boolean (`?useformat=mobile` — MobileFrontend mobile view on the same domain) |
 | | `fragment` | string, optional `#anchor` |
-| `cimSnapshot` | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` |
+| `cimStats` | `subject` | `category` \| `file` — which arm the card uses (default `category`) |
+| | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` (`subject: category`) |
+| | `filename` / `wiki` / `showImage` | string (Commons file) · `all-wikis` \| project · boolean (`subject: file`) |
 | | `month` | number (default: last complete month) |
-| `cimTrend` | `category` / `scope` / `wiki` | string · `deep` \| `shallow` · `all-wikis` \| project |
-| | `months` | number, integer 2–24 |
-| `cimTopFiles` | `category` / `scope` / `wiki` / `topN` | as above; `topN` number |
-| `cimTopWikis` | `category` / `scope` / `topN` | as above |
-| `cimTopPages` | `category` / `scope` / `wiki` / `topN` | as above |
-| `cimTopEditors` | `category` / `scope` / `editType` / `topN` | `editType`: `all-edit-types` \| `create` \| `update` |
-| `cimLeaderboard` | `scope` / `wiki` / `highlight` | `highlight`: optional category (rank shown if in top 100) |
-| `cimFileSpotlight` | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project |
-| `cimFileTraffic` | `filename` / `wiki` / `months` | as above; `months` number 3–24 (fetch window) |
+| `cimTrend` | `subject` | `category` \| `file` (default `category`) |
+| | `category` / `scope` / `months` | string · `deep` \| `shallow` · number 2–24 (`subject: category`) |
+| | `zeroY` | boolean — Y axis starts at 0 (`subject: category`) |
+| | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project (`subject: file`) |
+| | `month` | number (default: last complete month) |
+| `cimRanking` | `facet` | `files` \| `wikis` \| `pages` \| `editors` \| `categories` |
+| | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` (hidden for `facet: categories`) |
+| | `wiki` | `all-wikis` \| project (`facet: files` \| `pages` \| `categories`) |
+| | `editType` | `all-edit-types` \| `create` \| `update` (`facet: editors`) |
+| | `topN` | number (`facet: files` \| `wikis` \| `pages` \| `editors`) |
+| | `highlight` | optional category (rank shown if in top 100; `facet: categories`) |
+| | `month` | number (default: last complete month) |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |

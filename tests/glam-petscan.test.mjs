@@ -382,8 +382,8 @@ test('glamorgan transform: detail rows link to their wiki pages (full domains)',
   assert.equal(t.detail.rows[2].page, 'Some_Page');
 });
 
-test('cimSnapshot transform: underscore-form category links to Commons', () => {
-  const t = WIDGET_TYPES.cimSnapshot.transform(
+test('cimStats transform: underscore-form category links to Commons', () => {
+  const t = WIDGET_TYPES.cimStats.transform(
     { category: 'Files_from_the_Biodiversity_Heritage_Library', files: 305868, used: 14434, wikis: 252, pages: 41819, filesDeep: 305868 },
     { scope: 'deep', month: 0 },
   );

@@ -28,15 +28,9 @@ const FIXTURES = {
   pageviews: { article: 'Main_Page', total: 1, avg: 1, trend: [] },
   glamorgan: { category: 'X', monthLabel: '2026-07', files: 1, cappedFiles: false, partialViews: false, viewedFiles: 1, usedFiles: 1, pages: 1, wikis: 1, totalViews: 1, top: [], detail: { rows: [] } },
   topPages: { articles: [], dateLabel: '2026-08-12', source: 'wmf' },
-  cimSnapshot: { category: 'X', files: 1, used: 1, wikis: 1, pages: 1, filesDeep: 1 },
+  cimStats: { category: 'X', files: 1, used: 1, wikis: 1, pages: 1, filesDeep: 1 },
   cimTrend: { category: 'X', rows: [{ date: '2026-07', views: 1 }] },
-  cimTopFiles: { category: 'X', rows: [] },
-  cimTopWikis: { category: 'X', rows: [] },
-  cimTopPages: { category: 'X', rows: [] },
-  cimTopEditors: { category: 'X', rows: [] },
-  cimLeaderboard: { rows: [] },
-  cimFileSpotlight: { file: 'X.jpg', wikis: 1, pages: 1, views: 1, trend: [] },
-  cimFileTraffic: { file: 'X.jpg', rows: [] },
+  cimRanking: { category: 'X', rows: [] },
   waybackGallery: { url: 'example.org', rows: [] },
 };
 
@@ -52,7 +46,10 @@ test('1. every widget declares timeScope', () => {
 
 test('2. scoped widgets display the resolved scope in their subtitle', () => {
   const scoped = Object.entries(WIDGET_TYPES).filter(([, d]) => ['month', 'range', 'day'].includes(d.timeScope));
-  assert.ok(scoped.length >= 10, 'expected most widgets to be scoped');
+  // A floor, not a target: it is here to catch a registry that lost its scoped widgets entirely (a bad merge, a
+  // broken parse). Seven types carry a resolved scope after the CIM family collapsed from nine to three
+  // (2026-10-03) — the per-type assertions below are the constitution; this only says the sample is not empty.
+  assert.ok(scoped.length >= 5, 'expected the registry to keep several scoped widgets');
   for (const [id, def] of scoped) {
     const fixture = FIXTURES[id] || {};
     let out;

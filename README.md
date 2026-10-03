@@ -62,7 +62,7 @@ inventory is [docs/PROXIES.md](docs/PROXIES.md). No accounts, no login, nothing 
 | 📖 [Internet Archive](https://wikibento.toolforge.org/?config=/internet-archive-demo.json) | a scanned book you can turn, zoom and **search inside** (16 and 304 pages) read as **facing pages**, archive items by media type, and **two players streaming the real files** — an 11-minute film and a LibriVox playlist, straight from `archive.org/download/` |
 | 📰 [The front page, as boxes](https://wikibento.toolforge.org/?config=/front-page-demo.json) | **In the news**, **Did you know**, **On this day**, the day's featured article and picture — five Wikipedia templates rendered with the wiki's own HTML and styles, each linked back to its template |
 | 👆 [Click through](https://wikibento.toolforge.org/?config=/click-through-demo.json) | Click a sea in a live Wikipedia box and **another widget uses it**: the page viewer loads the article and the value card shows the string that travelled. ⚙ *Links in the box* decides whether a click opens a tab, sends to the board, or both |
-| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 42 widget types on one board — its article switcher drives five cards |
+| 🧩 [Full catalog](https://wikibento.toolforge.org/?config=/dashboard.json) | all 36 widget types on one board — its article switcher drives five cards |
 
 Every board also works in **kiosk mode** — add `?kiosk=1`. Configs are plain JSON (see
 [docs/JSON-FORMAT.md](docs/JSON-FORMAT.md)); any URL, on-wiki page or GitHub raw file works the same way. **Writing a
@@ -78,7 +78,7 @@ works the same way.
 
 ## Widgets
 
-**42 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
+**36 widget types.** Each section below is a category in the in-app **Add Widget** panel; the full table —
 what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](docs/WIDGET-CATALOG.md).
 
 | category | widgets |
@@ -92,7 +92,7 @@ what every widget shows and the API behind it — is [docs/WIDGET-CATALOG.md](do
 | **Dataflow (4)** | 🧾 Text List · 🔎 Filter Lines · 🔢 Line Count · 🖨️ Value Display |
 | **Web & History (3)** | 📦 IA Item Stats · 📖 IA Book · 🕰️ Wayback Snapshot Gallery *(alpha)* |
 
-All 33 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
+All 27 data-driven widget types render live data in the browser; the 9 static ones (Text/Markdown, QR Code, Board Controls, Speaker, Wiki Page, Text List, Filter Lines, Line Count, Value Display) render from config — no fetch.
 
 ## Features
 

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1122" height="794" viewBox="0 0 1122 794" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
 <rect width="1122" height="794" fill="#0f1115"/>
 <rect x="0" y="0" width="1122" height="4" fill="#3b82f6"/>
-<text x="22" y="34" fill="#f3f4f6" font-size="21" font-weight="700">WikiBento — the 42 widget types, and how they relate</text>
-<text x="22" y="52" fill="#9ca3af" font-size="10.5">Rows: what you must supply. Colours: the Add-widget panel's own families. Badges: what gates a card. Generated from public/manifest.json — 2026-10-02</text>
-<text x="22" y="67" fill="#6b7280" font-size="9.5">42 types = 33 data-driven + 9 static · 13 publish an output another card can consume · 5 consume another card's output · 9 need a category from the Commons Impact Metrics allow list</text>
+<text x="22" y="34" fill="#f3f4f6" font-size="21" font-weight="700">WikiBento — the 36 widget types, and how they relate</text>
+<text x="22" y="52" fill="#9ca3af" font-size="10.5">Rows: what you must supply. Colours: the Add-widget panel's own families. Badges: what gates a card. Generated from public/manifest.json — 2026-10-03</text>
+<text x="22" y="67" fill="#6b7280" font-size="9.5">36 types = 33 data-driven + 9 static · 13 publish an output another card can consume · 5 consume another card's output · 9 need a category from the Commons Impact Metrics allow list</text>
 <rect x="22" y="84" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
 <rect x="22" y="84" width="4" height="55" rx="2" fill="#1f2937"/>
 <text x="34" y="97" fill="#e5e7eb" font-size="10.5" font-weight="700">Nothing but your own text</text>
@@ -96,8 +96,8 @@
 <rect x="138" y="321" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
 <text x="145" y="331.5" fill="#f9fafb" font-size="8.4" font-weight="600">GLAM Usage (live)</text>
 <text x="145" y="340.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
-<rect x="22" y="355" width="706" height="82" rx="5" fill="#161a21" stroke="#242a33"/>
-<rect x="22" y="355" width="4" height="82" rx="2" fill="#8b5cf6"/>
+<rect x="22" y="355" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
+<rect x="22" y="355" width="4" height="55" rx="2" fill="#8b5cf6"/>
 <text x="34" y="368" fill="#e5e7eb" font-size="10.5" font-weight="700">A category in the CIM allow list</text>
 <text x="34" y="378" fill="#7f8794" font-size="8.2">Commons Impact Metrics — precomputed, and only for ~1,775 registered primary categories</text>
 <rect x="34" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
@@ -110,105 +110,81 @@
 <text x="145" y="401.5" fill="#8b93a1" font-size="7.8">📈 <tspan fill="#5f6875">source</tspan></text>
 <rect x="242" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
 <rect x="242" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="249" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top Files</text>
-<text x="249" y="401.5" fill="#8b93a1" font-size="7.8">🖼 <tspan fill="#5f6875">source</tspan></text>
-<rect x="346" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="346" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="353" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top Wikis</text>
-<text x="353" y="401.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
-<rect x="450" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="450" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="457" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top Pages</text>
-<text x="457" y="401.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
-<rect x="554" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="554" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="561" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top Editors</text>
-<text x="561" y="401.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
-<rect x="34" y="409" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="34" y="409" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="41" y="419.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Leaderboard</text>
-<text x="41" y="428.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
-<rect x="138" y="409" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="138" y="409" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="145" y="419.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM File Spotlight</text>
-<text x="145" y="428.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
-<rect x="242" y="409" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
-<rect x="242" y="409" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
-<text x="249" y="419.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM File Traffic</text>
-<text x="249" y="428.5" fill="#8b93a1" font-size="7.8">📈 <tspan fill="#5f6875">source</tspan></text>
-<rect x="22" y="443" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
-<rect x="22" y="443" width="4" height="55" rx="2" fill="#1f2937"/>
-<text x="34" y="456" fill="#e5e7eb" font-size="10.5" font-weight="700">Files &amp; media</text>
-<text x="34" y="466" fill="#7f8794" font-size="8.2">a file, a list of files, or a category/article that yields them</text>
-<rect x="34" y="470" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
-<rect x="34" y="470" width="3" height="23" rx="1.5" fill="#06b6d4"/>
-<text x="41" y="480.5" fill="#f9fafb" font-size="8.4" font-weight="600">Gallery</text>
-<text x="41" y="489.5" fill="#8b93a1" font-size="7.8">🖼 ✧ <tspan fill="#5f6875">display</tspan></text>
-<rect x="138" y="470" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
-<rect x="138" y="470" width="3" height="23" rx="1.5" fill="#06b6d4"/>
-<text x="145" y="480.5" fill="#f9fafb" font-size="8.4" font-weight="600">File Usage by Wiki</text>
-<text x="145" y="489.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
-<rect x="242" y="470" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
-<rect x="242" y="470" width="3" height="23" rx="1.5" fill="#06b6d4"/>
-<text x="249" y="480.5" fill="#f9fafb" font-size="8.4" font-weight="600">Media Player</text>
-<text x="249" y="489.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
-<rect x="346" y="470" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
-<rect x="346" y="470" width="3" height="23" rx="1.5" fill="#06b6d4"/>
-<text x="353" y="480.5" fill="#f9fafb" font-size="8.4" font-weight="600">360° Panorama</text>
-<text x="353" y="489.5" fill="#8b93a1" font-size="7.8">🖼 <tspan fill="#5f6875">source</tspan></text>
-<rect x="450" y="470" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
-<rect x="450" y="470" width="3" height="23" rx="1.5" fill="#06b6d4"/>
-<text x="457" y="480.5" fill="#f9fafb" font-size="8.4" font-weight="600">Document Reader</text>
-<text x="457" y="489.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
-<rect x="22" y="504" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
-<rect x="22" y="504" width="4" height="55" rx="2" fill="#1f2937"/>
-<text x="34" y="517" fill="#e5e7eb" font-size="10.5" font-weight="700">A URL, a domain or an archive item</text>
-<text x="34" y="527" fill="#7f8794" font-size="8.2">something that lives elsewhere: a site, a domain, an archive.org identifier</text>
-<rect x="34" y="531" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
-<rect x="34" y="531" width="3" height="23" rx="1.5" fill="#14b8a6"/>
-<text x="41" y="541.5" fill="#f9fafb" font-size="8.4" font-weight="600">Wayback Gallery</text>
-<text x="41" y="550.5" fill="#8b93a1" font-size="7.8">🖼 🔌 α <tspan fill="#5f6875">source</tspan></text>
-<rect x="138" y="531" width="100" height="23" rx="4" fill="#0f1115" stroke="#f59e0b" stroke-opacity="0.75"/>
-<rect x="138" y="531" width="3" height="23" rx="1.5" fill="#f59e0b"/>
-<text x="145" y="541.5" fill="#f9fafb" font-size="8.4" font-weight="600">External Link Count</text>
-<text x="145" y="550.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
-<rect x="242" y="531" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
-<rect x="242" y="531" width="3" height="23" rx="1.5" fill="#14b8a6"/>
-<text x="249" y="541.5" fill="#f9fafb" font-size="8.4" font-weight="600">IA Item Stats</text>
-<text x="249" y="550.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
-<rect x="346" y="531" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
-<rect x="346" y="531" width="3" height="23" rx="1.5" fill="#14b8a6"/>
-<text x="353" y="541.5" fill="#f9fafb" font-size="8.4" font-weight="600">IA Book</text>
-<text x="353" y="550.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
-<rect x="22" y="565" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
-<rect x="22" y="565" width="4" height="55" rx="2" fill="#1f2937"/>
-<text x="34" y="578" fill="#e5e7eb" font-size="10.5" font-weight="700">A query or a place</text>
-<text x="34" y="588" fill="#7f8794" font-size="8.2">you write the query, or give a coordinate / QID / page title</text>
-<rect x="34" y="592" width="100" height="23" rx="4" fill="#0f1115" stroke="#ec4899" stroke-opacity="0.75"/>
-<rect x="34" y="592" width="3" height="23" rx="1.5" fill="#ec4899"/>
-<text x="41" y="602.5" fill="#f9fafb" font-size="8.4" font-weight="600">SPARQL Query</text>
-<text x="41" y="611.5" fill="#8b93a1" font-size="7.8">⌗ <tspan fill="#5f6875">source</tspan></text>
-<rect x="138" y="592" width="100" height="23" rx="4" fill="#0f1115" stroke="#22c55e" stroke-opacity="0.75"/>
-<rect x="138" y="592" width="3" height="23" rx="1.5" fill="#22c55e"/>
-<text x="145" y="602.5" fill="#f9fafb" font-size="8.4" font-weight="600">Map</text>
-<text x="145" y="611.5" fill="#8b93a1" font-size="7.8"># 🔌 ✧ ⇢ <tspan fill="#5f6875">display</tspan></text>
-<rect x="22" y="626" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
-<rect x="22" y="626" width="4" height="55" rx="2" fill="#1f2937"/>
-<text x="34" y="639" fill="#e5e7eb" font-size="10.5" font-weight="700">Another card's output</text>
-<text x="34" y="649" fill="#7f8794" font-size="8.2">a transformer, a reducer and a readout — useless until something publishes to them</text>
-<rect x="34" y="653" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
-<rect x="34" y="653" width="3" height="23" rx="1.5" fill="#eab308"/>
-<text x="41" y="663.5" fill="#f9fafb" font-size="8.4" font-weight="600">Filter Lines</text>
-<text x="41" y="672.5" fill="#8b93a1" font-size="7.8">🏆 ⚡ ✧ ⇢ <tspan fill="#5f6875">transformer</tspan></text>
-<rect x="138" y="653" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
-<rect x="138" y="653" width="3" height="23" rx="1.5" fill="#eab308"/>
-<text x="145" y="663.5" fill="#f9fafb" font-size="8.4" font-weight="600">Line Count</text>
-<text x="145" y="672.5" fill="#8b93a1" font-size="7.8"># ⚡ ✧ ⇢ <tspan fill="#5f6875">reducer</tspan></text>
-<rect x="242" y="653" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
-<rect x="242" y="653" width="3" height="23" rx="1.5" fill="#eab308"/>
-<text x="249" y="663.5" fill="#f9fafb" font-size="8.4" font-weight="600">Value Display</text>
-<text x="249" y="672.5" fill="#8b93a1" font-size="7.8">🏆 ⚡ ✧ ⇢ <tspan fill="#5f6875">display</tspan></text>
-<rect x="746" y="84" width="354" height="597" rx="5" fill="#161a21" stroke="#242a33"/>
+<text x="249" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top-N</text>
+<text x="249" y="401.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
+<rect x="22" y="416" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
+<rect x="22" y="416" width="4" height="55" rx="2" fill="#1f2937"/>
+<text x="34" y="429" fill="#e5e7eb" font-size="10.5" font-weight="700">Files &amp; media</text>
+<text x="34" y="439" fill="#7f8794" font-size="8.2">a file, a list of files, or a category/article that yields them</text>
+<rect x="34" y="443" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
+<rect x="34" y="443" width="3" height="23" rx="1.5" fill="#06b6d4"/>
+<text x="41" y="453.5" fill="#f9fafb" font-size="8.4" font-weight="600">Gallery</text>
+<text x="41" y="462.5" fill="#8b93a1" font-size="7.8">🖼 ✧ <tspan fill="#5f6875">display</tspan></text>
+<rect x="138" y="443" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
+<rect x="138" y="443" width="3" height="23" rx="1.5" fill="#06b6d4"/>
+<text x="145" y="453.5" fill="#f9fafb" font-size="8.4" font-weight="600">File Usage by Wiki</text>
+<text x="145" y="462.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
+<rect x="242" y="443" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
+<rect x="242" y="443" width="3" height="23" rx="1.5" fill="#06b6d4"/>
+<text x="249" y="453.5" fill="#f9fafb" font-size="8.4" font-weight="600">Media Player</text>
+<text x="249" y="462.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
+<rect x="346" y="443" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
+<rect x="346" y="443" width="3" height="23" rx="1.5" fill="#06b6d4"/>
+<text x="353" y="453.5" fill="#f9fafb" font-size="8.4" font-weight="600">360° Panorama</text>
+<text x="353" y="462.5" fill="#8b93a1" font-size="7.8">🖼 <tspan fill="#5f6875">source</tspan></text>
+<rect x="450" y="443" width="100" height="23" rx="4" fill="#0f1115" stroke="#06b6d4" stroke-opacity="0.75"/>
+<rect x="450" y="443" width="3" height="23" rx="1.5" fill="#06b6d4"/>
+<text x="457" y="453.5" fill="#f9fafb" font-size="8.4" font-weight="600">Document Reader</text>
+<text x="457" y="462.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
+<rect x="22" y="477" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
+<rect x="22" y="477" width="4" height="55" rx="2" fill="#1f2937"/>
+<text x="34" y="490" fill="#e5e7eb" font-size="10.5" font-weight="700">A URL, a domain or an archive item</text>
+<text x="34" y="500" fill="#7f8794" font-size="8.2">something that lives elsewhere: a site, a domain, an archive.org identifier</text>
+<rect x="34" y="504" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
+<rect x="34" y="504" width="3" height="23" rx="1.5" fill="#14b8a6"/>
+<text x="41" y="514.5" fill="#f9fafb" font-size="8.4" font-weight="600">Wayback Gallery</text>
+<text x="41" y="523.5" fill="#8b93a1" font-size="7.8">🖼 🔌 α <tspan fill="#5f6875">source</tspan></text>
+<rect x="138" y="504" width="100" height="23" rx="4" fill="#0f1115" stroke="#f59e0b" stroke-opacity="0.75"/>
+<rect x="138" y="504" width="3" height="23" rx="1.5" fill="#f59e0b"/>
+<text x="145" y="514.5" fill="#f9fafb" font-size="8.4" font-weight="600">External Link Count</text>
+<text x="145" y="523.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
+<rect x="242" y="504" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
+<rect x="242" y="504" width="3" height="23" rx="1.5" fill="#14b8a6"/>
+<text x="249" y="514.5" fill="#f9fafb" font-size="8.4" font-weight="600">IA Item Stats</text>
+<text x="249" y="523.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
+<rect x="346" y="504" width="100" height="23" rx="4" fill="#0f1115" stroke="#14b8a6" stroke-opacity="0.75"/>
+<rect x="346" y="504" width="3" height="23" rx="1.5" fill="#14b8a6"/>
+<text x="353" y="514.5" fill="#f9fafb" font-size="8.4" font-weight="600">IA Book</text>
+<text x="353" y="523.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
+<rect x="22" y="538" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
+<rect x="22" y="538" width="4" height="55" rx="2" fill="#1f2937"/>
+<text x="34" y="551" fill="#e5e7eb" font-size="10.5" font-weight="700">A query or a place</text>
+<text x="34" y="561" fill="#7f8794" font-size="8.2">you write the query, or give a coordinate / QID / page title</text>
+<rect x="34" y="565" width="100" height="23" rx="4" fill="#0f1115" stroke="#ec4899" stroke-opacity="0.75"/>
+<rect x="34" y="565" width="3" height="23" rx="1.5" fill="#ec4899"/>
+<text x="41" y="575.5" fill="#f9fafb" font-size="8.4" font-weight="600">SPARQL Query</text>
+<text x="41" y="584.5" fill="#8b93a1" font-size="7.8">⌗ <tspan fill="#5f6875">source</tspan></text>
+<rect x="138" y="565" width="100" height="23" rx="4" fill="#0f1115" stroke="#22c55e" stroke-opacity="0.75"/>
+<rect x="138" y="565" width="3" height="23" rx="1.5" fill="#22c55e"/>
+<text x="145" y="575.5" fill="#f9fafb" font-size="8.4" font-weight="600">Map</text>
+<text x="145" y="584.5" fill="#8b93a1" font-size="7.8"># 🔌 ✧ ⇢ <tspan fill="#5f6875">display</tspan></text>
+<rect x="22" y="599" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
+<rect x="22" y="599" width="4" height="55" rx="2" fill="#1f2937"/>
+<text x="34" y="612" fill="#e5e7eb" font-size="10.5" font-weight="700">Another card's output</text>
+<text x="34" y="622" fill="#7f8794" font-size="8.2">a transformer, a reducer and a readout — useless until something publishes to them</text>
+<rect x="34" y="626" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
+<rect x="34" y="626" width="3" height="23" rx="1.5" fill="#eab308"/>
+<text x="41" y="636.5" fill="#f9fafb" font-size="8.4" font-weight="600">Filter Lines</text>
+<text x="41" y="645.5" fill="#8b93a1" font-size="7.8">🏆 ⚡ ✧ ⇢ <tspan fill="#5f6875">transformer</tspan></text>
+<rect x="138" y="626" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
+<rect x="138" y="626" width="3" height="23" rx="1.5" fill="#eab308"/>
+<text x="145" y="636.5" fill="#f9fafb" font-size="8.4" font-weight="600">Line Count</text>
+<text x="145" y="645.5" fill="#8b93a1" font-size="7.8"># ⚡ ✧ ⇢ <tspan fill="#5f6875">reducer</tspan></text>
+<rect x="242" y="626" width="100" height="23" rx="4" fill="#0f1115" stroke="#eab308" stroke-opacity="0.75"/>
+<rect x="242" y="626" width="3" height="23" rx="1.5" fill="#eab308"/>
+<text x="249" y="636.5" fill="#f9fafb" font-size="8.4" font-weight="600">Value Display</text>
+<text x="249" y="645.5" fill="#8b93a1" font-size="7.8">🏆 ⚡ ✧ ⇢ <tspan fill="#5f6875">display</tspan></text>
+<rect x="746" y="84" width="354" height="570" rx="5" fill="#161a21" stroke="#242a33"/>
 <text x="758" y="100" fill="#e5e7eb" font-size="11" font-weight="700">How they relate</text>
 <text x="758" y="113" fill="#7f8794" font-size="8.6">A card publishes a value on the board; another card reads it.</text>
 <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#60a5fa"/></marker></defs>
@@ -270,28 +246,28 @@
 <text x="758" y="553" fill="#9ca3af" font-size="9" font-weight="700">THE 5 CONSUMERS (⇢)</text>
 <text x="758" y="573" fill="#d1d5db" font-size="8.4">Speaker (text-to-spee… · Map · Filter Lines · Line Count · Value Display</text>
 <text x="758" y="593" fill="#7f8794" font-size="8.4">a source field names the publisher; {{widget:id}} works in any text field</text>
-<rect x="22" y="693" width="1078" height="79" rx="5" fill="#161a21" stroke="#242a33"/>
-<text x="36" y="708" fill="#9ca3af" font-size="9" font-weight="700">BADGES</text>
-<text x="36" y="723" fill="#cbd5e1" font-size="8.4">✧  publishes an output another card can consume</text>
-<text x="36" y="735" fill="#cbd5e1" font-size="8.4">⇢  consumes another card’s output</text>
-<text x="36" y="747" fill="#cbd5e1" font-size="8.4">⚡  static — renders from config, no fetch</text>
-<text x="36" y="759" fill="#cbd5e1" font-size="8.4">🔌  needs our relay (map image, hatnote ranking, archive CDX)</text>
-<text x="36" y="771" fill="#cbd5e1" font-size="8.4">α  alpha</text>
-<text x="452" y="708" fill="#9ca3af" font-size="9" font-weight="700">FAMILIES (the Add-widget panel)</text>
-<text x="452" y="723" font-size="8.4"><tspan fill="#3b82f6">■</tspan> <tspan fill="#9ca3af">Articles</tspan></text>
-<text x="642" y="723" font-size="8.4"><tspan fill="#8b5cf6">■</tspan> <tspan fill="#9ca3af">Categories &amp; GLAM</tspan></text>
-<text x="452" y="735" font-size="8.4"><tspan fill="#06b6d4">■</tspan> <tspan fill="#9ca3af">Files &amp; Media</tspan></text>
-<text x="642" y="735" font-size="8.4"><tspan fill="#f59e0b">■</tspan> <tspan fill="#9ca3af">Rankings &amp; Platforms</tspan></text>
-<text x="452" y="747" font-size="8.4"><tspan fill="#22c55e">■</tspan> <tspan fill="#9ca3af">Content &amp; Embeds</tspan></text>
-<text x="642" y="747" font-size="8.4"><tspan fill="#ec4899">■</tspan> <tspan fill="#9ca3af">Queries &amp; Power</tspan></text>
-<text x="452" y="759" font-size="8.4"><tspan fill="#eab308">■</tspan> <tspan fill="#9ca3af">Dataflow</tspan></text>
-<text x="642" y="759" font-size="8.4"><tspan fill="#14b8a6">■</tspan> <tspan fill="#9ca3af">Web &amp; History</tspan></text>
-<text x="822" y="708" fill="#9ca3af" font-size="9" font-weight="700">WHAT YOU GET</text>
-<text x="822" y="723" fill="#cbd5e1" font-size="8.4">#  a number or a mini-report</text>
-<text x="987" y="723" fill="#cbd5e1" font-size="8.4">📈  a chart over time</text>
-<text x="822" y="735" fill="#cbd5e1" font-size="8.4">🏆  rows: a ranking, a list, a table</text>
-<text x="987" y="735" fill="#cbd5e1" font-size="8.4">🖼  pictures, media, a document</text>
-<text x="822" y="747" fill="#cbd5e1" font-size="8.4">⌗  a live query result</text>
-<text x="987" y="747" fill="#cbd5e1" font-size="8.4">▤  a framed page or picture</text>
-<text x="1086" y="765" fill="#5f6875" font-size="7.6" text-anchor="end">generated by scripts/widget-map.mjs from public/manifest.json · 2026-10-02</text>
+<rect x="22" y="666" width="1078" height="106" rx="5" fill="#161a21" stroke="#242a33"/>
+<text x="36" y="681" fill="#9ca3af" font-size="9" font-weight="700">BADGES</text>
+<text x="36" y="696" fill="#cbd5e1" font-size="8.4">✧  publishes an output another card can consume</text>
+<text x="36" y="708" fill="#cbd5e1" font-size="8.4">⇢  consumes another card’s output</text>
+<text x="36" y="720" fill="#cbd5e1" font-size="8.4">⚡  static — renders from config, no fetch</text>
+<text x="36" y="732" fill="#cbd5e1" font-size="8.4">🔌  needs our relay (map image, hatnote ranking, archive CDX)</text>
+<text x="36" y="744" fill="#cbd5e1" font-size="8.4">α  alpha</text>
+<text x="452" y="681" fill="#9ca3af" font-size="9" font-weight="700">FAMILIES (the Add-widget panel)</text>
+<text x="452" y="696" font-size="8.4"><tspan fill="#3b82f6">■</tspan> <tspan fill="#9ca3af">Articles</tspan></text>
+<text x="642" y="696" font-size="8.4"><tspan fill="#8b5cf6">■</tspan> <tspan fill="#9ca3af">Categories &amp; GLAM</tspan></text>
+<text x="452" y="708" font-size="8.4"><tspan fill="#06b6d4">■</tspan> <tspan fill="#9ca3af">Files &amp; Media</tspan></text>
+<text x="642" y="708" font-size="8.4"><tspan fill="#f59e0b">■</tspan> <tspan fill="#9ca3af">Rankings &amp; Platforms</tspan></text>
+<text x="452" y="720" font-size="8.4"><tspan fill="#22c55e">■</tspan> <tspan fill="#9ca3af">Content &amp; Embeds</tspan></text>
+<text x="642" y="720" font-size="8.4"><tspan fill="#ec4899">■</tspan> <tspan fill="#9ca3af">Queries &amp; Power</tspan></text>
+<text x="452" y="732" font-size="8.4"><tspan fill="#eab308">■</tspan> <tspan fill="#9ca3af">Dataflow</tspan></text>
+<text x="642" y="732" font-size="8.4"><tspan fill="#14b8a6">■</tspan> <tspan fill="#9ca3af">Web &amp; History</tspan></text>
+<text x="822" y="681" fill="#9ca3af" font-size="9" font-weight="700">WHAT YOU GET</text>
+<text x="822" y="696" fill="#cbd5e1" font-size="8.4">#  a number or a mini-report</text>
+<text x="987" y="696" fill="#cbd5e1" font-size="8.4">📈  a chart over time</text>
+<text x="822" y="708" fill="#cbd5e1" font-size="8.4">🏆  rows: a ranking, a list, a table</text>
+<text x="987" y="708" fill="#cbd5e1" font-size="8.4">🖼  pictures, media, a document</text>
+<text x="822" y="720" fill="#cbd5e1" font-size="8.4">⌗  a live query result</text>
+<text x="987" y="720" fill="#cbd5e1" font-size="8.4">▤  a framed page or picture</text>
+<text x="1086" y="765" fill="#5f6875" font-size="7.6" text-anchor="end">generated by scripts/widget-map.mjs from public/manifest.json · 2026-10-03</text>
 </svg>

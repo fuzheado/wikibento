@@ -211,9 +211,10 @@
    }
   },
   {
-   "id": "cimsnapshot",
-   "widgetType": "cimSnapshot",
+   "id": "cimstats",
+   "widgetType": "cimStats",
    "config": {
+    "subject": "category",
     "category": "Files from the Biodiversity Heritage Library",
     "scope": "deep",
     "month": 0,
@@ -224,6 +225,7 @@
    "id": "cimtrend",
    "widgetType": "cimTrend",
    "config": {
+    "subject": "category",
     "category": "Files from the Biodiversity Heritage Library",
     "scope": "deep",
     "wiki": "all-wikis",
@@ -233,80 +235,14 @@
    }
   },
   {
-   "id": "cimtopfiles",
-   "widgetType": "cimTopFiles",
+   "id": "cimranking",
+   "widgetType": "cimRanking",
    "config": {
+    "facet": "files",
     "category": "Files from the Biodiversity Heritage Library",
     "scope": "deep",
     "wiki": "all-wikis",
-    "month": 0,
     "topN": 10,
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimfiletraffic",
-   "widgetType": "cimFileTraffic",
-   "config": {
-    "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
-    "wiki": "all-wikis",
-    "months": 12,
-    "month": 0,
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimtopwikis",
-   "widgetType": "cimTopWikis",
-   "config": {
-    "category": "Files from the Biodiversity Heritage Library",
-    "scope": "deep",
-    "month": 0,
-    "topN": 10,
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimtoppages",
-   "widgetType": "cimTopPages",
-   "config": {
-    "category": "Files from the Biodiversity Heritage Library",
-    "scope": "deep",
-    "wiki": "all-wikis",
-    "month": 0,
-    "topN": 10,
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimtopeditors",
-   "widgetType": "cimTopEditors",
-   "config": {
-    "category": "Files from the Biodiversity Heritage Library",
-    "scope": "deep",
-    "editType": "all-edit-types",
-    "month": 0,
-    "topN": 10,
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimleaderboard",
-   "widgetType": "cimLeaderboard",
-   "config": {
-    "scope": "deep",
-    "wiki": "all-wikis",
-    "month": 0,
-    "highlight": "Wiki Loves Monuments 2024",
-    "refreshSeconds": 3600
-   }
-  },
-  {
-   "id": "cimspotlight",
-   "widgetType": "cimFileSpotlight",
-   "config": {
-    "filename": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
-    "wiki": "all-wikis",
     "month": 0,
     "refreshSeconds": 3600
    }
@@ -624,7 +560,7 @@
    "minH": 3
   },
   {
-   "i": "cimsnapshot",
+   "i": "cimstats",
    "x": 0,
    "y": 64,
    "w": 4,
@@ -642,65 +578,11 @@
    "minH": 3
   },
   {
-   "i": "cimtopfiles",
+   "i": "cimranking",
    "x": 8,
    "y": 64,
    "w": 4,
    "h": 6,
-   "minW": 3,
-   "minH": 3
-  },
-  {
-   "i": "cimfiletraffic",
-   "x": 0,
-   "y": 70,
-   "w": 6,
-   "h": 5,
-   "minW": 3,
-   "minH": 3
-  },
-  {
-   "i": "cimtopwikis",
-   "x": 0,
-   "y": 75,
-   "w": 3,
-   "h": 4,
-   "minW": 2,
-   "minH": 3
-  },
-  {
-   "i": "cimtoppages",
-   "x": 3,
-   "y": 75,
-   "w": 3,
-   "h": 4,
-   "minW": 2,
-   "minH": 3
-  },
-  {
-   "i": "cimtopeditors",
-   "x": 6,
-   "y": 71,
-   "w": 3,
-   "h": 4,
-   "minW": 2,
-   "minH": 3
-  },
-  {
-   "i": "cimleaderboard",
-   "x": 9,
-   "y": 71,
-   "w": 3,
-   "h": 6,
-   "minW": 2,
-   "minH": 4
-  },
-  {
-   "i": "cimspotlight",
-   "x": 0,
-   "y": 79,
-   "w": 6,
-   "h": 4,
    "minW": 3,
    "minH": 3
   },

@@ -12,7 +12,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 
-const transform = WIDGET_TYPES.cimSnapshot.transform;
+// The CIM family is three types since 2026-10-03 (nine API calls, three result shapes); the snapshot arm is
+// `cimStats`, whose default subject is a category — the same board and the same reading as the old `cimSnapshot`.
+const transform = WIDGET_TYPES.cimStats.transform;
 
 test('extreme diffusion (UNESCO-like) → gap chip with direct/tree/ratio', () => {
   const out = transform(

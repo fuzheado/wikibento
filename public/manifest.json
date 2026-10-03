@@ -1,7 +1,7 @@
 {
  "version": 3,
- "generatedAt": "2026-10-02T07:19:48.849Z",
- "widgetCount": 42,
+ "generatedAt": "2026-10-03T16:37:09.106Z",
+ "widgetCount": 36,
  "widgets": [
   {
    "id": "pageviews",
@@ -922,11 +922,11 @@
    ]
   },
   {
-   "id": "cimSnapshot",
-   "name": "CIM Category Snapshot",
+   "id": "cimStats",
+   "name": "CIM Snapshot",
    "icon": "🎯",
-   "description": "Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages",
-   "dataSource": "CIM category-metrics-snapshot (precomputed, allow-list)",
+   "description": "Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them",
+   "dataSource": "CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)",
    "category": "Categories & GLAM",
    "type": "stat",
    "intensity": "low",
@@ -940,9 +940,46 @@
      "key": "scope",
      "type": "select",
      "label": "Scope",
+     "showIf": {
+      "subject": "category"
+     },
      "options": [
       "deep",
       "shallow"
+     ]
+    },
+    {
+     "key": "filename",
+     "type": "text",
+     "label": "Commons file",
+     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
+     "showIf": {
+      "subject": "file"
+     }
+    },
+    {
+     "key": "wiki",
+     "type": "project",
+     "label": "Wiki",
+     "showIf": {
+      "subject": "file"
+     }
+    },
+    {
+     "key": "showImage",
+     "type": "boolean",
+     "label": "Show image preview",
+     "showIf": {
+      "subject": "file"
+     }
+    },
+    {
+     "key": "subject",
+     "type": "select",
+     "label": "What it is about",
+     "options": [
+      "category",
+      "file"
      ]
     },
     {
@@ -950,25 +987,29 @@
      "type": "text",
      "label": "Commons category",
      "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
-    },
-    {
-     "key": "month",
-     "type": "number",
-     "label": "Month (default: last complete month)",
-     "placeholder": "7"
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "subject": "category"
+     }
     }
    ],
    "defaults": [
-    "category"
+    "subject",
+    "category",
+    "scope",
+    "filename",
+    "wiki",
+    "showImage",
+    "month",
+    "refreshSeconds"
    ]
   },
   {
    "id": "cimTrend",
    "name": "CIM Views Over Time",
    "icon": "📈",
-   "description": "Monthly pageview trend of pages using a CIM category's files",
-   "dataSource": "CIM pageviews-per-category-monthly",
+   "description": "Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file",
+   "dataSource": "CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly",
    "category": "Categories & GLAM",
    "type": "trend",
    "intensity": "low",
@@ -982,10 +1023,22 @@
      "key": "scope",
      "type": "select",
      "label": "Scope",
+     "showIf": {
+      "subject": "category"
+     },
      "options": [
       "deep",
       "shallow"
      ]
+    },
+    {
+     "key": "filename",
+     "type": "text",
+     "label": "Commons file",
+     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg",
+     "showIf": {
+      "subject": "file"
+     }
     },
     {
      "key": "wiki",
@@ -1002,121 +1055,49 @@
      "key": "zeroY",
      "type": "boolean",
      "label": "Y axis starts at 0",
-     "hint": "Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison."
+     "hint": "Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.",
+     "showIf": {
+      "subject": "category"
+     }
     },
     {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
-    }
-   ],
-   "defaults": [
-    "category"
-   ]
-  },
-  {
-   "id": "cimTopFiles",
-   "name": "CIM Top Files",
-   "icon": "🖼️",
-   "description": "Most-viewed files in a CIM category — thumbnails + views",
-   "dataSource": "CIM top-viewed-media-files-monthly + imageinfo",
-   "category": "Categories & GLAM",
-   "type": "media",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "month",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "scope",
+     "key": "subject",
      "type": "select",
-     "label": "Scope",
+     "label": "What it is about",
      "options": [
-      "deep",
-      "shallow"
+      "category",
+      "file"
      ]
     },
     {
-     "key": "wiki",
-     "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "topN",
-     "type": "number",
-     "label": "Top N",
-     "placeholder": "10"
-    },
-    {
      "key": "category",
      "type": "text",
      "label": "Commons category",
      "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "subject": "category"
+     }
     }
    ],
    "defaults": [
-    "category"
+    "subject",
+    "category",
+    "scope",
+    "wiki",
+    "months",
+    "filename",
+    "month",
+    "zeroY",
+    "refreshSeconds"
    ]
   },
   {
-   "id": "cimTopWikis",
-   "name": "CIM Top Wikis",
-   "icon": "🌍",
-   "description": "Which wikis use a CIM category's files most",
-   "dataSource": "CIM top-wikis-per-category-monthly",
-   "category": "Categories & GLAM",
-   "type": "table",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "month",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "scope",
-     "type": "select",
-     "label": "Scope",
-     "options": [
-      "deep",
-      "shallow"
-     ]
-    },
-    {
-     "key": "topN",
-     "type": "number",
-     "label": "Top N",
-     "placeholder": "10"
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
-    },
-    {
-     "key": "month",
-     "type": "number",
-     "label": "Month (default: last complete month)",
-     "placeholder": "7"
-    }
-   ],
-   "defaults": [
-    "category"
-   ]
-  },
-  {
-   "id": "cimTopPages",
-   "name": "CIM Top Pages",
-   "icon": "📄",
-   "description": "Pages that use a CIM category's files, by views",
-   "dataSource": "CIM top-pages-per-category-monthly",
+   "id": "cimRanking",
+   "name": "CIM Top-N",
+   "icon": "🏆",
+   "description": "Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons",
+   "dataSource": "CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly",
    "category": "Categories & GLAM",
    "type": "table",
    "intensity": "low",
@@ -1138,54 +1119,22 @@
     {
      "key": "wiki",
      "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "topN",
-     "type": "number",
-     "label": "Top N",
-     "placeholder": "10"
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
-    }
-   ],
-   "defaults": [
-    "category"
-   ]
-  },
-  {
-   "id": "cimTopEditors",
-   "name": "CIM Top Editors",
-   "icon": "✍️",
-   "description": "Top contributors to a CIM category, by edit count",
-   "dataSource": "CIM top-editors-monthly",
-   "category": "Categories & GLAM",
-   "type": "table",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "month",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "scope",
-     "type": "select",
-     "label": "Scope",
-     "options": [
-      "deep",
-      "shallow"
-     ]
+     "label": "Wiki",
+     "showIf": {
+      "facet": [
+       "files",
+       "pages",
+       "categories"
+      ]
+     }
     },
     {
      "key": "editType",
      "type": "select",
      "label": "Edit type",
+     "showIf": {
+      "facet": "editors"
+     },
      "options": [
       "all-edit-types",
       "create",
@@ -1196,137 +1145,63 @@
      "key": "topN",
      "type": "number",
      "label": "Top N",
-     "placeholder": "10"
+     "placeholder": "10",
+     "showIf": {
+      "facet": [
+       "files",
+       "wikis",
+       "pages",
+       "editors"
+      ]
+     }
+    },
+    {
+     "key": "highlight",
+     "type": "text",
+     "label": "Highlight category (optional)",
+     "placeholder": "Wiki Loves Monuments 2024",
+     "showIf": {
+      "facet": "categories"
+     }
+    },
+    {
+     "key": "facet",
+     "type": "select",
+     "label": "Rank",
+     "options": [
+      "files",
+      "wikis",
+      "pages",
+      "editors",
+      "categories"
+     ]
     },
     {
      "key": "category",
      "type": "text",
      "label": "Commons category",
      "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library"
-    },
-    {
-     "key": "month",
-     "type": "number",
-     "label": "Month (default: last complete month)",
-     "placeholder": "7"
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "facet": [
+       "files",
+       "wikis",
+       "pages",
+       "editors"
+      ]
+     }
     }
    ],
    "defaults": [
-    "category"
-   ]
-  },
-  {
-   "id": "cimLeaderboard",
-   "name": "CIM Global Leaderboard",
-   "icon": "🏆",
-   "description": "Top 100 most-viewed categories on Commons (precomputed)",
-   "dataSource": "CIM top-viewed-categories-monthly",
-   "category": "Categories & GLAM",
-   "type": "table",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "point",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "scope",
-     "type": "select",
-     "label": "Scope",
-     "options": [
-      "deep",
-      "shallow"
-     ]
-    },
-    {
-     "key": "wiki",
-     "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "highlight",
-     "type": "text",
-     "label": "Highlight category (optional)",
-     "placeholder": "Wiki Loves Monuments 2024"
-    }
-   ],
-   "defaults": [
-    "scope"
-   ]
-  },
-  {
-   "id": "cimFileSpotlight",
-   "name": "CIM File Spotlight",
-   "icon": "🔦",
-   "description": "One Commons file: wikis/pages using it + monthly view trend",
-   "dataSource": "CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly",
-   "category": "Categories & GLAM",
-   "type": "stat",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "month",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "filename",
-     "type": "text",
-     "label": "Commons file",
-     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg"
-    },
-    {
-     "key": "wiki",
-     "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "showImage",
-     "type": "boolean",
-     "label": "Show image preview"
-    }
-   ],
-   "defaults": [
-    "filename"
-   ]
-  },
-  {
-   "id": "cimFileTraffic",
-   "name": "CIM File Traffic",
-   "icon": "📉",
-   "description": "Monthly pageview traffic for one Commons file — labeled axes, zoom in/out",
-   "dataSource": "CIM pageviews-per-media-file-monthly",
-   "category": "Categories & GLAM",
-   "type": "trend",
-   "intensity": "low",
-   "experimental": false,
-   "relay": false,
-   "timeScope": "range",
-   "nodeKind": "source",
-   "consumesSource": false,
-   "configFields": [
-    {
-     "key": "filename",
-     "type": "text",
-     "label": "Commons file",
-     "placeholder": "Dogs, jackals, wolves, and foxes (Plate XI).jpg"
-    },
-    {
-     "key": "wiki",
-     "type": "project",
-     "label": "Wiki"
-    },
-    {
-     "key": "months",
-     "type": "number",
-     "label": "Fetch window (3–24 months)",
-     "placeholder": "12"
-    }
-   ],
-   "defaults": [
-    "filename"
+    "facet",
+    "category",
+    "scope",
+    "wiki",
+    "editType",
+    "topN",
+    "highlight",
+    "month",
+    "refreshSeconds"
    ]
   },
   {

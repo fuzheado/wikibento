@@ -8,9 +8,9 @@ into widget choices.
 
 ## Why this exists
 
-As the catalog grows (42 widget types today: the map family, geometry fields, QR Code, the IA/document readers
+As the catalog grows (36 widget types today: the map family, geometry fields, QR Code, the IA/document readers
 and the whole CIM family all landed after this suite was written — and none of them is covered), widgets become
-confusable — e.g. `fileUsage` vs `cimFileSpotlight`
+confusable — e.g. `fileUsage` vs `cimStats`
 (live vs precomputed file usage), `gallery` vs `categorySize` (article media
 vs category media). One-line descriptions stop being enough to distinguish
 them. This suite:
@@ -75,7 +75,8 @@ node scripts/interview-fixtures.mjs --add \
 ### Interactive walkthrough
 
 *(Transcript from 2026-08-16, when the catalog had 30 types — the shape of the tool, not today's coverage;
-for that see [Coverage](#coverage).)*
+for that see [Coverage](#coverage). The widget ids shown are the ones current on that date: the CIM family
+has since merged nine types into three, and those nine old ids still resolve for boards that carry them.)*
 
 ```
 Coverage: 15/30 · 15 uncovered
@@ -120,7 +121,7 @@ Saved → 16 fixtures (mediaPlayer now has 1 entry)
 ### What happens on save (the guarantees)
 
 1. The entry is built by `buildEntry()` — subject-less widgets
-   (`topWikipedias`, `sparql`, `markdown`, `cimLeaderboard`) skip Q2 and get
+   (`topWikipedias`, `sparql`, `markdown`, `cimRanking` with `facet: categories`) skip Q2 and get
    `requireSubject: false`; select-typed identity fields (`lang` for
    `wikistats`/`topPages`) are checked against the widget's real options.
 2. The **entire** resulting fixture list is validated with the same
@@ -244,9 +245,9 @@ errors, 0 non-JSON replies, 0×429**. Everything below is reproducible from
    intents, **chain 78%** on boards. What the rules buy is the envelope, and
    subject formatting (69% → 92%, with the server repairing two of the three
    recurring faults anyway).
-6. **Coverage is the weakest part of the number.** 15 of 42 types have
-   single-widget ground truth; the board fixtures name 9 more, so 19 types are
-   unmeasured — the whole CIM family, the map/geometry fields, media and the
+6. **Coverage is the weakest part of the number.** 15 of 36 types have
+   single-widget ground truth; the board fixtures name 9 more, so 13 types are
+   unmeasured — the rest of the CIM family, the map/geometry fields, media and the
    embeds. See [Coverage](#coverage).
 
 ## Board-construction fixtures (2026-09-09, numbers refreshed 2026-10-01)
@@ -280,7 +281,7 @@ assembly mode; the 2026-09-09 numbers are in `bench/results/2026-09-09-boards-v1
 
 1. **Chains work, at ~77% not 100%:** 3-widget chains (`excerpt → translate →
    speaker`, `listSource → filterLines → lineCount`) come back in order with
-   correct subjects/configs, and `boardControls → cimSnapshot` usually does.
+   correct subjects/configs, and `boardControls → cimStats` usually does.
    chain 83 / 67 / 83 / 83 / 67 over five runs · keys 100% · subject 100%.
    The recurring failure is `chain-list-display` (**5/5**); the 2026-09-09
    note that it was a transient 503 does not hold — it is a real answer.
@@ -317,20 +318,19 @@ assembly mode; the 2026-09-09 numbers are in `bench/results/2026-09-09-boards-v1
 
 ## Coverage
 
-Current: **15/42 widgets covered** (15 fixtures), 27 uncovered. The board
+Current: **15/36 widgets covered** (15 fixtures), 21 uncovered. The board
 fixtures name 9 more types but do not give them a single-widget intent, so
-**23/42 types appear anywhere in ground truth** and **19 appear nowhere**:
-`markdown`, `qrCode`, `assessments`, `cimTrend`, `cimTopFiles`, `cimTopWikis`,
-`cimTopPages`, `cimTopEditors`, `cimLeaderboard`, `cimFileSpotlight`,
-`cimFileTraffic`, `wikiBox`, `wikiPage`, `map`, `mediaPlayer`, `iaItem`,
-`iaBook`, `documentReader`, `echo`.
+**23/36 types appear anywhere in ground truth** and **13 appear nowhere**:
+`markdown`, `qrCode`, `assessments`, `cimTrend`, `cimRanking`, `wikiBox`,
+`wikiPage`, `map`, `mediaPlayer`, `iaItem`, `iaBook`, `documentReader`,
+`echo`.
 
 The highest-value targets, in order:
 
-1. **The CIM family (9 widgets)** — the biggest unmeasured block, and its
-   members differ only in which precomputed slice they show. Note the
-   allow-list caveat: a CIM card on a non-allow-listed category renders and
-   then reports no data (found 2026-10-01).
+1. **The CIM family (3 types)** — the biggest unmeasured block; `cimStats`
+   appears only inside a board fixture, and the arms differ only in which
+   precomputed slice they show. Note the allow-list caveat: a CIM card on a
+   non-allow-listed category renders and then reports no data (found 2026-10-01).
 2. **The map and its geometry fields** (ISSUE-132) — a places list, pasted
    GeoJSON, and geometry arriving from another widget.
 3. **Media & IA** — `mediaPlayer`, `iaItem`, `iaBook`, `documentReader`,

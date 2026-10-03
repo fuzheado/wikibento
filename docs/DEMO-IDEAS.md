@@ -9,7 +9,7 @@ data-linked* boards.*
 
 *Companion to `WIDGET-IDEAS.md` (widget proposals), `ROADMAP.md`
 (prioritized plan), `MODULARITY-AND-DATAFLOW.md` (params + dataflow),
-`docs/BOARD-COMPOSITION.md` (complete wiring reference for all 42 widgets),
+`docs/BOARD-COMPOSITION.md` (complete wiring reference for all 36 widgets),
 and `docs/AGENT-MEMO.md` (conventions). Each entry lists what's on the board,
 which widgets are shipped vs. needed, and the venue it fits.*
 
@@ -211,13 +211,13 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | **Damage** | Film analysis | Same pattern | S |
 | **Polyester** | Film analysis | Same pattern | S |
 | **Ugetsu** | Film analysis | Same pattern | S |
-| **Painters Painting** | Art film | `excerpt` + `gallery` + `mediaPlayer` + `cimSnapshot` (art images) | S |
+| **Painters Painting** | Art film | `excerpt` + `gallery` + `mediaPlayer` + `cimStats` (art images) | S |
 | **Comic Book Confidential** | Comics documentary | `excerpt` + `gallery` + `articleList` (comics titles) | S |
 | **Mystery Science Theater 3000: The CD-ROM** | Riffing on B-movies | `listSource` (films to riff) → `filterLines` → `articleList` → `excerpt` → `translate` + `speaker` + `gallery` | S |
 | **Poetry in Motion** / **Poetry in Motion II** | Poetry on film | `listSource` (poems) → `articleList` → `excerpt` → `speaker` (TTS narration of poems) | S |
 | **This Is Spinal Tap** | Mockumentary | `excerpt` + `gallery` + `mediaPlayer` + `pageviews` | S |
-| **For All Mankind** | Space documentary | `excerpt` + `gallery` + `mediaPlayer` + `cimSnapshot` (space images) | S |
-| **The Day After Trinity** | Nuclear documentary | `excerpt` + `gallery` + `cimSnapshot` + `sparql` (nuclear weapons graph) | S |
+| **For All Mankind** | Space documentary | `excerpt` + `gallery` + `mediaPlayer` + `cimStats` (space images) | S |
+| **The Day After Trinity** | Nuclear documentary | `excerpt` + `gallery` + `cimStats` + `sparql` (nuclear weapons graph) | S |
 | **The Inland Sea** | Travel documentary | `excerpt` + `gallery` + `panorama360` (if available) | S |
 
 ### Theme 2: Music & Performance
@@ -241,21 +241,21 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 
 | Voyager title | What it did | WikiBento board wiring | Difficulty |
 |---|---|---|---|
-| **The National Gallery of Art** | Museum collection on disc | `cimSnapshot` (NGA images) + `cimTrend` + `cimTopFiles` + `cimTopPages` + `cimTopEditors` + `cimLeaderboard` + `gallery` + `fileUsage` + `markdown` (curator's notes) | S (all shipped) |
+| **The National Gallery of Art** | Museum collection on disc | `cimStats` (NGA images) + `cimTrend` + `cimRanking` + `gallery` + `fileUsage` + `markdown` (curator's notes) | S (all shipped) |
 | **The Louvre** | Museum collection on disc | Same pattern as NGA, using `Images from the Louvre` category | S |
-| **With Open Eyes: Images from the Art Institute of Chicago** | Art collection | `cimSnapshot` (AIC images) + `cimTrend` + `cimTopFiles` + `gallery` + `articleList` (key artworks) + `sparql` (artist graph) | S |
-| **First Emperor of China** | Historical artifacts | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` | S |
-| **Sacred and Secular: The Aerial Photography of Marilyn Bridges** | Photography | `excerpt` + `gallery` + `cimSnapshot` + `panorama360` | S |
+| **With Open Eyes: Images from the Art Institute of Chicago** | Art collection | `cimStats` (AIC images) + `cimTrend` + `cimRanking` + `gallery` + `articleList` (key artworks) + `sparql` (artist graph) | S |
+| **First Emperor of China** | Historical artifacts | `excerpt` + `gallery` + `cimStats` + `cimTrend` | S |
+| **Sacred and Secular: The Aerial Photography of Marilyn Bridges** | Photography | `excerpt` + `gallery` + `cimStats` + `panorama360` | S |
 | **Truths & Fictions – A Journey from Documentary to Digital Photography** | Photography history | `excerpt` + `gallery` + `cimTrend` + `markdown` | S |
 
 ### Theme 4: Cities & Cultures
 
 | Voyager title | What it did | WikiBento board wiring | Difficulty |
 |---|---|---|---|
-| **De Italia** | Italy exploration | `excerpt` (Italy) + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
-| **Vienna** | City exploration | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `panorama360` + `markdown` | S |
-| **Vancouver** | City exploration | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
-| **Exotic Japan** | Japanese culture | `excerpt` + `gallery` + `cimSnapshot` + `cimTrend` + `markdown` | S |
+| **De Italia** | Italy exploration | `excerpt` (Italy) + `gallery` + `cimStats` + `cimTrend` + `markdown` | S |
+| **Vienna** | City exploration | `excerpt` + `gallery` + `cimStats` + `cimTrend` + `panorama360` + `markdown` | S |
+| **Vancouver** | City exploration | `excerpt` + `gallery` + `cimStats` + `cimTrend` + `markdown` | S |
+| **Exotic Japan** | Japanese culture | `excerpt` + `gallery` + `cimStats` + `cimTrend` + `markdown` | S |
 | **The Vancouver Disc** | City exploration | Same pattern as Vancouver | S |
 
 ### Theme 5: Literature & Ideas
@@ -268,7 +268,7 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | **The Complete Stories, Volume 1** (Asimov) | Short stories | `listSource` → `articleList` → `excerpt` → `translate` + `speaker` | S |
 | **Invisible Man** (Ellison) | Novel | `excerpt` + `gallery` + `edithistory` + `quality` | S |
 | **Amusing Ourselves to Death** / **Brave New World** | Media criticism | `excerpt` + `translate` + `speaker` + `edithistory` + `quality` + `markdown` | S |
-| **Who Built America?** | History | `excerpt` + `gallery` + `edithistory` + `cimSnapshot` + `markdown` | S |
+| **Who Built America?** | History | `excerpt` + `gallery` + `edithistory` + `cimStats` + `markdown` | S |
 | **The Society of Mind** (Minsky) | AI/philosophy | `excerpt` + `translate` + `speaker` + `edithistory` + `quality` | S |
 | **Genius: The Life and Science of Richard Feynman** | Biography | `excerpt` + `gallery` + `edithistory` + `quality` + `sparql` (scientist graph) | S |
 | **Stephen Jay Gould On Evolution** | Science | `excerpt` + `gallery` + `edithistory` + `quality` + `sparql` (evolution graph) | S |
@@ -277,14 +277,14 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | **First Person: Mumia Abu-Jamal** | Interview | Same pattern | S |
 | **First Person: Donald Norman** | Interview | Same pattern | S |
 | **American Poetry: The Nineteenth Century** | Poetry | `listSource` → `articleList` → `excerpt` → `speaker` | S |
-| **I Photograph To Remember / Fotografio Para Recordar** | Photography | `excerpt` + `gallery` + `cimSnapshot` | S |
+| **I Photograph To Remember / Fotografio Para Recordar** | Photography | `excerpt` + `gallery` + `cimStats` | S |
 
 ### Theme 6: Science & Exploration
 
 | Voyager title | What it did | WikiBento board wiring | Difficulty |
 |---|---|---|---|
-| **The Invisible Universe** | Astronomy | `excerpt` + `gallery` + `cimSnapshot` + `sparql` (astronomy graph) | S |
-| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimSnapshot` + `wikiPage` (NASA pages) | S |
+| **The Invisible Universe** | Astronomy | `excerpt` + `gallery` + `cimStats` + `sparql` (astronomy graph) | S |
+| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimStats` + `wikiPage` (NASA pages) | S |
 | **Dazzleoids** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
 | **Circus!: An Interactive Cartoon** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
 | **Silly Noisy House** | Interactive children's | `excerpt` + `gallery` + `mediaPlayer` | S |
@@ -295,12 +295,12 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 
 | Voyager title | What it did | WikiBento board wiring | Difficulty |
 |---|---|---|---|
-| **The Great Quake of '89** | Earthquake documentary | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
-| **Amnesty Interactive** | Human rights | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
+| **The Great Quake of '89** | Earthquake documentary | `excerpt` + `gallery` + `cimStats` + `markdown` | S |
+| **Amnesty Interactive** | Human rights | `excerpt` + `gallery` + `cimStats` + `markdown` | S |
 | **Our Secret Century: The Darker Side of the American Dream** | Archival film | `listSource` → `articleList` → `excerpt` + `gallery` + `cimTrend` | S |
 | **Ephemeral Films 1931–1960** | Sponsored film archive | `listSource` → `articleList` → `excerpt` + `gallery` + `cimTrend` + `markdown` | S |
 | **Salt of the Earth** | Labor history | `excerpt` + `gallery` + `edithistory` + `markdown` | S |
-| **Call It Home: The House That Private Enterprise Built** | Architecture | `excerpt` + `gallery` + `cimSnapshot` + `markdown` | S |
+| **Call It Home: The House That Private Enterprise Built** | Architecture | `excerpt` + `gallery` + `cimStats` + `markdown` | S |
 | **François Truffaut: 25 Years, 25 Films** | Filmography | `listSource` → `articleList` → `excerpt` + `gallery` + `pageviews` | S |
 | **The Voyager Videostack** | Video compilation | `mediaPlayer` (video playlist) + `gallery` + `markdown` | S |
 | **The Voyager Audiostack** | Audio compilation | `mediaPlayer` (audio playlist) + `excerpt` + `markdown` | S |
@@ -313,7 +313,7 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | **Circus!: An Interactive Cartoon** | Interactive children's | Same pattern | S |
 | **Silly Noisy House** | Interactive children's | Same pattern | S |
 | **Rodney's Wonder Window** | Interactive children's | Same pattern | S |
-| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimSnapshot` + `wikiPage` | S |
+| **Planetary Taxi** | Interactive solar system | `excerpt` + `gallery` + `cimStats` + `wikiPage` | S |
 
 ### Theme 9: Criterion Collection (LaserDisc / Film)
 
@@ -342,12 +342,9 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 | `speaker` | Speaker widget — consumes excerpt via `{{widget:<id>}}` |
 | `gallery` | Article Gallery — images from the article |
 | `mediaPlayer` | Video/Media Player — audio/video playback |
-| `cimSnapshot` | CIM Category Snapshot — exact precomputed stats |
-| `cimTrend` | CIM Views Over Time — monthly trend |
-| `cimTopFiles` | CIM Top Files — most-viewed files |
-| `cimTopPages` | CIM Top Pages — pages using the files |
-| `cimTopEditors` | CIM Top Editors — top contributors |
-| `cimLeaderboard` | CIM Global Leaderboard — top 100 categories |
+| `cimStats` | CIM Snapshot — exact precomputed stats for a category or a file |
+| `cimTrend` | CIM Views Over Time — monthly pageview trend |
+| `cimRanking` | CIM Top-N — ranked files/wikis/pages/editors, or the top-100 categories |
 | `fileUsage` | File Usage by Wiki — cross-wiki usage |
 | `listSource` | Text List — entry point for curated lists |
 | `filterLines` | Filter Lines — refine a list |
@@ -367,7 +364,7 @@ Every verified Voyager CD-ROM title from the [Wikipedia list](https://en.wikiped
 ## §Sources
 
 - Voyager Company (Wikipedia): https://en.wikipedia.org/wiki/Voyager_Company#CD-ROMs
-- WikiBento manifest: `public/manifest.json` (42 widget types)
+- WikiBento manifest: `public/manifest.json` (36 widget types)
 - WikiBento board composition guide: `docs/BOARD-COMPOSITION.md`
 - WikiBento demo ideas: `docs/DEMO-IDEAS.md`
 - WikiBento data sources: `docs/DATA-SOURCES.md`

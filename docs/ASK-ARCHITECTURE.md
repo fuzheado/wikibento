@@ -39,7 +39,7 @@ dated and reproducible — the raw runs are `bench/results/2026-10-01-*.json`, t
 
 ## How Ask works today (machinery map)
 
-- **Catalog:** `public/manifest.json` **v3**, **42 widget types**, 55,874 chars on disk (56,207 as deployed,
+- **Catalog:** `public/manifest.json` **v3**, **36 widget types**, 55,874 chars on disk (56,207 as deployed,
   2026-10-01). Per widget: `id, name, icon, description, dataSource, category, type, timeScope, nodeKind, outputs,
   consumesSource, configFields [{key,type,label,options?,hint?,placeholder?,showIf?}], defaults`. The registry
   declares dataflow (`outputs`, `consumesSource`) and `scripts/generate-manifest.mjs` copies it, so a new emitter
@@ -172,7 +172,7 @@ decision, not one this audit should make silently**.
 **chain ≈ 77% (67–83%) over 5 runs.** The recurring miss is `chain-list-display` **5/5** — the model answers
 `articleList` alone (defensible: `articleList` takes a pasted list directly), or returns
 `articleList, listSource` (right widgets, wrong dataflow order). `board-switcher-institutions` also misses **2/5**
-(`glamorgan + categorySize` instead of `boardControls + cimSnapshot`) — a defensible alternative reading of "switch
+(`glamorgan + categorySize` instead of `boardControls + cimStats`) — a defensible alternative reading of "switch
 between two institutions and see their Commons stats". The 2026-09-09 "boards are saturated at 100%" conclusion
 does not reproduce.
 
@@ -193,8 +193,8 @@ does not reproduce.
      and `validateAssembly` only accepts bare widget ids, so it **deleted the third card**
      (`widget "speak-french" dropped — a reference it consumes is not on the board`). This is a server-side bug, not
      a model failure, and it is the cheapest fix in this document.
-  2. `board-switcher-institutions` **3/3** — `gallery`/`cimTopFiles`/`cimTrend` where the fixture expects
-     `cimSnapshot`; the board is coherent, parameterised (`{{institution}}`) and renders.
+  2. `board-switcher-institutions` **3/3** — `gallery`/`cimRanking`/`cimTrend` where the fixture expects
+     `cimStats`; the board is coherent, parameterised (`{{institution}}`) and renders.
 
 ### Does it render? (built app, real browser, 2026-10-01)
 
@@ -221,7 +221,7 @@ Two findings, both recorded rather than fixed:
   with `{{param}}` references renders every driven card as "Waiting for a reference". The Ask path itself is fine —
   `handleAddAssembly` merges params properly — so this is an **import-path bug**, and it is also why the audit had
   to load the params board twice.
-- **The CIM cards are wired but have no data**: the model put `cimTopFiles`/`cimTrend` on a category that is not on
+- **The CIM cards are wired but have no data**: the model put `cimRanking`/`cimTrend` on a category that is not on
   the Commons Impact Metrics allow-list. The card says so honestly. Nothing in the catalog tells the advisor that
   the CIM family only serves allow-listed categories.
 
@@ -290,25 +290,25 @@ the 16K fallback ever binds (but keep the VALUE RULES: they carry the formatting
 
 ## Coverage: what the current numbers actually describe
 
-- **15 of 42 widget types have single-widget ground truth** (`node scripts/interview-fixtures.mjs --list`), one
+- **15 of 36 widget types have single-widget ground truth** (`node scripts/interview-fixtures.mjs --list`), one
   English, single-subject, single-sentence prompt each; 13 of 15 have `requireSubject`. They cover the article /
   file / category / GLAM / ranking core: `pageviews, linkcount, categorySize, wikistats, fileUsage, glamorgan,
   topWikipedias, topPages, excerpt, edithistory, quality, gallery, sparql, panorama360, waybackGallery`.
 - **The 6 board fixtures name 9 types** — `excerpt, translate, speaker, listSource, filterLines, lineCount,
-  articleList, boardControls, cimSnapshot` — but only inside chains, with 2 of 6 `requireSubject`. **Union: 23/42.**
-- **19 types appear nowhere in ground truth:** `markdown, qrCode, assessments, cimTrend, cimTopFiles, cimTopWikis,
-  cimTopPages, cimTopEditors, cimLeaderboard, cimFileSpotlight, cimFileTraffic, wikiBox, wikiPage, map,
-  mediaPlayer, iaItem, iaBook, documentReader, echo`. That is the whole **CIM family (9 types)**, the map and its
+  articleList, boardControls, cimStats` — but only inside chains, with 2 of 6 `requireSubject`. **Union: 23/36.**
+- **13 types appear nowhere in ground truth:** `markdown, qrCode, assessments, cimTrend, cimRanking, wikiBox,
+  wikiPage, map, mediaPlayer, iaItem, iaBook, documentReader, echo`. That is the rest of the **CIM family
+  (`cimTrend`, `cimRanking` — `cimStats` appears in a board fixture)**, the map and its
   geometry fields, the whole media/IA family, and the embeds.
 - So "top1 93%" means: *the model picks the right widget for a single-subject English request in the core
-  data family*. It says nothing about the 19 types above, about multi-subject requests, about non-English prompts
+  data family*. It says nothing about the 13 types above, about multi-subject requests, about non-English prompts
   (the 2026-09-09 es/fr/de/it/pt probe, `tests/fixture-multilingual.mjs`, is the only evidence there), or about
   refusal behaviour.
 
 Fixtures that would close the most (each is one interview session with `scripts/interview-fixtures.mjs --add`):
 
-1. **CIM family, one per slice** (9 fixtures): snapshot, trend, top files, top wikis, top pages, top editors,
-   leaderboard, file spotlight, file traffic — plus the distinguishing phrasing vs `glamorgan` / `fileUsage`.
+1. **CIM family, one per arm** (snapshot: category + file; views-over-time: category + file; top-N: five facets) —
+   plus the distinguishing phrasing vs `glamorgan` / `fileUsage`.
 2. **The map** (3): places list → auto-fit; "draw this GeoJSON"; "map whatever the SPARQL card returned" (a
    geometry-kind wiring case, new in ISSUE-132).
 3. **Media & IA** (5): `mediaPlayer`, `iaItem`, `iaBook`, `documentReader`, `qrCode` (an emitter, and the only
