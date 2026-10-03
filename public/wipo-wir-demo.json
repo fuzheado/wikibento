@@ -47,8 +47,9 @@
 		},
 		{
 			"id": "wir-files",
-			"widgetType": "cimSnapshot",
+			"widgetType": "cimStats",
 			"config": {
+				"subject": "category",
 				"category": "Uploads by WIPO WIRs",
 				"refreshSeconds": 3600,
 				"_title": "All three residents · uploads and their use"
@@ -58,6 +59,7 @@
 			"id": "wir-views",
 			"widgetType": "cimTrend",
 			"config": {
+				"subject": "category",
 				"category": "Uploads by WIPO WIRs",
 				"months": 12,
 				"zeroY": false,
@@ -69,6 +71,7 @@
 			"id": "wipo-content-views",
 			"widgetType": "cimTrend",
 			"config": {
+				"subject": "category",
 				"category": "Content produced by WIPO",
 				"months": 24,
 				"zeroY": false,
@@ -78,8 +81,9 @@
 		},
 		{
 			"id": "top-files",
-			"widgetType": "cimTopFiles",
+			"widgetType": "cimRanking",
 			"config": {
+				"facet": "files",
 				"category": "Content produced by WIPO",
 				"topN": 8,
 				"refreshSeconds": 3600,
@@ -88,8 +92,9 @@
 		},
 		{
 			"id": "top-pages",
-			"widgetType": "cimTopPages",
+			"widgetType": "cimRanking",
 			"config": {
+				"facet": "pages",
 				"category": "Uploads by WIPO WIRs",
 				"topN": 8,
 				"refreshSeconds": 3600,
@@ -98,8 +103,9 @@
 		},
 		{
 			"id": "top-wikis",
-			"widgetType": "cimTopWikis",
+			"widgetType": "cimRanking",
 			"config": {
+				"facet": "wikis",
 				"category": "World Intellectual Property Organization",
 				"refreshSeconds": 3600,
 				"_title": "Wikis using WIPO-related files — 108 in total, last month"
@@ -129,8 +135,9 @@
 		},
 		{
 			"id": "file-traffic",
-			"widgetType": "cimFileTraffic",
+			"widgetType": "cimTrend",
 			"config": {
+				"subject": "file",
 				"filename": "IP Related Innovation in Agriculture 2000-2021.png",
 				"months": 15,
 				"refreshSeconds": 3600,
@@ -153,7 +160,7 @@
 			"widgetType": "sparql",
 			"config": {
 				"preset": "",
-				"query": "# How many of WIPO's core articles exist in each of the four project languages?\n# The list is the one on the project's tracking page (meta.wikimedia.org/wiki/WikiProject:United_Nations/WIPO);\n# membership is read from Wikidata sitelinks, so a rename or a merge cannot silently make a language look empty.\nSELECT ?Language (COUNT(DISTINCT ?item) AS ?Articles) WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf \u003Chttps://en.wikipedia.org/\u003E ; schema:name ?enTitle .\n  VALUES (?Language ?site) {\n    (\"English\" \u003Chttps://en.wikipedia.org/\u003E)\n    (\"French\" \u003Chttps://fr.wikipedia.org/\u003E)\n    (\"Spanish\" \u003Chttps://es.wikipedia.org/\u003E)\n    (\"Arabic\" \u003Chttps://ar.wikipedia.org/\u003E) }\n  ?art schema:about ?item ; schema:isPartOf ?site .\n} GROUP BY ?Language ORDER BY DESC(?Articles)",
+				"query": "# How many of WIPO's core articles exist in each of the four project languages?\n# The list is the one on the project's tracking page (meta.wikimedia.org/wiki/WikiProject:United_Nations/WIPO);\n# membership is read from Wikidata sitelinks, so a rename or a merge cannot silently make a language look empty.\nSELECT ?Language (COUNT(DISTINCT ?item) AS ?Articles) WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?enTitle .\n  VALUES (?Language ?site) {\n    (\"English\" <https://en.wikipedia.org/>)\n    (\"French\" <https://fr.wikipedia.org/>)\n    (\"Spanish\" <https://es.wikipedia.org/>)\n    (\"Arabic\" <https://ar.wikipedia.org/>) }\n  ?art schema:about ?item ; schema:isPartOf ?site .\n} GROUP BY ?Language ORDER BY DESC(?Articles)",
 				"renderer": "bar",
 				"maxRows": 10,
 				"title": "Core articles: how many exist in each of the programme's four languages",
@@ -166,7 +173,7 @@
 			"widgetType": "sparql",
 			"config": {
 				"preset": "",
-				"query": "# The core articles, one row each, and the languages in which they exist.\n# \"yes\" is a Wikidata sitelink — the same evidence the bar chart counts.\nSELECT ?Article ?English ?French ?Spanish ?Arabic WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf \u003Chttps://en.wikipedia.org/\u003E ; schema:name ?enTitle .\n  BIND(?enTitle AS ?Article) BIND(\"yes\" AS ?English)\n  OPTIONAL { ?a schema:about ?item ; schema:isPartOf \u003Chttps://fr.wikipedia.org/\u003E . } BIND(IF(BOUND(?a), \"yes\", \"—\") AS ?French)\n  OPTIONAL { ?b schema:about ?item ; schema:isPartOf \u003Chttps://es.wikipedia.org/\u003E . } BIND(IF(BOUND(?b), \"yes\", \"—\") AS ?Spanish)\n  OPTIONAL { ?c schema:about ?item ; schema:isPartOf \u003Chttps://ar.wikipedia.org/\u003E . } BIND(IF(BOUND(?c), \"yes\", \"—\") AS ?Arabic)\n} ORDER BY ?Article",
+				"query": "# The core articles, one row each, and the languages in which they exist.\n# \"yes\" is a Wikidata sitelink — the same evidence the bar chart counts.\nSELECT ?Article ?English ?French ?Spanish ?Arabic WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?enTitle .\n  BIND(?enTitle AS ?Article) BIND(\"yes\" AS ?English)\n  OPTIONAL { ?a schema:about ?item ; schema:isPartOf <https://fr.wikipedia.org/> . } BIND(IF(BOUND(?a), \"yes\", \"—\") AS ?French)\n  OPTIONAL { ?b schema:about ?item ; schema:isPartOf <https://es.wikipedia.org/> . } BIND(IF(BOUND(?b), \"yes\", \"—\") AS ?Spanish)\n  OPTIONAL { ?c schema:about ?item ; schema:isPartOf <https://ar.wikipedia.org/> . } BIND(IF(BOUND(?c), \"yes\", \"—\") AS ?Arabic)\n} ORDER BY ?Article",
 				"renderer": "table",
 				"maxRows": 60,
 				"title": "The core articles, one row each, and the languages they exist in",
