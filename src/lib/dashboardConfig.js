@@ -138,22 +138,22 @@ export const EXAMPLE_DASHBOARD = {
  },
  {
   id: 'example-cimsnapshot',
-  widgetType: 'cimSnapshot',
-  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0, refreshSeconds: 3600 },
+  widgetType: 'cimStats',
+  config: { subject: 'category', category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0, refreshSeconds: 3600 },
  },
  {
   id: 'example-cimtrend',
   widgetType: 'cimTrend',
-  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', months: 6, month: 0, refreshSeconds: 3600 },
+  config: { subject: 'category', category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', months: 6, month: 0, refreshSeconds: 3600 },
  },
  {
   id: 'example-cimtopfiles',
-  widgetType: 'cimTopFiles',
-  config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
+  widgetType: 'cimRanking',
+  config: { facet: 'files', category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
  }, {
   id: 'example-cimfiletraffic',
-  widgetType: 'cimFileTraffic',
-  config: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
+  widgetType: 'cimTrend',
+  config: { subject: 'file', filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
  },
  {
   id: 'example-list',

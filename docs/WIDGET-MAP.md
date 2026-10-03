@@ -1,6 +1,6 @@
 # The widget map — 42 types, grouped by what you must supply
 
-*One page, generated from `public/manifest.json` by `scripts/widget-map.mjs` (2026-10-02). The picture is
+*One page, generated from `public/manifest.json` by `scripts/widget-map.mjs` (2026-10-03). The picture is
 [widget-map.pdf](widget-map.pdf) (A4 landscape) · [widget-map.png](widget-map.png) · [widget-map.svg](widget-map.svg).*
 
 **Why this exists.** Forty-two widget types is more than a person can hold in mind, and the Add-widget panel orders
@@ -54,19 +54,13 @@ show me?* So the map groups by **what you must supply**, colours by the panel's 
 - **Category Size** `categorySize` — Categories & GLAM, source: File/page count for a Commons or Wikipedia category
 - **GLAM Usage (live)** `glamorgan` — Categories & GLAM, source: Impact stats for a Commons category: files, used files, pages, total views (GLAMorgan-style)
 
-## A category in the CIM allow list (9)
+## A category in the CIM allow list (3)
 
 *Commons Impact Metrics — precomputed, and only for ~1,775 registered primary categories*
 
-- **CIM Snapshot** `cimSnapshot` — Categories & GLAM, source: Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages
-- **CIM Views / time** `cimTrend` — Categories & GLAM, source: Monthly pageview trend of pages using a CIM category's files
-- **CIM Top Files** `cimTopFiles` — Categories & GLAM, source: Most-viewed files in a CIM category — thumbnails + views
-- **CIM Top Wikis** `cimTopWikis` — Categories & GLAM, source: Which wikis use a CIM category's files most
-- **CIM Top Pages** `cimTopPages` — Categories & GLAM, source: Pages that use a CIM category's files, by views
-- **CIM Top Editors** `cimTopEditors` — Categories & GLAM, source: Top contributors to a CIM category, by edit count
-- **CIM Leaderboard** `cimLeaderboard` — Categories & GLAM, source: Top 100 most-viewed categories on Commons (precomputed)
-- **CIM File Spotlight** `cimFileSpotlight` — Categories & GLAM, source: One Commons file: wikis/pages using it + monthly view trend
-- **CIM File Traffic** `cimFileTraffic` — Categories & GLAM, source: Monthly pageview traffic for one Commons file — labeled axes, zoom in/out
+- **CIM Snapshot** `cimStats` — Categories & GLAM, source: Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
+- **CIM Views / time** `cimTrend` — Categories & GLAM, source: Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
+- **CIM Top-N** `cimRanking` — Categories & GLAM, source: Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
 
 ## Files & media (5)
 

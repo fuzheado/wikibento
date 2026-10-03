@@ -2538,7 +2538,7 @@ async function fetchCimMonth(path, probePath) {
   }
 }
 
-/** 19a. CIM Category Snapshot — exact headline stats for a category. */
+/** 19a. CIM Snapshot, category arm — exact headline stats for a category (`cimStats`, subject: 'category'). */
 export async function fetchCimSnapshot(category, scope = 'deep', year, month) {
   const cat = cleanCategoryForCim(category);
   if (!cat) throw new Error('Enter a Commons category');
@@ -2587,7 +2587,7 @@ export async function fetchCimTrend(category, scope = 'deep', wiki = 'all-wikis'
   return { category: cat, rows, resolvedMonth: { year: y, month: m } };
 }
 
-/** 19c. CIM Top Files — most-viewed media files (with thumbnails). */
+/** 19c. CIM Top-N, facet: files — most-viewed media files (with thumbnails). */
 export async function fetchCimTopFiles(category, scope = 'deep', wiki = 'all-wikis', year, month, topN = 10) {
   const cat = cleanCategoryForCim(category);
   if (!cat) throw new Error('Enter a Commons category');
@@ -2639,7 +2639,7 @@ export async function fetchCimTopEditors(category, scope = 'deep', editType = 'a
   return { category: cat, rows: items.slice(0, n).map((it) => ({ user: it['user-name'], edits: it['edit-count'] ?? 0 })), resolvedMonth: { year: y, month: m } };
 }
 
-/** 19g. CIM Global Leaderboard — top 100 viewed categories (no rank-of-X). */
+/** 19g. CIM Top-N, facet: categories — the global top 100 viewed categories (no rank-of-X). */
 export async function fetchCimLeaderboard(scope = 'deep', wiki = 'all-wikis', year, month) {
   const { year: py, month: pm } = await latestCimMonth();
   const y = parseInt(year) || py;
@@ -2662,7 +2662,7 @@ async function fetchCommonsFileImage(file) {
   } catch { return null; }
 }
 
-/** 19h. CIM File Spotlight — per-file stats + monthly view trend. */
+/** 19h. CIM Snapshot, file arm — per-file stats + monthly view trend (`cimStats`, subject: 'file'). */
 export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year, month, showImage = true) {
   const file = cleanMediaFileForCim(mediaFile);
   if (!file) throw new Error('Enter a Commons file name');
@@ -2692,7 +2692,7 @@ export async function fetchCimFileSpotlight(mediaFile, wiki = 'all-wikis', year,
   };
 }
 
-/** 19i. CIM File Traffic — monthly pageview series for one file over a
+/** 19i. CIM Views Over Time, file arm — monthly pageview series for one file over a
  *  generous window (up to 24 months); the renderer zooms client-side. */
 export async function fetchCimFileTraffic(mediaFile, wiki = 'all-wikis', months = 12, year, month) {
   const file = cleanMediaFileForCim(mediaFile);

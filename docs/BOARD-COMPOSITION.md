@@ -4,7 +4,7 @@
 
 WikiBento is a drag-and-drop dashboard for Wikimedia — a single reactive layout for keeping an eye on content and interacting with it. Wikimedia's content and activity live across many places: pageview and stats APIs, wiki pages, recent changes, Commons. WikiBento brings what you care about into one place.
 
-This guide is the **complete reference for wiring widgets into boards**. It covers all 42 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
+This guide is the **complete reference for wiring widgets into boards**. It covers all 36 widget types, how they communicate with each other (params, dataflow, emit/consume), board composition strategies, and the operational details you need to build sophisticated dashboards — whether you're a human author or an LLM generating board configs.
 
 Think of it as the assembly manual for WikiBento's Lego set: each widget is a brick, and this guide tells you what every brick looks like, how they snap together, and what you can build.
 
@@ -28,7 +28,7 @@ Think of it as the assembly manual for WikiBento's Lego set: each widget is a br
 
 ## Table of Contents
 
-1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 42 types with full capabilities
+1. [Part 1 — Widget Registry](#part-1--widget-registry) — all 36 types with full capabilities
 2. [Part 2 — Communication Patterns](#part-2--communication-patterns) — params, dataflow, source picker, interpolation
 3. [Part 3 — Board Composition Patterns](#part-3--board-composition-patterns) — layout, sizing, responsive, kiosk/lean
 4. [Part 4 — LLM Prompt Guide](#part-4--llm-prompt-guide) — how to use this guide to generate board configs
@@ -124,7 +124,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `GalleryGridCard` or `GalleryListCard`
 
-### 1.2 Categories & GLAM (11 widgets)
+### 1.2 Categories & GLAM (5 widgets)
 
 #### `categorySize` — Category Size
 - **dataSource:** MediaWiki API `categoryinfo`
@@ -153,96 +153,54 @@ Every widget is defined by these fields (from `public/manifest.json`):
 - **emit:** none
 - **renderer:** `GlamCard`
 
-#### `cimSnapshot` — CIM Category Snapshot
-- **dataSource:** CIM `category-metrics-snapshot`
+#### `cimStats` — CIM Snapshot
+- **dataSource:** CIM `category-metrics-snapshot` (a category) · `media-file-metrics-snapshot` (one file)
 - **configFields:**
-  - `category` (text)
-  - `scope` (select: `shallow` \| `deep`)
+  - `subject` (select: `category` \| `file`) — which arm below the card uses; `category` is the default
+  - `category` (text) · `scope` (select: `shallow` \| `deep`) — `subject: category`
+  - `filename` (text) · `wiki` (select: `all-wikis` \| specific wiki) · `showImage` (boolean, default on) — `subject: file`
   - `month` (text, `YYYY-MM`)
-- **defaults:** `category`, `scope`, `month`, `refreshSeconds`
-- **timeScope:** `point`
+- **defaults:** `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
+- **timeScope:** `month`
 - **emit:** none
 - **renderer:** `CimSnapshotCard`
 
 #### `cimTrend` — CIM Views Over Time
-- **dataSource:** CIM `pageviews-per-category-monthly`
+- **dataSource:** CIM `pageviews-per-category-monthly` (a category) · `pageviews-per-media-file-monthly` (one file)
 - **configFields:**
-  - `category` (text)
-  - `scope` (select: `shallow` \| `deep`)
-  - `wiki` (select: `all-wikis` \| specific wiki)
+  - `subject` (select: `category` \| `file`)
+  - `category` (text) · `scope` (select: `shallow` \| `deep`) · `zeroY` (boolean) — `subject: category`
+  - `filename` (text) · `wiki` (select: `all-wikis` \| specific wiki) — `subject: file`
   - `months` (number, 2–24)
   - `month` (text, `YYYY-MM`)
-- **defaults:** `category`, `scope`, `wiki`, `months`, `month`, `refreshSeconds`
+- **defaults:** `subject`, `category`, `scope`, `filename`, `wiki`, `months`, `month`, `zeroY`, `refreshSeconds`
 - **timeScope:** `range`
 - **emit:** none
-- **renderer:** `TrendCard`
+- **renderer:** `TrendCard` (category) or `FileTrafficCard` (file; interactive SVG chart with −/+ zoom)
 
-#### `cimTopFiles` — CIM Top Files
-- **dataSource:** CIM `top-viewed-media-files-monthly` + `imageinfo`
+#### `cimRanking` — CIM Top-N
+- **dataSource:** CIM `top-viewed-media-files-monthly` · `top-wikis-per-category-monthly` · `top-pages-per-category-monthly` · `top-editors-monthly` · `top-viewed-categories-monthly`
 - **configFields:**
-  - `category` (text)
+  - `facet` (select: `files` \| `wikis` \| `pages` \| `editors` \| `categories`) — what is ranked
+  - `category` (text) — the CIM-registered category (`facet: files`/`wikis`/`pages`/`editors`; hidden for the global leaderboard)
   - `scope` (select: `shallow` \| `deep`)
-  - `wiki` (select)
-  - `topN` (number, 1–50)
-  - `month` (text)
-- **defaults:** `category`, `scope`, `wiki`, `topN`, `month`, `refreshSeconds`
-- **timeScope:** `point`
+  - `wiki` (select) — `facet: files`/`pages`/`categories`
+  - `editType` (select: `all-edit-types` \| `create` \| `update`) — `facet: editors`
+  - `topN` (number, 1–50) — `facet: files`/`wikis`/`pages`/`editors`
+  - `highlight` (text, optional category) — `facet: categories` (the global top-100 leaderboard)
+  - `month` (text, `YYYY-MM`)
+- **defaults:** `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
+- **timeScope:** `month`
 - **emit:** none
-- **renderer:** `CimTopFilesCard`
+- **renderer:** `RankingCard` (or `CimTopFilesCard` for `facet: files`)
 
-#### `cimTopWikis` — CIM Top Wikis
-- **dataSource:** CIM `top-wikis-per-category-monthly`
-- **configFields:** `category`, `scope`, `wiki`, `topN`, `month`
-- **defaults:** `category`, `scope`, `wiki`, `topN`, `month`, `refreshSeconds`
-- **timeScope:** `point`
-- **emit:** none
-- **renderer:** `RankingCard`
-
-#### `cimTopPages` — CIM Top Pages
-- **dataSource:** CIM `top-pages-per-category-monthly`
-- **configFields:** `category`, `scope`, `wiki`, `topN`, `month`
-- **defaults:** `category`, `scope`, `wiki`, `topN`, `month`, `refreshSeconds`
-- **timeScope:** `point`
-- **emit:** none
-- **renderer:** `RankingCard`
-
-#### `cimTopEditors` — CIM Top Editors
-- **dataSource:** CIM `top-editors-monthly`
-- **configFields:** `category`, `scope`, `wiki`, `topN`, `month`
-- **defaults:** `category`, `scope`, `wiki`, `topN`, `month`, `refreshSeconds`
-- **timeScope:** `point`
-- **emit:** none
-- **renderer:** `RankingCard`
-
-#### `cimLeaderboard` — CIM Global Leaderboard
-- **dataSource:** CIM `top-viewed-categories-monthly`
-- **configFields:** `topN`, `highlightCategory` (text, optional)
-- **defaults:** `topN`, `highlightCategory`, `refreshSeconds`
-- **timeScope:** `point`
-- **emit:** none
-- **renderer:** `RankingCard`
-
-#### `cimFileSpotlight` — CIM File Spotlight
-- **dataSource:** CIM `media-file-metrics-snapshot` + `pageviews-per-media-file-monthly`
-- **configFields:**
-  - `filename` (text)
-  - `showImage` (boolean, default on)
-  - `month` (text)
-- **defaults:** `filename`, `showImage`, `month`, `refreshSeconds`
-- **timeScope:** `point`
-- **emit:** none
-- **renderer:** `CimFileSpotlightCard`
-
-#### `cimFileTraffic` — CIM File Traffic
-- **dataSource:** CIM `pageviews-per-media-file-monthly`
-- **configFields:**
-  - `filename` (text)
-  - `months` (select: 3 \| 6 \| 12 \| 24)
-  - `month` (text)
-- **defaults:** `filename`, `months`, `month`, `refreshSeconds`
-- **timeScope:** `range`
-- **emit:** none
-- **renderer:** `FileTrafficCard` (interactive SVG chart with −/+ zoom)
+> **Migration note — the nine ids that became these three.** The nine original CIM type ids
+> (`cimSnapshot`, `cimFileSpotlight`, `cimTrend`, `cimFileTraffic`, `cimTopFiles`, `cimTopWikis`,
+> `cimTopPages`, `cimTopEditors`, `cimLeaderboard`) **still resolve**: `widgetDef()` maps each to the
+> merged type above and merges the selector the id implied (a subject or a facet) into the resolved
+> definition's defaults, so a saved board reads exactly as it did and is **never rewritten on load** —
+> only the artifacts WikiBento publishes moved. `cimTrend` kept its id (it *is* the merged trend's
+> category arm); the retired-id → type/selector map is the single source of truth in `src/lib/cimFamily.js`.
 
 ### 1.3 Files & Media (5 widgets)
 
@@ -593,7 +551,7 @@ Every widget is defined by these fields (from `public/manifest.json`):
 ```json
 [
   { "widgetType": "excerpt", "config": { "article": "{{topic}}" } },
-  { "widgetType": "cimSnapshot", "config": { "category": "{{collection}}" } },
+  { "widgetType": "cimStats", "config": { "category": "{{collection}}" } },
   { "widgetType": "translate", "config": { "to": "{{targetLang}}" } }
 ]
 ```
@@ -796,7 +754,7 @@ When wiring dataflow chains, reference the emitter's `id`:
 | Layers of commentary | `markdown` cards + `boardControls` params |
 | "Karaoke" participation | `speaker` + `mediaPlayer` |
 | Maps as portals | `panorama360` + `wikiPage` |
-| Deep artifact treatment | `cimFileSpotlight` + `gallery` |
+| Deep artifact treatment | `cimStats` (file arm) + `gallery` |
 | Curated sequence | `boardControls` params + `listSource` |
 | Reader's path stored | Board params + config-as-data = URL |
 | Static finished artifact | Live ⏱ footer proves it's not a screenshot |
@@ -805,15 +763,15 @@ When wiring dataflow chains, reference the emitter's `id`:
 | Note-taking with export | `markdown` (config persists) |
 | Index/table of contents | `listSource` → `filterLines` → `articleList` |
 | Cross-wiki file usage | `fileUsage` |
-| Collection statistics | `cimSnapshot` + `cimTrend` + `cimTopFiles` |
-| Community contribution | `cimTopEditors` + `edithistory` |
+| Collection statistics | `cimStats` + `cimTrend` + `cimRanking` |
+| Community contribution | `cimRanking` (editors) + `edithistory` |
 | Quality assessment | `quality` + `assessments` |
 
 ---
 
 ## Sources
 
-- WikiBento manifest: `public/manifest.json` (42 widget types)
+- WikiBento manifest: `public/manifest.json` (36 widget types)
 - WikiBento JSON format: `docs/JSON-FORMAT.md`
 - WikiBento widget development: `docs/WIDGET-DEVELOPMENT.md`
 - WikiBento guide: `docs/GUIDE.md`

@@ -47,8 +47,9 @@
     },
     {
       "id": "demo-cim",
-      "widgetType": "cimSnapshot",
+      "widgetType": "cimStats",
       "config": {
+        "subject": "category",
         "category": "{{category}}",
         "scope": "deep",
         "month": "{{month}}",
@@ -59,7 +60,7 @@
       "id": "demo-note",
       "widgetType": "markdown",
       "config": {
-        "text": "### Interactive board (ISSUE-50)\n\n**Board Controls** drives three params: `category` (buttons), `count` (slider \u2192 the gallery's sample size), and `month` (stepper \u2192 the CIM snapshot's data month, Latest = most recent published).\n\nThe widgets' configs literally contain the placeholders \u2014 inspect with \u2699.",
+        "text": "### Interactive board (ISSUE-50)\n\n**Board Controls** drives three params: `category` (buttons), `count` (slider → the gallery's sample size), and `month` (stepper → the CIM snapshot's data month, Latest = most recent published).\n\nThe widgets' configs literally contain the placeholders — inspect with ⚙.",
         "allowExternalImages": false,
         "refreshSeconds": 86400
       }

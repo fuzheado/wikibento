@@ -17,7 +17,7 @@
  * for the read-only half against a deployment.
  */
 import { spawn } from 'node:child_process';
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import net from 'node:net';
 
 const fixed = process.argv.indexOf('--base');
@@ -113,7 +113,10 @@ const goodBoard = JSON.stringify({
   const cat = await callTool('get_catalog');
   let parsed = null;
   try { parsed = JSON.parse(cat.text); } catch { /* reported below */ }
-  parsed?.widgets?.length === 42
+  // The expected count is read from the manifest the tool serves rather than written here. A hard-coded 42 outlived
+  // the CIM family merge (nine types → three, 2026-10-03) and failed this gate while the catalog was correct.
+  const wantTypes = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8')).widgetCount;
+  parsed?.widgets?.length === wantTypes
     ? ok('get_catalog', `${parsed.widgets.length} widget types, ${(cat.text.length / 1024).toFixed(0)} KB`)
     : bad('get_catalog', `no manifest: ${cat.text.slice(0, 80)}`);
 

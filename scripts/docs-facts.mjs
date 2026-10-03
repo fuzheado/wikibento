@@ -439,6 +439,13 @@ const RETIRED_WIDGET_NAMES = [
   { pattern: /File Usage Map/g, now: 'File Usage by Wiki' },
   { pattern: /Internet Archive Item/g, now: 'IA Item Stats' },
   { pattern: /\bIA Item\b(?! Stats| Views)/g, now: 'IA Item Stats' },
+  // The CIM family merged nine types into three on 2026-10-03 (same nine endpoints, three result shapes). These are
+  // the names those types used to carry; the same names may not come back to a current-state doc or a shipped board.
+  { pattern: /CIM Category Snapshot/g, now: 'CIM Snapshot' },
+  { pattern: /CIM Top (Files|Wikis|Pages|Editors)/g, now: 'CIM Top-N' },
+  { pattern: /CIM Global Leaderboard/g, now: 'CIM Top-N' },
+  { pattern: /CIM File Spotlight/g, now: 'CIM Snapshot (about one file)' },
+  { pattern: /CIM File Traffic/g, now: 'CIM Views Over Time (about one file)' },
 ];
 /** Dated records keep their wording on purpose: they state what was true at the time. Everything else uses today's. */
 

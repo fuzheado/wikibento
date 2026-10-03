@@ -257,9 +257,9 @@ number) config field, the **consumer side needs zero code**. A full registry aud
 | Param (one name) | Widgets that re-aim for free |
 |---|---|
 | `article` | pageviews, excerpt, edithistory, quality, assessments, gallery, articleList, wikiPage — **8 widgets** |
-| `category` | categorySize, glamorgan, cimSnapshot/Trend/TopFiles/TopWikis/TopPages/TopEditors — **9 widgets** |
-| `filename` | fileUsage, cimFileSpotlight, cimFileTraffic, panorama360, mediaPlayer (single) |
-| `month` | all 8 CIM widgets + topPages (fetchers already `parseInt` the month) |
+| `category` | categorySize, glamorgan, cimStats (category arm), cimTrend (category arm), cimRanking (the four per-category facets) — **5 widgets** |
+| `filename` | fileUsage, cimStats (file arm), cimTrend (file arm), panorama360, mediaPlayer (single) |
+| `month` | all 3 CIM widgets + topPages (fetchers already `parseInt` the month) |
 | `domain` / `url` / `page` | linkcount / waybackGallery / wikiPage |
 | a LIST (multi-line) | gallery, articleList, mediaPlayer playlists (textarea fields are strings — interpolation already works) |
 | `query` | sparql (placeholders inside SPARQL text: `FILTER … {{category}}` — power-user escape hatch) |

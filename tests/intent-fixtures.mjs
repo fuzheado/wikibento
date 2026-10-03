@@ -24,7 +24,7 @@
  * (agent/CI path). Both validate against the manifest before writing.
  *
  * Draft v1 (2026-08-16): 15 entries covering every widget family + the
- * confusable pairs (fileUsage vs cimFileSpotlight, glamorgan vs cimSnapshot,
+ * confusable pairs (fileUsage vs cimStats-about-a-file, glamorgan vs cimStats,
  * categorySize vs gallery). Review/edit the prompts and expected values —
  * this catalog is the contract future Ask work is measured against.
  *
@@ -70,14 +70,14 @@ export const INTENT_FIXTURES = [
     prompt: 'Which wikis and pages use the file File:Earth from space.jpg?',
     expected: { widgetType: 'fileUsage', config: { filename: 'File:Earth from space.jpg' } },
     requireSubject: true,
-    note: 'confusable pair: live globalusage walk — NOT cimFileSpotlight (precomputed)',
+    note: 'confusable pair: live globalusage walk — NOT cimStats about a file (precomputed)',
   },
   {
     id: 'glam-category-impact',
     prompt: 'What is the GLAM impact of the category Wiki Loves Monuments 2024 in the United States and how many files, pages and total views does it have?',
     expected: { widgetType: 'glamorgan', config: { category: 'Wiki Loves Monuments 2024 in the United States' } },
     requireSubject: true,
-    note: 'confusable pair: live walk with pageviews — NOT cimSnapshot (precomputed, allow-list); unquoted long category span with NO boundary delimiter (hardest realistic form, see header)',
+    note: 'confusable pair: live walk with pageviews — NOT cimStats (precomputed, allow-list); unquoted long category span with NO boundary delimiter (hardest realistic form, see header)',
   },
   {
     id: 'top-wikipedias',

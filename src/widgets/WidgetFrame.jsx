@@ -3040,7 +3040,7 @@ function CimSnapshotCard({ data }) {
   );
 }
 
-/** CIM Top Files — ranked rows with 48px thumbs (RankingCard has none). */
+/** CIM Top-N, facet: files — ranked rows with 48px thumbs (RankingCard has none). */
 function CimTopFilesCard({ data, picking, onPickItem }) {
   const rows = data.rows || [];
   return (
@@ -3069,7 +3069,7 @@ function CimTopFilesCard({ data, picking, onPickItem }) {
   );
 }
 
-/** CIM File Traffic — interactive monthly traffic chart for one file.
+/** CIM Views Over Time, file arm — interactive monthly traffic chart for one file.
  *  SVG line chart with labeled X (months) and Y (views) axes; −/+ buttons
  *  zoom the displayed window (3/6/12/24 months) client-side — the fetch
  *  window (up to 24 months) is sliced, no refetch. The displayed range is

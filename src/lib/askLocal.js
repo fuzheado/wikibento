@@ -38,12 +38,12 @@ const INTENT_PATTERNS = [
   { re: /(quality|fa|ga|class)/, w: 'quality', reason: 'Article Quality predicts an article\'s FA/GA/B/C/Start/Stub class.' },
   { re: /(edit|history|recent).{0,20}(edit|change)/, w: 'edithistory', reason: 'Edit History lists recent edits with byte deltas.' },
   { re: /(category|collection).{0,30}(size|how many|count)/, w: 'categorySize', reason: 'Category Size shows a category\'s file/page/subcat breakdown.' },
-  { re: /(view|traffic|popular).{0,30}(category|file)/, w: 'cimTrend', reason: 'CIM Views Over Time charts a category\'s monthly pageview trend.' },
+  { re: /(view|traffic|popular).{0,30}(category|file)/, w: 'cimTrend', config: { subject: 'category' }, reason: 'CIM Views Over Time charts a category\'s monthly pageview trend — switch What it is about to a Commons file to chart one file instead.' },
   { re: /sparql|query|wikidata/, w: 'sparql', reason: 'SPARQL Query runs any query against Wikidata or Commons.' },
   { re: /(embed|iframe|page).{0,20}(wiki|page)/, w: 'wikiPage', reason: 'Wiki Page embeds any MediaWiki page as an iframe.' },
   { re: /(note|text|markdown|write)/, w: 'markdown', reason: 'Text/Markdown is a free-form note widget.' },
   { re: /gallery|images? (of|from|for) .{0,30}(article|page)/, w: 'gallery', reason: 'Article Gallery shows the significant images of an article.' },
-  { re: /leaderboard|ranking|top 100|top100/, w: 'cimLeaderboard', reason: 'CIM Global Leaderboard ranks the most-viewed Commons categories.' },
+  { re: /leaderboard|ranking|top 100|top100/, w: 'cimRanking', config: { facet: 'categories' }, reason: 'CIM Top-N (Rank: most-viewed categories on Commons) ranks the most-viewed Commons categories.' },
 ];
 
 export async function askLocal(prompt, manifestOverride) {

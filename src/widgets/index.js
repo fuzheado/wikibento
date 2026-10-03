@@ -6,6 +6,7 @@
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
+import { cimSubject, cimFacet, LEGACY_CIM_IDS } from '../lib/cimFamily';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
 import {
   fetchDocumentPages,
@@ -142,11 +143,49 @@ const CIM_CATEGORY_FIELD = {
   key: 'category',
   label: 'Commons category',
   type: 'text',
+  kind: 'cim-category',
+  showIf: { subject: 'category' },
   placeholder: 'Files from the Biodiversity Heritage Library',
   hint: 'Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.',
 };
-const CIM_MONTH_FIELD = { key: 'month', label: 'Month (default: last complete month)', type: 'number', placeholder: '7' };
-const cimRanking = (title, subtitle, columns, rows, colClasses) => ({ title, subtitle, columns, rows, colClasses });
+// The same field for the ranking type, whose selector is `facet` rather than `subject` — so it needs its own
+// `showIf`. The hint is the sentence ask-validation.test.mjs asserts on every category-taking CIM field, so the two
+// constants must keep it identical; they are written as literals (not a spread) because generate-manifest.mjs parses
+// this file as text and resolves a shared constant only by its own `key:`-leading literal.
+const CIM_CATEGORY_FIELD_BY_FACET = {
+  key: 'category',
+  label: 'Commons category',
+  type: 'text',
+  kind: 'cim-category',
+  showIf: { facet: ['files', 'wikis', 'pages', 'editors'] },
+  placeholder: 'Files from the Biodiversity Heritage Library',
+  hint: 'Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.',
+};
+const CIM_SUBJECT_FIELD = {
+  key: 'subject',
+  label: 'What it is about',
+  type: 'select',
+  options: [
+    { value: 'category', label: 'A Commons category' },
+    { value: 'file', label: 'One Commons file' },
+  ],
+};
+const CIM_FACET_FIELD = {
+  key: 'facet',
+  label: 'Rank',
+  type: 'select',
+  options: [
+    { value: 'files', label: 'Top files (with thumbnails)' },
+    { value: 'wikis', label: 'Wikis using the files' },
+    { value: 'pages', label: 'Pages using the files' },
+    { value: 'editors', label: 'Top editors' },
+    { value: 'categories', label: 'Most-viewed categories on Commons' },
+  ],
+};
+const CIM_MONTH_FIELD = {
+  key: 'month', label: 'Month (default: last complete month)', type: 'number', placeholder: '7',
+};
+const cimRows = (title, subtitle, columns, rows, colClasses) => ({ title, subtitle, columns, rows, colClasses });
 
 // Commons profile links for an editor name ([User] | [Talk] | [Contrib]).
 const editorLinks = (user) => {
@@ -1130,51 +1169,77 @@ export const WIDGET_TYPES = {
     }),
   },
 
-  cimSnapshot: {
-    id: 'cimSnapshot',
+  cimStats: {
+    id: 'cimStats',
     category: 'Categories & GLAM', intensity: 'low',
 
-    timeScope: 'month',    name: 'CIM Category Snapshot',
+    timeScope: 'month',    name: 'CIM Snapshot',
     icon: '🎯',
-    description: 'Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages',
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0, refreshSeconds: 3600 },
+    description: 'Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them',
+    labelFromConfig: (c) => ((cimSubject(c) === 'file' ? c.filename : c.category) || '').replace(/_/g, ' '),
+    defaults: {
+      subject: 'category',
+      category: 'Files from the Biodiversity Heritage Library',
+      scope: 'deep',
+      filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg',
+      wiki: 'all-wikis',
+      showImage: true,
+      month: 0,
+      refreshSeconds: 3600,
+    },
     renderer: 'CimSnapshotCard',
-    dataSource: 'CIM category-metrics-snapshot (precomputed, allow-list)',
+    dataSource: 'CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)',
     configFields: [
+      CIM_SUBJECT_FIELD,
       CIM_CATEGORY_FIELD,
-      { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
+      { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES, showIf: { subject: 'category' } },
+      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', showIf: { subject: 'file' }, placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
+      { key: 'wiki', label: 'Wiki', type: 'project', showIf: { subject: 'file' }, extras: [{ value: 'all-wikis', label: 'All wikis' }] },
+      { key: 'showImage', label: 'Show image preview', type: 'boolean', showIf: { subject: 'file' } },
       CIM_MONTH_FIELD,
     ],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimSnapshot(p.title, config.scope, p.projectConfig, config.month); },
+    fetch: (config) => {
+      if (cimSubject(config) === 'file') return fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month, config.showImage !== false);
+      const p = pageRef(config, 'category', 'wiki');
+      return fetchCimSnapshot(p.title, config.scope, undefined, config.month);
+    },
     transform: (data, config) => {
       const scope = data.resolvedMonth || resolveMonth(config.month);
+      if (cimSubject(config) === 'file') {
+        return {
+          title: data.file.replace(/_/g, ' '),
+          href: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
+          fileHref: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
+          subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
+          image: config.showImage !== false ? data.image : null,
+          stats: [
+            { label: 'Wikis using it', value: data.wikis.toLocaleString(), sub: 'leveraging-wiki-count' },
+            { label: 'Pages using it', value: data.pages.toLocaleString(), sub: 'leveraging-page-count' },
+            { label: 'Views (month)', value: data.views.toLocaleString(), sub: 'pageviews of using pages' },
+          ],
+          trend: data.trend,
+        };
+      }
       const deep = config.scope !== 'shallow';
-      // Stats reflect the SELECTED scope (fixes latent mislabel: the shallow
-      // keys were shown under a "deep" label). The snapshot endpoint returns
-      // both scopes in one call, so this is free.
       const files = deep ? (data.filesDeep ?? data.files ?? 0) : (data.files ?? 0);
       const used = deep ? (data.usedDeep ?? data.used ?? 0) : (data.used ?? 0);
       const wikis = deep ? (data.wikisDeep ?? data.wikis ?? 0) : (data.wikis ?? 0);
       const pages = deep ? (data.pagesDeep ?? data.pages ?? 0) : (data.pages ?? 0);
-      // ISSUE-5: surface extreme diffusion capture — deep tree ≫ direct files
-      // (e.g. UNESCO: 575 direct vs 16.4M in tree) means the number is tree
-      // reach, not direct attribution.
       let gap = null;
       if (deep && data.files > 0 && data.filesDeep >= 10000 && data.filesDeep / data.files >= 10) {
         gap = { direct: data.files, tree: data.filesDeep, ratio: Math.round(data.filesDeep / data.files) };
       }
       return {
-      title: data.category.replace(/_/g, ' '),
-      href: `https://commons.wikimedia.org/wiki/Category:${data.category}`,
-      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · direct: ${data.files.toLocaleString()} files` : ''}`,
-      stats: [
-        { label: 'Files', value: files.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
-        { label: 'Files used', value: used.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
-        { label: 'Wikis', value: wikis.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
-        { label: 'Pages', value: pages.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
-      ],
-      gap,
+        title: data.category.replace(/_/g, ' '),
+        href: `https://commons.wikimedia.org/wiki/Category:${data.category}`,
+        subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · ${config.scope === 'shallow' ? 'shallow' : 'deep'}${data.filesDeep !== data.files ? ` · direct: ${data.files.toLocaleString()} files` : ''}`,
+        stats: [
+          { label: 'Files', value: files.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+          { label: 'Files used', value: used.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+          { label: 'Wikis', value: wikis.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+          { label: 'Pages', value: pages.toLocaleString(), sub: deep ? 'deep' : 'shallow' },
+        ],
+        gap,
       };
     },
   },
@@ -1185,235 +1250,152 @@ export const WIDGET_TYPES = {
 
     timeScope: 'range',    name: 'CIM Views Over Time',
     icon: '📈',
-    description: 'Monthly pageview trend of pages using a CIM category\'s files',
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', months: 6, month: 0, refreshSeconds: 3600 },
+    description: 'Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file',
+    labelFromConfig: (c) => ((cimSubject(c) === 'file' ? c.filename : c.category) || '').replace(/_/g, ' '),
+    defaults: {
+      subject: 'category',
+      category: 'Files from the Biodiversity Heritage Library',
+      scope: 'deep',
+      wiki: 'all-wikis',
+      months: 6,
+      filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg',
+      month: 0,
+      zeroY: false,
+      refreshSeconds: 3600,
+    },
     renderer: 'TrendCard',
-    dataSource: 'CIM pageviews-per-category-monthly',
+    getRenderer: (config) => (cimSubject(config) === 'file' ? 'FileTrafficCard' : 'TrendCard'),
+    dataSource: 'CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly',
     configFields: [
+      CIM_SUBJECT_FIELD,
       CIM_CATEGORY_FIELD,
-      { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
+      { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES, showIf: { subject: 'category' } },
+      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', showIf: { subject: 'file' }, placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
       { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'months', label: 'Months (2–24)', type: 'number', placeholder: '6' },
       CIM_MONTH_FIELD,
-      { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', hint: 'Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
+      { key: 'zeroY', label: 'Y axis starts at 0', type: 'boolean', showIf: { subject: 'category' }, hint: 'Off (default) = min–max scale, variation stays visible; on = zero-based, honest magnitude comparison.', placeholder: false },
     ],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTrend(p.title, config.scope, p.projectConfig, undefined, config.month, config.months); },
+    fetch: (config) => {
+      if (cimSubject(config) === 'file') return fetchCimFileTraffic(config.filename, config.wiki, config.months, undefined, config.month);
+      const p = pageRef(config, 'category', 'wiki');
+      return fetchCimTrend(p.title, config.scope, p.projectConfig, undefined, config.month, config.months);
+    },
     transform: (data, config) => {
       const end = data.resolvedMonth || resolveMonth(config.month);
       const n = Math.min(Math.max(parseInt(config.months) || 6, 2), 24);
       const start = shiftMonth(end.year, end.month, -(n - 1));
+      if (cimSubject(config) === 'file') {
+        return {
+          title: data.file.replace(/_/g, ' '),
+          subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of pages using this file · precomputed (CIM)`,
+          rows: data.rows,
+        };
+      }
       return {
-      title: data.category.replace(/_/g, ' '),
-      subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of using pages · ${config.scope} · precomputed (CIM)`,
-      chartData: data.rows,
-      chartKey: 'views',
-      chartLabel: 'views',
-      zeroY: !!config.zeroY,
+        title: data.category.replace(/_/g, ' '),
+        subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of using pages · ${config.scope} · precomputed (CIM)`,
+        chartData: data.rows,
+        chartKey: 'views',
+        chartLabel: 'views',
+        zeroY: !!config.zeroY,
       };
     },
   },
 
-  cimTopFiles: {
-    id: 'cimTopFiles',
+  cimRanking: {
+    id: 'cimRanking',
     category: 'Categories & GLAM', intensity: 'low',
 
-    timeScope: 'month',    name: 'CIM Top Files',
-    icon: '🖼️',
-    description: 'Most-viewed files in a CIM category — thumbnails + views',
-  defaultLayout: { w: 12, h: 8, minW: 4, minH: 3 },
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
-    renderer: 'CimTopFilesCard',
-    dataSource: 'CIM top-viewed-media-files-monthly + imageinfo',
-    configFields: [
-      CIM_CATEGORY_FIELD,
-      { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
-      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
-      CIM_MONTH_FIELD,
-      { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' },
-    ],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopFiles(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN); },
-    transform: (data, config) => {
-      const scope = data.resolvedMonth || resolveMonth(config.month);
-      return {
-      title: data.category.replace(/_/g, ' '),
-      subtitle: `${fmtMonth(scope.year, scope.month)} · top files by pageviews · ${config.scope} · precomputed (CIM)`,
-      rows: data.rows.map((r) => ({ title: r.title.replace(/_/g, ' '), views: r.views, thumbUrl: r.thumbUrl })),
-      };
-    },
-  },
-
-  cimTopWikis: {
-    id: 'cimTopWikis',
-    category: 'Categories & GLAM', intensity: 'low',
-
-    timeScope: 'month',    name: 'CIM Top Wikis',
-    icon: '🌍',
-    description: 'Which wikis use a CIM category\'s files most',
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0, topN: 10, refreshSeconds: 3600 },
-    renderer: 'RankingCard',
-    dataSource: 'CIM top-wikis-per-category-monthly',
-    configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopWikis(p.title, config.scope, p.projectConfig, config.month, config.topN); },
-    transform: (data, config) => {
- const sc = data.resolvedMonth || resolveMonth(config.month);
- return cimRanking(
-      data.category.replace(/_/g, ' '),
-      `${fmtMonth(sc.year, sc.month)} · wikis using the files · ${config.scope} · precomputed (CIM)`,
-      ['Wiki', 'Views'],
-      data.rows.map((r) => [r.wiki, r.views.toLocaleString()]),
-      ['cim-name', 'cim-num'],
- ); } },
-
-  cimTopPages: {
-    id: 'cimTopPages',
-    category: 'Categories & GLAM', intensity: 'low',
-
-    timeScope: 'month',    name: 'CIM Top Pages',
-    icon: '📄',
-    description: 'Pages that use a CIM category\'s files, by views',
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10, refreshSeconds: 3600 },
-    renderer: 'RankingCard',
-    dataSource: 'CIM top-pages-per-category-monthly',
-    configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopPages(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN); },
-    transform: (data, config) => {
- const sc = data.resolvedMonth || resolveMonth(config.month);
- return cimRanking(
-      data.category.replace(/_/g, ' '),
-      `${fmtMonth(sc.year, sc.month)} · pages using the files · ${config.scope} · precomputed (CIM)`,
-      ['Wiki', 'Page', 'Views'],
-      data.rows.map((r) => { const href = pageHref(r.wiki, r.page); const p = r.page.replace(/_/g, ' '); return [r.wiki, href ? { text: p, href } : p, r.views.toLocaleString()]; }),
-      ['cim-name', 'cim-name', 'cim-num'],
- ); } },
-
-  cimTopEditors: {
-    id: 'cimTopEditors',
-    category: 'Categories & GLAM', intensity: 'low',
-
-    timeScope: 'month',    name: 'CIM Top Editors',
-    icon: '✍️',
-    description: 'Top contributors to a CIM category, by edit count',
-    labelFromConfig: (c) => (c.category || '').replace(/_/g, ' '),
-    defaults: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', editType: 'all-edit-types', month: 0, topN: 10, refreshSeconds: 3600 },
-    renderer: 'RankingCard',
-    dataSource: 'CIM top-editors-monthly',
-    configFields: [CIM_CATEGORY_FIELD, { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES }, { key: 'editType', label: 'Edit type', type: 'select', options: CIM_EDIT_TYPES }, CIM_MONTH_FIELD, { key: 'topN', label: 'Top N', type: 'number', placeholder: '10' }],
-    fetch: (config) => { const p = pageRef(config, 'category', 'wiki'); return fetchCimTopEditors(p.title, config.scope, config.editType, p.projectConfig, config.month, config.topN); },
-    transform: (data, config) => {
- const sc = data.resolvedMonth || resolveMonth(config.month);
- return cimRanking(
-      data.category.replace(/_/g, ' '),
-      `${fmtMonth(sc.year, sc.month)} · top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
-      ['Editor', 'Edits'],
-      data.rows.map((r) => [editorLinks(r.user), r.edits.toLocaleString()]),
-      ['cim-name', 'cim-num'],
- ); } },
-
-  cimLeaderboard: {
-    id: 'cimLeaderboard',
-    category: 'Categories & GLAM', intensity: 'low', // moved from Rankings & Platforms (2026-09-01) — keeps the CIM family together in the Add Widget panel
-
-    timeScope: 'month',    name: 'CIM Global Leaderboard',
+    timeScope: 'month',    name: 'CIM Top-N',
     icon: '🏆',
-    description: 'Top 100 most-viewed categories on Commons (precomputed)',
-    labelFromConfig: () => 'Top 100',
-    defaults: { scope: 'deep', wiki: 'all-wikis', month: 0, highlight: '', refreshSeconds: 3600 },
+    description: 'Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons',
+    labelFromConfig: (c) => (cimFacet(c) === 'categories' ? 'Top 100' : (c.category || '').replace(/_/g, ' ')),
+    defaults: {
+      facet: 'files',
+      category: 'Files from the Biodiversity Heritage Library',
+      scope: 'deep',
+      wiki: 'all-wikis',
+      editType: 'all-edit-types',
+      topN: 10,
+      highlight: '',
+      month: 0,
+      refreshSeconds: 3600,
+    },
     renderer: 'RankingCard',
-    dataSource: 'CIM top-viewed-categories-monthly',
+    getRenderer: (config) => (cimFacet(config) === 'files' ? 'CimTopFilesCard' : 'RankingCard'),
+    dataSource: 'CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly',
     configFields: [
+      CIM_FACET_FIELD,
+      CIM_CATEGORY_FIELD_BY_FACET,
       { key: 'scope', label: 'Scope', type: 'select', options: CIM_SCOPES },
-      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
+      { key: 'wiki', label: 'Wiki', type: 'project', showIf: { facet: ['files', 'pages', 'categories'] }, extras: [{ value: 'all-wikis', label: 'All wikis' }] },
+      { key: 'editType', label: 'Edit type', type: 'select', options: CIM_EDIT_TYPES, showIf: { facet: 'editors' } },
+      { key: 'topN', label: 'Top N', type: 'number', showIf: { facet: ['files', 'wikis', 'pages', 'editors'] }, placeholder: '10' },
+      { key: 'highlight', label: 'Highlight category (optional)', type: 'text', showIf: { facet: 'categories' }, placeholder: 'Wiki Loves Monuments 2024' },
       CIM_MONTH_FIELD,
-      { key: 'highlight', label: 'Highlight category (optional)', type: 'text', placeholder: 'Wiki Loves Monuments 2024' },
     ],
-    fetch: (config) => fetchCimLeaderboard(config.scope, config.wiki, undefined, config.month),
+    fetch: (config) => {
+      const facet = cimFacet(config);
+      if (facet === 'categories') return fetchCimLeaderboard(config.scope, config.wiki, undefined, config.month);
+      const p = pageRef(config, 'category', 'wiki');
+      if (facet === 'files') return fetchCimTopFiles(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN);
+      if (facet === 'wikis') return fetchCimTopWikis(p.title, config.scope, undefined, config.month, config.topN);
+      if (facet === 'pages') return fetchCimTopPages(p.title, config.scope, p.projectConfig, undefined, config.month, config.topN);
+      return fetchCimTopEditors(p.title, config.scope, config.editType, undefined, config.month, config.topN);
+    },
     transform: (data, config) => {
-      const highlight = (config.highlight || '').trim();
-      const hl = highlight ? data.rows.find((r) => r.category.replace(/_/g, ' ').toLowerCase() === highlight.toLowerCase()) : null;
-      const scope = data.resolvedMonth || resolveMonth(config.month);
-      const mo = fmtMonth(scope.year, scope.month);
-      return cimRanking(
-        'Most-viewed categories',
-        hl
-          ? `${mo} · #${hl.rank} of top 100 · ${hl.category.replace(/_/g, ' ')} (${hl.views.toLocaleString()} views)`
-          : highlight ? `${mo} · ${highlight} not in the top 100 · precomputed (CIM)` : `${mo} · top 100 · precomputed (CIM)`,
-        ['Category', 'Views'],
-        data.rows.map((r) => [
-          { text: r.category.replace(/_/g, ' '), href: `https://commons.wikimedia.org/wiki/Category:${r.category}` },
-          r.views.toLocaleString(),
-        ]),
+      const facet = cimFacet(config);
+      const sc = data.resolvedMonth || resolveMonth(config.month);
+      if (facet === 'categories') {
+        const highlight = (config.highlight || '').trim();
+        const hl = highlight ? data.rows.find((r) => r.category.replace(/_/g, ' ').toLowerCase() === highlight.toLowerCase()) : null;
+        const mo = fmtMonth(sc.year, sc.month);
+        return cimRows(
+          'Most-viewed categories',
+          hl
+            ? `${mo} · #${hl.rank} of top 100 · ${hl.category.replace(/_/g, ' ')} (${hl.views.toLocaleString()} views)`
+            : highlight ? `${mo} · ${highlight} not in the top 100 · precomputed (CIM)` : `${mo} · top 100 · precomputed (CIM)`,
+          ['Category', 'Views'],
+          data.rows.map((r) => [
+            { text: r.category.replace(/_/g, ' '), href: `https://commons.wikimedia.org/wiki/Category:${r.category}` },
+            r.views.toLocaleString(),
+          ]),
+          ['cim-name', 'cim-num'],
+        );
+      }
+      if (facet === 'files') {
+        return {
+          title: data.category.replace(/_/g, ' '),
+          subtitle: `${fmtMonth(sc.year, sc.month)} · top files by pageviews · ${config.scope} · precomputed (CIM)`,
+          rows: data.rows.map((r) => ({ title: r.title.replace(/_/g, ' '), views: r.views, thumbUrl: r.thumbUrl })),
+        };
+      }
+      if (facet === 'pages') {
+        return cimRows(
+          data.category.replace(/_/g, ' '),
+          `${fmtMonth(sc.year, sc.month)} · pages using the files · ${config.scope} · precomputed (CIM)`,
+          ['Wiki', 'Page', 'Views'],
+          data.rows.map((r) => { const href = pageHref(r.wiki, r.page); const p = r.page.replace(/_/g, ' '); return [r.wiki, href ? { text: p, href } : p, r.views.toLocaleString()]; }),
+          ['cim-name', 'cim-name', 'cim-num'],
+        );
+      }
+      if (facet === 'editors') {
+        return cimRows(
+          data.category.replace(/_/g, ' '),
+          `${fmtMonth(sc.year, sc.month)} · top editors · ${config.editType === 'all-edit-types' ? 'all edits' : config.editType + 's'} · precomputed (CIM)`,
+          ['Editor', 'Edits'],
+          data.rows.map((r) => [editorLinks(r.user), r.edits.toLocaleString()]),
+          ['cim-name', 'cim-num'],
+        );
+      }
+      return cimRows(
+        data.category.replace(/_/g, ' '),
+        `${fmtMonth(sc.year, sc.month)} · wikis using the files · ${config.scope} · precomputed (CIM)`,
+        ['Wiki', 'Views'],
+        data.rows.map((r) => [r.wiki, r.views.toLocaleString()]),
         ['cim-name', 'cim-num'],
       );
-    },
-  },
-
-  cimFileSpotlight: {
-    id: 'cimFileSpotlight',
-    category: 'Categories & GLAM', intensity: 'low',
-
-    timeScope: 'month',    name: 'CIM File Spotlight',
-    icon: '🔦',
-    description: 'One Commons file: wikis/pages using it + monthly view trend',
-    labelFromConfig: (c) => (c.filename || '').replace(/_/g, ' '),
-    defaults: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', month: 0, showImage: true, refreshSeconds: 3600 },
-    renderer: 'CimSnapshotCard',
-    dataSource: 'CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly',
-    configFields: [
-      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
-      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
-      { key: 'showImage', label: 'Show image preview', type: 'boolean' },
-      CIM_MONTH_FIELD,
-    ],
-    fetch: (config) => fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month, config.showImage),
-    transform: (data, config) => {
-      const scope = data.resolvedMonth || resolveMonth(config.month);
-      return {
-      title: data.file.replace(/_/g, ' '),
-      href: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
-      fileHref: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
-      subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
-      image: config.showImage !== false ? data.image : null,
-      stats: [
-        { label: 'Wikis using it', value: data.wikis.toLocaleString(), sub: 'leveraging-wiki-count' },
-        { label: 'Pages using it', value: data.pages.toLocaleString(), sub: 'leveraging-page-count' },
-        { label: 'Views (month)', value: data.views.toLocaleString(), sub: 'pageviews of using pages' },
-      ],
-      trend: data.trend,
-      };
-    },
-  },
-
-  cimFileTraffic: {
-    id: 'cimFileTraffic',
-    category: 'Categories & GLAM', intensity: 'low',
-
-    timeScope: 'range',    name: 'CIM File Traffic',
-    icon: '📉',
-    description: 'Monthly pageview traffic for one Commons file — labeled axes, zoom in/out',
-    labelFromConfig: (c) => (c.filename || '').replace(/_/g, ' '),
-    defaults: { filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg', wiki: 'all-wikis', months: 12, month: 0, refreshSeconds: 3600 },
-    renderer: 'FileTrafficCard',
-    dataSource: 'CIM pageviews-per-media-file-monthly',
-    configFields: [
-      { key: 'filename', label: 'Commons file', kind: 'commons-file', type: 'text', placeholder: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg' },
-      { key: 'wiki', label: 'Wiki', type: 'project', extras: [{ value: 'all-wikis', label: 'All wikis' }] },
-      { key: 'months', label: 'Fetch window (3–24 months)', type: 'number', placeholder: '12' },
-      CIM_MONTH_FIELD,
-    ],
-    fetch: (config) => fetchCimFileTraffic(config.filename, config.wiki, config.months, undefined, config.month),
-    transform: (data, config) => {
-      const end = data.resolvedMonth || resolveMonth(config.month);
-      const n = Math.min(Math.max(parseInt(config.months) || 12, 3), 24);
-      const start = shiftMonth(end.year, end.month, -(n - 1));
-      return {
-        title: data.file.replace(/_/g, ' '),
-        subtitle: `${fmtMonthRange(start.year, start.month, end.year, end.month)} · pageviews of pages using this file · precomputed (CIM)`,
-        rows: data.rows,
-      };
     },
   },
 
@@ -2418,14 +2400,46 @@ export const WIDGET_TYPES = {
 /**
  * Resolve a widget type id to its definition, including the ids that used to be widgets of their own.
  *
- * The gallery family was three widgets that shared a renderer and differed by one field — the source — so they are
- * one widget now. The old ids are resolved here rather than registered as aliases, because the ⚙ Add-widget list is
- * built from `Object.values(WIDGET_TYPES)`, and an alias key would appear in the picker as a second, identical entry.
+ * Two families have merged, and they needed two shapes of answer:
+ *
+ *  • the gallery was three widgets that shared a renderer and differed by one field — the source — so the old ids
+ *    resolve to the merged definition and the source is inferred from the fields a board carries
+ *    (`inferGallerySource`);
+ *  • the CIM family was nine widgets over nine API calls, and the five ranking ones carry *identical* configs — so
+ *    the retired id is the only evidence of which question a board asked. Those entries therefore name the implied
+ *    selector value as well as the type (`LEGACY_CIM_IDS`).
+ *
+ * The old ids are resolved here rather than registered as aliases, because the ⚙ Add-widget list is built from
+ * `Object.values(WIDGET_TYPES)`, and an alias key would appear in the picker as a second, identical entry.
+ *
+ * The implied `config` is merged into the resolved definition's `defaults`, which is exactly what
+ * `normalizeConfigForDef` fills a stored config from — and it fills only keys the config lacks, so an existing board
+ * keeps its own values and is never rewritten on load.
  */
-const LEGACY_WIDGET_IDS = { commonsGallery: 'gallery', fileGallery: 'gallery' };
+const LEGACY_WIDGET_IDS = {
+  commonsGallery: 'gallery',
+  fileGallery: 'gallery',
+  ...LEGACY_CIM_IDS,
+};
+
+/**
+ * Resolved legacy definitions, cached: `WidgetFrame` uses the definition as a `useMemo` dependency, so returning a
+ * fresh object per call would recompute the normalized config on every render.
+ */
+const LEGACY_DEF_CACHE = new Map();
 
 export function widgetDef(widgetType) {
-  return WIDGET_TYPES[widgetType] || WIDGET_TYPES[LEGACY_WIDGET_IDS[widgetType]] || null;
+  const direct = WIDGET_TYPES[widgetType];
+  if (direct) return direct;
+  const legacy = LEGACY_WIDGET_IDS[widgetType];
+  if (!legacy) return null;
+  if (typeof legacy === 'string') return WIDGET_TYPES[legacy] || null;
+  const base = WIDGET_TYPES[legacy.type];
+  if (!base) return null;
+  if (!LEGACY_DEF_CACHE.has(widgetType)) {
+    LEGACY_DEF_CACHE.set(widgetType, { ...base, defaults: { ...base.defaults, ...legacy.config } });
+  }
+  return LEGACY_DEF_CACHE.get(widgetType);
 }
 
 /** Every id an old board might carry for a widget that still exists. */

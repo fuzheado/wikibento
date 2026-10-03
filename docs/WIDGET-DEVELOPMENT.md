@@ -329,8 +329,8 @@ myWidget: {
 - **MediaPlayerCard** (Video / Media Player) — `{ title, subtitle, rows: [{title, fileUrl, mediaType, derivatives: [{type, width, height, src}], originalUrl, duration}], mediaType, quality, loopPlaylist, shuffle, autoplay }` — native `<video>`/`<audio>` per track; the renderer picks the best transcoded VP9 WebM for the requested (height-based) quality, falling back to the original; jukebox controls (next/prev, loop wrap, shuffle, ▶ Start pill for autoplay policy)
 - **ArticleListCard** (Article List) — `{ title, subtitle, rows: [{title, pageUrl, thumbUrl?, extract?}] }` — clickable rows, optional thumb + 3-line intro. The same row contract works for any pasted-list widget.
 - **CimSnapshotCard** (CIM Snapshot / File Spotlight) — `{ title, subtitle?, stats: [{label, value, sub}], trend?: [{date, views}] }` — reuses the GlamCard stat-tile markup, optional monthly-view sparkline.
-- **FileTrafficCard** (CIM File Traffic) — `{ title, subtitle, rows: [{date, views}] }` — SVG line chart with labeled X/Y axes and −/+ zoom (client-side slice of the fetched window); the card header shows the displayed range.
-- **CimTopFilesCard** (CIM Top Files) — `{ title, subtitle?, rows: [{title, views, thumbUrl?}] }` — ranked rows with 44px thumbs (RankingCard has none).
+- **FileTrafficCard** (CIM Views Over Time, the file arm) — `{ title, subtitle, rows: [{date, views}] }` — SVG line chart with labeled X/Y axes and −/+ zoom (client-side slice of the fetched window); the card header shows the displayed range.
+- **CimTopFilesCard** (CIM Top-N, facet: files) — `{ title, subtitle?, rows: [{title, views, thumbUrl?}] }` — ranked rows with 44px thumbs (RankingCard has none).
 - **SparqlCard** (SPARQL Query) — one renderer, mode decided by the transform: `{ mode, title, subtitle, … }` where mode is `stat` (StatCard contract), `line` (TrendCard contract), `bar` (`{rows: [{label, value}]}`), or `table` (`{columns, rows: [[cells]]}`). Auto-detect lives in the widget's `transform` (config.renderer overrides).
 
 Need a new shape? Add a renderer component to `WidgetFrame.jsx` and extend the
@@ -446,3 +446,76 @@ Three things to get right when you add one:
 3. **The card's own inset is yours to drop.** The frame handles the title bar and the body padding; the *inner* card
    padding, borders and radii are per-renderer, and an edge-to-edge card that keeps them looks broken rather than
    immersive. Add the selector next to the others in `src/App.css`.
+
+# Merging or Retiring a Widget Type (read before collapsing a family)
+
+The catalog is not append-only. Twice now a family of near-identical widgets has been folded into one parameterised
+type, and both times the same questions had to be answered, so this is the checklist rather than a story about what
+happened.
+
+- **Gallery** (2026-09): `commonsGallery` + `fileGallery` → `gallery` — one type, three sources, `showIf` on the
+  source-specific fields. Implementation: `src/lib/gallerySource.js`, `LEGACY_WIDGET_IDS` in `src/widgets/index.js`.
+- **Commons Impact Metrics** (2026-10-03): nine types over nine endpoints → `cimStats` + `cimTrend` + `cimRanking` —
+  three result *shapes*. Implementation: `src/lib/cimFamily.js`, the legacy map, and `tests/cim-family.test.mjs`.
+
+## When a merge is right
+
+Not "these look similar" — **these answer the same question about the same data and differ only in a parameter**. The
+CIM cut had the honest test: three independent properties agreed on the same three groups — the return shape (counts /
+a `{date, views}` series / ranked rows), the renderer family, and `timeScope`. When those agree, the type boundary and
+the data boundary are the same line, and the merge is a simplification. When they disagree — because two widgets share
+a renderer but not a shape, or share `timeScope` but not a shape — you are probably looking at *one type with a
+display mode*, which is a renderer decision (ISSUE-38), not a catalog one.
+
+The cost of NOT merging is what the frontier looks like: a catalog where a reader has to know which of nine entries
+answers "how are these files being viewed" is a catalog that has delegated a decision to the reader.
+
+## The five steps
+
+1. **Add the surviving type(s)** to `WIDGET_TYPES` and **delete the retired entries from it.** The registry is an
+   object keyed by id — delete from `id: 'x',` to the next `id: 'y',`, taking the whole entry, or the following entry
+   loses its own (AGENTS.md has the incident: 588 of 609 tests stayed green while `commonsGallery` became `fileUsage`).
+   Rename the internal view helpers if a new type id collides with one (the CIM merge renamed `cimRanking()` →
+   `cimRows()` for exactly that reason).
+2. **Make the retired ids resolve** in `LEGACY_WIDGET_IDS`, as `'newId'` or as `{ type: 'newId', config: {...} }` when
+   the old id *implied a selector value* — `cimTopPages` and `cimTopWikis` are the same widget with different configs,
+   so the old id is the only evidence of which one a board meant. `widgetDef()` merges that `config` into the resolved
+   definition's `defaults`, which is where `normalizeConfigForDef` fills a stored config from — **only for keys the
+   config lacks**, so a stored board is never rewritten. Resolved definitions are memoised: `WidgetFrame` uses the
+   definition as a `useMemo` dependency and a fresh object per render would defeat it.
+3. **Keep the aliases out of `WIDGET_TYPES`.** The ⚙ Add panel is built from `Object.values(WIDGET_TYPES)`, so an
+   alias key is a second `+` button for the same card; `recentWidgetDefs` de-duplicates by `def.id` for the same
+   reason. Configs and docs refer to the *surviving* id.
+4. **Prove backward compatibility with a test, not with a promise** — `tests/cim-family.test.mjs` is the worked
+   example: every retired id resolves to the expected type *and* the expected selector value; an old-shaped config
+   gains the selector and loses nothing; `normalizeConfigForDef` returns the new keys and keeps the old ones; the
+   transform still renders the question the old board asked; and the retired ids are asserted absent from
+   `WIDGET_TYPES`.
+5. **Move what we publish, leave what others hold.** Shipped boards (`public/*.json`), fixtures, the Ask few-shot,
+   helper id lists in `scripts/`, and the `dashboard.schema.json` enum all have to move — the last one
+   **additively**: keep every retired id in the enum, because external tools validate against it and an old board is
+   still legal. Boards in the wild (localStorage, `?config=` URLs, exports) are never touched.
+
+## Traps, each of which cost time once
+
+- **`tests/demos.test.mjs` asserts every shipped card's `widgetType` is a *direct key* of `WIDGET_TYPES`** — not merely
+  resolvable through `widgetDef`. So our own boards must migrate even though old boards keep working.
+- **`scripts/docs-facts.mjs` finds registry ids with `^\s{4}id:\s*'…'`** (four spaces). A new entry indented
+  differently is invisible to the count gates, and the counts then pass while being wrong. Its `WIDGET-MAP` check is
+  one-directional too: a regenerated map that keeps old rows still passes.
+- **`scripts/generate-manifest.mjs` parses this file's source text.** Two consequences: a property that follows a
+  comment line inside a parsed object is invisible to it (`prop()` needs the `{` or `,` immediately before), and a
+  **single-line** shared field constant (`const X = { key: '…' };`) never reaches the manifest — the regex wants the
+  closing `\n};`. That is why `CIM_MONTH_FIELD` is written across two lines.
+- **A shared field constant can only carry one `showIf`.** The CIM merge needed two category fields — one gated on
+  `subject`, one on `facet` — as two constants with the same `hint` sentence, because a field hidden by the wrong
+  selector is a field the panel never shows (the hint sentence is asserted by `tests/ask-validation.test.mjs`, which
+  is what keeps the two copies honest).
+- **The Ask few-shot lives in `deploy/server.js` and is mirrored in the checked-in bundle `av.mjs`** — edit both, or
+  the prompt keeps teaching the retired id.
+- **`RETIRED_WIDGET_NAMES` in `scripts/docs-facts.mjs` is the only thing stopping a retired *name* from creeping back**
+  into the docs or a board's welcome text. Add the names in the same commit as the merge (AGENTS.md rule: a departed
+  widget's name is annotated on first appearance, not silently dropped).
+- **Count claims move together** — the type count, the data-driven count and the catalog-widget count were duplicated across
+  ~22 sources; `node scripts/docs-facts.mjs` names the file that disagrees, so run it and fix what it names rather
+  than trusting a search-and-replace.

@@ -61,7 +61,7 @@ assertFreshBuild();
 // dashboard config (so it cannot drift from the widgets' real defaults) and pastes it in.
 const probeBoard = () => {
   const dash = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public/dashboard.json'), 'utf8'));
-  const want = new Set(['topPages', 'topWikipedias', 'cimTopFiles']);
+  const want = new Set(['topPages', 'topWikipedias', 'cimRanking']);
   const widgets = dash.widgets.filter((w) => want.has(w.widgetType)).map((w) => ({
     ...w,
     config: { ...w.config, ...(w.widgetType === 'topPages' ? { showExpanded: true } : {}) },

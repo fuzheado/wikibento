@@ -12,7 +12,7 @@ This is what you read before writing a WikiBento board outside WikiBento — in 
 It contains everything the app's ⬆ **Import** panel accepts, so a board written from this page imports with no
 warnings.
 
-**Why it exists.** WikiBento's own advisor was measured on 42 widget types: given the catalog *alone* it
+**Why it exists.** WikiBento's own advisor was measured on 36 widget types: given the catalog *alone* it
 chose the right widget **93%** of the time and produced a usable envelope **0%** of the time — forty-eight replies, forty-
 eight different inventions of the top-level shape. The catalog is not the hard part. **The shape is**, and the value
 vocabulary, and a way to check the result. Those are the first four sections; the last two are the repository's own
@@ -58,7 +58,7 @@ looks like, and what each card is *for*.
 - [The README](https://github.com/fuzheado/wikibento#readme) — what it is, the demo boards, screenshots.
 - [The GUIDE](https://github.com/fuzheado/wikibento/blob/main/docs/GUIDE.md) — using the app: cards, the ⚙ panel, params, sharing, print.
 - [The widget catalog](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-CATALOG.md) — every type in prose, with what each one is for.
-- [**The widget map**](https://github.com/fuzheado/wikibento/blob/main/docs/widget-map.pdf) — all 42 types on **one page** (A4
+- [**The widget map**](https://github.com/fuzheado/wikibento/blob/main/docs/widget-map.pdf) — all 36 types on **one page** (A4
   landscape), grouped by what you must supply, with the gates and the shipping chains. The best two minutes a human
   can spend before writing a board.
 - [The board specification](https://github.com/fuzheado/wikibento/blob/main/docs/JSON-FORMAT.md) — Appendix A here, with the repository's own
@@ -114,7 +114,7 @@ severity model is in §6.
 at <https://wikibento.toolforge.org/manifest.json> — both with `Access-Control-Allow-Origin: *`, so a browser-based tool
 can read them too.
 
-## 2. The catalog — 42 types
+## 2. The catalog — 36 types
 
 Ids are exact; `fields:` lists the config keys with their types, and ``[a | b]`` the allowed values of a select.
 Where a field says `(only when …)` it applies to one source mode of that widget.
@@ -196,7 +196,7 @@ Turns any text or URL into a scannable QR code — a phone-readable bridge from 
 
 - role: `display` · publishes `value` (the bare id)
 - reads: static (no fetch — local encoding, qrcode-generator)
-- fields: `text`:textarea · `ecLevel`:select [auto | L | M | Q | H] · `margin`:number · `caption`:text
+- fields: `text`:textarea · `ecLevel`:select [auto | L | M | Q | H] · `margin`:number · `caption`:text · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `text`, `ecLevel`, `margin`, `caption`, `refreshSeconds`
 
 ### `excerpt` — Article Excerpt
@@ -236,7 +236,7 @@ Images from one source — an article, a Commons gallery page, a wiki category, 
 
 - role: `display` · publishes: `#lines` (`lines`) ← the bare id · `#selection` (`value`)
 - reads: four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)
-- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `maxItems`:number · `linkAction`:select [new tab | send to the board | both]
+- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `maxItems`:number · `linkAction`:select [new tab | send to the board | both] · `edgeToEdge`:boolean
 - defaults: may be omitted: `from`, `article`, `page`, `category`, `files`, `displayMode`, `showCaptions`, `edgeToEdge`, `iconSize`, `imageFit`, `order`, `minSize`, `maxItems`, `includeAll`, `hideDecorative`, `groupBy`, `linkAction`, `refreshSeconds`
 
 ### `articleList` — Article List
@@ -247,77 +247,29 @@ Clickable list of articles — pasted titles, optional thumbnails + intros
 - fields: `articles`:textarea · `project`:project · `enrich`:boolean · `maxItems`:number
 - defaults: may be omitted: `articles`, `project`, `enrich`, `maxItems`, `refreshSeconds`
 
-### `cimSnapshot` — CIM Category Snapshot · CIM-allow-list
-Exact precomputed stats for a CIM-registered Commons category — files, used, wikis, pages
+### `cimStats` — CIM Snapshot · CIM-allow-list
+Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
 
 - role: `source`
-- reads: CIM category-metrics-snapshot (precomputed, allow-list)
-- fields: `scope`:select [deep | shallow] · `category`:text · `month`:number
-- defaults: may be omitted: `category`
+- reads: CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)
+- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
+- defaults: may be omitted: `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
 
 ### `cimTrend` — CIM Views Over Time · CIM-allow-list
-Monthly pageview trend of pages using a CIM category's files
+Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
 
 - role: `source`
-- reads: CIM pageviews-per-category-monthly
-- fields: `scope`:select [deep | shallow] · `wiki`:project · `months`:number · `zeroY`:boolean · `category`:text
-- defaults: may be omitted: `category`
+- reads: CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly
+- fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project · `months`:number · `zeroY`:boolean only when `subject` is `category` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
+- defaults: may be omitted: `subject`, `category`, `scope`, `wiki`, `months`, `filename`, `month`, `zeroY`, `refreshSeconds`
 
-### `cimTopFiles` — CIM Top Files · CIM-allow-list
-Most-viewed files in a CIM category — thumbnails + views
-
-- role: `source`
-- reads: CIM top-viewed-media-files-monthly + imageinfo
-- fields: `scope`:select [deep | shallow] · `wiki`:project · `topN`:number · `category`:text
-- defaults: may be omitted: `category`
-
-### `cimTopWikis` — CIM Top Wikis · CIM-allow-list
-Which wikis use a CIM category's files most
+### `cimRanking` — CIM Top-N · CIM-allow-list
+Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
 
 - role: `source`
-- reads: CIM top-wikis-per-category-monthly
-- fields: `scope`:select [deep | shallow] · `topN`:number · `category`:text · `month`:number
-- defaults: may be omitted: `category`
-
-### `cimTopPages` — CIM Top Pages · CIM-allow-list
-Pages that use a CIM category's files, by views
-
-- role: `source`
-- reads: CIM top-pages-per-category-monthly
-- fields: `scope`:select [deep | shallow] · `wiki`:project · `topN`:number · `category`:text
-- defaults: may be omitted: `category`
-
-### `cimTopEditors` — CIM Top Editors · CIM-allow-list
-Top contributors to a CIM category, by edit count
-
-- role: `source`
-- reads: CIM top-editors-monthly
-- fields: `scope`:select [deep | shallow] · `editType`:select [all-edit-types | create | update] · `topN`:number · `category`:text · `month`:number
-- defaults: may be omitted: `category`
-
-### `cimLeaderboard` — CIM Global Leaderboard · CIM-allow-list
-Top 100 most-viewed categories on Commons (precomputed)
-
-- role: `source`
-- reads: CIM top-viewed-categories-monthly
-- fields: `scope`:select [deep | shallow] · `wiki`:project · `highlight`:text
-- defaults: may be omitted: `scope`
-
-### `cimFileSpotlight` — CIM File Spotlight · CIM-allow-list
-One Commons file: wikis/pages using it + monthly view trend
-
-- role: `source`
-- reads: CIM media-file-metrics-snapshot + pageviews-per-media-file-monthly
-- fields: `filename`:text · `wiki`:project · `showImage`:boolean
-- defaults: may be omitted: `filename`
-
-### `cimFileTraffic` — CIM File Traffic · CIM-allow-list
-Monthly pageview traffic for one Commons file — labeled axes, zoom in/out
-
-- role: `source`
-- reads: CIM pageviews-per-media-file-monthly
-- fields: `filename`:text · `wiki`:project · `months`:number
-- defaults: may be omitted: `filename`
+- reads: CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly
+- fields: `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `month`:number
+- defaults: may be omitted: `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
 
 ### `boardControls` — Board Controls
 Buttons / menus that drive board params ({{param}}) — one click re-aims every widget that references the param (ISSUE-50)
@@ -372,7 +324,7 @@ A static map of a place — a coordinate, a Wikidata item, or a page title — d
 
 - role: `display` · consumes another widget's output (a `source` field) · publishes `geojson` (the bare id)
 - reads: Kartographer static maps (maps.wikimedia.org/img) + Wikidata P625, or the wiki's own prop=coordinates
-- fields: `place`:text · `points`:textarea · `shape`:select [markers | path | area] · `geojson`:textarea · `source`:source kinds:geojson · `framePoints`:boolean · `project`:project · `zoom`:number · `lang`:text · `imageFit`:select [cover | contain] · `showPin`:boolean
+- fields: `place`:text · `points`:textarea · `shape`:select [markers | path | area] · `geojson`:textarea · `source`:source kinds:geojson · `framePoints`:boolean · `project`:project · `zoom`:number · `lang`:text · `imageFit`:select [cover | contain] · `showPin`:boolean · `edgeToEdge`:boolean
 - defaults: may be omitted: `place`, `points`, `shape`, `geojson`, `framePoints`, `project`, `zoom`, `lang`, `imageFit`, `showPin`, `edgeToEdge`, `refreshSeconds`
 
 ### `panorama360` — 360° Panorama Viewer
@@ -388,7 +340,7 @@ Play video or audio — Commons files, or any direct media URL such as an archiv
 
 - role: `source`
 - reads: Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call
-- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `annotation`:textarea
+- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `annotation`:textarea · `edgeToEdge`:boolean
 - defaults: may be omitted: `files`, `mediaType`, `quality`, `loopPlaylist`, `shuffle`, `autoplay`, `showDescription`, `objectFit`, `edgeToEdge`, `annotation`, `refreshSeconds`
 
 ### `waybackGallery` — Wayback Snapshot Gallery · experimental · heavy (many API calls)
@@ -412,7 +364,7 @@ A scanned Internet Archive book, page by page — turn, zoom to read, jump to a 
 
 - role: `source` · publishes `value` (the bare id)
 - reads: iiif.archive.org (Presentation v3 manifest + Image API v3 + Content Search)
-- fields: `identifier`:text · `spread`:select [auto | on | off]
+- fields: `identifier`:text · `spread`:select [auto | on | off] · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `identifier`, `spread`, `refreshSeconds`
 
 ### `documentReader` — Document Reader
@@ -420,7 +372,7 @@ Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn,
 
 - role: `source` · publishes `value` (the bare id)
 - reads: Commons API imageinfo — pagecount + a page-N thumbnail template (one call)
-- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off]
+- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
 
 ### `listSource` — Text List
@@ -459,7 +411,7 @@ Show whatever another widget outputs (number, lines, JSON) — the debug/pipe en
 
 - **CIM (Commons Impact Metrics) is precomputed for a curated allow list of 1,775 Commons
   categories** (mostly GLAM, archive, museum and library collections). These types read it and **only work for a category
-  on that list**: `cimSnapshot`, `cimTrend`, `cimTopFiles`, `cimTopWikis`, `cimTopPages`, `cimTopEditors`, `cimLeaderboard`, `cimFileSpotlight`, `cimFileTraffic`. For any other category use `glamorgan` or `categorySize`,
+  on that list**: `cimStats`, `cimTrend`, `cimRanking`. For any other category use `glamorgan` or `categorySize`,
   which are live and work for any category. A category outside the list is not an error in the board — the card says so
   and names the request process — but it is an empty card.
 - **Needs this deployment's relay**: a few types depend on a same-origin relay that WikiBento itself runs (the map image
@@ -633,17 +585,22 @@ That loop is the point of serving it, so prefer it to guessing.
 | | `project` | `en.wikipedia` \| `de.wikipedia` \| `fr.wikipedia` \| `commons.wikimedia` |
 | | `mobile` | boolean (`?useformat=mobile` — MobileFrontend mobile view on the same domain) |
 | | `fragment` | string, optional `#anchor` |
-| `cimSnapshot` | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` |
+| `cimStats` | `subject` | `category` \| `file` — which arm the card uses (default `category`) |
+| | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` (`subject: category`) |
+| | `filename` / `wiki` / `showImage` | string (Commons file) · `all-wikis` \| project · boolean (`subject: file`) |
 | | `month` | number (default: last complete month) |
-| `cimTrend` | `category` / `scope` / `wiki` | string · `deep` \| `shallow` · `all-wikis` \| project |
-| | `months` | number, integer 2–24 |
-| `cimTopFiles` | `category` / `scope` / `wiki` / `topN` | as above; `topN` number |
-| `cimTopWikis` | `category` / `scope` / `topN` | as above |
-| `cimTopPages` | `category` / `scope` / `wiki` / `topN` | as above |
-| `cimTopEditors` | `category` / `scope` / `editType` / `topN` | `editType`: `all-edit-types` \| `create` \| `update` |
-| `cimLeaderboard` | `scope` / `wiki` / `highlight` | `highlight`: optional category (rank shown if in top 100) |
-| `cimFileSpotlight` | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project |
-| `cimFileTraffic` | `filename` / `wiki` / `months` | as above; `months` number 3–24 (fetch window) |
+| `cimTrend` | `subject` | `category` \| `file` (default `category`) |
+| | `category` / `scope` / `months` | string · `deep` \| `shallow` · number 2–24 (`subject: category`) |
+| | `zeroY` | boolean — Y axis starts at 0 (`subject: category`) |
+| | `filename` / `wiki` | string (Commons file) · `all-wikis` \| project (`subject: file`) |
+| | `month` | number (default: last complete month) |
+| `cimRanking` | `facet` | `files` \| `wikis` \| `pages` \| `editors` \| `categories` |
+| | `category` / `scope` | string (CIM-registered) · `deep` \| `shallow` (hidden for `facet: categories`) |
+| | `wiki` | `all-wikis` \| project (`facet: files` \| `pages` \| `categories`) |
+| | `editType` | `all-edit-types` \| `create` \| `update` (`facet: editors`) |
+| | `topN` | number (`facet: files` \| `wikis` \| `pages` \| `editors`) |
+| | `highlight` | optional category (rank shown if in top 100; `facet: categories`) |
+| | `month` | number (default: last complete month) |
 | `sparql` | `preset` | preset id (fills `query` + `endpoint`; see src/lib/sparqlPresets.js) |
 | | `query` | string, SPARQL (textarea; empty uses the preset's) |
 | | `endpoint` | `wdqs` \| `qlever-commons` \| `humaniki` |

@@ -59,7 +59,7 @@ const ROWS = [
     label: 'A category in the CIM allow list',
     note: 'Commons Impact Metrics — precomputed, and only for ~1,775 registered primary categories',
     gate: 'cim',
-    ids: ['cimSnapshot', 'cimTrend', 'cimTopFiles', 'cimTopWikis', 'cimTopPages', 'cimTopEditors', 'cimLeaderboard', 'cimFileSpotlight', 'cimFileTraffic'],
+    ids: ['cimStats', 'cimTrend', 'cimRanking'],
   },
   {
     id: 'files',

@@ -94,7 +94,7 @@ export const BOARD_FIXTURES = [
     id: 'board-switcher-institutions',
     prompt: 'Make a dashboard where I can switch between the Metropolitan Museum of Art and the Library of Congress and see their Commons collection stats',
     expected: {
-      chain: ['boardControls', 'cimSnapshot'],
+      chain: ['boardControls', 'cimStats'],
       config: {},
     },
     requireSubject: false,
