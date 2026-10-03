@@ -74,6 +74,7 @@ Gallery).
 | `npm run check:layouts` | no board in `public/` overlaps itself (`npm run repack:layouts` stores what the browser already renders; measured render-neutral on all 58 cards). A no-overlap assertion in `tests/demos.test.mjs` runs it as part of `npm test` |
 | `npm run guide:board` | regenerates `public/board-guide.md` (served at `/board-guide.md`) from the manifest + `docs/JSON-FORMAT.md` + `docs/WIRING-BOARDS.md` + the widget map's chains; `scripts/docs-facts.mjs` runs its `--check`, so an edit to any source doc fails the gate until the page is regenerated |
 | `npm run map:widgets` | regenerates the one-page widget map (`docs/widget-map.pdf` · `.png` · `.svg` · `WIDGET-MAP.md`) from the manifest; docs-facts fails if a registered type is missing from it |
+| `npm run smoke:mcp` | **the MCP endpoint, spoken to as a client** — part of the suite; **sixteen** assertions. `initialize` returns an `instructions` field of 499 characters (under the 512 ChatGPT reads), revision negotiation answers with the client's revision when it is known, a notification gets 202 with no body, `tools/list` carries schemas, and then a real call of all four tools — `get_catalog` (42 types), `get_board_guide` (§1 and the whole 64 KB), `validate_board` (clean for a good board, `unusable` naming the missing card for a broken one) and `make_board_url` (`#/d/` and `#/z/` links, the QR ceiling, and a refusal for a board that cannot import) — plus every refusal a client hits: an unknown method (-32601), an unknown tool (-32602, listing the four), `GET` (405), a foreign `Origin` (403) and an oversized body (413). `--base https://wikibento.toolforge.org` runs the read-only half against a deployment (`docs/MCP.md`) |
 | `npm run smoke:relay` | the **proxied routes** keep their promises: host allowlist, byte cap, size ladder, a cache hit, the rate limits answering a burst (the default allowance **and** the map's own, which must *not* answer — a board of map images is normal traffic), a second client still served, sane memory — `docs/PROXIES.md` |
 | `npm run smoke` | grid geometry (measured px vs intended formulas) + `smoke:panels` |
 | `npm run smoke:panels` | every ⚙/ⓘ action reachable at w3 h3 across 3 widths |
@@ -571,11 +572,13 @@ actually broken or unfinished today:
   out of `mediaProps`. Each was a one-console-error-per-load tax on every sweep row, which is why they finally got
   done: a check nobody can read is a check nobody runs.
 
-## The Ask door and MCP — the plan, and how much of it happened (agreed 2026-10-01, rows 1–5 shipped 2026-10-02)
+## The Ask door and MCP — the plan, all six rows done (agreed 2026-10-01, built and deployed 2026-10-02)
 
-**Where this stands:** the plan was agreed on 2026-10-01 and **rows 1–5 below are done and deployed** — the guide, the
-doctor, the regression net and the served validator, all on 2026-10-02. **Row 6 (the MCP endpoint) is what remains**, and
-it is the only part nobody has built. The background, for the next reader:
+**Where this stands: the whole plan is done and deployed** — the guide, the doctor, the regression net, the served
+validator and the MCP endpoint (`/mcp`, four read-only tools), all on 2026-10-02. Nothing in this section is a task list
+any more; it is the record of what the audit found and how each finding was answered, kept because the *how* is the part
+that gets re-derived. **The one thing outstanding is not work: it is a reader connecting a real model and writing a
+board**, which is the test every measurement above was a proxy for. The background:
 
 The background is the **Phase 2 audit of the Ask advisor**: [`docs/ASK-ARCHITECTURE.md`](docs/ASK-ARCHITECTURE.md) (rewritten 2026-10-01 — machinery map, a status table for the old F1–F4 findings and plan items 1–8, measured baselines, the failure taxonomy, the ranked fixes), the raw runs in `bench/results/2026-10-01-*.json`, and [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md). What matters for planning:
 
@@ -584,7 +587,8 @@ The background is the **Phase 2 audit of the Ask advisor**: [`docs/ASK-ARCHITECT
 - **Boards already pass the machinery:** `validateAssembly` **18/18**, the app's own `validateDashboard` **18/18** with no warnings, **6/6 render** in the built app. The *chains* wobble (assembly 67%, suggest 77%).
 - **Ranked fixes 1–4 are done** (2026-10-01; the record with the evidence is in `docs/VERIFIED-WORKING.md`): channel-qualified references, a chain few-shot, `wiki`→`project`, the token constitution. **5–8 remain** (see the order below).
 
-**MCP, as far as it is settled** (verified against the spec and both vendors' docs — do not re-research): a server is a **JSON-RPC endpoint** (`initialize`, `tools/list`, `tools/call`) over stdio or **Streamable HTTP** (one HTTPS path taking POST/GET/DELETE, replying `application/json` or SSE; sessions optional; `Origin` validation required; auth optional). **No LLM and no API key on our side** — the model runs in the client. **Claude:** Customize → Connectors → *Add custom connector* → URL, works on **free** (one connector), Pro, Max, Team, Enterprise; authless is supported; SSE is being deprecated, so use Streamable HTTP. **ChatGPT:** developer mode → create an app for your remote MCP server; **Pro** connects read/fetch-scoped servers (write actions need Business/Enterprise/Edu); SSE + Streamable HTTP, auth optional. Both connect **from their own cloud**, so the server must be publicly reachable — Toolforge is. A **stateless** endpoint (JSON responses, no sessions, no SSE) dodges the one unknown that cannot be checked from here (whether Toolforge's ingress buffers SSE). Put it in the **same zero-dep process as the relay**, sharing the manifest cache and the relay guard (rate limit, byte cap, deadline, in-flight ceiling).
+**MCP, as it was established before building** (verified against the spec and both vendors' docs — do not
+re-research; the built endpoint is `docs/MCP.md`): a server is a **JSON-RPC endpoint** (`initialize`, `tools/list`, `tools/call`) over stdio or **Streamable HTTP** (one HTTPS path taking POST/GET/DELETE, replying `application/json` or SSE; sessions optional; `Origin` validation required; auth optional). **No LLM and no API key on our side** — the model runs in the client. **Claude:** Customize → Connectors → *Add custom connector* → URL, works on **free** (one connector), Pro, Max, Team, Enterprise; authless is supported; SSE is being deprecated, so use Streamable HTTP. **ChatGPT:** developer mode → create an app for your remote MCP server; **Pro** connects read/fetch-scoped servers (write actions need Business/Enterprise/Edu); SSE + Streamable HTTP, auth optional. Both connect **from their own cloud**, so the server must be publicly reachable — Toolforge is. A **stateless** endpoint (JSON responses, no sessions, no SSE) dodges the one unknown that cannot be checked from here (whether Toolforge's ingress buffers SSE). Put it in the **same zero-dep process as the relay**, sharing the manifest cache and the relay guard (rate limit, byte cap, deadline, in-flight ceiling).
 
 **The order Andrew agreed to (2026-10-01):**
 
@@ -620,7 +624,11 @@ The background is the **Phase 2 audit of the Ask advisor**: [`docs/ASK-ARCHITECT
 
 Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
-1. **The Ask door and MCP — the agreed plan is the section above** (2026-10-01): #6, then **Slice 1** (404 + CORS + the generated guide), then #7 (the board path's regression net), then **Slice 2** (the validator as a service), then Slice 3 (the MCP tools) — with two decisions waiting on Andrew and one question that is not ours. **Nothing else in this list is urgent**; everything below remains valid, in rough priority order:
+1. **The Ask door is finished** — the plan section above records all six rows, done and deployed on 2026-10-02 (the
+   guide, the board doctor, the regression net, the served validator, the MCP tool surface), and the three decisions it
+   raised are made. **What is left is not work on our side: it is a reader connecting a real model and writing a board**
+   (`docs/MCP.md` has the connection steps) — and then whatever that turns up. Nothing below this line is urgent; the
+   list remains valid, in rough priority order:
 
    - ~~**Two small map gaps**~~ **Done 2026-09-30** — the frame consults `labelFromData(data)` when a widget declares it
      (`src/lib/widgetTitle.js`), so the Map's header reads "Berlin"; a failing relay prints its own reason with a Try again;

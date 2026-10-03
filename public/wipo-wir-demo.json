@@ -1,0 +1,497 @@
+{
+	"version": 1,
+	"widgets": [
+		{
+			"id": "intro",
+			"widgetType": "markdown",
+			"config": {
+				"text": "## WIPO × Wikimedia — a Wikimedian in Residence programme, 2021 → today\n\nThree residents, four languages, one publication programme. WIPO's Publications and Design Section works with\nWikimedians in Residence who turn its reports, indices and treaty documentation into encyclopedic content — and keep\nit current as each new edition appears.\n\n**The team** — [the project's tracking page](https://meta.wikimedia.org/wiki/WikiProject:United_Nations/WIPO)\n\n- **Florence Devouard** ([User:Anthere](https://meta.wikimedia.org/wiki/User:Anthere)) — English, French — resident since February 2022\n- **Salvador Alcántar** ([User:Salvador alc](https://meta.wikimedia.org/wiki/User:Salvador_alc)) — Spanish — resident since April 2023\n- **Mervat Salman** ([User:Mervat](https://meta.wikimedia.org/wiki/User:Mervat)) — Arabic — resident since February 2024\n\nTwo earlier residencies preceded the current team (John Cummings, mid-2021; Isla Haddow-Flood and Sherry Antoine, late\n2021). The programme's first institutional outcome was a licensing one: WIPO's publications are CC BY, and in 2022 the\nwebsite terms of use were updated to match. *(Open-access policy: November 2016.)*\n\n**How to read this board.** The figures in the next card were read on **2 October 2026** from the project's own lists,\nWikimedia search and the Commons Impact Metrics API — they are cumulative and dated. Every other card is **live**: it\nre-reads its source every time the board loads.\n\n**On the numbers' quality.** Every Commons category used here is on the [Commons Impact Metrics](https://commons.wikimedia.org/wiki/Commons:Commons_Impact_Metrics) allow list — WMF's precomputed monthly dataset, so the figures are exact rather than sampled. Scope is `deep`, which includes the sub-categories in which each resident's uploads live. Where a measurement cannot be made by a card — Massviews publishes no API, and CIM's history for this category tree begins in November 2023 — the card says so rather than approximating.\n\n*Sources: [the project's tracking page](https://meta.wikimedia.org/wiki/WikiProject:United_Nations/WIPO) · [the Diff article](https://diff.wikimedia.org/2024/10/31/wipo-wikimedia-partnership-a-success-story/) · [the board guide](https://wikibento.toolforge.org/board-guide.md)*"
+			}
+		},
+		{
+			"id": "since-2021",
+			"widgetType": "markdown",
+			"config": {
+				"text": "### Since 2021, in numbers\n\n- **2,408 articles** worked on across four Wikipedias — English 842, French 399, Spanish 608, Arabic 559.\n  *The project's own tracking lists (PagePile 105694 / 105693 / 105875 / 105885), read 2 October 2026.*\n- **4,429 Wikipedia articles** cite `wipo.int` — English 2,001, Spanish 942, French 803, Arabic 683.\n  *Wikimedia search, article space, 2 October 2026.*\n- **441 Commons files** uploaded by the residents, 109 of them in use on 177 pages across 46 wikis.\n  *Commons Impact Metrics — live card below.*\n- **291 Wikidata items** about WIPO publications, 201 of them with WIPO as author.\n  *Wikidata SPARQL — live card below.*\n- **24.5 million views** of pages using WIPO-produced files, November 2023 → August 2026.\n  *Commons Impact Metrics monthly series.*\n- **≈37 million views a month** for the 759 English articles worked on.\n  *The project's own figure (Massviews over its English list) — reported here, not measured, because Massviews has no API.*\n\nTwo of those six have no card, and the reason is worth stating: CIM's monthly history for this category tree begins in\nNovember 2023, and Massviews publishes no JSON. Everything else on this board is live — each live card carries its own\n*⏱ updated* line and re-reads on load.\n\n*On the second item: the live card counts **link placements**, and one page can carry several — 1,374 links on French\nWikipedia, against 803 pages found by search. The card labels the former \"total pages linking\"; the page count is the\none in the list above.*"
+			}
+		},
+		{
+			"id": "res-anthere",
+			"widgetType": "categorySize",
+			"config": {
+				"category": "Uploads by Anthere - WIPO WIR",
+				"sampleCount": 3,
+				"refreshSeconds": 3600,
+				"_title": "Florence Devouard · English · French · since February 2022"
+			}
+		},
+		{
+			"id": "res-salvador",
+			"widgetType": "categorySize",
+			"config": {
+				"category": "Uploads by Salvador - WIPO WIR",
+				"sampleCount": 3,
+				"refreshSeconds": 3600,
+				"_title": "Salvador Alcántar · Spanish · since April 2023"
+			}
+		},
+		{
+			"id": "res-mervat",
+			"widgetType": "categorySize",
+			"config": {
+				"category": "Uploads by Mervat - WIPO Research Working Papers",
+				"sampleCount": 3,
+				"refreshSeconds": 3600,
+				"_title": "Mervat Salman · Arabic · since February 2024"
+			}
+		},
+		{
+			"id": "wir-files",
+			"widgetType": "cimSnapshot",
+			"config": {
+				"category": "Uploads by WIPO WIRs",
+				"refreshSeconds": 3600,
+				"_title": "All three residents · uploads and their use"
+			}
+		},
+		{
+			"id": "wir-views",
+			"widgetType": "cimTrend",
+			"config": {
+				"category": "Uploads by WIPO WIRs",
+				"months": 12,
+				"zeroY": false,
+				"refreshSeconds": 3600,
+				"_title": "Views of pages using the residents' files — 12 months"
+			}
+		},
+		{
+			"id": "wipo-content-views",
+			"widgetType": "cimTrend",
+			"config": {
+				"category": "Content produced by WIPO",
+				"months": 24,
+				"zeroY": false,
+				"refreshSeconds": 3600,
+				"_title": "Views of pages using WIPO-produced files — 24 months"
+			}
+		},
+		{
+			"id": "top-files",
+			"widgetType": "cimTopFiles",
+			"config": {
+				"category": "Content produced by WIPO",
+				"topN": 8,
+				"refreshSeconds": 3600,
+				"_title": "Most-viewed files produced by WIPO, last month"
+			}
+		},
+		{
+			"id": "top-pages",
+			"widgetType": "cimTopPages",
+			"config": {
+				"category": "Uploads by WIPO WIRs",
+				"topN": 8,
+				"refreshSeconds": 3600,
+				"_title": "Where those views arrive — pages using the residents' files"
+			}
+		},
+		{
+			"id": "top-wikis",
+			"widgetType": "cimTopWikis",
+			"config": {
+				"category": "World Intellectual Property Organization",
+				"refreshSeconds": 3600,
+				"_title": "Wikis using WIPO-related files — 108 in total, last month"
+			}
+		},
+		{
+			"id": "gallery",
+			"widgetType": "gallery",
+			"config": {
+				"from": "list",
+				"files": "File:IP Related Innovation in Agriculture 2000-2021.png\nFile:Participation of women inventors in PCT Applications 2009-2023.png\nFile:Global leaders in innovation in 2021.png\nFile:GII Index 2023 Report Cover.png\nFile:Global Innovation Index Report 2024.png\nFile:Global innovation index 2025 en cover.png\nFile:WIPR 2024.png\nFile:WIPO Director General Daren Tang 20 Oct 2023.jpg\nFile:World IP Day 2022- Innovating for Better Health – Supporting Young Innovators through IP - 52031981682.jpg\nFile:Number of articles with WIPO reference per Wikipedia language (June, 2025).svg\nFile:Poster Wikimania 2025-UN3.jpg",
+				"imageFit": "cover",
+				"maxItems": 12,
+				"refreshSeconds": 3600,
+				"_title": "The programme's work on Commons — graphics, report covers, photography"
+			}
+		},
+		{
+			"id": "media-clip",
+			"widgetType": "mediaPlayer",
+			"config": {
+				"files": "File:Accessible Books Consortium explains - a digital file is not necessarily accessible.webm",
+				"mediaType": "video",
+				"refreshSeconds": 3600,
+				"_title": "A WIPO video — the second most-viewed file in the programme, last month"
+			}
+		},
+		{
+			"id": "file-traffic",
+			"widgetType": "cimFileTraffic",
+			"config": {
+				"filename": "IP Related Innovation in Agriculture 2000-2021.png",
+				"months": 15,
+				"refreshSeconds": 3600,
+				"_title": "One file, fifteen months — the most-viewed graphic (37,434 views in August 2026)"
+			}
+		},
+		{
+			"id": "linkcount-fr",
+			"widgetType": "linkcount",
+			"config": {
+				"domain": "wipo.int",
+				"wiki": "fr.wikipedia",
+				"namespace": "0",
+				"refreshSeconds": 3600,
+				"_title": "External links to wipo.int from French Wikipedia articles"
+			}
+		},
+		{
+			"id": "coverage-chart",
+			"widgetType": "sparql",
+			"config": {
+				"preset": "",
+				"query": "# How many of WIPO's core articles exist in each of the four project languages?\n# The list is the one on the project's tracking page (meta.wikimedia.org/wiki/WikiProject:United_Nations/WIPO);\n# membership is read from Wikidata sitelinks, so a rename or a merge cannot silently make a language look empty.\nSELECT ?Language (COUNT(DISTINCT ?item) AS ?Articles) WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf \u003Chttps://en.wikipedia.org/\u003E ; schema:name ?enTitle .\n  VALUES (?Language ?site) {\n    (\"English\" \u003Chttps://en.wikipedia.org/\u003E)\n    (\"French\" \u003Chttps://fr.wikipedia.org/\u003E)\n    (\"Spanish\" \u003Chttps://es.wikipedia.org/\u003E)\n    (\"Arabic\" \u003Chttps://ar.wikipedia.org/\u003E) }\n  ?art schema:about ?item ; schema:isPartOf ?site .\n} GROUP BY ?Language ORDER BY DESC(?Articles)",
+				"renderer": "bar",
+				"maxRows": 10,
+				"title": "Core articles: how many exist in each of the programme's four languages",
+				"_title": "Core articles in each of the four languages",
+				"refreshSeconds": 1800
+			}
+		},
+		{
+			"id": "coverage-matrix",
+			"widgetType": "sparql",
+			"config": {
+				"preset": "",
+				"query": "# The core articles, one row each, and the languages in which they exist.\n# \"yes\" is a Wikidata sitelink — the same evidence the bar chart counts.\nSELECT ?Article ?English ?French ?Spanish ?Arabic WHERE {\n  VALUES ?enTitle { \"World Intellectual Property Organization\"@en \"Intellectual property\"@en \"Global Innovation Index\"@en \"World Intellectual Property Day\"@en \"World Intellectual Property Report\"@en \"World Intellectual Property Indicators\"@en \"WIPO Lex\"@en \"Patentscope\"@en \"Global Brand Database\"@en \"Global Design Database\"@en \"WIPO GREEN\"@en \"WIPO Judicial Institute\"@en \"Beijing Treaty on Audiovisual Performances\"@en \"Berne Convention\"@en \"Budapest Treaty\"@en \"Convention Relating to the Distribution of Programme-Carrying Signals Transmitted by Satellite\"@en \"Design Law Treaty\"@en \"Geneva Phonograms Convention\"@en \"Hague Agreement Concerning the International Deposit of Industrial Designs\"@en \"International (Nice) Classification of Goods and Services\"@en \"Lisbon Agreement for the Protection of Appellations of Origin and their International Registration\"@en \"Madrid Protocol\"@en \"Marrakesh VIP Treaty\"@en \"Nairobi Treaty on the Protection of the Olympic Symbol\"@en \"Paris Convention for the Protection of Industrial Property\"@en \"Patent Cooperation Treaty\"@en \"Patent Law Treaty\"@en \"Rome Convention for the Protection of Performers, Producers of Phonograms and Broadcasting Organisations\"@en \"Singapore Treaty on the Law of Trademarks\"@en \"Strasbourg Agreement Concerning the International Patent Classification\"@en \"Trademark Law Treaty of 1994\"@en \"Trade secret\"@en \"WIPO Copyright Treaty\"@en \"WIPO Hague System\"@en \"WIPO Performances and Phonograms Treaty\"@en \"Intergovernmental Committee on Intellectual Property and Genetic Resources, Traditional Knowledge and Folklore\"@en \"Patent\"@en \"Patent application\"@en \"Patent prosecution\"@en \"Industrial property\"@en \"Intangible asset\"@en \"Intangible asset finance\"@en \"Trademark\"@en \"Industrial designs\"@en \"Traditional knowledge\"@en \"Uniform Domain-Name Dispute-Resolution Policy\"@en \"Daren Tang\"@en \"Article 6ter\"@en }\n  ?enArt schema:about ?item ; schema:isPartOf \u003Chttps://en.wikipedia.org/\u003E ; schema:name ?enTitle .\n  BIND(?enTitle AS ?Article) BIND(\"yes\" AS ?English)\n  OPTIONAL { ?a schema:about ?item ; schema:isPartOf \u003Chttps://fr.wikipedia.org/\u003E . } BIND(IF(BOUND(?a), \"yes\", \"—\") AS ?French)\n  OPTIONAL { ?b schema:about ?item ; schema:isPartOf \u003Chttps://es.wikipedia.org/\u003E . } BIND(IF(BOUND(?b), \"yes\", \"—\") AS ?Spanish)\n  OPTIONAL { ?c schema:about ?item ; schema:isPartOf \u003Chttps://ar.wikipedia.org/\u003E . } BIND(IF(BOUND(?c), \"yes\", \"—\") AS ?Arabic)\n} ORDER BY ?Article",
+				"renderer": "table",
+				"maxRows": 60,
+				"title": "The core articles, one row each, and the languages they exist in",
+				"_title": "The core articles and the languages they exist in",
+				"refreshSeconds": 1800
+			}
+		},
+		{
+			"id": "lede",
+			"widgetType": "excerpt",
+			"config": {
+				"article": "World Intellectual Property Organization",
+				"refreshSeconds": 86400
+			}
+		},
+		{
+			"id": "xlate",
+			"widgetType": "translate",
+			"config": {
+				"text": "{{widget:lede}}",
+				"to": "fr",
+				"refreshSeconds": 86400,
+				"_title": "The same article, in French — the programme's own method, run live"
+			}
+		},
+		{
+			"id": "speak",
+			"widgetType": "speaker",
+			"config": {
+				"source": "xlate#speech",
+				"rate": "1",
+				"_title": "…and read aloud, in the language it was translated into"
+			}
+		},
+		{
+			"id": "history",
+			"widgetType": "edithistory",
+			"config": {
+				"article": "World Intellectual Property Organization",
+				"limit": 8,
+				"refreshSeconds": 1800,
+				"_title": "The work is ongoing — recent edits to the flagship article"
+			}
+		},
+		{
+			"id": "wd-count",
+			"widgetType": "sparql",
+			"config": {
+				"preset": "",
+				"query": "# WIPO is Q177773 (verified; not the QID one would guess).\n# P123 = publisher, P50 = author (WIPO is credited as author on some publications).\nSELECT (COUNT(DISTINCT ?authored) AS ?authored) (COUNT(DISTINCT ?published) AS ?published) WHERE {\n  OPTIONAL { ?authored wdt:P50 wd:Q177773 }\n  OPTIONAL { ?published wdt:P123 wd:Q177773 }\n}",
+				"renderer": "stat",
+				"maxRows": 1,
+				"title": "Wikidata items published by WIPO",
+				"_title": "WIPO's publications as structured data",
+				"refreshSeconds": 1800
+			}
+		},
+		{
+			"id": "wd-recent",
+			"widgetType": "sparql",
+			"config": {
+				"preset": "",
+				"query": "# The newest WIPO publications with a publication date on Wikidata.\n# Labels: en first, mul second — names identical in every language live under `mul` and have no en label.\nSELECT ?Publication ?Year WHERE {\n  ?item wdt:P123 wd:Q177773 .\n  ?item rdfs:label ?Publication . FILTER(LANG(?Publication) IN (\"en\", \"mul\"))\n  ?item wdt:P577 ?d . BIND(YEAR(?d) AS ?Year)\n} ORDER BY DESC(?d) LIMIT 10",
+				"renderer": "table",
+				"maxRows": 12,
+				"title": "Newest WIPO publications on Wikidata",
+				"_title": "The newest WIPO publications on Wikidata",
+				"refreshSeconds": 1800
+			}
+		}
+	],
+	"layout": [
+		{
+			"i": "intro",
+			"x": 0,
+			"y": 0,
+			"w": 6,
+			"h": 7,
+			"minW": 4,
+			"minH": 3,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "since-2021",
+			"x": 6,
+			"y": 0,
+			"w": 6,
+			"h": 7,
+			"minW": 4,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "res-anthere",
+			"x": 0,
+			"y": 7,
+			"w": 3,
+			"h": 4,
+			"minW": 2,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "res-salvador",
+			"x": 3,
+			"y": 7,
+			"w": 3,
+			"h": 4,
+			"minW": 2,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "res-mervat",
+			"x": 6,
+			"y": 7,
+			"w": 3,
+			"h": 4,
+			"minW": 2,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "wir-files",
+			"x": 9,
+			"y": 7,
+			"w": 3,
+			"h": 4,
+			"minW": 2,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "wir-views",
+			"x": 0,
+			"y": 11,
+			"w": 6,
+			"h": 4,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "wipo-content-views",
+			"x": 6,
+			"y": 11,
+			"w": 6,
+			"h": 4,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "top-files",
+			"x": 0,
+			"y": 15,
+			"w": 4,
+			"h": 6,
+			"minW": 3,
+			"minH": 5,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "top-pages",
+			"x": 4,
+			"y": 15,
+			"w": 4,
+			"h": 6,
+			"minW": 3,
+			"minH": 5,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "top-wikis",
+			"x": 8,
+			"y": 15,
+			"w": 4,
+			"h": 6,
+			"minW": 3,
+			"minH": 5,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "gallery",
+			"x": 6,
+			"y": 21,
+			"w": 6,
+			"h": 8,
+			"minW": 3,
+			"minH": 5,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "media-clip",
+			"x": 0,
+			"y": 21,
+			"w": 6,
+			"h": 8,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "file-traffic",
+			"x": 6,
+			"y": 29,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "linkcount-fr",
+			"x": 0,
+			"y": 29,
+			"w": 3,
+			"h": 5,
+			"minW": 3,
+			"minH": 3,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "coverage-chart",
+			"x": 3,
+			"y": 29,
+			"w": 3,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "coverage-matrix",
+			"x": 0,
+			"y": 34,
+			"w": 12,
+			"h": 11,
+			"minW": 4,
+			"minH": 5,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "lede",
+			"x": 0,
+			"y": 53,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "xlate",
+			"x": 0,
+			"y": 58,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "speak",
+			"x": 0,
+			"y": 63,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 3,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "history",
+			"x": 6,
+			"y": 45,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "wd-count",
+			"x": 0,
+			"y": 50,
+			"w": 6,
+			"h": 3,
+			"minW": 3,
+			"minH": 3,
+			"moved": false,
+			"static": false
+		},
+		{
+			"i": "wd-recent",
+			"x": 0,
+			"y": 45,
+			"w": 6,
+			"h": 5,
+			"minW": 3,
+			"minH": 4,
+			"moved": false,
+			"static": false
+		}
+	],
+	"params": null
+}
