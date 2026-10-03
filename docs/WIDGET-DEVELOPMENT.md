@@ -166,6 +166,23 @@ would be a lie. A source may also declare a `noun` for its verdict copy (`no suc
 | `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
 | `wikiBox` | `items` · `selection` | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
 | `map` | `geojson` | what the card draws, as a **GeoJSON `FeatureCollection`** in a typed envelope: `{ type: 'geojson', data: … }` — places, paths and areas, with `label`/`wikidata`/`role` properties and time (`datetime`, or `times` per vertex). The first **JSON-shaped** kind rather than a text one, which is why it needed the size policy in [GEOMETRY.md](GEOMETRY.md) | `map` (a second map card, via its `source` field) — and any future drawing card |
+| `gallery` | `lines` · `selection` | each row's caption — or its title, when the row has no caption — as lines, and the file the reader clicked | `filterLines`, `lineCount`, `speaker`, `echo` · `mediaPlayer`, `echo` |
+| `iaItem` | `value` | the item's canonical `archive.org/details/…` URL | any text field; `markdown`, `echo` |
+| `iaBook` | `value` | the book's `details` URL, the link its title opens | as above |
+| `documentReader` | `value` | the file's own page URL (`commons.wikimedia.org/wiki/File:…`) | as above |
+| `cimStats` | `value` | **the subject it resolved** — `commonswiki:Category:Files from the BHL` or `commonswiki:File:Dogs, jackals.jpg` — as a reference (ISSUE-92). Not its counts: a reading is not a token (ISSUE-96) | any text field via `{{widget:id}}`; a `speaker` or `translate` reads the name |
+| `cimTrend` | `value` | the same subject reference | as above |
+| `cimRanking` | `lines` | the ranked **names**, one per line, each carrying its own project where one exists — `commonswiki:File:Dogs, jackals.jpg`, `enwiki:Marie Curie`, the bare dbname (`enwiki`) for a wiki row, a bare user name for an editor row (that endpoint returns no wiki, so none is invented) | `filterLines` (declared: `kinds: ['lines']`), `lineCount`, `speaker`, `echo` |
+
+Every emitter the registry declares is in this table (16 of the 36 types publish; `tests/manifest-compliance.test.mjs` holds the list of the ones whose kind is pinned, and the CIM trio is the newest family here).
+
+**A consumer that needs a shape says so.** A `source` field may declare the kinds it accepts, e.g.
+`kinds: ['lines']` — the ⚙ picker then offers only publishers whose kind is in that set, while a publisher with an
+*unknown* kind is never hidden (offering something we cannot classify beats hiding it). The set lives in one place,
+`OUTPUT_KINDS` in `src/lib/dataflow.js`, and `tests/manifest-compliance.test.mjs` asserts that every declared kind is
+documented **and** that something in the catalog publishes it — a field wired only to nothing would otherwise look
+like an empty dropdown. Declaring nothing is honest for a consumer that takes anything: `echo` inspects whatever it
+is handed, so it declares nothing, and `map` was the first field to say `geojson` (ISSUE-132).
 
 ## Anti-patterns (with the concrete reason)
 

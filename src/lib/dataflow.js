@@ -12,7 +12,20 @@
  * Pure helpers, no React — unit-tested in tests/dataflow.test.mjs.
  */
 
-import { extractWidgetRefs } from './params';
+import { extractWidgetRefs } from './params.js';   // the extension matters: scripts/docs-facts.mjs loads this module under plain node
+
+/**
+ * The output kinds a widget may publish (ISSUE-96 · ISSUE-97 — "make kinds load-bearing").
+ *
+ * One list with three readers, because it used to be a literal copied into two tests: the registry's `outputs`
+ * declarations, a consumer source field's `kinds` (which narrows the ⚙ picker — see WidgetFrame), and the gates in
+ * `tests/manifest-compliance.test.mjs`. `scripts/docs-facts.mjs` checks that `docs/WIDGET-DEVELOPMENT.md` still
+ * names every one of them, so the doc cannot drift from the code.
+ *
+ * Adding a kind is a design act, not a label: it needs a real consumer, a doc entry, an `askManual()` phrase and a
+ * size policy (WIDGET-DEVELOPMENT.md → "The Emitter Contract"). The gate in manifest-compliance makes that loud.
+ */
+export const OUTPUT_KINDS = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
 
 /** Normalize an emitted output to an array of strings (lines):
  *  arrays → String(each); strings → trimmed non-empty lines; objects →

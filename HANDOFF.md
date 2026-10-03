@@ -654,8 +654,9 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
    - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
      usually transcluded rather than linked, so there is little in content to click.
-   - **ISSUE-96 — finish the emitter audit.** **13 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
-     2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind), and the audit ranks the
+   - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
+     2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
+     2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the
      obvious next ones (`articleList`, `quality`'s ORES grade, `assessments`, the article and category galleries (`small`, `contain`, `fileGallery`), `edithistory`, every
      ranking, `sparql`, `waybackGallery`, `mediaPlayer`/`panorama360`, `wikiPage` as a reference, `markdown`). Each
      is a one-line `emit` plus an `outputs` declaration; **the work is checking each one's data shape.** The

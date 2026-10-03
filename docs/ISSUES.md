@@ -3628,6 +3628,16 @@ producer is what tells us whether the type list is right.
 
 ## ISSUE-96 · Emitter/consumer audit: 12 of 41 widgets publish anything — **open**
 
+> **Updated 2026-10-03:** the CIM family's checklist rows are done, and the merge is what made them cheap. The five
+> ranked questions (`cimTop*`, `cimLeaderboard`) are one widget now (`cimRanking`, ISSUE-105's pattern), so one `emit`
+> covers all five: it publishes the ranked **names** as `lines`, each line carrying its own project
+> (`commonswiki:File:Dogs, jackals.jpg`, `enwiki:Marie Curie`), which makes it the first `lines` emitter whose every
+> line is a reference (ISSUE-92). `cimStats` and `cimTrend` publish the **subject they resolved** — never their counts,
+> which is this issue's second rule applied. **16 of 36** publish now, and the count in the title above has been stale
+> in three different ways since (12 of 41 · 10 of 42 · 11 of 43) because every family merge moved both numbers; the
+> live number is the one `docs/WIDGET-DEVELOPMENT.md` → "Current emitters" now carries in full (all 16 rows — it had
+> been a sample of nine).
+
 > **Updated 2026-09-18:** the 🎞️ Commons Gallery (ISSUE-103) joined the emitters when it shipped — the gallery's
 > captions as `lines` (a curated, human-written list, the best thing to feed a Filter, a Translator or a Speaker)
 > and the clicked file as `selection`, on the ISSUE-91 channel pattern. 11 of 43.
