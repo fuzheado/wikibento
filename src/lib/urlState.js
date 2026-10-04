@@ -140,6 +140,10 @@ export function boardClaim(href) {
  * card is still the demo board); the claim check uses the default, full comparison.
  */
 export function boardFingerprint(widgets, layout, params, { includeLayout = true } = {}) {
+  // No `extras` argument, deliberately: this payload becomes a URL. The board *document* carries foreign top-level
+  // keys through (see configNormalize.boardExtras), but a URL is a wire with a size budget and a device that has to
+  // survive a QR code — so unknown keys stop here, and the round-trip guarantee is scoped to the documents
+  // (localStorage snapshot, Export, and a board fetched by ?config=), which is where other tools write.
   const { widgets: w, layout: l, params: p } = savedBoardPayload(widgets, layout, params);
   return JSON.stringify(includeLayout ? { widgets: w, layout: l, params: p } : { widgets: w, params: p });
 }

@@ -21,6 +21,7 @@ They have very different costs, and the cheapest ones turned out to be the most 
 | **PDF** | low | vector text, selectable | a page to file, print or send — via the browser's own print engine |
 | **SVG** | low *where the widget is already SVG* | perfect | vector for print or a slide; the QR widget has done this since ISSUE-65 |
 | **PNG** | medium–high | pixels | a picture for chat or a slide deck — for widgets that draw their own SVG, **and** for any widget whose image host sends CORS (ISSUE-80) |
+| **JSON Canvas (`.canvas`)** | low | a projection, not a render | the board's **placement and wiring** for Obsidian and other canvas tools — each card as a node, each reference as a drawn edge (see below) |
 
 The two shipped formats need **no dependency, no server and no canvas**. That matters here: WikiBento runs
 on six small runtime packages, and a DOM-to-canvas library is a much bigger commitment than it looks
@@ -45,6 +46,26 @@ Three rules, in the tests:
 The timeline is the interesting case because it genuinely exports something the query did not name: one row
 per event with `lane, date, precision, kind, event, age`, including the age in each lane, which is the
 column an aligned comparison is really about.
+
+## JSON Canvas: the ⬇ Canvas button
+
+The board as a **JSON Canvas** document ([jsoncanvas.org](https://jsoncanvas.org), spec 1.0 of 2024-03-11, MIT) — the
+open format Obsidian and a growing set of canvas tools read and write. It is the one export here that leaves the app
+rather than the app's own data: the point is that a board is readable in tools nobody here controls.
+
+This is a **projection, not a render**. JSON Canvas describes placement and links, so:
+
+- each card becomes a **node** — a `link` node when the card is *about* something with a URL (a wiki page, a Commons
+  file, a Commons category, a SPARQL query), and a `text` node describing the card otherwise. Only a field the widget
+  **declares** and that **applies** to this config can produce a URL: a gallery switched to an article keeps no stale
+  `category` that would point the canvas at the wrong place, because a wrong URL is worse than none;
+- each `{{widget:id}}` reference and each `source` field becomes a drawn **edge**, labelled with its channel — so the
+  dataflow the ⚙ panel implies is visible in any canvas tool;
+- the app's own payload (`widgetType`, `config`, title) rides on each node under a `wikibento` key. The format allows
+  it — unknown fields are preserved rather than pruned — which is what would make an import possible later.
+
+The rules and their reasons live in `src/lib/jsonCanvas.js`; the projection is asserted by
+`tests/json-canvas.test.mjs`, including spec conformance over the one-of-every-type example board.
 
 ## PDF: the 🖨 button
 

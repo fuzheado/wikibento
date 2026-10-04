@@ -1,4 +1,4 @@
-import { compactConfig } from './configNormalize';
+import { compactConfig, boardExtras } from './configNormalize';
 import { widgetDef } from '../widgets/index';
 
 /**
@@ -26,19 +26,32 @@ export function readSavedBoard(raw) {
   try { parsed = JSON.parse(raw); } catch { return null; }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
   if (!Array.isArray(parsed.widgets) || !Array.isArray(parsed.layout)) return null;
-  return { widgets: parsed.widgets, layout: parsed.layout, params: parsed.params ?? null };
+  // Foreign top-level keys are read back with the board (see configNormalize.boardExtras for the rule and its
+  // provenance). Kept off the returned object entirely when there are none, so the shape of a plain board — and
+  // every deepEqual written against it — is unchanged.
+  const extras = boardExtras(parsed);
+  return {
+    widgets: parsed.widgets,
+    layout: parsed.layout,
+    params: parsed.params ?? null,
+    ...(extras ? { extras } : {}),
+  };
 }
 
 /**
  * The board snapshot written to localStorage — exactly the shape `readSavedBoard` reads back, so the
  * two cannot drift. `params` is normalized to `null` (never `undefined`, which JSON drops).
  */
-export function savedBoardPayload(widgets, layout, params) {
+export function savedBoardPayload(widgets, layout, params, extras) {
   // Compact the configs: a field equal to its registry default carries no information, and a board that stores every
   // widget's every source field is bigger AND harder to read — a `from: 'article'` gallery was carrying `files`,
   // `category`, `page` and `order` too (17 keys where 7 apply). This one function feeds the share link, localStorage
   // and the "is the URL still telling the truth?" fingerprint, which is why the fix belongs here.
+  //
+  // Foreign top-level keys are re-emitted *first*, so a document's own `widgets`/`layout`/`params` can never be
+  // shadowed by one of ours: carrying them through is additive, never a way in (configNormalize.boardExtras).
   return {
+    ...(extras && typeof extras === 'object' ? extras : null),
     widgets: (widgets || []).map((w) => ({ ...w, config: compactConfig(w.config, widgetDef(w.widgetType)) })),
     layout,
     params: params || null,
