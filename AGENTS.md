@@ -47,6 +47,11 @@ This project has lost time to a familiar word meaning something narrower than pe
 
 ## Gates to run before saying "done"
 
+- **Touched a generated artefact's source? Regenerate before committing, not after a red gate.** `docs/JSON-FORMAT.md`
+  or `docs/WIRING-BOARDS.md` → `npm run guide:board`; the registry or a shared config-field constant →
+  `node scripts/generate-manifest.mjs` (the suite reruns it, but the served guide embeds the format docs *verbatim*,
+  and a PR that edits one without regenerating is green everywhere until the guide check fires *after* the merge —
+  PR #102 spent a fix on exactly this).
 - `npm test` — the suite, the docs/manifest gates, **and the app build** (`vite build`, which takes well under a second here). It was
   added after a duplicate import I had pushed: the tests were green (esbuild tolerates it) while `vite` failed the
   build, and I had run the tests rather than the build. Now the suite cannot be green with a broken build, so the
