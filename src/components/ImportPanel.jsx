@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
 import { validateDashboard } from '../lib/dashboardConfig';
+import { isJsonCanvas, canvasToBoard } from '../lib/canvasImport';
 
 /**
- * Modal for importing a dashboard config from a JSON file or pasted JSON.
+ * Modal for importing a dashboard config from a JSON file or pasted JSON — or a JSON Canvas document (`.canvas`,
+ * ISSUE-135), which is read into a board first and then goes through exactly the same validation below.
  * Validates with validateDashboard(); shows errors/warnings; on success
  * hands the validated { widgets, layout } to the parent.
  */

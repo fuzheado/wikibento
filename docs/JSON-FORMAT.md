@@ -300,6 +300,42 @@ exactly what `dashboard.json` looks like after export.
 - `public/dashboard.json` ships with the app as a hosted sample (the example
   dashboard) — try `?config=/dashboard.json`.
 
+## Reading a JSON Canvas document (`.canvas`)
+
+`src/lib/jsonCanvas.js` writes a board as a JSON Canvas document (see `docs/EXPORT.md`); `src/lib/canvasImport.js`
+reads one back, and the ⬆ Import panel accepts either. A `.canvas` is **not** a board, so it is read into one first —
+and then goes through `validateDashboard` like any other pasted document: same coercion, same registry defaults, same
+severity model, no second, gentler path.
+
+**How a node becomes a card**
+
+| node | card | why |
+|---|---|---|
+| any node carrying a `wikibento` payload | the card it names | our own export rides on each node, so a round trip is **identity** — ids, configs and grid boxes all come back |
+| `text` | Text / Markdown, verbatim | nothing to interpret |
+| `link` | the card the ⚙ brush would place for that URL | `lib/pickMode.js` already answers "what is this link" (`pickFromUrl`) and "which widget accepts it, with what config" (`typesForKind`, `brushConfig`); a second table would drift from the first |
+| `link` to a SPARQL endpoint | SPARQL, with the query from the fragment or `?query=` | a WDQS URL *is* how a query travels between people |
+| `link` to a Commons category | the category card, its source selector set | one shape `pickFromUrl` deliberately does not read (a namespace page), added here — a Commons category is the commonest thing a person links to on Commons |
+| `file` | a Commons file card **if** the reference resolves to Commons, otherwise Text quoting the path | in Obsidian a `file` node is a **vault path**: it means nothing here, and inventing a URL from it produces a card that 404s and looks like our bug |
+| `group` | nothing (reported) | a board has no sections |
+| anything else | Text quoting the node | an unreadable node is still the reader's content |
+
+**Edges are ignored, on purpose.** In JSON Canvas an edge is presentation — sides, arrowheads, a label — not dataflow.
+After one of our own round trips the real wiring is already inside the configs, because **a node's id is the widget's
+id**; wiring a card from an edge would be guessing at something we already know.
+
+**What is lossy.** Pixel boxes convert back to grid units exactly (the inverse of `toCanvasBox`), but a grid board
+cannot reproduce free 2-D placement: a card keeps its box where it rounds to a legal one and is pulled inside the 12
+columns where it does not, so the *order* a reader sees survives where the exact pixels do not. Nothing is dropped
+silently — the ⬆ Import panel reports the counts of cards, how many were restored from a payload, and how many edges,
+groups, vault paths or unplaceable links were handled some other way.
+
+**Unknown fields are carried at both levels**: a document's own top-level keys become the board's extras
+(`boardExtras`), and a node field this import did not read (a `color`, a `shape`, a field a future version defines)
+rides along on the card under `canvas`. That is the export's rule in the other direction — *retain what you do not
+model* — so an import → export cycle sheds nothing. `tests/canvas-import.test.mjs` holds the mapping; the round trip
+through the real panel is checked by `npm run smoke:canvas-import`.
+
 ## Compatibility Notes
 
 - **Export, the `#/d/` share link and the localStorage snapshot all carry the whole board
