@@ -197,7 +197,58 @@ built in and env-tunable (`WIKIMEDIA_USER_AGENT`, `RELAY_*`, `VALIDATE_*`, `MCP_
 
 **One config whoever serves `dist/` must reproduce:** `index.html` with `Cache-Control: no-cache`, `/assets/*`
 immutable. Serving both cacheable is the stale-bundle trap — deploys look missing until a hard refresh
-(HANDOFF gotcha #11).
+(HANDOFF gotcha #11). (A Tier 2 deploy of our own `server.js` gets this for free — the headers are built in.)
+
+### Worked example: Render
+
+Render is the shortest path for Tier 2 — a native Node runtime that takes explicit build/start commands, which
+circumvents this repo's one deploy trap: our `npm run build` runs the **entire test suite** (including the
+browser smoke), so a platform that just runs `npm run build` will fail on playwright. The suite gates the push
+(the AGENTS.md rule); the deploy command builds only the artefacts:
+
+**Dashboard path** (no files added to the repo): New + → Web Service → connect `fuzheado/wikibento` →
+
+| field | value |
+|---|---|
+| Runtime | Node |
+| Build command | `npm ci && npx vite build && npm run build:validator` |
+| Start command | `node deploy/server.js` |
+| Env var | `WIKIMEDIA_USER_AGENT` = `wikibento/1.0 (https://github.com/fuzheado/wikibento; you@example.org)` |
+| Env var | `NODE_VERSION` = `22` (the repo declares no `engines`; Render's default may be older) |
+
+Render injects `PORT` and the server binds it — no changes to the repo. The server sets its own cache headers,
+so nothing else is needed.
+
+**Blueprint path** — the same service as a `render.yaml` at the repo root (not committed here — nothing in this
+repo tests it, and a committed manifest is a claim; add it with a verified deploy if you use it):
+
+```yaml
+services:
+  - type: web
+    name: wikibento
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npx vite build && npm run build:validator
+    startCommand: node deploy/server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: WIKIMEDIA_USER_AGENT
+        value: wikibento/1.0 (https://github.com/fuzheado/wikibento; you@example.org)
+```
+
+**Verify the deployment the same way the Toolforge one is verified** — the suites take a base URL:
+
+```bash
+AUDIT_BASE=https://wikibento.onrender.com npm run smoke:url
+node scripts/relay-guard-e2e.mjs --base https://wikibento.onrender.com
+node scripts/mcp-e2e.mjs --base https://wikibento.onrender.com
+```
+
+Two provider caveats, so they are chosen with eyes open: the **free plan spins down after 15 idle minutes and
+takes ~1 minute to spin back up** (750 free instance-hours a month) — a dashboard is exactly the kind of thing
+that sits idle, so a cold start lands on whoever opens it next; and the relay etiquette now runs from Render's
+egress IPs, so the User-Agent contact is genuinely yours to stand behind.
 
 The rsync flow above is just Tier 2 where the "any Node host" happens to be Toolforge.
 
