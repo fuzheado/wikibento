@@ -36,6 +36,15 @@ npx vite preview     # serve the built dist/ at http://localhost:4173
 
 ## Toolforge (the production deployment)
 
+**Toolforge is the Wikimedia Foundation's free hosting platform for community tools** — volunteer-built services
+like this one, run on the Foundation's infrastructure at no cost, at `https://<toolname>.toolforge.org`. This
+tool lives at **[https://wikibento.toolforge.org](https://wikibento.toolforge.org)** — a dashboard you can open,
+borrow boards from and hand links to. Every tool there is open source (an OSI licence is required to deploy),
+and the platform is maintained by Wikimedia Cloud Services; the price is their etiquette: descriptive
+User-Agents on outbound requests, paced traffic, and an account with tool-level rights (`sudo -niu` below) to
+touch the running service. See [wikitech: Help:Toolforge](https://wikitech.wikimedia.org/wiki/Help:Toolforge)
+for the platform itself.
+
 ### SSH — read this first (the #1 gotcha for fresh sessions)
 
 - **SSH with your personal account, NOT the tool account.** `ssh tools.wikibento@dev.toolforge.org`
