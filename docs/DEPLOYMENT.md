@@ -115,6 +115,56 @@ fallback noise. If a deploy "looks missing" after refresh, hard-refresh
 (⌘⇧R) — index.html is served `no-cache`, assets are immutable (HANDOFF
 gotcha #11).
 
+## Pull-from-GitHub alternatives: the Build Service and Components
+
+The rsync flow above pushes files **to** the tool. Toolforge also has two mechanisms that build **from a Git
+repository** — the same push-to-deploy shape most modern platforms use. Both are real alternatives; neither is
+switched on for this tool today, and the reasons are stated so the decision can be revisited deliberately.
+
+### The Build Service (`toolforge build start <repo-url>`)
+
+Builds a container image from a public Git repo (GitHub verified) with Cloud Native Buildpacks — Node is
+detected, `npm install` and build scripts run **inside the builder**, not on the tool's slow NFS:
+
+```bash
+ssh alih@dev.toolforge.org            # then, as the tool user:
+sudo -niu tools.wikibento toolforge build start https://github.com/fuzheado/wikibento
+sudo -niu tools.wikibento toolforge webservice buildservice start --mount=none -m 1Gi
+sudo -niu tools.wikibento toolforge webservice buildservice logs -f
+```
+
+Needs at the repo root:
+
+- **`Procfile`** — one line: `web: node deploy/server.js` (the server already binds `$PORT`, which the k8s
+  proxy sets to 8000, so the server itself needs no change)
+- **A lean build path.** This is the real obstacle: the buildpack runs the repo's `build` script, and ours runs
+  the *entire test suite* (755 tests, browser smoke, the validator build) — some of it needs playwright, which is
+  deliberately not a devDependency. An image build would run that too, and fail. Deploying this way needs a
+  split — e.g. a `build` that is only `npm ci && npx vite build && npm run build:validator`, with the suite kept
+  for CI — which is a small change but a real one, because the suite must still gate the *push*, not the build.
+- Nothing else: `--mount=none` is right for us (the server reads only repo files — `dist/`, the CIM allow list,
+  the bundles), and secrets already arrive as env vars (`toolforge envvars create …`).
+
+Redeploy = another `build start` + `buildservice restart`. **No rollback exists** — keep the previous image ref
+pinned if a revert might be needed.
+
+### Toolforge Components (push-to-deploy, beta)
+
+The direction the platform is standardising on: the build + run definition lives in the repo, and a `git push`
+triggers build and deploy. Needs a `Procfile` (as above), a `toolforge.yaml` component config, and a deployment
+token (`toolforge components deploy-token create`); GitHub has no shared CI pipeline, so the deploy trigger is a
+manual/CI `curl -X POST` to `https://api.svc.toolforge.org/components/v1/tool/$TOOL/deployment?token=$TOKEN`.
+
+**Status: beta** — upstream still says "we don't recommend using it for production services", there is **no
+rollback**, and the alerting service it unlocks (5xx/timeout/restart emails) is opt-in from October 2026.
+Attractive the day this tool wants `git push` deploys and email alerts; not before it leaves beta.
+
+### Why the rsync flow is the default here
+
+Three artefacts whose hashes `docs-facts --live` can verify against production, no image layer between "the tests
+passed" and "what production serves", no beta dependency, and deploys take seconds. The Build Service becomes
+worth its setup cost the day deploys hurt — several a day, or a second maintainer without SSH habits.
+
 ## Alternative hosts
 
 `dist/` + a server providing the routes above will work anywhere: Netlify
