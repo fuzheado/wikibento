@@ -250,7 +250,7 @@ Clickable list of articles — pasted titles, optional thumbnails + intros
 ### `cimStats` — CIM Snapshot · CIM-allow-list
 Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
 
-- role: `source`
+- role: `source` · publishes `value` (the bare id)
 - reads: CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)
 - fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
@@ -258,7 +258,7 @@ Exact precomputed stats for one Commons category or one Commons file — files, 
 ### `cimTrend` — CIM Views Over Time · CIM-allow-list
 Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
 
-- role: `source`
+- role: `source` · publishes `value` (the bare id)
 - reads: CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly
 - fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project · `months`:number · `zeroY`:boolean only when `subject` is `category` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `wiki`, `months`, `filename`, `month`, `zeroY`, `refreshSeconds`
@@ -266,7 +266,7 @@ Monthly pageview trend over a window you choose — the pages using a Commons ca
 ### `cimRanking` — CIM Top-N · CIM-allow-list
 Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
 
-- role: `source`
+- role: `source` · publishes `lines` (the bare id)
 - reads: CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly
 - fields: `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `month`:number
 - defaults: may be omitted: `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
@@ -284,7 +284,7 @@ Output widget — speaks its text aloud with speech synthesis. Wire it to anothe
 
 - role: `effector` · consumes another widget's output (a `source` field)
 - reads: static (no fetch) — Web Speech synthesis (speechSynthesis)
-- fields: `text`:textarea · `source`:source · `lang`:text · `rate`:select [0.75 | 1 | 1.25 | 1.5] · `speakOnChange`:boolean
+- fields: `text`:textarea · `source`:source kinds:value/lines/speech · `lang`:text · `rate`:select [0.75 | 1 | 1.25 | 1.5] · `speakOnChange`:boolean
 - defaults: may be omitted: `text`, `source`, `lang`, `rate`, `speakOnChange`, `refreshSeconds`
 
 ### `wikiBox` — Wikipedia Box
@@ -388,7 +388,7 @@ Consume another widget's output and keep only the lines matching a pattern — d
 
 - role: `transformer` · consumes another widget's output (a `source` field) · publishes `lines` (the bare id)
 - reads: widget output (source) — no fetch
-- fields: `source`:source · `title`:text · `pattern`:text · `match`:select [contains | equals | starts | ends] · `caseSensitive`:boolean
+- fields: `source`:source kinds:lines · `title`:text · `pattern`:text · `match`:select [contains | equals | starts | ends] · `caseSensitive`:boolean
 - defaults: may be omitted: `source`, `title`, `pattern`, `match`, `caseSensitive`, `refreshSeconds`
 
 ### `lineCount` — Line Count
@@ -396,7 +396,7 @@ Count the lines/elements of another widget's output — a number downstream widg
 
 - role: `reducer` · consumes another widget's output (a `source` field) · publishes `count` (the bare id)
 - reads: widget output (source) — no fetch
-- fields: `source`:source · `label`:text
+- fields: `source`:source kinds:lines/count/value · `label`:text
 - defaults: may be omitted: `source`, `label`, `refreshSeconds`
 
 ### `echo` — Value Display

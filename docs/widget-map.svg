@@ -103,15 +103,15 @@
 <rect x="34" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
 <rect x="34" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
 <text x="41" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Snapshot</text>
-<text x="41" y="401.5" fill="#8b93a1" font-size="7.8"># <tspan fill="#5f6875">source</tspan></text>
+<text x="41" y="401.5" fill="#8b93a1" font-size="7.8"># ✧ <tspan fill="#5f6875">source</tspan></text>
 <rect x="138" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
 <rect x="138" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
 <text x="145" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Views / time</text>
-<text x="145" y="401.5" fill="#8b93a1" font-size="7.8">📈 <tspan fill="#5f6875">source</tspan></text>
+<text x="145" y="401.5" fill="#8b93a1" font-size="7.8">📈 ✧ <tspan fill="#5f6875">source</tspan></text>
 <rect x="242" y="382" width="100" height="23" rx="4" fill="#0f1115" stroke="#8b5cf6" stroke-opacity="0.75"/>
 <rect x="242" y="382" width="3" height="23" rx="1.5" fill="#8b5cf6"/>
 <text x="249" y="392.5" fill="#f9fafb" font-size="8.4" font-weight="600">CIM Top-N</text>
-<text x="249" y="401.5" fill="#8b93a1" font-size="7.8">🏆 <tspan fill="#5f6875">source</tspan></text>
+<text x="249" y="401.5" fill="#8b93a1" font-size="7.8">🏆 ✧ <tspan fill="#5f6875">source</tspan></text>
 <rect x="22" y="416" width="706" height="55" rx="5" fill="#161a21" stroke="#242a33"/>
 <rect x="22" y="416" width="4" height="55" rx="2" fill="#1f2937"/>
 <text x="34" y="429" fill="#e5e7eb" font-size="10.5" font-weight="700">Files &amp; media</text>
@@ -229,23 +229,26 @@
 <text x="765" y="363.5" fill="#cbd5e1" font-size="8.2">• layout: {i, x, y, w, h} for each id</text>
 <text x="765" y="375" fill="#cbd5e1" font-size="8.2">• params: named inputs, used as {{name}}</text>
 <text x="765" y="386.5" fill="#cbd5e1" font-size="8.2">• references: source id, or {{widget:id}} in text</text>
-<text x="758" y="433" fill="#9ca3af" font-size="9" font-weight="700">THE 13 PUBLISHERS (✧) — WHAT THEY EMIT</text>
+<text x="758" y="433" fill="#9ca3af" font-size="9" font-weight="700">THE 16 PUBLISHERS (✧) — WHAT THEY EMIT</text>
 <text x="758" y="454" fill="#d1d5db" font-size="8.2">✧ QR Code <tspan fill="#6b7280">value</tspan></text>
 <text x="923" y="454" fill="#d1d5db" font-size="8.2">✧ Article Excerpt <tspan fill="#6b7280">extract/value</tspan></text>
 <text x="758" y="468" fill="#d1d5db" font-size="8.2">✧ Gallery <tspan fill="#6b7280">lines/value</tspan></text>
-<text x="923" y="468" fill="#d1d5db" font-size="8.2">✧ Wikipedia Box <tspan fill="#6b7280">lines/value</tspan></text>
-<text x="758" y="482" fill="#d1d5db" font-size="8.2">✧ Translator (MinT) <tspan fill="#6b7280">value/speech</tspan></text>
-<text x="923" y="482" fill="#d1d5db" font-size="8.2">✧ Map <tspan fill="#6b7280">geojson</tspan></text>
-<text x="758" y="496" fill="#d1d5db" font-size="8.2">✧ IA Item Stats <tspan fill="#6b7280">value</tspan></text>
-<text x="923" y="496" fill="#d1d5db" font-size="8.2">✧ IA Book <tspan fill="#6b7280">value</tspan></text>
-<text x="758" y="510" fill="#d1d5db" font-size="8.2">✧ Document Reader <tspan fill="#6b7280">value</tspan></text>
-<text x="923" y="510" fill="#d1d5db" font-size="8.2">✧ Text List <tspan fill="#6b7280">lines</tspan></text>
-<text x="758" y="524" fill="#d1d5db" font-size="8.2">✧ Filter Lines <tspan fill="#6b7280">lines</tspan></text>
-<text x="923" y="524" fill="#d1d5db" font-size="8.2">✧ Line Count <tspan fill="#6b7280">count</tspan></text>
-<text x="758" y="538" fill="#d1d5db" font-size="8.2">✧ Value Display <tspan fill="#6b7280">value</tspan></text>
-<text x="758" y="553" fill="#9ca3af" font-size="9" font-weight="700">THE 5 CONSUMERS (⇢)</text>
-<text x="758" y="573" fill="#d1d5db" font-size="8.4">Speaker (text-to-spee… · Map · Filter Lines · Line Count · Value Display</text>
-<text x="758" y="593" fill="#7f8794" font-size="8.4">a source field names the publisher; {{widget:id}} works in any text field</text>
+<text x="923" y="468" fill="#d1d5db" font-size="8.2">✧ CIM Snapshot <tspan fill="#6b7280">value</tspan></text>
+<text x="758" y="482" fill="#d1d5db" font-size="8.2">✧ CIM Views / time <tspan fill="#6b7280">value</tspan></text>
+<text x="923" y="482" fill="#d1d5db" font-size="8.2">✧ CIM Top-N <tspan fill="#6b7280">lines</tspan></text>
+<text x="758" y="496" fill="#d1d5db" font-size="8.2">✧ Wikipedia Box <tspan fill="#6b7280">lines/value</tspan></text>
+<text x="923" y="496" fill="#d1d5db" font-size="8.2">✧ Translator (MinT) <tspan fill="#6b7280">value/speech</tspan></text>
+<text x="758" y="510" fill="#d1d5db" font-size="8.2">✧ Map <tspan fill="#6b7280">geojson</tspan></text>
+<text x="923" y="510" fill="#d1d5db" font-size="8.2">✧ IA Item Stats <tspan fill="#6b7280">value</tspan></text>
+<text x="758" y="524" fill="#d1d5db" font-size="8.2">✧ IA Book <tspan fill="#6b7280">value</tspan></text>
+<text x="923" y="524" fill="#d1d5db" font-size="8.2">✧ Document Reader <tspan fill="#6b7280">value</tspan></text>
+<text x="758" y="538" fill="#d1d5db" font-size="8.2">✧ Text List <tspan fill="#6b7280">lines</tspan></text>
+<text x="923" y="538" fill="#d1d5db" font-size="8.2">✧ Filter Lines <tspan fill="#6b7280">lines</tspan></text>
+<text x="758" y="552" fill="#d1d5db" font-size="8.2">✧ Line Count <tspan fill="#6b7280">count</tspan></text>
+<text x="923" y="552" fill="#d1d5db" font-size="8.2">✧ Value Display <tspan fill="#6b7280">value</tspan></text>
+<text x="758" y="567" fill="#9ca3af" font-size="9" font-weight="700">THE 5 CONSUMERS (⇢)</text>
+<text x="758" y="587" fill="#d1d5db" font-size="8.4">Speaker (text-to-spee… · Map · Filter Lines · Line Count · Value Display</text>
+<text x="758" y="607" fill="#7f8794" font-size="8.4">a source field names the publisher; {{widget:id}} works in any text field</text>
 <rect x="22" y="666" width="1078" height="106" rx="5" fill="#161a21" stroke="#242a33"/>
 <text x="36" y="681" fill="#9ca3af" font-size="9" font-weight="700">BADGES</text>
 <text x="36" y="696" fill="#cbd5e1" font-size="8.4">✧  publishes an output another card can consume</text>

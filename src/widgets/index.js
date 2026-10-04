@@ -6,7 +6,7 @@
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
-import { cimSubject, cimFacet, LEGACY_CIM_IDS } from '../lib/cimFamily';
+import { cimSubject, cimFacet, cimSubjectRef, cimRankingLines, LEGACY_CIM_IDS } from '../lib/cimFamily';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
 import {
   fetchDocumentPages,
@@ -1242,6 +1242,10 @@ export const WIDGET_TYPES = {
         gap,
       };
     },
+    // Publishes the SUBJECT — the category this card resolved, as a reference (ISSUE-92). Its counts are readings,
+    // not tokens: what a board pipes onward is the thing the card is about (ISSUE-96).
+    outputs: { kind: 'value' },
+    emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
   cimTrend: {
@@ -1301,6 +1305,9 @@ export const WIDGET_TYPES = {
         zeroY: !!config.zeroY,
       };
     },
+    // The subject again — a category or a file, as a reference. The trend itself is a reading, not a token.
+    outputs: { kind: 'value' },
+    emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
   cimRanking: {
@@ -1397,6 +1404,11 @@ export const WIDGET_TYPES = {
         ['cim-name', 'cim-num'],
       );
     },
+    // The ranked NAMES, one per line, each carrying its own project where one exists (ISSUE-92) — the list a board
+    // pipes into a Filter, a Gallery or a Map. This is the emitter ISSUE-96's checklist ranked first among the CIM
+    // family, and the merge is what made it one emitter instead of five.
+    outputs: { kind: 'lines' },
+    emit: (data, config) => cimRankingLines(cimFacet(config), data.rows) || undefined,
   },
 
   boardControls: {
@@ -1446,7 +1458,7 @@ export const WIDGET_TYPES = {
     defaultLayout: { w: 4, h: 3, minW: 3, minH: 2 },
     configFields: [
       { key: 'text', label: 'Text to speak ({{params}} and {{widget:id}} resolve here)', type: 'textarea', rows: 4, placeholder: 'Hello — point a Board Controls {{phrase}} at me, or type anything.' },
-      { key: 'source', label: 'Speak another widget’s output', type: 'source', hint: 'Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice.' },
+      { key: 'source', label: 'Speak another widget’s output', type: 'source', kinds: ['value', 'lines', 'speech'], hint: 'Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice. Narrowed to text-shaped sources: a geometry or a count is not something a voice can read.' },
       { key: 'lang', label: 'Language (BCP-47)', type: 'text', vocab: 'bcp47', placeholder: 'en · de · fr · pt-BR', noRefs: true, hint: 'Which language to speak in — a voice is chosen to match. A source that reports its own language overrides this; leave blank to use the device language.' },
       { key: 'rate', label: 'Speaking speed', type: 'select', options: [
         { value: '0.75', label: 'Slower (0.75×)' },
@@ -2289,7 +2301,7 @@ export const WIDGET_TYPES = {
     renderer: 'ListSourceCard',
     dataSource: 'widget output (source) — no fetch',
     configFields: [
-      { key: 'source', label: 'Input source', type: 'source', hint: 'The widget feeding this filter — pick any emitting widget on the board.' },
+      { key: 'source', label: 'Input source', type: 'source', kinds: ['lines'], hint: 'The widget feeding this filter — pick any widget publishing lines (a ranking, a gallery’s captions, an article list). Narrowed to `lines`: there is nothing to filter in a number or a geometry.' },
       { key: 'title', label: 'Title (optional)', type: 'text', placeholder: 'Matches' },
       { key: 'pattern', label: 'Match', type: 'text', placeholder: 'einstein' },
       { key: 'match', label: 'Match mode', type: 'select', options: [
@@ -2343,7 +2355,7 @@ export const WIDGET_TYPES = {
     renderer: 'StatCard',
     dataSource: 'widget output (source) — no fetch',
     configFields: [
-      { key: 'source', label: 'Input source', type: 'source', hint: 'Count the lines/elements of this widget\'s output.' },
+      { key: 'source', label: 'Input source', type: 'source', kinds: ['lines', 'count', 'value'], hint: 'Count the lines/elements of this widget’s output — lines, a count, or a single value; a geometry is not countable.' },
       { key: 'label', label: 'Label (optional)', type: 'text', placeholder: 'articles' },
     ],
     transform: (data, config, opts) => {

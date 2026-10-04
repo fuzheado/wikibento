@@ -115,3 +115,52 @@ test('the gallery aliases still resolve (the string form of the same table)', ()
   }
   assert.equal(widgetDef('nope'), null, 'an unknown id resolves to nothing');
 });
+
+test('the merged family publishes what it is about — the subject, and the ranked names (ISSUE-96)', () => {
+  const stats = WIDGET_TYPES.cimStats;
+  assert.equal(stats.outputs.kind, 'value');
+  // The API's own form of the name, not the config's spelling: the card resolved it, so the card publishes it.
+  assert.equal(
+    stats.emit({ category: 'Files_from_the_Biodiversity_Heritage_Library' }, { subject: 'category', category: 'something else' }),
+    'commonswiki:Category:Files from the Biodiversity Heritage Library',
+  );
+  assert.equal(
+    stats.emit({ file: 'Dogs,_jackals,_wolves,_and_foxes_(Plate_XI).jpg' }, { subject: 'file' }),
+    'commonswiki:File:Dogs, jackals, wolves, and foxes (Plate XI).jpg',
+  );
+  // Nothing to name → nothing on the wire. An empty string would be a value every consumer has to special-case.
+  assert.equal(stats.emit({}, { subject: 'category' }), undefined);
+
+  const trend = WIDGET_TYPES.cimTrend;
+  assert.equal(trend.outputs.kind, 'value');
+  assert.equal(trend.emit({ category: 'Files_from_the_BHL' }, { subject: 'category' }), 'commonswiki:Category:Files from the BHL');
+  // …and it is the SUBJECT, not the series: a trend of 524,000 views is a reading, not a token (ISSUE-96's rule 2).
+  assert.equal(typeof trend.emit({ category: 'X', rows: [{ date: '2026-07', views: 524000 }] }, { subject: 'category' }), 'string');
+
+  const rank = WIDGET_TYPES.cimRanking;
+  assert.equal(rank.outputs.kind, 'lines');
+  // Files: the File: prefix is added, underscores become the spaces Commons itself uses, and an already-prefixed
+  // value is not prefixed twice (the fetcher hands us one, a hand-written board may hand us the other).
+  assert.equal(
+    rank.emit({ rows: [{ title: 'Dogs,_jackals.jpg' }, { title: 'File:Already_prefixed.png' }] }, { facet: 'files' }),
+    'commonswiki:File:Dogs, jackals.jpg\ncommonswiki:File:Already prefixed.png',
+  );
+  // Pages carry the wiki the row was viewed on, which is the whole point of a reference (ISSUE-92).
+  assert.equal(rank.emit({ rows: [{ wiki: 'en.wikipedia', page: 'Marie Curie' }] }, { facet: 'pages' }), 'enwiki:Marie Curie');
+  // Wikis publish the dbname itself; editors publish a bare name, because that endpoint returns no wiki and the
+  // emitter will not invent one.
+  assert.equal(rank.emit({ rows: [{ wiki: 'de.wikipedia.org' }] }, { facet: 'wikis' }), 'dewiki');
+  assert.equal(rank.emit({ rows: [{ user: 'Effeietsanders' }] }, { facet: 'editors' }), 'Effeietsanders');
+  assert.equal(rank.emit({ rows: [{ category: 'Files_from_the_BHL' }] }, { facet: 'categories' }), 'commonswiki:Category:Files from the BHL');
+  // A row with nothing nameable contributes no line rather than a blank one.
+  assert.equal(rank.emit({ rows: [{ views: 5 }, { title: 'File:Kept.jpg' }] }, { facet: 'files' }), 'commonswiki:File:Kept.jpg');
+  // No rows at all → nothing emitted, not an empty list.
+  assert.equal(rank.emit({ rows: [] }, { facet: 'files' }), undefined);
+
+  // The retired ids speak the same way: `cimTopPages` publishes page references because its arm says pages.
+  const legacy = widgetDef('cimTopPages');
+  const legacyConfig = normalizeConfigForDef({ category: 'X', scope: 'deep', wiki: 'all-wikis', month: 0, topN: 10 }, legacy);
+  assert.equal(legacy.emit({ rows: [{ wiki: 'enwiki', page: 'Ada Lovelace' }] }, legacyConfig), 'enwiki:Ada Lovelace');
+  assert.equal(legacyConfig.facet, 'pages');
+});
+

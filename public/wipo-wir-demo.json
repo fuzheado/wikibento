@@ -59,6 +59,7 @@
 			"id": "wir-views",
 			"widgetType": "cimTrend",
 			"config": {
+				"subject": "category",
 				"category": "Uploads by WIPO WIRs",
 				"months": 12,
 				"zeroY": false,
@@ -70,6 +71,7 @@
 			"id": "wipo-content-views",
 			"widgetType": "cimTrend",
 			"config": {
+				"subject": "category",
 				"category": "Content produced by WIPO",
 				"months": 24,
 				"zeroY": false,

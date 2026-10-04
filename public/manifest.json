@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-03T18:39:01.739Z",
+ "generatedAt": "2026-10-03T18:43:53.130Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -1020,7 +1020,10 @@
     "showImage",
     "month",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   },
   {
    "id": "cimTrend",
@@ -1114,7 +1117,10 @@
     "month",
     "zeroY",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "value"
+   }
   },
   {
    "id": "cimRanking",
@@ -1232,7 +1238,10 @@
     "highlight",
     "month",
     "refreshSeconds"
-   ]
+   ],
+   "outputs": {
+    "kind": "lines"
+   }
   },
   {
    "id": "boardControls",
@@ -1298,7 +1307,12 @@
      "key": "source",
      "type": "source",
      "label": "Speak another widget’s output",
-     "hint": "Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice."
+     "hint": "Pick an emitting widget — whatever it publishes is spoken, and it overrides the text above. ⚠ For the 🌐 Translator, pick the `translate#speech` entry rather than the widget itself: the bare id carries only the text, while the `speech` channel carries the text *and* its language, which is what chooses the voice. Narrowed to text-shaped sources: a geometry or a count is not something a voice can read.",
+     "kinds": [
+      "value",
+      "lines",
+      "speech"
+     ]
     },
     {
      "key": "lang",
@@ -2171,7 +2185,10 @@
      "key": "source",
      "type": "source",
      "label": "Input source",
-     "hint": "The widget feeding this filter — pick any emitting widget on the board."
+     "hint": "The widget feeding this filter — pick any widget publishing lines (a ranking, a gallery’s captions, an article list). Narrowed to `lines`: there is nothing to filter in a number or a geometry.",
+     "kinds": [
+      "lines"
+     ]
     },
     {
      "key": "title",
@@ -2233,7 +2250,12 @@
      "key": "source",
      "type": "source",
      "label": "Input source",
-     "hint": "Count the lines/elements of this widget's output."
+     "hint": "Count the lines/elements of this widget’s output — lines, a count, or a single value; a geometry is not countable.",
+     "kinds": [
+      "lines",
+      "count",
+      "value"
+     ]
     },
     {
      "key": "label",
