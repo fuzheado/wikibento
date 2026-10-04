@@ -165,14 +165,41 @@ Three artefacts whose hashes `docs-facts --live` can verify against production, 
 passed" and "what production serves", no beta dependency, and deploys take seconds. The Build Service becomes
 worth its setup cost the day deploys hurt — several a day, or a second maintainer without SSH habits.
 
-## Alternative hosts
+## Running it elsewhere (not on Toolforge)
 
-`dist/` + a server providing the routes above will work anywhere: Netlify
-functions, GitHub Pages with a serverless proxy, etc. Without them, the
-degradation is per-feature and the app says so in each card: the relays'
-widgets show their relay-failure state, `?config=` w.wiki links won't resolve,
-and there is no Ask advisor and no door (`/api/validate`, `/mcp`). Everything
-else — every widget whose upstream sends CORS headers — still works.
+Nothing in WikiBento needs Wikimedia premises, an account, or an API key — the data path is client-driven, and
+the one server file is **zero-dependency Node** (`deploy/server.js`, builtins only). There are two tiers:
+
+**Tier 1 — static hosting only** (GitHub Pages, Netlify, S3, any nginx): build `dist/` and serve it. Every widget
+whose upstream sends CORS headers works from any origin — the Action API (`origin=*`), `api.wikimedia.org`
+(**including the LiftWing ML services** — article quality and friends are called straight from the browser), WDQS
+and QLever SPARQL, the Internet Archive. What degrades is exactly the six relay routes, per feature:
+
+| without the server | what you lose |
+|---|---|
+| `/api/staticmap` | map widgets — the map service refuses browser-shaped requests; cards show their relay-failure state |
+| `/api/proxy` | the hatnote Top-articles widget **falls back to the WMF Pageviews API automatically** ("via WMF Pageviews API"); gallery-usage falls back to a batched self-walk |
+| `/api/resolve` | `#/z/` short links won't resolve (`#/d/` links carry the full board and still work) |
+| `/api/petscan` | PetScan-backed widgets — the relay also enforces the size cap, so it is not merely CORS |
+| `/api/wayback-gallery` | the Wayback gallery (the CDX side sends no CORS) |
+| `/api/ask` | the Ask advisor (the relay owns the pacing, the caps and the server-side prompt — see below) |
+| `/api/validate` · `/mcp` | the door — a board can't be checked or handed over by URL (the doctor still runs locally: `npm run check:board`) |
+
+Each degradation is *announced in the card*, not a blank: the app was built to be borrowed like this.
+
+**Tier 2 — static + the companion server.** `node deploy/server.js` runs on any Node host (a VPS, Render, Fly,
+a container) and serves `dist/` plus all eight routes; point a reverse proxy at it, or let it serve directly.
+No credentials are needed for anything: the Ask advisor relays to **LiftWing's free LLM** (no key — the relay
+exists to hold the pacing, the caps and the server-side manifest prompt; LiftWing's own ~90 req/h per-IP limit
+then follows *your* host's IP). The etiquette — descriptive User-Agent, per-client caps, byte ceilings — is
+built in and env-tunable (`WIKIMEDIA_USER_AGENT`, `RELAY_*`, `VALIDATE_*`, `MCP_*`); set
+`WIKIMEDIA_USER_AGENT` to *your* contact, since the requests now come from your address.
+
+**One config whoever serves `dist/` must reproduce:** `index.html` with `Cache-Control: no-cache`, `/assets/*`
+immutable. Serving both cacheable is the stale-bundle trap — deploys look missing until a hard refresh
+(HANDOFF gotcha #11).
+
+The rsync flow above is just Tier 2 where the "any Node host" happens to be Toolforge.
 
 ## Deployment Checklist
 
