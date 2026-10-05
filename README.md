@@ -416,10 +416,10 @@ front door.
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·
-  [PHILOSOPHY](docs/PHILOSOPHY.md) · [PARADIGMS](docs/PARADIGMS.md) · [WIDGET-MESSAGING](docs/WIDGET-MESSAGING.md)
-  · [PLUGIN-TRUST](docs/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/TOOL-LANDSCAPE.md) and its
-  [synthesis](docs/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/TOOLFLOW-ANALYSIS.md) ·
-  [TAPESTRY-EVALUATION](docs/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
+  [PHILOSOPHY](docs/research/PHILOSOPHY.md) · [PARADIGMS](docs/research/PARADIGMS.md) · [WIDGET-MESSAGING](docs/research/WIDGET-MESSAGING.md)
+  · [PLUGIN-TRUST](docs/research/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/research/TOOL-LANDSCAPE.md) and its
+  [synthesis](docs/research/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/research/TOOLFLOW-ANALYSIS.md) ·
+  [TAPESTRY-EVALUATION](docs/research/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·
   [INTERNET-ARCHIVE](docs/INTERNET-ARCHIVE.md) (the IA widget family: verified API surface, per-media
   file conventions, quotas, ranked proposal) ·

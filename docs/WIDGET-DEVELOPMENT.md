@@ -69,7 +69,7 @@ just kept in code instead of in the registry. (The bcp47 rule and the 🌐→�
 
 > *Background:* why this is a one-way, text-shaped convention rather than a message
 > bus — and how other tools (Grafana, Tableau, marimo, HyperCard, mTropolis) solved
-> the same problem — is in [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md).
+> the same problem — is in [WIDGET-MESSAGING.md](research/WIDGET-MESSAGING.md).
 
 The two sections above are **constitutions** — build-breaking. This one is a
 **convention** with a single automated guard, and it exists because the dataflow

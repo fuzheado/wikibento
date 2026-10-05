@@ -240,7 +240,7 @@ between cards*.
 ## Where to go deeper
 
 - Dashboard JSON spec — [JSON-FORMAT.md](JSON-FORMAT.md)
-- Why the project exists (HyperCard lineage) — [PHILOSOPHY.md](PHILOSOPHY.md)
+- Why the project exists (HyperCard lineage) — [PHILOSOPHY.md](research/PHILOSOPHY.md)
 - Design decisions & the dataflow ladder — [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md)
 - Every API, cap and gotcha — [DATA-SOURCES.md](DATA-SOURCES.md)
 

@@ -1053,4 +1053,4 @@ left to right.
 - **If you are writing a widget** — [WIDGET-DEVELOPMENT.md](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-DEVELOPMENT.md) has *The Emitter Contract*: the
   rules a new emitter must follow, including channels and references.
 - **If you want the design reasoning** — [MODULARITY-AND-DATAFLOW.md](https://github.com/fuzheado/wikibento/blob/main/docs/MODULARITY-AND-DATAFLOW.md) (why the wire is
-  text-shaped) and [WIDGET-MESSAGING.md](https://github.com/fuzheado/wikibento/blob/main/docs/WIDGET-MESSAGING.md) (how other tools solved the same problem).
+  text-shaped) and [WIDGET-MESSAGING.md](https://github.com/fuzheado/wikibento/blob/main/docs/research/WIDGET-MESSAGING.md) (how other tools solved the same problem).

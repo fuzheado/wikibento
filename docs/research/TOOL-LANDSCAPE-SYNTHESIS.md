@@ -10,8 +10,8 @@ findings and the decisions they inform.*
 
 *Companion to [PHILOSOPHY.md](PHILOSOPHY.md) (the HyperCard lineage thesis),
 [PARADIGMS.md](PARADIGMS.md) (presentation paradigms + mortality),
-[MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md) (architecture assessment),
-[WIDGET-IDEAS.md](WIDGET-IDEAS.md), and [ROADMAP.md](ROADMAP.md).*
+[MODULARITY-AND-DATAFLOW.md](../MODULARITY-AND-DATAFLOW.md) (architecture assessment),
+[WIDGET-IDEAS.md](../WIDGET-IDEAS.md), and [ROADMAP.md](../ROADMAP.md).*
 
 ---
 

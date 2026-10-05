@@ -174,4 +174,4 @@ left to right.
 - **If you are writing a widget** — [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md) has *The Emitter Contract*: the
   rules a new emitter must follow, including channels and references.
 - **If you want the design reasoning** — [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md) (why the wire is
-  text-shaped) and [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md) (how other tools solved the same problem).
+  text-shaped) and [WIDGET-MESSAGING.md](research/WIDGET-MESSAGING.md) (how other tools solved the same problem).

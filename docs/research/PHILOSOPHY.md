@@ -1,7 +1,7 @@
 # WikiBento and the HyperCard Lineage
 
 *Why this project exists — the philosophical case. Companion to
-[ARCHITECTURE.md](ARCHITECTURE.md) (the *why* vs. the *how*).*
+[ARCHITECTURE.md](../ARCHITECTURE.md) (the *why* vs. the *how*).*
 
 ---
 

@@ -185,6 +185,6 @@ and [xz-utils CVE-2024-3094](https://www.cisa.gov/news-events/alerts/2024/03/29/
 [CNET, "Sun pays for ActiveX attack" (JavaOne 1997)](https://cnet.com/tech/services-and-software/sun-pays-for-activex-attack).
 
 **Related in-repo:** [WIDGET-MESSAGING.md](WIDGET-MESSAGING.md) §8 (modularity and
-third-party authorship), [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md) Appendix A
+third-party authorship), [MODULARITY-AND-DATAFLOW.md](../MODULARITY-AND-DATAFLOW.md) Appendix A
 (`assertContract()`), [TOOL-LANDSCAPE-SYNTHESIS.md](TOOL-LANDSCAPE-SYNTHESIS.md) §4
 (OpenDoc's parts market).

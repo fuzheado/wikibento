@@ -131,7 +131,21 @@ const prose = Object.fromEntries(DOCS.map((d) => [d, read(d)]));
 const DATED_RECORDS = new Set([
   'docs/ISSUES.md', 'docs/DEPLOYMENTS.md', 'docs/SCREENSHOTS.md', 'docs/VERIFIED-WORKING.md',
   'docs/BUG-REPORT-ios-safari-fetch.md', 'docs/WHY-WIKIBENTO.md', 'docs/AGENT-MEMO.md',
+  // The founding-era research corpus (moved to docs/research/ on 2026-10-04): design studies from August–September
+  // that decisions cite but nothing executes. Each carries its date in its header; some describe OTHER software's
+  // claims, so the retired-claims vocabulary is legitimate there. Dated semantics: printed, never enforced.
+  'docs/research/PHILOSOPHY.md', 'docs/research/PARADIGMS.md', 'docs/research/TOOL-LANDSCAPE.md',
+  'docs/research/TOOL-LANDSCAPE-SYNTHESIS.md', 'docs/research/TOOLFLOW-ANALYSIS.md',
+  'docs/research/TAPESTRY-EVALUATION.md', 'docs/research/WIDGET-MESSAGING.md', 'docs/research/PLUGIN-TRUST.md',
 ]);
+
+/** Every markdown doc, flat or in a subdirectory — one listing, shared by every check that scans docs. */
+function docsMdFiles() {
+  const flat = readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`);
+  const research = readdirSync(join(ROOT, 'docs', 'research')).filter((f) => f.endsWith('.md'))
+    .map((f) => `docs/research/${f}`);
+  return [...flat, ...research];
+}
 
 // Board configs carry user-visible prose too (markdown cards, board titles) and
 // drift the same way: the demo hub's markdown claimed "37 widget types" while
@@ -146,7 +160,7 @@ const DATED_RECORDS = new Set([
 // catalog …" while the registry held 42 — nothing ever read those files. Coverage, not rules, was the defect.
 const ALL_MD = [
   'README.md', 'HANDOFF.md', 'AGENTS.md',
-  ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`),
+  ...docsMdFiles(),
 ];
 const COUNT_SOURCES = [
   ...ALL_MD.filter((f) => !DATED_RECORDS.has(f)).map((f) => [f, read(f)]),
@@ -346,7 +360,9 @@ check('the showcase catalog covers every registered widget type', () => {
 
 // ── 4. every doc is in the README index ─────────────────────────────────────
 check('every docs/*.md is linked from the README', () => {
-  const files = readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md'));
+  const files = docsMdFiles().map((f) => f.replace(/^docs\//, ''));
+  // basename semantics: the README links carry the full path (docs/research/…), which contains the basename, so
+  // checking the basename keeps this check about "is it in the index" rather than about exact spelling.
   const missing = files.filter(
     (f) => !prose['README.md'].includes(f) && !(f in INTERNAL_DOCS)
   );
@@ -528,8 +544,7 @@ check('retired CLAIMS are gone from the current-state docs', () => {
   // Two scopes, because the same words mean different things in different documents: a *global sweep* is wrong
   // anywhere, while the bare phrase is only a defect in a front-door file (see RETIRED_CLAIMS).
   const FRONT_DOOR = new Set(['README.md', 'HANDOFF.md', 'AGENTS.md', 'docs/GUIDE.md']);
-  const files = ['README.md', 'HANDOFF.md', 'AGENTS.md',
-    ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)]
+  const files = ['README.md', 'HANDOFF.md', 'AGENTS.md', ...docsMdFiles()]
     .filter((f) => !DATED_RECORDS.has(f));
   const hits = [];
   for (const f of files) {
@@ -546,8 +561,7 @@ check('retired CLAIMS are gone from the current-state docs', () => {
 });
 
 check('retired widget names are gone from the current-state docs', () => {
-  const files = ['README.md', 'HANDOFF.md',
-    ...readdirSync(join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => `docs/${f}`)]
+  const files = ['README.md', 'HANDOFF.md', ...docsMdFiles()]
     .filter((f) => !DATED_RECORDS.has(f));
   const hits = [];
   for (const f of files) {
