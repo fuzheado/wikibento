@@ -214,7 +214,7 @@ Wikidata-vs-prose coverage) — so the README stays a front door.
 **Doc convention: append-only applies to exactly two files.** `docs/DEPLOYMENTS.md` (the
 deploy log) and `docs/WHY-WIKIBENTO.md` (the measured ledger, where a claim is added with
 its receipt and never quietly revised). Every other document — including the README and
-`docs/TUTORIAL-VIDEO-STATUS.md` — is **edited in place**: cut, merge, rewrite, and delete
+`docs/TUTORIAL-VIDEO-TOOLING.md` — is **edited in place**: cut, merge, rewrite, and delete
 what has stopped being true. A record of what happened may only grow; a description of what
 is must be allowed to shrink, or the README becomes a changelog and stops being a front door
 (which is exactly what happened: it reached 639 lines, ~250 of them an appended test log).
@@ -780,7 +780,7 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
 
 ## Tutorial video (state as of 2026-09-12)
 
-> **Picking this up? Read [`docs/TUTORIAL-VIDEO-STATUS.md`](docs/TUTORIAL-VIDEO-STATUS.md) first** — it opens
+> **Picking this up? Read [`docs/TUTORIAL-VIDEO-TOOLING.md`](docs/TUTORIAL-VIDEO-TOOLING.md) first** — it opens
 > with a five-step "if you are picking this up", then the layout, the costs, and what is still missing.
 > The reusable technique (and every trap paid for) is the skill at
 > `~/.pi/agent/skills/narrated-tutorial-video/SKILL.md`; the engine's contract is

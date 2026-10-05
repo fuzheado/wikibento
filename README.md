@@ -435,9 +435,9 @@ front door.
   [VERIFIED-WORKING](docs/VERIFIED-WORKING.md) · [DEPLOYMENT](docs/DEPLOYMENT.md) and the
   [deploy log](docs/DEPLOYMENTS.md) · [AGENT-MEMO](docs/AGENT-MEMO.md) ·
   [BUG-REPORT-ios-safari-fetch](docs/BUG-REPORT-ios-safari-fetch.md) · [AUTHORS](docs/AUTHORS.md)
-- **Tutorial video** — [TUTORIAL-VIDEO-STATUS](docs/TUTORIAL-VIDEO-STATUS.md) (state, how to re-run, what is
-  missing) · [pipeline/README](pipeline/README.md) (the reusable engine) ·
-  [TUTORIAL-VIDEO-TOOLING](docs/TUTORIAL-VIDEO-TOOLING.md) (the ecosystem research behind it)
+- **Tutorial video** — [TUTORIAL-VIDEO-TOOLING](docs/TUTORIAL-VIDEO-TOOLING.md) (the pipeline: state, how to
+  re-run, what is missing; plus the ecosystem research behind it) · [pipeline/README](pipeline/README.md) (the
+  reusable engine)
 
 ## Feedback & Feature Requests
 
