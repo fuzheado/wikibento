@@ -21,7 +21,7 @@
  * `dist/` (twice on 2026-09-24 a fixed feature measured as broken because the build was old). Second: an
  * exception thrown inside a React event handler reaches the CONSOLE, not `pageerror`, so both are listened
  * to — upstream `Failed to load resource` / CSP / iframe-autofocus reports are notes, everything else is
- * fatal (the pageviews card walks candidate dates back from today, so an upstream 404 is normal here).
+ * fatal (the pageviews card walks candidate dates back from today, so an upstream 404 is normal here; a CORS-refused archive.org call from the local origin is that same kind of note, not a signal).
  */
 import { chromium } from 'playwright-core';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -79,7 +79,7 @@ page.on('pageerror', (e) => errs.push('pageerror: ' + String(e.message).slice(0,
 page.on('console', (m) => {
   if (m.type() !== 'error') return;
   const full = m.text();
-  if (/Failed to load resource|Content Security Policy|violates the following|Blocked autofocusing|ERR_/.test(full)) return;
+  if (/Failed to load resource|Access to fetch at|blocked by CORS|Content Security Policy|violates the following|Blocked autofocusing|ERR_/.test(full)) return;
   errs.push('console: ' + full.slice(0, 120));
 });
 
