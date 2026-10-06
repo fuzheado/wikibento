@@ -27,6 +27,39 @@ import { extractWidgetRefs } from './params.js';   // the extension matters: scr
  */
 export const OUTPUT_KINDS = ['extract', 'lines', 'count', 'value', 'speech', 'geojson'];
 
+/**
+ * The keys an `outputs` declaration reserves for METADATA (ISSUE-96): `kind` (the shape of the value the bare id
+ * publishes) and `subject` (the thing that value is about, from pickMode.js's KIND_IDS). Every OTHER key is a named
+ * channel — a second thing the widget publishes, addressed as `{{widget:id#channel}}` (ISSUE-91).
+ *
+ * One declaration, three shapes:
+ *   { kind: 'lines' }                                          a single output
+ *   { kind: 'lines', subject: 'cim-category' }                 …and what it is about
+ *   { kind: 'extract', subject: 'article', reference: 'value' } …plus named channels
+ *
+ * Readers that enumerate channels must skip these keys — see outputChannels.
+ */
+export const OUTPUT_RESERVED_KEYS = ['kind', 'subject'];
+
+/** The named channels of an `outputs` declaration: `{ name: kind }` — everything that is not reserved metadata. */
+export function outputChannels(outputs) {
+  const out = {};
+  if (!outputs || typeof outputs !== 'object') return out;
+  for (const [name, kind] of Object.entries(outputs)) {
+    if (!OUTPUT_RESERVED_KEYS.includes(name)) out[name] = kind;
+  }
+  return out;
+}
+
+/** Every output kind an `outputs` declaration carries — the bare `kind` plus each named channel's kind. */
+export function declaredOutputKinds(outputs) {
+  if (!outputs || typeof outputs !== 'object') return [];
+  const kinds = [];
+  if (typeof outputs.kind === 'string') kinds.push(outputs.kind);
+  for (const kind of Object.values(outputChannels(outputs))) kinds.push(kind);
+  return [...new Set(kinds)];
+}
+
 /** Normalize an emitted output to an array of strings (lines):
  *  arrays → String(each); strings → trimmed non-empty lines; objects →
  *  JSON; null/undefined → []. */

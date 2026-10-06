@@ -277,10 +277,9 @@ const emitters = widgets.filter((w) => w.outputs);
 svg.push(`<text x="${rx + 12}" y="${cy}" fill="#9ca3af" font-size="9" font-weight="700">THE ${emitters.length} PUBLISHERS (✧) — WHAT THEY EMIT</text>`);
 cy += 12;
 const kindOf = (w) => {
-  if (w.outputs.kind) return w.outputs.kind;
-  const primary = w.primary && w.outputs[w.primary] ? w.outputs[w.primary] : Object.values(w.outputs)[0];
-  const others = Object.values(w.outputs).filter((k) => k !== primary);
-  return [primary, ...others].slice(0, 2).join('/');
+  // ISSUE-96: the bare `kind` plus every named channel's kind (skipping the `subject` metadata key).
+  const kinds = [w.outputs.kind, ...Object.entries(w.outputs).filter(([k]) => k !== 'kind' && k !== 'subject').map(([, v]) => v)];
+  return [...new Set(kinds.filter(Boolean))].slice(0, 2).join('/');
 };
 emitters.forEach((w, i) => {
   const col = i % 2;

@@ -211,14 +211,18 @@ while ((m = blockRe.exec(src)) !== null) {
   }
 
   const renderer = prop(block, 'renderer');
-  // Outputs may be a single `{ kind }` or a map of named channels (ISSUE-91/92) — a widget can publish more than
-  // one thing, e.g. an Article Excerpt's prose *and* the page it came from. The manifest is the app's advertised
-  // contract, so both shapes travel.
-  const outputsKind = (block.match(/outputs:\s*\{\s*kind:\s*'(\w+)'/) || [])[1];
+  // Outputs carry the metadata keys `kind` (the bare id's shape) and `subject` (the thing it is about, ISSUE-96),
+  // beside any NAMED channels (ISSUE-91/92) — a widget can publish more than one thing, e.g. an Article Excerpt's
+  // prose *and* the page it came from. The manifest is the app's advertised contract, so every part travels.
+  const outputsKind = (block.match(/outputs:\s*\{\s*kind:\s*'([\w-]+)'/) || [])[1];
+  const outputsSubject = (block.match(/outputs:\s*\{[^}]*?\bsubject:\s*'([\w-]+)'/) || [])[1];
   const outputsMap = (block.match(/outputs:\s*\{([^}]*)\}/) || [])[1] || '';
-  const channels = outputsMap && !/kind:/.test(outputsMap)
-    ? Object.fromEntries([...outputsMap.matchAll(/(\w+):\s*'(\w+)'/g)].map((m) => [m[1], m[2]]))
-    : null;
+  // A named channel is every key/value pair that is not reserved metadata.
+  const channels = Object.fromEntries(
+    [...outputsMap.matchAll(/(\w+):\s*'([\w-]+)'/g)]
+      .filter(([, key]) => key !== 'kind' && key !== 'subject')
+      .map((m) => [m[1], m[2]]),
+  );
   const nodeKind = (block.match(/nodeKind:\s*'(\w+)'/) || [])[1] || DEFAULT_NODE_KIND;
   const widget = {
     id,
@@ -241,9 +245,15 @@ while ((m = blockRe.exec(src)) !== null) {
     defaults,
   };
   const primary = prop(block, 'primary');
-  if (channels && Object.keys(channels).length) widget.outputs = channels;
-  if (primary && channels && primary in channels) widget.primary = primary;
-  else if (outputsKind) widget.outputs = { kind: outputsKind };
+  const named = Object.keys(channels).length > 0;
+  if (named || outputsKind || outputsSubject) {
+    widget.outputs = {
+      ...(outputsKind ? { kind: outputsKind } : {}),
+      ...(outputsSubject ? { subject: outputsSubject } : {}),
+      ...(named ? channels : {}),
+    };
+  }
+  if (primary && named && primary in channels) widget.primary = primary;
   widgets.push(widget);
 }
 

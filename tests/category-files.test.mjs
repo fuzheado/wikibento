@@ -104,7 +104,7 @@ test('a gallery is wireable: lines come out of the same card that shows the imag
   const emitted = def.emit({ rows: [{ title: 'A.jpg', caption: 'A caption' }, { title: 'B.jpg' }] });
   assert.deepEqual(emitted.lines, ['A caption', 'B.jpg']);
   assert.equal(def.primary, 'lines');
-  assert.deepEqual(def.outputs, { lines: 'lines', selection: 'value' });
+  assert.deepEqual(def.outputs, { kind: 'lines', lines: 'lines', selection: 'value' });
 });
 
 test('the source fields are mutually exclusive in the config UI', () => {

@@ -23,24 +23,32 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
-import { OUTPUT_KINDS } from '../src/lib/dataflow';
+import { OUTPUT_KINDS, declaredOutputKinds } from '../src/lib/dataflow';
+import { KIND_IDS, kindsAccepting } from '../src/lib/pickMode.js';
 
 const manifest = JSON.parse(
   await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'),
 );
 const byId = new Map(manifest.widgets.map((w) => [w.id, w]));
+// ISSUE-96: `kind`/`subject` are the reserved metadata keys; every other key of `outputs` is a named channel.
+const NAMED = (outputs) => Object.entries(outputs || {}).filter(([k]) => k !== 'kind' && k !== 'subject');
 
 const KNOWN_EMITTERS = {
-  excerpt: { extract: 'extract', reference: 'value' },
+  // ISSUE-96: each entry pins the metadata the emitter must carry — `kind` (the bare id's shape), `subject`
+  // (the thing it is about) and any named channels. A bare string means "the kind, exactly".
+  excerpt: { kind: 'extract', subject: 'article', channels: { extract: 'extract', reference: 'value' } },
+  gallery: { kind: 'lines', channels: { lines: 'lines', selection: 'value' } },
+  wikiBox: { kind: 'lines', channels: { items: 'lines', selection: 'value' } },
+  translate: { kind: 'value', channels: { translation: 'value', speech: 'speech' } },
   listSource: 'lines',
   filterLines: 'lines',
   lineCount: 'count',
   echo: 'value',
   // The CIM family's emitters (2026-10-03, ISSUE-96's checklist): a stats/trend card publishes the subject it
   // resolved, and a ranking publishes the ranked names.
-  cimStats: 'value',
-  cimTrend: 'value',
-  cimRanking: 'lines',
+  cimStats: { kind: 'value', subject: 'cim-category' },
+  cimTrend: { kind: 'value', subject: 'cim-category' },
+  cimRanking: { kind: 'lines', subject: 'cim-category' },
 };
 const KNOWN_NODE_KINDS = {
   filterLines: 'transformer',
@@ -78,9 +86,10 @@ test('a multi-channel widget says what its bare id means (the compatibility rule
   // that publishes several things therefore declares which one the bare id is — the Article Excerpt taught this the
   // hard way by emptying the bare id, which left `translate` in the demo waiting for a value forever.
   for (const w of manifest.widgets) {
-    if (!w.outputs || 'kind' in w.outputs) continue;
+    const channels = NAMED(w.outputs).map(([name]) => name);
+    if (!channels.length) continue;
     assert.ok(w.primary, `${w.id} names several channels without saying which one the bare id means`);
-    assert.ok(w.primary in w.outputs, `${w.id}: primary "${w.primary}" is not one of its channels`);
+    assert.ok(channels.includes(w.primary), `${w.id}: primary "${w.primary}" is not one of its channels`);
   }
 });
 
@@ -117,21 +126,23 @@ test('a project or language field uses the picker, not a hardcoded list (ISSUE-9
   assert.deepEqual(offenders, [], `a project/language field must use the shared picker (type: 'project'), or declare a non-wiki vocabulary (type: 'text', vocab: 'bcp47'):\n  ${offenders.join('\n  ')}`);
 });
 
-test('the five emitters declare their output kinds', () => {
-  for (const [id, kind] of Object.entries(KNOWN_EMITTERS)) {
+test('the emitters declare their output kinds', () => {
+  for (const [id, spec] of Object.entries(KNOWN_EMITTERS)) {
     const w = byId.get(id);
     assert.ok(w, `emitter ${id} exists`);
     assert.ok(w.outputs, `${id} declares outputs`);
-    // Named channels (ISSUE-92): a widget may publish more than one thing, e.g. the Article Excerpt's prose *and*
-    // the page it came from. The map is checked key-by-key above; a single-output widget keeps its `{ kind }`.
-    // Two shapes, one meaning (ISSUE-91): a single output is `{ kind }`, while a widget with named channels —
-    // a box that publishes both its items and the reader's selection — maps channel → kind.
-    const expected = typeof kind === 'string' ? kind : null;
-    if ('kind' in w.outputs && expected) assert.equal(w.outputs.kind, expected, `${id} outputs.kind === '${expected}'`);
-    if (!('kind' in w.outputs)) {
-      const kinds = Object.values(w.outputs);
-      assert.ok(kinds.length > 0, `${id} names at least one channel`);
-      assert.ok(kinds.every((k) => typeof k === 'string'), `${id} channel kinds are strings`);
+    // ISSUE-96: `kind` is the bare id's shape and `subject` its thing; the named channels (ISSUE-92) sit beside
+    // them. A widget may carry any combination — this pins every part each known emitter is expected to have.
+    assert.ok(typeof w.outputs.kind === 'string' && w.outputs.kind, `${id} declares outputs.kind`);
+    assert.ok(OUTPUT_KINDS.includes(w.outputs.kind), `${id}: kind "${w.outputs.kind}" is documented`);
+    if (typeof spec === 'string') {
+      assert.equal(w.outputs.kind, spec, `${id} outputs.kind === '${spec}'`);
+    } else {
+      if (spec.kind) assert.equal(w.outputs.kind, spec.kind, `${id} outputs.kind === '${spec.kind}'`);
+      if (spec.subject) assert.equal(w.outputs.subject, spec.subject, `${id} outputs.subject === '${spec.subject}'`);
+      for (const [channel, ck] of Object.entries(spec.channels || {})) {
+        assert.equal(w.outputs[channel], ck, `${id}: channel "${channel}" === '${ck}'`);
+      }
     }
   }
 });
@@ -180,9 +191,7 @@ test('a consumer’s declared kinds are documented, and something publishes them
   const DOCUMENTED = OUTPUT_KINDS;
   const published = new Set();
   for (const w of manifest.widgets) {
-    if (!w.outputs) continue;
-    if ('kind' in w.outputs) published.add(w.outputs.kind);
-    else Object.values(w.outputs).forEach((k) => published.add(k));
+    for (const kind of declaredOutputKinds(w.outputs)) published.add(kind);
   }
   let declared = 0;
   for (const w of manifest.widgets) {
@@ -200,6 +209,17 @@ test('a consumer’s declared kinds are documented, and something publishes them
   // pickers offer for nothing (ISSUE-97 — this is what makes the list load-bearing rather than a description).
   const dead = OUTPUT_KINDS.filter((k) => !published.has(k));
   assert.deepEqual(dead, [], `documented output kinds nothing publishes: ${dead.join(', ')}`);
+  // ISSUE-96 extends "no dead kind" to CONSUMPTION: a documented kind no `source` field ever accepts is legal
+  // only when it is deliberately named here — a picker of one widget would be worse than no picker.
+  const INTENTIONALLY_UNCONSUMED_KINDS = {
+    extract: 'consumed through {{widget:id}} interpolation and text fields (the prose rule, ISSUE-92) rather than a source field',
+  };
+  const accepted = new Set();
+  for (const w of manifest.widgets) {
+    for (const f of w.configFields || []) if (f.kinds) for (const k of f.kinds) accepted.add(k);
+  }
+  const unconsumed = OUTPUT_KINDS.filter((k) => !accepted.has(k) && !(k in INTENTIONALLY_UNCONSUMED_KINDS));
+  assert.deepEqual(unconsumed, [], `documented output kinds nothing consumes (and nothing lists as intentionally unconsumed): ${unconsumed.join(', ')}`);
 });
 
 test('emitter output kinds stay within the documented set (emitter contract)', () => {
@@ -209,12 +229,46 @@ test('emitter output kinds stay within the documented set (emitter contract)', (
   const DOCUMENTED = OUTPUT_KINDS;
   for (const w of manifest.widgets) {
     if (!w.outputs) continue;
-    const kinds = 'kind' in w.outputs ? [w.outputs.kind] : Object.values(w.outputs);
+    const kinds = declaredOutputKinds(w.outputs);
     for (const one of kinds) assert.ok(
       DOCUMENTED.includes(one),
       `${w.id}: output kind "${one}" is not in the documented set [${DOCUMENTED.join(', ')}] — `
       + 'see docs/WIDGET-DEVELOPMENT.md "The Emitter Contract" (and docs/MEDIA-DATAFLOW.md for non-text outputs)',
     );
+  }
+});
+
+test('every declared output subject is a thing kind, and something consumes it (ISSUE-96)', () => {
+  // The second dimension: what a producer's value is ABOUT. Drawn from the same vocabulary the ⚙ brush validates
+  // (KIND_IDS), and consumed — through the kind hierarchy — by at least one consumer's thing field, or listed as
+  // intentionally unconsumed. A subject nothing consumes is a label the menu would offer for nothing.
+  // The manifest does not carry a field's `kind` (it is the ⚙ brush's vocabulary, not the catalog's), so the
+  // consumer side is read from the registry itself.
+  const consumers = new Set();
+  for (const def of Object.values(WIDGET_TYPES)) for (const f of def.configFields || []) if (f.kind) consumers.add(f.kind);
+  const INTENTIONALLY_UNCONSUMED_SUBJECTS = {};
+  let declared = 0;
+  for (const w of manifest.widgets) {
+    if (!w.outputs || !('subject' in w.outputs)) continue;
+    declared += 1;
+    const s = w.outputs.subject;
+    assert.ok(KIND_IDS.includes(s), `${w.id}: subject "${s}" is not in [${KIND_IDS.join(', ')}]`);
+    const consumed = [...consumers].some((k) => kindsAccepting(s).includes(k));
+    assert.ok(consumed || s in INTENTIONALLY_UNCONSUMED_SUBJECTS,
+      `${w.id}: subject "${s}" is consumed by no consumer kind field and is not listed as intentionally unconsumed`);
+  }
+  assert.ok(declared >= 4, `expected several producers to declare a subject, found ${declared}`);
+});
+
+test('the four publishers that declare a kind only now (ISSUE-96)', () => {
+  // excerpt, gallery, wikiBox and translate published NAMED channels but no `kind`, so a matcher reading
+  // `outputs.kind` could not see them. Each now names the bare id's kind, keeping its channels and its primary.
+  const expected = { excerpt: 'extract', gallery: 'lines', wikiBox: 'lines', translate: 'value' };
+  for (const [id, kind] of Object.entries(expected)) {
+    const w = byId.get(id);
+    assert.equal(w.outputs.kind, kind, `${id}.outputs.kind`);
+    assert.ok(NAMED(w.outputs).length >= 2, `${id} keeps its named channels`);
+    assert.ok(w.primary && w.outputs[w.primary] === kind, `${id}: the bare id's kind matches its primary channel`);
   }
 });
 

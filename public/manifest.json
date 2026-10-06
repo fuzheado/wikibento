@@ -1,6 +1,6 @@
 {
  "version": 3,
- "generatedAt": "2026-10-03T18:43:53.130Z",
+ "generatedAt": "2026-10-06T12:32:39.369Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -546,6 +546,8 @@
     "verticalAlign"
    ],
    "outputs": {
+    "kind": "extract",
+    "subject": "article",
     "extract": "extract",
     "reference": "value"
    },
@@ -882,6 +884,7 @@
     "refreshSeconds"
    ],
    "outputs": {
+    "kind": "lines",
     "lines": "lines",
     "selection": "value"
    },
@@ -1022,7 +1025,8 @@
     "refreshSeconds"
    ],
    "outputs": {
-    "kind": "value"
+    "kind": "value",
+    "subject": "cim-category"
    }
   },
   {
@@ -1119,7 +1123,8 @@
     "refreshSeconds"
    ],
    "outputs": {
-    "kind": "value"
+    "kind": "value",
+    "subject": "cim-category"
    }
   },
   {
@@ -1240,7 +1245,8 @@
     "refreshSeconds"
    ],
    "outputs": {
-    "kind": "lines"
+    "kind": "lines",
+    "subject": "cim-category"
    }
   },
   {
@@ -1441,6 +1447,7 @@
     "refreshSeconds"
    ],
    "outputs": {
+    "kind": "lines",
     "items": "lines",
     "selection": "value"
    },
@@ -1567,6 +1574,7 @@
     "refreshSeconds"
    ],
    "outputs": {
+    "kind": "value",
     "translation": "value",
     "speech": "speech"
    },
@@ -2125,7 +2133,8 @@
     "refreshSeconds"
    ],
    "outputs": {
-    "kind": "value"
+    "kind": "value",
+    "subject": "commons-file"
    }
   },
   {

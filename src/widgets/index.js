@@ -771,7 +771,9 @@ export const WIDGET_TYPES = {
     // `primary` says what `{{widget:this}}` — the bare id — means, so every reference written before channels
     // existed still works. It must directly follow the line above: the manifest generator reads a property that
     // follows a comma, and an intervening comment is not whitespace.
-    outputs: { extract: 'extract', reference: 'value' },
+    // ISSUE-96: `kind` names what the bare id publishes (the prose); `subject` is the thing that prose is about —
+    // the article, read off config.article (a field whose kind is 'article'). The named channels sit beside them.
+    outputs: { kind: 'extract', subject: 'article', extract: 'extract', reference: 'value' },
     primary: 'extract',
     emit: (data) => ({ extract: data.extract, reference: data.reference }),
   },
@@ -1023,7 +1025,9 @@ export const WIDGET_TYPES = {
     },
     // Two channels (ISSUE-91): the captions in source order — for a gallery page that is a curated, human-written
     // list — and the file the reader clicked. `primary` keeps the bare id meaning the captions.
-    outputs: { lines: 'lines', selection: 'value' },
+    // ISSUE-96: `kind` = the bare id publishes the captions. No `subject`: the four sources are four different
+    // things (an article, a Commons gallery page, a Commons category, a pasted file list) and one label would lie.
+    outputs: { kind: 'lines', lines: 'lines', selection: 'value' },
     primary: 'lines',
     emit: (data) => ({
       lines: (data && data.rows ? data.rows : []).map((r) => r.caption || r.title),
@@ -1243,8 +1247,10 @@ export const WIDGET_TYPES = {
       };
     },
     // Publishes the SUBJECT — the category this card resolved, as a reference (ISSUE-92). Its counts are readings,
-    // not tokens: what a board pipes onward is the thing the card is about (ISSUE-96).
-    outputs: { kind: 'value' },
+    // not tokens: what a board pipes onward is the thing the card is about (ISSUE-96). ISSUE-96 names that thing:
+    // `subject` is a cim-category on the default arm; on the `file` arm the same channel carries a Commons file. A
+    // single declared subject cannot switch, so the default arm is the declared one and the file arm is noted here.
+    outputs: { kind: 'value', subject: 'cim-category' },
     emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
@@ -1306,7 +1312,8 @@ export const WIDGET_TYPES = {
       };
     },
     // The subject again — a category or a file, as a reference. The trend itself is a reading, not a token.
-    outputs: { kind: 'value' },
+    // ISSUE-96: `subject` = cim-category on the default arm, a Commons file on the `file` arm (see cimStats).
+    outputs: { kind: 'value', subject: 'cim-category' },
     emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
@@ -1407,7 +1414,8 @@ export const WIDGET_TYPES = {
     // The ranked NAMES, one per line, each carrying its own project where one exists (ISSUE-92) — the list a board
     // pipes into a Filter, a Gallery or a Map. This is the emitter ISSUE-96's checklist ranked first among the CIM
     // family, and the merge is what made it one emitter instead of five.
-    outputs: { kind: 'lines' },
+    // ISSUE-96: the value is about the cim-category it ranked (`subject`); the lines are that category's top items.
+    outputs: { kind: 'lines', subject: 'cim-category' },
     emit: (data, config) => cimRankingLines(cimFacet(config), data.rows) || undefined,
   },
 
@@ -1529,7 +1537,9 @@ export const WIDGET_TYPES = {
     // Filter Lines / Line Count / Speaker — and `selection` is what the reader clicked, published by the card
     // when linkAction says so. A widget that names its channels returns `{ channel: value }` from `emit`.
     emit: (data) => ({ items: boxLines(data && data.html) }),
-    outputs: { items: 'lines', selection: 'value' },
+    // ISSUE-96: `kind` = the bare id publishes the box's items as lines. No `subject`: the card renders EITHER a
+    // wiki page or a template box (its own source selector), so one thing-kind would cover only half its modes.
+    outputs: { kind: 'lines', items: 'lines', selection: 'value' },
     primary: 'items',
     configFields: [
         { key: 'source', label: 'Render', type: 'select', options: [
@@ -1675,7 +1685,9 @@ export const WIDGET_TYPES = {
     //                                  only path that delivers a value *unstringified* (a text field would join an
     //                                  object into one line of JSON)
     // Where the *source* text came from still belongs to the widget that fetched it (ISSUE-92).
-    outputs: { translation: 'value', speech: 'speech' },
+    // ISSUE-96: `kind` = the bare id publishes the translation. No `subject`: the translation is about whatever the
+    // source text was about, which this card cannot know.
+    outputs: { kind: 'value', translation: 'value', speech: 'speech' },
     primary: 'translation',
     emit: (data) => ({
       translation: data.translation,
@@ -2240,7 +2252,8 @@ export const WIDGET_TYPES = {
     fetch: (config) => { const p = pageRef(config, 'file'); return fetchDocumentPages(p.title, p.projectConfig); },
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
     // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
-    outputs: { kind: 'value' },
+    // ISSUE-96: the value is about a commons-file (config.file carries kind 'commons-file').
+    outputs: { kind: 'value', subject: 'commons-file' },
     emit: (data) => data.pageUrl,
   },
 

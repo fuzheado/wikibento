@@ -18,9 +18,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../src/lib/params.js';
-import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens } from '../src/lib/dataflow.js';
+import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens, OUTPUT_KINDS, declaredOutputKinds, outputChannels } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
+import { KIND_IDS } from '../src/lib/pickMode.js';
 
 // ── interpolation (params.js) ─────────────────────────────────
 
@@ -294,8 +295,8 @@ test('validateDashboard: the shipped flow demo is valid', async () => {
 test('registry: Article Excerpt declares emit and publishes both channels (ISSUE-92)', () => {
   const def = WIDGET_TYPES.excerpt;
   assert.ok(def.emit, 'excerpt declares emit');
-  assert.deepEqual(def.outputs, { extract: 'extract', reference: 'value' },
-    'the prose and the page it came from travel on separate channels');
+  assert.deepEqual(def.outputs, { kind: 'extract', subject: 'article', extract: 'extract', reference: 'value' },
+    'the prose and the page it came from travel on separate channels, beside the kind/subject metadata');
   const emitted = def.emit({ extract: 'Grace Coolidge was…', reference: 'enwiki:Grace Coolidge' });
   assert.equal(emitted.extract, 'Grace Coolidge was…');
   assert.equal(emitted.reference, 'enwiki:Grace Coolidge', 'a reference, not a bare title');
@@ -304,6 +305,51 @@ test('registry: Article Excerpt declares emit and publishes both channels (ISSUE
   assert.equal(shaped.reference, 'enwiki:Grace Coolidge');
   assert.equal(def.transform({ extract: 'x' }, { project: 'de.wikipedia', article: 'Weddellmeer' }).reference,
     'dewiki:Weddellmeer', 'the Fallback is the configured article when the API returns no title');
+});
+
+// ── ISSUE-96: the emitter data model, both directions declared ──
+
+test('the four publishers that used to declare no kind name one now (ISSUE-96)', () => {
+  // excerpt, gallery, wikiBox and translate declared only NAMED channels, so a matcher reading `outputs.kind`
+  // could not see them at all. Each now names the kind its bare id publishes, drawn from OUTPUT_KINDS.
+  const expected = { excerpt: 'extract', gallery: 'lines', wikiBox: 'lines', translate: 'value' };
+  for (const [id, kind] of Object.entries(expected)) {
+    const def = WIDGET_TYPES[id];
+    assert.ok(def, `${id} exists`);
+    assert.equal(def.outputs.kind, kind, `${id}.outputs.kind`);
+    assert.ok(OUTPUT_KINDS.includes(kind), `${id}: kind "${kind}" is documented`);
+    // the named channels survive beside the metadata keys, and the bare id still means the primary channel
+    const channels = outputChannels(def.outputs);
+    assert.ok(Object.keys(channels).length >= 2, `${id} keeps its named channels`);
+    assert.ok(def.primary in channels, `${id}: primary "${def.primary}" is one of its channels`);
+    assert.equal(channels[def.primary], kind, `${id}: the bare id's kind matches the primary channel's kind`);
+  }
+});
+
+test('every declared output kind and subject is from the documented vocabularies (ISSUE-96)', () => {
+  let subjects = 0;
+  for (const [id, def] of Object.entries(WIDGET_TYPES)) {
+    for (const kind of declaredOutputKinds(def.outputs)) {
+      assert.ok(OUTPUT_KINDS.includes(kind), `${id}: output kind "${kind}" is documented`);
+    }
+    if (def.outputs && 'subject' in def.outputs) {
+      subjects += 1;
+      assert.ok(KIND_IDS.includes(def.outputs.subject), `${id}: subject "${def.outputs.subject}" is a thing kind`);
+    }
+  }
+  assert.ok(subjects >= 4, `expected several producers to declare a subject, found ${subjects}`);
+  // the examples from the design brief: the CIM trio, and two things on either side of the vocabulary
+  assert.equal(WIDGET_TYPES.cimStats.outputs.subject, 'cim-category');
+  assert.equal(WIDGET_TYPES.cimTrend.outputs.subject, 'cim-category');
+  assert.equal(WIDGET_TYPES.cimRanking.outputs.subject, 'cim-category');
+  assert.equal(WIDGET_TYPES.documentReader.outputs.subject, 'commons-file');
+});
+
+test('outputChannels and declaredOutputKinds skip the reserved metadata keys (ISSUE-96)', () => {
+  assert.deepEqual(outputChannels({ kind: 'lines', subject: 'cim-category', selection: 'value' }), { selection: 'value' });
+  assert.deepEqual(outputChannels(undefined), {});
+  assert.deepEqual(declaredOutputKinds({ kind: 'extract', subject: 'article', reference: 'value' }), ['extract', 'value']);
+  assert.deepEqual(declaredOutputKinds({ kind: 'lines' }), ['lines']);
 });
 
 test('findUnresolvedRefs: detects {{widget:id}} and {{param}} deeply, deduped', () => {

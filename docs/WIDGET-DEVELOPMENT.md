@@ -127,7 +127,11 @@ Corollaries:
    the only emit in the app that is *not* a pure function of fetched data. Two
    checks enforce the shape: the manifest gate accepts either `{ kind }` or a
    channel map with documented kinds, and the demos constitution refuses a
-   reference to a channel a widget does not declare.
+   reference to a channel a widget does not declare. One `outputs` may now carry
+   `kind` (the bare id's shape) and `subject` (the thing it is about, ISSUE-96)
+   beside those channels — the four emitters that once declared channels only
+   (`excerpt`, `gallery`, `wikiBox`, `translate`) each name a `kind` today, so a
+   matcher reading `outputs.kind` can finally see them.
 
 ## The validated lookup param (ISSUE-68/99)
 
@@ -155,26 +159,34 @@ would be a lie. A source may also declare a `noun` for its verdict copy (`no suc
 
 ## Current emitters (the reference set)
 
-| id | kind | emits | typical consumers |
-|---|---|---|---|
-| `excerpt` | `extract` | the article's first paragraph | `translate`, `speaker`, `markdown`, `echo` |
-| `listSource` | `lines` | the pasted lines | `filterLines`, `articleList`, `gallery`, `mediaPlayer`, `echo` |
-| `filterLines` | `lines` | the filtered lines | `articleList`, `lineCount`, `echo` |
-| `lineCount` | `count` | a number | `echo`, `markdown` |
-| `echo` | `value` | pass-through | any text field |
-| `translate` | `translation` · `speech` | the translated text, and the *same text typed as speech* — `{ type: 'speech', text, lang }` — so a 🔊 Speaker can choose a voice for the language (ISSUE-97) | `speaker`, `markdown`, `echo` |
-| `qrCode` | `value` | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
-| `wikiBox` | `items` · `selection` | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
-| `map` | `geojson` | what the card draws, as a **GeoJSON `FeatureCollection`** in a typed envelope: `{ type: 'geojson', data: … }` — places, paths and areas, with `label`/`wikidata`/`role` properties and time (`datetime`, or `times` per vertex). The first **JSON-shaped** kind rather than a text one, which is why it needed the size policy in [GEOMETRY.md](GEOMETRY.md) | `map` (a second map card, via its `source` field) — and any future drawing card |
-| `gallery` | `lines` · `selection` | each row's caption — or its title, when the row has no caption — as lines, and the file the reader clicked | `filterLines`, `lineCount`, `speaker`, `echo` · `mediaPlayer`, `echo` |
-| `iaItem` | `value` | the item's canonical `archive.org/details/…` URL | any text field; `markdown`, `echo` |
-| `iaBook` | `value` | the book's `details` URL, the link its title opens | as above |
-| `documentReader` | `value` | the file's own page URL (`commons.wikimedia.org/wiki/File:…`) | as above |
-| `cimStats` | `value` | **the subject it resolved** — `commonswiki:Category:Files from the BHL` or `commonswiki:File:Dogs, jackals.jpg` — as a reference (ISSUE-92). Not its counts: a reading is not a token (ISSUE-96) | any text field via `{{widget:id}}`; a `speaker` or `translate` reads the name |
-| `cimTrend` | `value` | the same subject reference | as above |
-| `cimRanking` | `lines` | the ranked **names**, one per line, each carrying its own project where one exists — `commonswiki:File:Dogs, jackals.jpg`, `enwiki:Marie Curie`, the bare dbname (`enwiki`) for a wiki row, a bare user name for an editor row (that endpoint returns no wiki, so none is invented) | `filterLines` (declared: `kinds: ['lines']`), `lineCount`, `speaker`, `echo` |
+| id | kind | subject | emits | typical consumers |
+|---|---|---|---|---|
+| `excerpt` | `extract` | `article` | the article's first paragraph | `translate`, `speaker`, `markdown`, `echo` |
+| `listSource` | `lines` | — | the pasted lines | `filterLines`, `articleList`, `gallery`, `mediaPlayer`, `echo` |
+| `filterLines` | `lines` | — | the filtered lines | `articleList`, `lineCount`, `echo` |
+| `lineCount` | `count` | — | a number | `echo`, `markdown` |
+| `echo` | `value` | — | pass-through | any text field |
+| `translate` | `translation` · `speech` | — | the translated text, and the *same text typed as speech* — `{ type: 'speech', text, lang }` — so a 🔊 Speaker can choose a voice for the language (ISSUE-97) | `speaker`, `markdown`, `echo` |
+| `qrCode` | `value` | — | the text it encodes | `echo`, `markdown` — usually a leaf; see the worked example |
+| `wikiBox` | `items` · `selection` | — | the box's items as lines, and (when *Links in the box* says so) the page title the reader clicked | `filterLines`, `lineCount`, `echo`, `speaker` · `wikiPage`, `articleGallery`, `echo` |
+| `map` | `geojson` | — | what the card draws, as a **GeoJSON `FeatureCollection`** in a typed envelope: `{ type: 'geojson', data: … }` — places, paths and areas, with `label`/`wikidata`/`role` properties and time (`datetime`, or `times` per vertex). The first **JSON-shaped** kind rather than a text one, which is why it needed the size policy in [GEOMETRY.md](GEOMETRY.md) | `map` (a second map card, via its `source` field) — and any future drawing card |
+| `gallery` | `lines` · `selection` | — | each row's caption — or its title, when the row has no caption — as lines, and the file the reader clicked | `filterLines`, `lineCount`, `speaker`, `echo` · `mediaPlayer`, `echo` |
+| `iaItem` | `value` | — | the item's canonical `archive.org/details/…` URL | any text field; `markdown`, `echo` |
+| `iaBook` | `value` | — | the book's `details` URL, the link its title opens | as above |
+| `documentReader` | `value` | `commons-file` | the file's own page URL (`commons.wikimedia.org/wiki/File:…`) | as above |
+| `cimStats` | `value` | `cim-category` | **the subject it resolved** — `commonswiki:Category:Files from the BHL` or `commonswiki:File:Dogs, jackals.jpg` — as a reference (ISSUE-92). Not its counts: a reading is not a token (ISSUE-96) | any text field via `{{widget:id}}`; a `speaker` or `translate` reads the name |
+| `cimTrend` | `value` | `cim-category` | the same subject reference | as above |
+| `cimRanking` | `lines` | `cim-category` | the ranked **names**, one per line, each carrying its own project where one exists — `commonswiki:File:Dogs, jackals.jpg`, `enwiki:Marie Curie`, the bare dbname (`enwiki`) for a wiki row, a bare user name for an editor row (that endpoint returns no wiki, so none is invented) | `filterLines` (declared: `kinds: ['lines']`), `lineCount`, `speaker`, `echo` |
 
 Every emitter the registry declares is in this table (16 of the 36 types publish; `tests/manifest-compliance.test.mjs` holds the list of the ones whose kind is pinned, and the CIM trio is the newest family here).
+
+**A producer also says what its value is ABOUT (ISSUE-96).** `outputs.subject` names the THING the emitted value is
+about, drawn from the same vocabulary the ⚙ brush validates — `KIND_IDS` in `src/lib/pickMode.js`: `article`,
+`page`, `commons-file`, `commons-category`, `commons-gallery`, `wikidata-item`, `cim-category`. It is declared
+only where it is unambiguous from the fields the card carries (the rows above with a value in the subject column), and
+deliberately omitted where a value's subject depends on the card's own mode — the Gallery's four sources, the Wikipedia
+Box's page-or-template, the Translator's unknown source text. A `subject` no consumer accepts is a menu label offered
+for nothing, so a gate refuses one (the no-dead-kind rule, extended to subjects).
 
 **A consumer that needs a shape says so.** A `source` field may declare the kinds it accepts, e.g.
 `kinds: ['lines']` — the ⚙ picker then offers only publishers whose kind is in that set, while a publisher with an
