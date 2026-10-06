@@ -3198,6 +3198,45 @@ body[data-print-mode='document'] .react-grid-layout {
 .pick-menu-icon { width: 1.2em; text-align: center; }
 .pick-menu-off { color: var(--text-dim); }
 
+/* ── ISSUE-96 · Spawn a neighbour from a card (the two-sided menu) ─────────────────────────────────────
+   A card's ⇄ control, a right-click or a touch long-press opens `.spawn-panel` — the same overlay/panel
+   chrome as the Add-widget panel (so the drag convention, the dim background and the ✕ are shared) with a
+   two-column body: LEFT "Feed this card" (what it consumes), RIGHT "Use this card's value" (what it
+   publishes). Colours mirror the mockup: blue for the input side, green for the output side. */
+.spawn-focused { outline: 2px solid var(--accent); outline-offset: -2px; }
+.spawn-overlay { z-index: 210; }
+.spawn-panel { width: 760px; }
+.spawn-body { display: flex; gap: 0; overflow: hidden; }
+.spawn-side { flex: 1 1 0; min-width: 0; padding: 8px 10px 12px; max-height: 60vh; overflow-y: auto; }
+.spawn-side-left { border-right: 1px solid var(--border); }
+.spawn-side-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.82rem; font-weight: 650; margin-bottom: 6px;
+}
+.spawn-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.spawn-dot-left { background: var(--accent); }
+.spawn-dot-right { background: #3ecf8e; }
+.spawn-side-meta { margin-left: auto; color: var(--text-secondary); font-weight: 400; font-size: 0.72rem; }
+.spawn-group-label {
+  padding: 6px 2px 3px; font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-dim);
+}
+.spawn-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 6px 8px; margin-bottom: 4px;
+  background: color-mix(in srgb, var(--surface-hover) 60%, transparent);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.spawn-item:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: var(--accent); }
+.spawn-item-icon { width: 1.3em; text-align: center; flex: 0 0 auto; }
+.spawn-item-name { font-weight: 600; font-size: 0.8rem; }
+.spawn-item-why {
+  margin-left: auto; color: var(--text-secondary); font-size: 0.68rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%;
+}
+.spawn-empty { color: var(--text-secondary); font-size: 0.78rem; line-height: 1.4; padding: 6px 2px; }
+
 /* ── ISSUE-119 · Story mode: one article's images as a continuous scroll ────────────────────────────────
    The panel kinds are the Met/Google-Arts-&-Culture prototype's, chosen by each image's own shape in
    src/lib/story.js. Everything below is scoped to the card, so a story can sit beside ordinary cards. */

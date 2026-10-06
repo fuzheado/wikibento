@@ -5,6 +5,7 @@ import AddWidgetPanel from './components/AddWidgetPanel';
 import PickMenu from './components/PickMenu';
 import AskPanel from './components/AskPanel';
 import ImportPanel from './components/ImportPanel';
+import SpawnPanel from './components/SpawnPanel';
 import AboutPanel from './components/AboutPanel';
 import DiagnosticsPanel from './components/DiagnosticsPanel';
 import SharePanel from './components/SharePanel';
@@ -14,7 +15,7 @@ import { fetchProjectList } from './widgets/dataSources';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmDialog from './components/ConfirmDialog';
 import { WIDGET_TYPES, widgetDef } from './widgets';
-import { brushConfig, alreadyPlaced, KIND_LABELS, aOrAn, acceptedKindsLabel } from './lib/pickMode.js';
+import { brushConfig, alreadyPlaced, minimalConfig, KIND_LABELS, aOrAn, acceptedKindsLabel } from './lib/pickMode.js';
 import { printTarget, armBoardPrint, disarmPrint } from './lib/print';
 import { EXAMPLE_DASHBOARD, CONFIG_VERSION, validateDashboard } from './lib/dashboardConfig';
 import { parseParams, resolveParams, parseParamSpecText } from './lib/params';
@@ -25,13 +26,32 @@ import { boardToCanvas, canvasFilename } from './lib/jsonCanvas';
 import {
   STASH_KEY, boardLabelFromConfig, stashPayload, readStash, stashIsLive, noticeState,
 } from './lib/borrowedBoard';
-import { renameWidgetRefs, findWidgetRefs, outputChannels } from './lib/dataflow';
+import { renameWidgetRefs, findWidgetRefs, outputChannels } from './lib/dataflow.js';
+import { wireConfig } from './lib/spawnOptions.js';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash, decodeCompressedDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import './App.css';
 
 const STORAGE_KEY = 'wikibento-layout';
+
+/**
+ * ISSUE-96 — where a spawned neighbour lands. The board is 12 columns with compactType="vertical" (the
+ * <GridLayout> below), so "beside" means the columns really are free: to the RIGHT of the parent
+ * (x = parent.x + parent.w) when the new card's default width still fits inside the 12 columns, otherwise
+ * DIRECTLY BELOW it (x = parent.x, y = parent.y + parent.h). Vertical compaction then pushes any card that
+ * already occupied the chosen slot down — the deliberate consequence of placing beside on a compacting grid,
+ * not a side effect to work around. Pure (given the layout and the registry's def), so the rule is one line
+ * to read rather than buried in the add path.
+ */
+function adjacentSlot(layout, parentId, def) {
+  const dl = WIDGET_TYPES[def?.id]?.defaultLayout || { w: 3, h: 3 };
+  const parent = (layout || []).find((l) => l.i === parentId);
+  if (!parent) return { x: 0, y: Infinity };
+  return (parent.x + parent.w + dl.w <= 12)
+    ? { x: parent.x + parent.w, y: parent.y }
+    : { x: parent.x, y: parent.y + parent.h };
+}
 
 // Default starter widgets
 const DEFAULT_WIDGETS = [
@@ -68,6 +88,12 @@ export default function App() {
   const [widgets, setWidgets] = useState([]);
   const [layout, setLayout] = useState([]);
   const [showAddPanel, setShowAddPanel] = useState(false);
+  // ISSUE-96 — the spawn-from-a-card panel: the card it is anchored to, and the id of the card just spawned
+  // (kept highlighted so the user can keep chaining from it — there is no board-wide selection model, so
+  // this is the closest thing, and it is what a test asserts). `spawnTarget` is { id, widgetType, config,
+  // anchor } or null.
+  const [spawnTarget, setSpawnTarget] = useState(null);
+  const [spawnFocusedId, setSpawnFocusedId] = useState(null);
 const [showAskPanel, setShowAskPanel] = useState(false);
   const [showImportPanel, setShowImportPanel] = useState(false);
   const [showShare, setShowShare] = useState(false);
@@ -540,26 +566,87 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     persist(widgets, newLayout);
   }, [widgets, persist]);
 
-  const handleAddWidget = useCallback((widget) => {
-    const newWidgets = [...widgets, widget];
- const newLayout = [
-  ...layout,
-  (() => {
-   // Per-widget layout constraints from the registry (react-grid-layout
-   // minW/minH/maxW/maxH) — e.g. the 360° viewer needs a minimum size.
-   const dl = WIDGET_TYPES[widget.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
-   return {
-    i: widget.id, x: 0, y: Infinity,
-    w: dl.w, h: dl.h, minW: dl.minW, minH: dl.minH,
-    ...(dl.maxW != null ? { maxW: dl.maxW } : {}),
-    ...(dl.maxH != null ? { maxH: dl.maxH } : {}),
-   };
-  })(),
- ];
+  const handleAddWidget = useCallback((widget, opts = {}) => {
+    // Per-widget layout constraints from the registry (react-grid-layout
+    // minW/minH/maxW/maxH) — e.g. the 360° viewer needs a minimum size.
+    const dl = WIDGET_TYPES[widget.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
+    const item = {
+      i: widget.id, x: 0, y: Infinity,
+      w: dl.w, h: dl.h, minW: dl.minW, minH: dl.minH,
+      ...(dl.maxW != null ? { maxW: dl.maxW } : {}),
+      ...(dl.maxH != null ? { maxH: dl.maxH } : {}),
+      // ISSUE-96: the spawn-from-a-card path supplies a deliberate adjacent {x, y}; every other caller
+      // (Add-widget panel, Ask, pick mode) passes nothing and keeps the first-free-slot behaviour.
+      ...(opts.place || {}),
+    };
+    // A spawn that must rewire the PARENT (the "feed this card" side) patches it in the SAME update, so
+    // creating the neighbour and wiring it are ONE undo step rather than two.
+    const baseWidgets = opts.patch
+      ? widgets.map((w) => (w.id === opts.patch.id ? { ...w, config: { ...w.config, ...opts.patch.config } } : w))
+      : widgets;
+    const newWidgets = [...baseWidgets, widget];
+    const newLayout = [...layout, item];
+    setSpawnFocusedId(null); // a fresh, unspawned card is not the "keep chaining from here" card
     setWidgets(newWidgets);
     setLayout(newLayout);
     persist(newWidgets, newLayout);
   }, [widgets, layout, persist]);
+
+  /**
+   * ISSUE-96 — open the two-sided spawn menu for one card. `el` is any node inside the card; its
+   * `.grid-item` ancestor supplies the anchor rectangle. Called by the card's ⇄ control, by a right-click
+   * on the card, and by a touch long-press.
+   */
+  const openSpawnMenu = useCallback((id, el) => {
+    const w = widgets.find((x) => x.id === id);
+    if (!w) return;
+    const box = (el && el.closest ? el.closest('.grid-item') : el)?.getBoundingClientRect?.();
+    setSpawnTarget({
+      id,
+      widgetType: w.widgetType,
+      config: w.config,
+      anchor: box ? { left: box.left, top: box.top, width: box.width, height: box.height } : null,
+    });
+  }, [widgets]);
+
+  /**
+   * ISSUE-96 — a choice in the spawn panel. The card is created through `handleAddWidget` (the SAME path the
+   * Add-widget panel uses), so undo, the registry's layout constraints, localStorage and the borrowed-board
+   * adoption rule are identical. It is placed by `adjacentSlot` and wired by `wireConfig`:
+   *   · "use this card's value" → the NEW card reads the parent: wireConfig(newDef, { fromId: parentId });
+   *   · "feed this card"        → the PARENT reads the NEW card: wireConfig(parentDef, { fromId: newId }),
+   *     patched onto the parent in the same update (one undo step).
+   * `wireConfig` is called with NO channel: a producer's `outputs.kind` describes the value on its BARE id,
+   * and the only channel NAMES a card has are the non-reserved `outputs` keys (`translate#speech`), which
+   * `spawnOptions` does not surface as a group channel. Passing that kind through as a channel suffix would
+   * write `id#value`, a key the emitter never publishes (see the docs note on this panel).
+   */
+  const handleSpawnChoose = useCallback((choice) => {
+    if (!spawnTarget) return;
+    const parent = widgets.find((w) => w.id === spawnTarget.id);
+    const parentDef = widgetDef(spawnTarget.widgetType);
+    const newDef = widgetDef(choice.type);
+    if (!parent || !newDef) return;
+    const newId = `${choice.type}-${Date.now()}`;
+    const prev = { widgets, layout, paramBlock };
+    const place = adjacentSlot(layout, parent.id, newDef);
+    if (choice.side === 'feed') {
+      const patch = wireConfig(parentDef, { fromId: newId });
+      handleAddWidget(
+        { id: newId, widgetType: choice.type, config: minimalConfig(newDef, { ...newDef.defaults }) },
+        { place, patch: { id: parent.id, config: patch } },
+      );
+    } else {
+      const patch = wireConfig(newDef, { fromId: parent.id });
+      handleAddWidget(
+        { id: newId, widgetType: choice.type, config: { ...minimalConfig(newDef, { ...newDef.defaults }), ...patch } },
+        { place },
+      );
+    }
+    setSpawnTarget(null);
+    setSpawnFocusedId(newId);
+    setAssemblyToast({ message: `🔗 Added ${newDef.name}, wired to ${parent.id} — placed beside it`, prev });
+  }, [spawnTarget, widgets, layout, paramBlock, handleAddWidget]);
 
   /**
    * ISSUE-114 step 2: a click in pick mode. It spawns exactly one card, through `handleAddWidget` — so placement (the
@@ -890,7 +977,12 @@ const handleAutoHeight = useCallback((id, px) => {
   }
 
   const widgetItems = widgets.map(w => (
-    <div key={w.id} className="grid-item" data-widget-id={w.id}>
+    <div
+      key={w.id}
+      className={`grid-item${spawnFocusedId === w.id ? ' spawn-focused' : ''}`}
+      data-widget-id={w.id}
+      data-spawn-focused={spawnFocusedId === w.id ? 'true' : undefined}
+    >
       <ErrorBoundary
         resetKey={w.config}
         label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
@@ -910,7 +1002,8 @@ const handleAutoHeight = useCallback((id, px) => {
  onOutput={handleWidgetOutput}
  picking={picking}
  onPickItem={handlePickItem}
-/>
+ onSpawn={openSpawnMenu}
+ />
       </ErrorBoundary>
     </div>
   ));
@@ -1076,6 +1169,17 @@ const handleAutoHeight = useCallback((id, px) => {
           onAdd={handleAddWidget}
           onAddBoard={handleAddAssembly}
           onClose={() => setShowAskPanel(false)}
+        />
+      )}
+
+      {spawnTarget && (
+        <SpawnPanel
+          widgetType={spawnTarget.widgetType}
+          config={spawnTarget.config}
+          registry={WIDGET_TYPES}
+          anchor={spawnTarget.anchor}
+          onChoose={handleSpawnChoose}
+          onClose={() => setSpawnTarget(null)}
         />
       )}
 

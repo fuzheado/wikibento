@@ -28,6 +28,7 @@
     "check:cim-allow-list": "node scripts/fetch-cim-allow-list.mjs --check",
     "smoke:story": "node scripts/story-e2e.mjs",
     "smoke:pick": "node scripts/pick-mode-e2e.mjs",
+    "smoke:spawn": "node scripts/spawn-menu-e2e.mjs",
     "smoke:iabook": "node scripts/ia-book-e2e.mjs",
     "smoke:document": "node scripts/document-reader-e2e.mjs",
     "smoke:url": "node scripts/url-state-audit.mjs",
