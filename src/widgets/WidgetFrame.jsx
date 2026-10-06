@@ -202,7 +202,7 @@ function ExportMenu({ node, type, data, title, widgetId }) {
   );
 }
 
-export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput, picking, onPickItem }) {
+export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename, reloadKey, onAutoHeight, paramSpecs, paramValues, onSetParam, widgetOutputs, sourceOptions, onOutput, picking, onPickItem, onSpawn }) {
   // Resolve through widgetDef, not the registry map: a board saved before the gallery merge still carries
   // `commonsGallery` / `fileGallery`, and the renderer has to keep drawing it (ISSUE-105's rule).
   const def = widgetDef(widget.widgetType);
@@ -285,6 +285,32 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       if (value === undefined || value === null || value === '') return;
       if (onOutput) onOutput(widget.id, value, 'selection');
     }, [onOutput, widget.id]);
+
+    /** ISSUE-96 — the spawn menu, from a right-click anywhere on the card. */
+    const handleSpawnContextMenu = useCallback((e) => {
+      if (!onSpawn) return;
+      e.preventDefault();
+      onSpawn(widget.id, e.currentTarget);
+    }, [onSpawn, widget.id]);
+
+    /** ISSUE-96 — a touch long-press is the touch equivalent of right-click. Cheap because it is armed
+     *  only for `pointerType === 'touch'`, and it cancels the moment the finger moves (a scroll or a drag,
+     *  not a hold) or lifts early — so ordinary scrolling never opens it. */
+    const touchHoldRef = useRef(null);
+    const endTouchHold = useCallback(() => {
+      if (touchHoldRef.current) { clearTimeout(touchHoldRef.current.timer); touchHoldRef.current = null; }
+    }, []);
+    const startTouchHold = useCallback((e) => {
+      if (e.pointerType !== 'touch' || !onSpawn) return;
+      const el = e.currentTarget;   // read synchronously — currentTarget is gone once the handler returns
+      const timer = setTimeout(() => { touchHoldRef.current = null; onSpawn(widget.id, el); }, 600);
+      touchHoldRef.current = { timer, x: e.clientX, y: e.clientY };
+    }, [onSpawn, widget.id]);
+    const moveTouchHold = useCallback((e) => {
+      const p = touchHoldRef.current;
+      if (!p) return;
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > 10) endTouchHold();
+    }, [endTouchHold]);
 
   // What the export menu captures: the card itself, chrome and panels excluded by the serialiser.
   const cardRef = useRef(null);
@@ -568,7 +594,16 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   };
 
   return (
-      <div className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}`} ref={cardRef}>
+      <div
+        className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}`}
+        ref={cardRef}
+        onContextMenu={handleSpawnContextMenu}
+        onPointerDown={startTouchHold}
+        onPointerMove={moveTouchHold}
+        onPointerUp={endTouchHold}
+        onPointerCancel={endTouchHold}
+        onPointerLeave={endTouchHold}
+      >
       <div className="widget-header">
         <span className="widget-title" title={headerTooltip}>
           {def?.icon} {headerTitle}
@@ -589,6 +624,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             onClick={() => { setShowConfig(!showConfig); setShowInfo(false); }}
             title="Configure"
           >⚙</button>
+          {/* ISSUE-96 — spawn a neighbour from this card: the left of the panel is what can feed this card,
+              the right is what this card can feed. One control (the chrome already carries eight); a
+              right-click and a touch long-press open the same panel. */}
+          <button
+            className="widget-btn spawn-btn"
+            onClick={(e) => { e.stopPropagation(); if (onSpawn) onSpawn(widget.id, e.currentTarget); }}
+            title="Add a card that feeds this one, or that this one can feed"
+          >⇄</button>
           {/* One button, four formats — see ExportMenu. The node it captures is the card itself. */}
           <ExportMenu
             node={cardRef.current}
