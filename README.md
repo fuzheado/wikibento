@@ -271,7 +271,8 @@ npm run lint           # oxlint
 
 Also available: `npm run docs-facts` (the consistency gates alone; `:live` also checks what production serves),
 `smoke:map` (the Map card in a browser — resolved name, relay failure, Try again), `check:map-landmarks` (the map
-projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`,
+projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`, `smoke:canvas` and `smoke:canvas-import`
+(board ⇄ JSON Canvas, both directions),
 `guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
 `check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
 `--check` fails on a stale one), and `update:cim-allow-list`.
