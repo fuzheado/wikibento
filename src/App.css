@@ -157,6 +157,19 @@ body {
   overflow: visible;
 }
 
+/* …and a widget whose ONLY content is a percentage-height VIEWER has nothing to size itself
+   against once the body is content-height: `.panorama-container` is `flex: 1` inside a
+   `height: 100%` card that now resolves to `auto`, so the whole chain lands on 0px and the
+   360° viewer paints nothing at all. Measured 2026-10-07 on the El Morro board
+   (?config=https://meta.wikimedia.org/wiki/WikiBento/El_Morro.json): at 390px the container
+   was 2px and the WebGL canvas 0px tall, while the 12-col grid forces 628px at 1400px — which
+   is why it read as "works on my laptop, blank on my phone". Not iOS-specific: it reproduces
+   in Chromium with and without mobile emulation, i.e. at any width below ~728px. The viewer
+   needs its own shape in the stack; the equirectangular file's own 2:1 is the natural one.
+   ISSUE-136. */
+.mobile-stack .panorama-card { height: auto; }
+.mobile-stack .panorama-container { flex: 0 0 auto; aspect-ratio: 2 / 1; }
+
 
 /* ── Widget Frame ───────────────────────────────────────── */
 
