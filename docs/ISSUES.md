@@ -6258,3 +6258,37 @@ a registry entry, a lookup source, a demo, docs. No new format, no migration.
 >    the paths that do not run the validator first (a board's *own* saved state, a `#/d/` link).
 >
 > Until one is chosen, `npm run check:board` reports it under **ERRORS**, which is honest: that is what Import will do.
+
+## ISSUE-136 · "The 360° panorama doesn't show up on my iPhone" — a collapsed *viewer* the sweep could not see — **done** (asked by Andrew 2026-10-07)
+
+Andrew, from an iPhone in Safari: the 360° card on the El Morro board
+(`?config=https://meta.wikimedia.org/wiki/WikiBento/El_Morro.json`) never rendered the panorama, while the same
+board was fine on a laptop in both Chrome and Safari.
+
+**What:** below ~728px `App.jsx` renders the `.mobile-stack`, where `.grid-item { height: auto }` sizes every card
+to its content. ISSUE-100's fix made `.widget-body` content-height, which is right for a card that *has* content —
+but the 360° card's only content is Pannellum's canvas, which is `height: 100%` inside `.panorama-container
+{ flex: 1; min-height: 0 }`. With nothing to push against, the chain lands on zero: measured at 390px the container
+was **2px** and the canvas **302×0 CSS (906×0 device)** tall, so the viewer painted nothing at all. The 12-col grid
+forces ~628px at 1400px, which is exactly why it read as "works on my laptop, blank on my phone". It is **not
+iOS-specific** — it reproduces in Chromium with *and* without mobile/touch emulation, i.e. at any width below
+~728px, so a narrow desktop window shows it too.
+
+**Why the sweep missed it:** the collapsed-card rule tests `body.scrollHeight < 20`, and the 360° body is **64px**
+(its title plus the `360° · 6080×3040` meta line) even when the viewer inside it is 0px — so a card that looked
+healthy passed. The hub (`public/dashboard.json`) does contain a panorama and *was* swept; the rule, not the board
+list, was the blind spot.
+
+**Fix:** give the viewer its own shape in the stack —
+`.mobile-stack .panorama-card { height: auto }` and `.mobile-stack .panorama-container { flex: 0 0 auto;
+aspect-ratio: 2 / 1 }` (the equirectangular file's own 2:1). The sweep now also fails a **collapsed viewer**: a
+`canvas`/`iframe`/`video`/`img` at least half the body's width, with something to paint, rendering under 20px
+inside a body that passes the body rule. Not a texture problem — the widget asks `iiurlwidth=4096` and Commons
+returns a **3840px** thumbnail, well inside any modern iPhone's WebGL limit.
+
+**Verified:** on a local build of this commit, the hub's 360° card at a 390px iPhone-14 profile (Chromium)
+measures a **304×152** container / **302×150** canvas (was 2px / 0px), and
+`node scripts/browser-matrix.mjs --demos --boards dashboard.json --viewports phone --engines chromium` is
+**1/1 clean** against the fixed build, while the *same* command against production reports
+`collapsed viewer: panorama: canvas 302x0px` — so the new rule fails on the bug it was written for and not
+otherwise. `docs-facts` 17/17; `build-validator` and `smoke-built` pass.

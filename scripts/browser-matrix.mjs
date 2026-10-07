@@ -87,7 +87,8 @@ const ENGINES = arg('engines', 'chromium,firefox,webkit').split(',').map((s) => 
  *   node scripts/browser-matrix.mjs --demos --require-relay        # sweeping a host that has /api/proxy
  *
  * Each (board × engine × viewport) is checked for: a card per widget in the board, no error frames, no console
- * errors, and **no collapsed card** — a body whose content renders at zero height (the phone-stack bug).
+ * errors, and **no collapsed card** — a body whose content renders at zero height, OR a fill viewer (canvas/
+ * iframe/video/img) collapsed inside a body tall enough to hide it (both the phone-stack bug, ISSUE-100/136).
  * `--require-relay` additionally fails a card that fell back to the "Wikipedia reduced this for phones" notice,
  * which is correct behaviour on a host with no relay and a regression on one that has it.
  */
@@ -204,7 +205,7 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
   // `errorFrames` undefined, and the worker crashed on it — killing a 68-run sweep after 30 minutes of work and
   // printing no summary at all (2026-09-18). The arrays are created here, not by the evaluate() that may never run.
   const row = { engine, board: boardName, viewport: viewportName, cards: 0, expected: expectedCards,
-    collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
+    collapsed: [], collapsedViewers: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
     consoleErrors: 0, benignConsole: 0, errors: [], notes: [] };
   let browser; let context;
   try {
@@ -383,7 +384,7 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
     row.printCards = printCards;
 
     const seen = await page.evaluate(() => {
-      const out = { cards: 0, collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [] };
+      const out = { cards: 0, collapsed: [], collapsedViewers: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [] };
       // A gallery tile CLIPPED by its own row: `width: 100%` + `aspect-ratio` on an image in a grid row sized `auto`
       // is a cyclic dependency. The row resolves against the image's INTRINSIC size before it loads and never
       // re-expands, so the row stays short while the thumbnail renders square, and `.gallery-item`'s
@@ -426,6 +427,27 @@ async function runOne(launch, engine, boardName, viewportName, expectedCards) {
           if (rows && rows.children.length === 0) out.emptyRows.push(id);
           const text = (body.innerText || '').trim();
           if (text.length < 12 && !body.querySelector('img, canvas, svg, iframe, input, button')) out.emptyRows.push(id);
+        }
+        // …and a VIEWER that collapsed INSIDE a body tall enough to pass the rule above. The phone-stack
+        // panorama kept `.widget-body` at 64px (its title + "360° · 6080×3040" meta line) while the WebGL
+        // canvas below them was 0px tall, so a text check AND the body rule both saw a healthy card
+        // (measured 2026-10-07 on the El Morro board, ISSUE-136). Only an element wide enough to be the card's fill
+        // viewer counts, so header icons and inline tickers are not mistaken for one, and only once it has
+        // something to paint — a still-loading image is not a collapse.
+        if (settled) {
+          const bodyW = Math.max(1, body.clientWidth);
+          for (const v of body.querySelectorAll('canvas, iframe, video, img')) {
+            const cs = getComputedStyle(v);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') continue;
+            const r = v.getBoundingClientRect();
+            if (r.width < 60 || r.width < bodyW * 0.5 || r.height >= 20) continue;
+            const tag = v.tagName.toLowerCase();
+            const ready = tag === 'canvas' ? v.width > 0
+              : tag === 'img' ? v.complete && v.naturalHeight > 0
+                : tag === 'video' ? v.videoWidth > 0
+                  : true; // iframe: the body is settled, so a zero-height frame is a layout collapse
+            if (ready) out.collapsedViewers.push(`${id}: ${tag} ${Math.round(r.width)}x${Math.round(r.height)}px`);
+          }
         }
         if (/Retry|Load failed|NetworkError|fetch failed/i.test(f.textContent || '')) out.errorFrames.push(id);
       }
@@ -483,16 +505,17 @@ if (DEMOS) {
       } catch (e) {
         // Belt and braces: one pathological board must not take the other 67 runs down with it.
         row = { engine: job.engine, board: job.name, viewport: job.viewport, cards: -1, expected: job.count,
-          collapsed: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
+          collapsed: [], collapsedViewers: [], degraded: [], errorFrames: [], placeholders: [], emptyRows: [],
           consoleErrors: 0, benignConsole: 0, errors: ['HARNESS: ' + String(e.message).slice(0, 110)], notes: [] };
       }
       const problems = [];
       if (row.cards < 0) problems.push('did not load');
       else if (row.expected && row.cards !== row.expected) problems.push(`cards ${row.cards}≠${row.expected}`);
       if (row.collapsed.length) problems.push(`collapsed: ${row.collapsed.join(', ')}`);
+      if ((row.collapsedViewers || []).length) problems.push(`collapsed viewer: ${[...new Set(row.collapsedViewers)].join(', ')}`);
       // …see isUpstream500: a console 500 with nothing broken is an upstream CDN hiccup, not a regression.
       if (row.consoleErrors && row.errors.length && row.errors.every(isUpstream500)
-          && !row.errorFrames.length && !row.collapsed.length && row.cards === row.expected) {
+          && !row.errorFrames.length && !row.collapsed.length && !(row.collapsedViewers || []).length && row.cards === row.expected) {
         row.benignConsole += row.consoleErrors;
         row.consoleErrors = 0;
         row.notes.push('upstream 500 (nothing failed)');
