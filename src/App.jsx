@@ -636,10 +636,11 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     // NOTHING is added, and a wire that moved the card's source selector is reported in the toast.
     let wired;
     if (choice.side === 'feed') {
-      // The PARENT reads the NEW card. `choice.subject` is the thing the producer's value is about — the kind the
-      // menu grouped the row by — so wireConfig lands it in a field the parent ACTUALLY reads, and refuses if it
-      // cannot (rather than writing a value into a slot the card ignores, the bug this panel shipped).
-      wired = wireConfig(parentDef, { fromId: newId, subject: choice.subject, config: parent.config });
+      // The PARENT reads the NEW card. `choice.subject` is the thing the producer's value is ABOUT and `choice.denotes`
+      // is what it IS (the third axis) — the kind and value-form the menu grouped the row by — so wireConfig lands it
+      // in a field the parent ACTUALLY reads, and refuses if it cannot (rather than writing a value into a slot the
+      // card ignores, the bug this panel shipped).
+      wired = wireConfig(parentDef, { fromId: newId, subject: choice.subject, denotes: choice.denotes, config: parent.config });
       if (wired.refused) {
         setAssemblyToast({ message: `⚠️ ${parentDef.name} cannot read ${newDef.name} — ${wired.reason}`, error: true, prev });
         return;

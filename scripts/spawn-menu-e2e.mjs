@@ -188,10 +188,14 @@ try {
   await page.waitForTimeout(200);
   (await page.locator('.spawn-panel').count()) === 0 ? ok('Escape closes the panel') : bad('Escape did not close the panel');
 
-  // ── 9 · the reported case (ISSUE-96): a gallery reading an ARTICLE must not offer a Commons-file producer ───
-  // The bug: gallery { from: 'article' } offered Document Reader on the "feed this card" side; choosing it wrote a
-  // File: URL into the gallery's ARTICLE slot and the card showed "Article not found: <URL>". This opens the panel
-  // on exactly that card and asserts the offer is gone and a valid choice leaves the card working.
+  // ── 9 · the reported cases (ISSUE-96): a gallery reading an ARTICLE must be offered NEITHER a Commons-file
+  // producer NOR the Article Excerpt ────────────────────────────────────────────────────────────────────────────
+  // Bug 1: gallery { from: 'article' } offered Document Reader, whose File: URL was written into the gallery's
+  // ARTICLE slot ("Article not found: <URL>"). Bug 2 (2026-10-07): it then offered the Article Excerpt, whose value
+  // is a PARAGRAPH about the article, not the article's NAME — the paragraph landed in the title slot
+  // ("Article not found: <the paragraph>"). The emitter model gained a third axis (`outputs.denotes`) for this:
+  // the menu matches on what a value IS, not only what it is about, so both producers are gone and the empty feed
+  // side says what it wanted.
   {
     const gp = await ctx.newPage();
     const gerrs = [];
@@ -221,10 +225,15 @@ try {
     leftNames.some((n) => /document reader|iarchive|internet archive/i.test(n))
       ? bad(`the article gallery IS offered a Commons-file producer on the feed side: ${leftNames.join(', ')}`)
       : ok(`the article gallery offers no Commons-file producer on the feed side (offers: ${leftNames.join(', ') || 'none'})`);
-    // …and the one producer whose SUBJECT is an article is still offered (the rule admits it).
+    // (b) …and the Article Excerpt is NOT offered either: its value is PROSE about the article, not the article's
+    // NAME, so it fills no field this card reads (2026-10-07). The whole feed side is empty, and says so.
     leftNames.some((n) => /article excerpt/i.test(n))
-      ? ok(`the article-subject feeder is still offered: ${leftNames.join(', ')}`)
-      : bad(`the Article Excerpt (subject article) is missing from the feed side: ${leftNames.join(', ') || 'none'}`);
+      ? bad(`the article-PROSE producer IS offered to a name field: ${leftNames.join(', ')}`)
+      : ok(`the article gallery offers no prose producer on the feed side (offers: ${leftNames.join(', ') || 'none'})`);
+    const leftNotes = await gp.locator('.spawn-side-left .spawn-empty').allTextContents();
+    (leftNames.length === 0 && leftNotes.some((n) => /a name for article/i.test(n)))
+      ? ok(`the feed side is empty and names what it wanted: "${(leftNotes[0] || '').slice(0, 70)}…"`)
+      : bad(`expected an empty feed side with a note naming "a name for article", got ${leftNames.length} offer(s), notes ${JSON.stringify(leftNotes)}`);
 
     // choose a valid neighbour on the "use this card's value" side — the gallery publishes `lines`, which filter/
     // count/speaker read — so the old invalid feeder is not needed for chaining.

@@ -21,9 +21,9 @@ import { KIND_LABELS } from '../lib/pickMode.js';
  * App, which creates the card through the ONE add path (`handleAddWidget`), pre-wired and placed adjacent.
  */
 
-/** Group heading for a `feeds` group: the thing a subject-match is about, else the shape offered. */
+/** Group heading for a `feeds` group: the value form and the thing a subject-match is about, else the shape offered. */
 function feedGroupLabel(group) {
-  if (group.subject) return `Wants ${KIND_LABELS[group.subject] || group.subject}`;
+  if (group.subject) return `Wants a ${group.denotes || 'value'} for ${KIND_LABELS[group.subject] || group.subject}`;
   return `Accepts ${group.kind}`;
 }
 
@@ -104,7 +104,8 @@ export default function SpawnPanel({ widgetType, config = {}, registry = {}, anc
               // A feeder that would move the card to a DIFFERENT source is a surprise the user is owed a line about:
               // `wireConfig` reports the move, and we show it under the group (ISSUE-96). Live fields are filtered,
               // so this normally stays empty — it is the honest escape hatch when one candidate implies a switch.
-              const wire = def ? wireConfig(def, { fromId: '__spawn__', subject: group.subject, config }) : null;
+              // `denotes` travels with the group so the preview wires the SAME pair the menu offered (the third axis).
+              const wire = def ? wireConfig(def, { fromId: '__spawn__', subject: group.subject, denotes: group.denotes, config }) : null;
               const move = wire && !wire.refused && wire.changedSource ? wire.reason : null;
               return (
               <div className="spawn-group" key={`feed-${group.kind}-${group.subject || ''}-${group.field || ''}`}>
@@ -116,7 +117,7 @@ export default function SpawnPanel({ widgetType, config = {}, registry = {}, anc
                     type="button"
                     className="spawn-item"
                     title={group.reason}
-                    onClick={() => onChoose({ side: 'feed', type: t.type, kind: group.kind, subject: group.subject })}
+                    onClick={() => onChoose({ side: 'feed', type: t.type, kind: group.kind, subject: group.subject, denotes: group.denotes })}
                   >
                     <span className="spawn-item-icon">{t.icon}</span>
                     <span className="spawn-item-name">{t.name}</span>
