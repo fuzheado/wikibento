@@ -17,8 +17,9 @@
  *   6. it is the highlighted "keep chaining" card, and there are no page errors and no non-upstream console
  *      errors.
  *   9. Andrew's reported case (2026-10-07): a gallery reading an ARTICLE is offered NO prose producer, and the
- *      card NEVER renders `Article not found: <prose>` — the value-form axis (`outputs.denotes`: what a value IS,
- *      not only what it is about), proved against the built app, with a control showing the empty side is the rule
+ *      card NEVER renders `Article not found: <prose>` — asserted on the card both before and after the panel is
+ *      used, so a symptom that only settles in later is caught too. The value-form axis (`outputs.denotes`: what a
+ *      value IS, not only what it is about) is what removes the offer; a control shows the empty side is the rule
  *      and not a panel that renders nothing.
  *
  * Two repo rules are baked in, both from AGENTS.md. First: a browser check refuses to run against a stale
@@ -274,6 +275,16 @@ try {
     } else {
       bad('the gallery panel offers no "use this card\'s value" candidate to choose');
     }
+
+    // (f) re-read the card AFTER the panel has been used, so a symptom that only renders once the board settles is
+    // caught too — (c) is a snapshot taken before the interaction, and the slot only ever changes through the panel,
+    // so the pair of reads brackets the whole interaction. Same length rule as (c): a title (or no error) is short,
+    // the excerpt's paragraph or a File: URL is not.
+    const cardTextAfter = await gp.locator('[data-widget-id="commons-gallery"]').innerText();
+    const errLineAfter = (cardTextAfter.match(/Article not found[^\n]*/) || [''])[0];
+    (errLineAfter.length >= 80)
+      ? bad(`after using the panel the card shows "Article not found: <prose/URL>": ${errLineAfter.slice(0, 120)}`)
+      : ok(`after using the panel the card never shows "Article not found: <prose>" (error line: ${JSON.stringify(errLineAfter.slice(0, 50)) || 'none'})`);
 
     // (e) CONTROL — the same panel on a gallery that DOES read a file list still offers producers, so the empty
     // feed side above is the value-form rule and NOT a panel that renders nothing on any gallery.
