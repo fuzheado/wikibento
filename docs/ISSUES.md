@@ -6336,8 +6336,8 @@ notes are `x,y,w,h` plus the file's own `dimx,dimy` in the wikitext, label inclu
 carry the template, ~360,000 of them `style=2`; search-index estimates). So regions can be **imported** from Commons —
 you do not redraw what Commons already knows — and **exported** as a P2677 qualifier.
 
-**Design, traps, phases and open questions: [`docs/HOTSPOTS.md`](HOTSPOTS.md)** (wireframes `docs/hotspot-card.png`,
-`docs/hotspot-editor.png`, drawn with the real note coordinates of File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg).
+**Design, traps, phases and open questions: [`docs/ZONES.md`](ZONES.md)** (wireframes `docs/zone-card.png`,
+`docs/zone-editor.png`, drawn with the real note coordinates of File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg).
 Phase 1 — rect regions on the single-image Gallery, emit-only, the overlay editor, validator rules, geometry unit tests
 and one browser check that a click changes the neighbouring card — is **≈2–3 days**; phase 2 (the Commons import) is
 about half a day. Waiting on three decisions: touch semantics (tap acts, or tap reveals then acts), the
@@ -6360,8 +6360,15 @@ the moment the camera turns — sphere spots are `pitch`/`yaw` directions (`at`)
 and the validator enforces the pairing against the viewer. And the sphere needs no new rendering at all: the
 vendored **Pannellum 2.5.7** already has `hotSpots` (pins + hover labels), `clickHandlerFunc` (attached to any
 hotspot that declares it), `addHotSpot`/`removeHotSpot(id)` for live editing, `mouseEventToCoords()` for placing a
-pin by clicking the sphere, and `sceneId` tours. **Verified, not assumed:** `docs/hotspot-sphere.png` is a live
+pin by clicking the sphere, and `sceneId` tours. **Verified, not assumed:** `docs/zone-sphere.png` is a live
 render of the app's own default panorama ('Imiloa grounds, NOIRLab, CC BY 4.0) by that vendored build — it drew two
 pins, showed its own *"Mauna Kea"* tooltip on hover, and a dispatched click called our handler with
 `{kind:'article', value:'en:Mauna Kea'}`, the exact payload shape every card already emits. So the sphere phase is
 about half a day, and making the panorama an emitter also ticks `panorama360` off ISSUE-96's next-ones list.
+
+**Renamed the same day (2026-10-05):** the term is **zone** (`zones` in a board, "zone" in the UI) — Andrew preferred it
+to the first draft's *spot*, and *hot zone* was considered and declined (in English it reads as a contaminated or
+dangerous area, and "hot" appears in this repository only as *hot spot*, the museum word being left behind). Nothing
+has shipped, so no board in the wild carries the old name and no alias is needed. The design doc is now
+`docs/ZONES.md` and the three wireframes are `docs/zone-card.png`, `docs/zone-editor.png`, `docs/zone-sphere.png`;
+this entry keeps its original wording as the record of what was called what, when.

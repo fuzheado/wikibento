@@ -654,22 +654,22 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
    - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
      usually transcluded rather than linked, so there is little in content to click.
-   - **Clickable regions on an image (hotspots) — designed 2026-10-05, not built: three decisions away** (ISSUE-138,
-     [`docs/HOTSPOTS.md`](docs/HOTSPOTS.md); wireframes `docs/hotspot-card.png` and `docs/hotspot-editor.png`). HyperCard's
+   - **Clickable zones on an image — designed 2026-10-05, not built: three decisions away** (ISSUE-138,
+     [`docs/ZONES.md`](docs/ZONES.md); wireframes `docs/zone-card.png`, `docs/zone-editor.png` and `docs/zone-sphere.png`). HyperCard's
      button layer on a card: drawn boxes highlight on hover and, on click, emit an article / a file / a category to
      whichever card listens. **The emit half already exists** — the Gallery's *Send it to the board* fires the same
      `selection` event — and Commons already holds ~376,000 files' worth of these boxes as `{{ImageNote}}` (pixels plus
      `dimx`/`dimy`, labels included, so one API call imports them), while Wikidata's `P2677` is the same `pct:x,y,w,h`
      shape. So the work is an editor plus a coordinate rule: **≈2–3 days for phase 1** (rect regions on the single-image
      Gallery, the overlay editor, validator rules, geometry unit tests, one browser check that a click changes the
-     neighbouring card). Waiting on: the name
-     (`spot`, recommended, vs `zone`) and the host (a `spots` field on the Gallery, or a type of its own). **Decided 2026-10-05:** tap reveals and a second tap acts; three fits — letterbox · fill crop · **`smart`**, which
+     neighbouring card). The name is decided too — **`zone`** (`zones` in a board), over the first draft's *spot*; *hot zone* was declined
+     (it reads as a contaminated area, and "hot" exists in this repo only as *hot spot*). Waiting on: the host (a `spots` field on the Gallery, or a type of its own). **Decided 2026-10-05:** tap reveals and a second tap acts; three fits — letterbox · fill crop · **`smart`**, which
      keeps every spot visible and falls back to letterbox rather than hide one. **The 360° half is answered too, with
      the engine's own evidence:** one model, two hosts, two draw modes — sphere spots are `pitch`/`yaw` directions
      (`at`) and flat spots are `box` percentages, and the vendored Pannellum 2.5.7 needs no new rendering at all
      (`hotSpots` pins + hover labels, `clickHandlerFunc` → our `selection` emit, `addHotSpot`/`removeHotSpot` for live
      editing, `mouseEventToCoords()` to place a pin by clicking the sphere). Verified, not assumed:
-     `docs/hotspot-sphere.png` is a live render of the app's own default panorama by that build — two pins drawn, its
+     `docs/zone-sphere.png` is a live render of the app's own default panorama by that build — two pins drawn, its
      own tooltip on hover, and a dispatched click delivering `{kind:'article', value:'en:Mauna Kea'}` to our handler.
      So the sphere phase is about half a day, and it also ticks `panorama360` off ISSUE-96's next-ones list.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on

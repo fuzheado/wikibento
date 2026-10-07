@@ -192,7 +192,7 @@ polish, 6 when Level-2 wiring lands.**
    `{{param}} == X`), then hotspot primitives: image-map widget (click
    regions on a Commons image → param/scene) and panorama multi-scene tours
    (Pannellum `sceneId` hotspots — banked in WIDGET-IDEAS; **the image-map half was designed 2026-10-05 —
-   `docs/HOTSPOTS.md`, ISSUE-138, and its emit path already exists; the sphere half was 
+   `docs/ZONES.md`, ISSUE-138, and its emit path already exists; the sphere half was 
    answered the same day with the vendored Pannellum's own `hotSpots`/`clickHandlerFunc`/`mouseEventToCoords`
    verified live — one model, two hosts)**). Myst-like
    "worlds" = scenes + hotspots + gates; deliberately capped per
