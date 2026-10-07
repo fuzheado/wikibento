@@ -532,6 +532,7 @@ fits this app unusually well, because the machinery already exists:
 | **Category 360° gallery** | Walk a category (or `Category:360° panoramas` — **1M+ files**, see the 2026-06-26 taxonomy analysis: also Photo_Sphere, Spherical_panoramas, …_equirectangular_projection subcats) → filter 2:1 ratio → thumb grid → click to open in the viewer (reuse the Gallery grid + viewer). The "browse the 360s" widget | S–M |
 | **Article 360 filter** | Extend the Article Gallery widget with a 360-only toggle (files in 360 categories or 2:1 ratio) — "show me this article's panoramas" | S |
 | **Georeferenced tour (advanced)** | Pannellum hot spots + Wikidata POI data (P625) — label buildings/landmarks on the sphere; multi-scene virtual tours (`sceneId` hot spots) between related panoramas | M–L |
+| **Clickable regions (image map)** | Any Commons image, not a panorama: drawn boxes that highlight on hover and, on click, emit an article / a file / a category to whichever card listens. **Designed 2026-10-05 — `docs/HOTSPOTS.md`, ISSUE-138** (the emit half already exists on the Gallery; the work is the editor). | S–M |
 
 **Notes:** WebGL texture rendering from cross-origin images works without CORS
 (and upload.wikimedia.org sends `ACAO: *` anyway). No CSP in the app.

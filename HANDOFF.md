@@ -654,6 +654,16 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      panels, 91 captioned, 7 chapters) stayed pinned. A poster panel with a ▶ is the natural follow-up.
    - **A `template` kind, if you want to pick template names** — the Box's other input. Held back because templates are
      usually transcluded rather than linked, so there is little in content to click.
+   - **Clickable regions on an image (hotspots) — designed 2026-10-05, not built: three decisions away** (ISSUE-138,
+     [`docs/HOTSPOTS.md`](docs/HOTSPOTS.md); wireframes `docs/hotspot-card.png` and `docs/hotspot-editor.png`). HyperCard's
+     button layer on a card: drawn boxes highlight on hover and, on click, emit an article / a file / a category to
+     whichever card listens. **The emit half already exists** — the Gallery's *Send it to the board* fires the same
+     `selection` event — and Commons already holds ~376,000 files' worth of these boxes as `{{ImageNote}}` (pixels plus
+     `dimx`/`dimy`, labels included, so one API call imports them), while Wikidata's `P2677` is the same `pct:x,y,w,h`
+     shape. So the work is an editor plus a coordinate rule: **≈2–3 days for phase 1** (rect regions on the single-image
+     Gallery, the overlay editor, validator rules, geometry unit tests, one browser check that a click changes the
+     neighbouring card). Waiting on: touch semantics (does the first tap act, or reveal?), the letterbox-vs-crop policy,
+     and the name (`hotspot` vs `region`).
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the

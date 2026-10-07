@@ -6317,3 +6317,28 @@ to view a 360° on a phone.
 DPR 3, touch): in-viewer title **12px**; ⛶ visible at 28×24 and tappable; expanding produces an overlay
 measuring **exactly 390×844** with the viewer filling it (366×793); ✕ and Esc both return to the grid with
 the 2:1 container intact (304×152); no page errors.
+
+## ISSUE-138 · Clickable regions on an image (hotspots) — **designed, not built** (asked by Andrew 2026-10-05)
+
+Andrew asked for HyperCard's button layer on a card: an image with regions that highlight on mouse-over and, on
+click, emit a value — an article, a Commons file, a category — so a neighbouring card reacts.
+
+**The finding that sets the size of the job: the emit half already exists.** The Gallery's *Clicking an image* set to
+*Send it to the board* publishes the clicked file on the widget's `selection` channel (`handleSelect` →
+`onOutput(id, value, 'selection')`, ISSUE-91); consumers already name it (`source: id#selection`); kinds and the spawn
+menu already pair cards (ISSUE-118, PR #105); the Gallery in `displayMode: single` is already the one-image-fills-the-box
+card; and ISSUE-137's portal is the full-screen overlay the editor needs. Genuinely new: a `hotspots` config field
+(normalised percent boxes), a render layer over the image, and the editor.
+
+**Standards instead of a new format (verified live 2026-10-05).** Wikidata/SDC `P2677` is literally `pct:x,y,w,h` in
+percent — `pct:1.5,8.7,96,91.1` appears on two of Q12418's nine `depicts` statements — and Commons' `{{ImageNote}}`
+notes are `x,y,w,h` plus the file's own `dimx,dimy` in the wikitext, label included (~376,000 File-namespace pages
+carry the template, ~360,000 of them `style=2`; search-index estimates). So regions can be **imported** from Commons —
+you do not redraw what Commons already knows — and **exported** as a P2677 qualifier.
+
+**Design, traps, phases and open questions: [`docs/HOTSPOTS.md`](HOTSPOTS.md)** (wireframes `docs/hotspot-card.png`,
+`docs/hotspot-editor.png`, drawn with the real note coordinates of File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg).
+Phase 1 — rect regions on the single-image Gallery, emit-only, the overlay editor, validator rules, geometry unit tests
+and one browser check that a click changes the neighbouring card — is **≈2–3 days**; phase 2 (the Commons import) is
+about half a day. Waiting on three decisions: touch semantics (tap acts, or tap reveals then acts), the
+letterbox-vs-crop policy for a card that has regions, and the name (`hotspot` vs `region`).

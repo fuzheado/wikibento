@@ -413,7 +413,9 @@ front door.
   (every endpoint, cap and gotcha) · [GEOMETRY](docs/GEOMETRY.md) (paths, polygons and time: GeoJSON in and out, the
   intake rules, and why none of it is a dialect) · [MODULARITY-AND-DATAFLOW](docs/MODULARITY-AND-DATAFLOW.md) ·
   [MEDIA-DATAFLOW](docs/MEDIA-DATAFLOW.md) · [SCALABILITY](docs/SCALABILITY.md) ·
-  [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md)
+  [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md) ·
+  [HOTSPOTS](docs/HOTSPOTS.md) (proposed, not built: clickable regions on an image — the HyperCard button layer, the
+  Commons and Wikidata formats that already carry regions, the editor, and the honest cost)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

@@ -28,6 +28,11 @@ shipped for one day, 2026-09-29, before the rename).
    *Not to be confused with:* **bleed** in print (content deliberately running off the trimmed edge), or a story's
 `full` **panel**, which is one of three panel kinds *inside* a story (the others are `plate` and `split`).
 
+**Hotspot** — a drawn region on an image card that is live: hovering shows the region exists, clicking emits its value (an article, a Commons file, a category) on the card's `selection` channel, so any card listening to it reacts. Placed with the region editor; imported from Commons notes when the file already has them.
+   *Proposed, not built* (2026-10-05) — designed in [HOTSPOTS](HOTSPOTS.md), filed as ISSUE-138.
+   *Not to be confused with:* **region** (this repo's map and GeoJSON word for an area of the world), or HTML's
+   **`<area>`** element — the feature that resembles an image map is deliberately not built on one (the doc says why).
+
 ## The board
 
 **Board** — the whole arrangement of cards, and the JSON file that describes it (`?config=/name.json`).
