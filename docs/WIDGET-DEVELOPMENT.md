@@ -235,6 +235,53 @@ and it would have been the first emitter to put *presentation* on the wire. The
 image output is filed as a future direction in `docs/MEDIA-DATAFLOW.md`, gated
 on an effector/compositor consumer (WIDGET-IDEAS family 7).
 
+# Spawning a neighbour from a card (ISSUE-96)
+
+The card chrome carries a **⇄** control (`button.spawn-btn`, title *"Add a card that feeds this one, or that
+this one can feed"*). Right-clicking the card, or a touch long-press on it, opens the same panel. It is
+called the **spawn menu** and it turns card creation from "describe one, it lands somewhere" into "start
+from a card that is already on the board".
+
+## The two sides
+
+The panel's whole content is computed by `spawnOptions(widgetType, config, registry)`
+(`src/lib/spawnOptions.js`, pure and unit-tested), which answers both directions for ONE card:
+
+| side | heading | answered by | a row is |
+|---|---|---|---|
+| LEFT | **Feed this card** | `feeds` — producers whose `outputs` satisfy what this card consumes (grouped by the shape/subject it wants) | a producer **type** that would feed this card |
+| RIGHT | **Use this card's value** | `feedsTo` — consumers whose `source` field accepts this card's `outputs.kind` (grouped by channel) | a consumer **type**, and the **field** it would write (`← source`) |
+
+A side with no candidates shows the human-readable sentence from `notes` in its place, never a blank list.
+
+## "Already wired" and the placement rule
+
+Clicking a row creates the neighbour through **the one add path** (`App.handleAddWidget`), so undo,
+localStorage, the registry's layout constraints and the borrowed-board adoption rule are identical to the
+⬜ Add-widget panel. The difference is the two things the panel adds:
+
+- **It is wired before you see it.** The neighbour is created with `wireConfig(def, { fromId })` already
+  applied — RIGHT writes the new card's source to read the parent; LEFT (the "feed" side) patches the
+  *parent's* config to read the new card, in the same state update, so creating-and-wiring is **one undo
+  step**. `wireConfig` deliberately writes a **plain** `id` / `id#channel` into a `source` field (that field
+  is read as an id) and the **braced** `{{widget:id}}` into a text / thing field (that is what `resolveParams`
+  substitutes). Do not "fix" that asymmetry — it is the contract.
+- **It lands beside its parent.** `adjacentSlot(layout, parentId, def)` (`src/App.jsx`) returns a deliberate
+  slot: to the **right** (`x = parent.x + parent.w`) when the new card's default width still fits in the 12
+  columns, otherwise **directly below** (`x = parent.x, y = parent.y + parent.h`). The board is
+  `compactType="vertical"`, so this can push cards that already occupied the slot **down** — that is the
+  chosen behaviour, not a collision to work around.
+- The new card is left **highlighted** (`.grid-item.spawn-focused`), i.e. the card you keep chaining from.
+
+## One honest limit: a channel is a NAME, not a kind
+
+`spawnOptions`' `feedsTo[].channel` is a producer's `outputs.kind` — the shape of the value on the **bare**
+id (`value`, `lines`, `count`, …). A card's addressable **channel names** are only the non-reserved keys of
+its `outputs` object (`translate` publishes `translation` and `speech`). The two happen to coincide for
+`speech` but not in general, so the panel calls `wireConfig` with **no** channel — the bare id — and a name
+like `{{widget:cimStats#value}}` would resolve to nothing. Surfacing the named channels (so a Speaker could
+be offered `translate#speech`, the one the ⚙ hint already steers you to) is the next step, not this one.
+
 # Adding a New Widget
 
 The registry pattern means a new widget is **one entry in `WIDGET_TYPES`** plus
