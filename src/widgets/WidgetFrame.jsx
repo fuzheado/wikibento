@@ -11,7 +11,7 @@ import {
 } from '../lib/paramSources';
 import { compactNum, trendYScale, TREND_Y_TOP, TREND_Y_BOT } from '../lib/format';
 import { resolveMonth, fmtMonth } from '../lib/scope';
-import { resolveSourceValue, widgetOutputSignature } from '../lib/dataflow';
+import { resolveSourceValue, widgetOutputSignature, outputChannels } from '../lib/dataflow';
 import { WIDGET_TYPES, widgetDef } from './index';
 import { normalizeConfigForDef } from '../lib/configNormalize';
 import { renderMarkdown } from '../lib/markdown';
@@ -418,7 +418,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       if (emitted === undefined) return;
       // Named channels (ISSUE-91): a widget that declares them returns `{ channel: value }`. Otherwise the
       // single returned value is the widget's default output and goes on the bare id, exactly as before.
-      const named = def.outputs && typeof def.outputs === 'object' && !('kind' in def.outputs);
+      const named = def.outputs && typeof def.outputs === 'object' && Object.keys(outputChannels(def.outputs)).length > 0;
       if (named) {
         for (const [channel, value] of Object.entries(emitted)) {
           if (value !== undefined) onOutput(widget.id, value, channel);

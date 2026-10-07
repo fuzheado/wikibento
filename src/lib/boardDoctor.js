@@ -31,6 +31,7 @@
  * checker at all.
  */
 import { validateDashboard } from './dashboardConfig';
+import { outputChannels } from './dataflow';
 import { WIDGET_TYPES, widgetDef } from '../widgets';
 import { findUnresolvedRefs } from './params';
 
@@ -50,8 +51,11 @@ const splitRef = (ref) => {
 const channelsOf = (def) => {
   const out = def?.outputs;
   if (!out) return null;
-  if (out.kind) return [{ name: null, kind: out.kind, primary: true }];
-  return Object.entries(out).map(([name, kind]) => ({ name, kind, primary: name === def.primary }));
+  // ISSUE-96: `kind`/`subject` are metadata; the named channels are every other key. A publisher may have BOTH
+  // (a kind plus channels), so this no longer branches on the mere presence of `kind`.
+  const channels = Object.entries(outputChannels(out));
+  if (channels.length) return channels.map(([name, kind]) => ({ name, kind, primary: name === def.primary }));
+  return out.kind ? [{ name: null, kind: out.kind, primary: true }] : null;
 };
 
 /** …and the same facts as a phrase for a message. */

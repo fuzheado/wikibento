@@ -130,10 +130,15 @@ const defaultsLine = (w) => {
  */
 const publishes = (w) => {
   if (!w.outputs) return '';
-  if (w.outputs.kind) return ` · publishes \`${w.outputs.kind}\` (the bare id)`;
-  const prim = w.primary;
-  const channels = Object.entries(w.outputs).map(([name, kind]) => `\`#${name}\` (\`${kind}\`)${name === prim ? ' ← the bare id' : ''}`);
-  return ` · publishes: ${channels.join(' · ')}`;
+  // ISSUE-96: `kind`/`subject` are metadata; the named channels are every other key, and a publisher may carry
+  // both a bare-id kind and channels — so list the channels when there are any, and always name the subject.
+  const channels = Object.entries(w.outputs).filter(([name]) => name !== 'kind' && name !== 'subject');
+  const subject = w.outputs.subject ? ` · about a ${w.outputs.subject}` : '';
+  if (channels.length) {
+    const list = channels.map(([name, kind]) => `\`#${name}\` (\`${kind}\`)${name === w.primary ? ' ← the bare id' : ''}`);
+    return ` · publishes: ${list.join(' · ')}${subject}`;
+  }
+  return ` · publishes \`${w.outputs.kind}\` (the bare id)${subject}`;
 };
 
 const catalog = widgets.map((w) => {

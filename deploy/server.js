@@ -358,25 +358,25 @@ const askManual = (m) => {
   // the warning on its own. Origin: the 2026-10-01 audit found the advisor
   // proposing two such cards on a switcher board — dead cards, guaranteed.
   const cimGated = widgets.filter((w) => String(w.dataSource || '').startsWith('CIM ')).map((w) => w.id);
+  const whatOf = (kind) => ({
+    extract: 'the article extract text',
+    lines: 'its lines (one per line)',
+    count: 'a number',
+    value: 'its value',
+    speech: 'the same text, typed as speech (text + language)',
+    geojson: 'a geometry (a GeoJSON FeatureCollection: places, a path or an area, optionally with dates)',
+  }[kind] || `a ${kind}`);
   const emitterList = emitters
     .map((w) => {
-      const what = {
-        extract: 'the article extract text',
-        lines: 'its lines (one per line)',
-        count: 'a number',
-        value: 'its value',
-        speech: 'the same text, typed as speech (text + language)',
-        geojson: 'a geometry (a GeoJSON FeatureCollection: places, a path or an area, optionally with dates)',
-      }[w.outputs.kind] || `a ${w.outputs.kind}`;
-      if (w.outputs.kind) return `${w.id} emits ${what} (kind: ${w.outputs.kind})`;
-      const chan = Object.entries(w.outputs)
-        .map(([name, kind]) => `#${name} = ${what === `a ${kind}` ? kind : {
-          extract: 'the article extract text', lines: 'its lines (one per line)', count: 'a number',
-          value: 'its value', speech: 'the same text, typed as speech (text + language)',
-          geojson: 'a geometry (a GeoJSON FeatureCollection)',
-        }[kind] || kind}${name === w.primary ? ' ← the bare id' : ''}`)
+      // ISSUE-96: `kind`/`subject` are metadata; the named channels are every other key. A publisher may carry
+      // both a bare-id kind and channels (the four named-channel emitters now do), so name both.
+      const chans = Object.entries(w.outputs).filter(([k]) => k !== 'kind' && k !== 'subject');
+      const bare = w.outputs.kind ? `${w.id} emits ${whatOf(w.outputs.kind)} (kind: ${w.outputs.kind})` : '';
+      if (!chans.length) return bare || `${w.id} emits ${whatOf(Object.values(w.outputs)[0])}`;
+      const chan = chans
+        .map(([name, kind]) => `#${name} = ${whatOf(kind)}${name === w.primary ? ' ← the bare id' : ''}`)
         .join(', ');
-      return `${w.id} emits channels: ${chan}`;
+      return `${bare ? bare + '; also ' : ''}${w.id} emits channels: ${chan}`;
     })
     .join('; ');
   const freeTextList = freeText.length > 4 ? `${freeText.slice(0, 4).join(', ')}, …` : freeText.join(', ');
@@ -669,7 +669,9 @@ function validateAssembly(parsed, widgetDefs) {
         if (!channel) return true;
         const outputs = widgetDefs.get(typeById.get(id))?.outputs;
         if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) return false;
-        if ('kind' in outputs) return false;          // a single-kind widget publishes its bare id, no channels
+        // ISSUE-96: `kind`/`subject` are metadata, not channels; a producer with a bare-id kind may STILL declare
+        // named channels (the Translator's `speech`), and a channel ref is valid exactly when it names one.
+        if (channel === 'kind' || channel === 'subject') return false;
         return Object.prototype.hasOwnProperty.call(outputs, channel);
       };
       const dangling = widgetRefs.some((r) => !refOk(r))

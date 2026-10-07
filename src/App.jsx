@@ -25,7 +25,7 @@ import { boardToCanvas, canvasFilename } from './lib/jsonCanvas';
 import {
   STASH_KEY, boardLabelFromConfig, stashPayload, readStash, stashIsLive, noticeState,
 } from './lib/borrowedBoard';
-import { renameWidgetRefs, findWidgetRefs } from './lib/dataflow';
+import { renameWidgetRefs, findWidgetRefs, outputChannels } from './lib/dataflow';
 import { readConfigParam, readHashConfig, fetchRemoteConfig, decodeDashboardHash, decodeCompressedDashboardHash } from './lib/share';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -750,7 +750,7 @@ const handleAutoHeight = useCallback((id, px) => {
         const base = { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}`, kinds: baseKinds };
         // Extra named channels (ISSUE-91) are sources in their own right, so the reader's selection can be
         // picked distinctly from the widget's own data.
-        const extra = Object.keys(def.outputs || {}).filter((k) => k !== 'kind');
+        const extra = Object.keys(outputChannels(def.outputs));
         return [base, ...extra.map((channel) => ({
           id: `${w.id}#${channel}`,
           label: `${def.icon} ${def.name} · ${w.id}#${channel} — ${channel}`,

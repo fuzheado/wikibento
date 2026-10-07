@@ -93,7 +93,7 @@ test('every board the validator accepts holds together (ids, types, references)'
         assert.ok(ids.includes(ref.id), `${where}: ${ref.where} → "${ref.id}" is not on the surviving board`);
         if (ref.channel) {
           const out = defs.get(widgets.find((x) => x.id === ref.id).widgetType)?.outputs || {};
-          assert.ok(!out.kind && ref.channel in out,
+          assert.ok(ref.channel in out && ref.channel !== 'kind' && ref.channel !== 'subject',
             `${where}: ${ref.where} → channel "${ref.channel}" is not published by "${ref.id}"`);
         }
       }

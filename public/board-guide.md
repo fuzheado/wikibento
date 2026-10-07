@@ -202,7 +202,7 @@ Turns any text or URL into a scannable QR code — a phone-readable bridge from 
 ### `excerpt` — Article Excerpt
 The first paragraph, short description and lead image of a Wikipedia article (the REST summary API — every language, not just English)
 
-- role: `source` · publishes: `#extract` (`extract`) ← the bare id · `#reference` (`value`)
+- role: `source` · publishes: `#extract` (`extract`) ← the bare id · `#reference` (`value`) · about a article
 - reads: REST /page/summary
 - fields: `article`:text · `project`:project · `verticalAlign`:select [top | center]
 - defaults: may be omitted: `article`, `project`, `refreshSeconds`, `verticalAlign`
@@ -250,7 +250,7 @@ Clickable list of articles — pasted titles, optional thumbnails + intros
 ### `cimStats` — CIM Snapshot · CIM-allow-list
 Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
 
-- role: `source` · publishes `value` (the bare id)
+- role: `source` · publishes `value` (the bare id) · about a cim-category
 - reads: CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)
 - fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
@@ -258,7 +258,7 @@ Exact precomputed stats for one Commons category or one Commons file — files, 
 ### `cimTrend` — CIM Views Over Time · CIM-allow-list
 Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
 
-- role: `source` · publishes `value` (the bare id)
+- role: `source` · publishes `value` (the bare id) · about a cim-category
 - reads: CIM pageviews-per-category-monthly · pageviews-per-media-file-monthly
 - fields: `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project · `months`:number · `zeroY`:boolean only when `subject` is `category` · `subject`:select [category | file] · `category`:text only when `subject` is `category` · `month`:number
 - defaults: may be omitted: `subject`, `category`, `scope`, `wiki`, `months`, `filename`, `month`, `zeroY`, `refreshSeconds`
@@ -266,7 +266,7 @@ Monthly pageview trend over a window you choose — the pages using a Commons ca
 ### `cimRanking` — CIM Top-N · CIM-allow-list
 Ranked rows for one month — the top files, wikis, pages or editors of a CIM category, or the most-viewed categories on Commons
 
-- role: `source` · publishes `lines` (the bare id)
+- role: `source` · publishes `lines` (the bare id) · about a cim-category
 - reads: CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly
 - fields: `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `month`:number
 - defaults: may be omitted: `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
@@ -370,7 +370,7 @@ A scanned Internet Archive book, page by page — turn, zoom to read, jump to a 
 ### `documentReader` — Document Reader
 Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page's text and says how proofread it is
 
-- role: `source` · publishes `value` (the bare id)
+- role: `source` · publishes `value` (the bare id) · about a commons-file
 - reads: Commons API imageinfo — pagecount + a page-N thumbnail template (one call)
 - fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean
 - defaults: may be omitted: `edgeToEdge`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
