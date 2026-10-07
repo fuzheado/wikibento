@@ -71,7 +71,20 @@ const bad = (m) => { results.push(1); console.log('  ✘ ' + m); };
 // neighbour fits in the remaining columns and lands BESIDE it — the branch this check asserts.
 const PARENT = 'cimstats';
 
-const browser = await chromium.launch();
+/**
+ * A one-card board: the demo's gallery, forced to read an ARTICLE (the reported case, ISSUE-96). Built from
+ * public/dashboard.json's own gallery widget so it cannot drift from the real defaults, and pasted through the
+ * app's ⬆ Import panel (AGENTS.md: a scratch board goes through Import, never a file in public/ or dist/).
+ */
+const galleryBoard = () => {
+  const dash = JSON.parse(readFileSync(join(process.cwd(), 'public/dashboard.json'), 'utf8'));
+  const w = dash.widgets.find((x) => x.widgetType === 'gallery');
+  const widgets = [{ ...w, config: { ...w.config, from: 'article', article: 'Albert Einstein', displayMode: 'grid' } }];
+  const layout = (dash.layout || []).filter((l) => l.i === w.id);
+  return JSON.stringify({ ...dash, widgets, layout });
+};
+
+const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 const page = await ctx.newPage();
 const errs = [];
@@ -174,6 +187,63 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   (await page.locator('.spawn-panel').count()) === 0 ? ok('Escape closes the panel') : bad('Escape did not close the panel');
+
+  // ── 9 · the reported case (ISSUE-96): a gallery reading an ARTICLE must not offer a Commons-file producer ───
+  // The bug: gallery { from: 'article' } offered Document Reader on the "feed this card" side; choosing it wrote a
+  // File: URL into the gallery's ARTICLE slot and the card showed "Article not found: <URL>". This opens the panel
+  // on exactly that card and asserts the offer is gone and a valid choice leaves the card working.
+  {
+    const gp = await ctx.newPage();
+    const gerrs = [];
+    gp.on('pageerror', (e) => gerrs.push('pageerror: ' + String(e.message).slice(0, 120)));
+    gp.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const full = m.text();
+      if (/Failed to load resource|Access to fetch at|blocked by CORS|Content Security Policy|violates the following|Blocked autofocusing|ERR_/.test(full)) return;
+      gerrs.push('console: ' + full.slice(0, 120));
+    });
+
+    await gp.goto(`${base}/?config=/dashboard.json`, { waitUntil: 'domcontentloaded' });
+    await gp.waitForSelector('[data-widget-id]', { timeout: 45000 });
+    await gp.getByRole('button', { name: /Import/ }).click();
+    await gp.waitForSelector('.import-textarea', { timeout: 10000 });
+    await gp.locator('.import-textarea').fill(galleryBoard());
+    await gp.locator('.import-panel button.btn-primary').click();
+    await gp.waitForSelector('[data-widget-id="commons-gallery"]', { timeout: 20000 });
+    await gp.waitForTimeout(1000);
+
+    await gp.locator('[data-widget-id="commons-gallery"] button.spawn-btn').click();
+    await gp.waitForSelector('.spawn-panel', { timeout: 5000 });
+    const leftNames = (await gp.locator('.spawn-side-left .spawn-item-name').allTextContents()).map((s) => s.trim());
+    const rightNames = (await gp.locator('.spawn-side-right .spawn-item-name').allTextContents()).map((s) => s.trim());
+
+    // (a) no Commons-file producer is offered on the "feed this card" side.
+    leftNames.some((n) => /document reader|iarchive|internet archive/i.test(n))
+      ? bad(`the article gallery IS offered a Commons-file producer on the feed side: ${leftNames.join(', ')}`)
+      : ok(`the article gallery offers no Commons-file producer on the feed side (offers: ${leftNames.join(', ') || 'none'})`);
+    // …and the one producer whose SUBJECT is an article is still offered (the rule admits it).
+    leftNames.some((n) => /article excerpt/i.test(n))
+      ? ok(`the article-subject feeder is still offered: ${leftNames.join(', ')}`)
+      : bad(`the Article Excerpt (subject article) is missing from the feed side: ${leftNames.join(', ') || 'none'}`);
+
+    // choose a valid neighbour on the "use this card's value" side — the gallery publishes `lines`, which filter/
+    // count/speaker read — so the old invalid feeder is not needed for chaining.
+    const g0 = await gp.$$eval('[data-widget-id]', (els) => els.length);
+    if (rightNames.length) {
+      await gp.locator('.spawn-side-right .spawn-item').first().click();
+      await gp.waitForFunction((n) => document.querySelectorAll('[data-widget-id]').length > n, g0, { timeout: 8000 }).catch(() => {});
+      await gp.waitForTimeout(1000);
+      const g1 = await gp.$$eval('[data-widget-id]', (els) => els.length);
+      g1 === g0 + 1
+        ? ok(`choosing a valid neighbour (${rightNames[0]}) added one card (${g0} → ${g1})`)
+        : bad(`after choosing ${rightNames[0]}: cards ${g0} → ${g1}`);
+    } else {
+      bad('the gallery panel offers no "use this card\'s value" candidate to choose');
+    }
+
+    gerrs.length ? bad(`errors on the gallery-spawn check: ${gerrs[0]}`) : ok('0 errors on the gallery-spawn check');
+    await gp.close();
+  }
 
   // ── 7 · the errors ──────────────────────────────────────────────────────────────────────────────────
   errs.length ? bad(`errors: ${errs.slice(0, 2).join(' | ')}`) : ok('0 page errors and 0 non-upstream console errors');

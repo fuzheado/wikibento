@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { spawnOptions } from '../lib/spawnOptions.js';
+import { spawnOptions, wireConfig } from '../lib/spawnOptions.js';
 import { KIND_LABELS } from '../lib/pickMode.js';
 
 /**
@@ -47,10 +47,14 @@ function anchorOffset(anchor) {
 
 export default function SpawnPanel({ widgetType, config = {}, registry = {}, anchor = null, onChoose, onClose }) {
   const ref = useRef(null);
+  // `config` is the CARD'S OWN config (App passes the widget's live config) — `spawnOptions` reads it to decide
+  // which of a multi-source card's fields it actually reads, so the panel never offers a feeder for a hidden field.
   const { feeds, feedsTo, notes } = useMemo(
     () => spawnOptions(widgetType, config, registry),
     [widgetType, config, registry],
   );
+  // The definition, for the per-group "this would move the card's source" note below (pure lib, no cycle).
+  const def = registry[widgetType];
 
   // Escape and an outside click close it — the same contract as PickMenu and the header popovers.
   useEffect(() => {
@@ -96,9 +100,16 @@ export default function SpawnPanel({ widgetType, config = {}, registry = {}, anc
               <span className="spawn-side-meta">what it consumes</span>
             </div>
             {feedNote && <p className="spawn-empty">{feedNote}</p>}
-            {feeds.map((group) => (
-              <div className="spawn-group" key={`feed-${group.kind}-${group.subject || ''}`}>
+            {feeds.map((group) => {
+              // A feeder that would move the card to a DIFFERENT source is a surprise the user is owed a line about:
+              // `wireConfig` reports the move, and we show it under the group (ISSUE-96). Live fields are filtered,
+              // so this normally stays empty — it is the honest escape hatch when one candidate implies a switch.
+              const wire = def ? wireConfig(def, { fromId: '__spawn__', subject: group.subject, config }) : null;
+              const move = wire && !wire.refused && wire.changedSource ? wire.reason : null;
+              return (
+              <div className="spawn-group" key={`feed-${group.kind}-${group.subject || ''}-${group.field || ''}`}>
                 <div className="spawn-group-label" title={group.reason}>{feedGroupLabel(group)}</div>
+                {move && <p className="spawn-group-move" title={move}>⚠️ {move}</p>}
                 {group.types.map((t) => (
                   <button
                     key={t.type}
@@ -113,7 +124,8 @@ export default function SpawnPanel({ widgetType, config = {}, registry = {}, anc
                   </button>
                 ))}
               </div>
-            ))}
+              );
+            })}
           </section>
 
           <section className="spawn-side spawn-side-right">

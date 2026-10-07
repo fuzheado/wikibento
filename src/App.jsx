@@ -630,22 +630,39 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     const newId = `${choice.type}-${Date.now()}`;
     const prev = { widgets, layout, paramBlock };
     const place = adjacentSlot(layout, parent.id, newDef);
+    const newConfig = minimalConfig(newDef, { ...newDef.defaults });
+
+    // `wireConfig` now returns { config, refused, reason, field, changedSource } (ISSUE-96): a refusal is shown and
+    // NOTHING is added, and a wire that moved the card's source selector is reported in the toast.
+    let wired;
     if (choice.side === 'feed') {
-      const patch = wireConfig(parentDef, { fromId: newId });
+      // The PARENT reads the NEW card. `choice.subject` is the thing the producer's value is about — the kind the
+      // menu grouped the row by — so wireConfig lands it in a field the parent ACTUALLY reads, and refuses if it
+      // cannot (rather than writing a value into a slot the card ignores, the bug this panel shipped).
+      wired = wireConfig(parentDef, { fromId: newId, subject: choice.subject, config: parent.config });
+      if (wired.refused) {
+        setAssemblyToast({ message: `⚠️ ${parentDef.name} cannot read ${newDef.name} — ${wired.reason}`, error: true, prev });
+        return;
+      }
       handleAddWidget(
-        { id: newId, widgetType: choice.type, config: minimalConfig(newDef, { ...newDef.defaults }) },
-        { place, patch: { id: parent.id, config: patch } },
+        { id: newId, widgetType: choice.type, config: newConfig },
+        { place, patch: { id: parent.id, config: wired.config } },
       );
     } else {
-      const patch = wireConfig(newDef, { fromId: parent.id });
+      wired = wireConfig(newDef, { fromId: parent.id, config: newConfig });
+      if (wired.refused) {
+        setAssemblyToast({ message: `⚠️ ${newDef.name} cannot read ${parentDef.name} — ${wired.reason}`, error: true, prev });
+        return;
+      }
       handleAddWidget(
-        { id: newId, widgetType: choice.type, config: { ...minimalConfig(newDef, { ...newDef.defaults }), ...patch } },
+        { id: newId, widgetType: choice.type, config: { ...newConfig, ...wired.config } },
         { place },
       );
     }
     setSpawnTarget(null);
     setSpawnFocusedId(newId);
-    setAssemblyToast({ message: `🔗 Added ${newDef.name}, wired to ${parent.id} — placed beside it`, prev });
+    const moved = wired.changedSource && wired.reason ? ` — ${wired.reason}` : '';
+    setAssemblyToast({ message: `🔗 Added ${newDef.name}, wired to ${parent.id} — placed beside it${moved}`, prev });
   }, [spawnTarget, widgets, layout, paramBlock, handleAddWidget]);
 
   /**
