@@ -3,7 +3,8 @@
 > **Status: design study, with the first decisions recorded** (Andrew, 2026-10-05). Filed as **ISSUE-138**.
 > Wireframes, all rendered from real data rather than drawn by hand:
 > `docs/zone-card.png` (the reader's view) · `docs/zone-editor.png` (the editor) ·
-> `docs/zone-sphere.png` (the 360° case — **this one is a live Pannellum render**, see §Photospheres).
+> `docs/zone-sphere.png` (the 360° case — **this one is a live Pannellum render**, see §Photospheres) ·
+> `docs/zone-tour.png` (a zone that moves the card itself — see §Tours).
 
 ## The word: a **zone** (field `zones`)
 
@@ -135,11 +136,59 @@ one value per click.
 - **Send** (v1) — emit on the selection channel. The feature above.
 - **Open** (v1, free) — the same `new tab` behaviour the Gallery already offers for a whole-image click.
 - **Set a board parameter** (v2) — ROADMAP's *missing CYOA control*: a zone that writes `{{place}}`, filtering
-  every card that listens. The param machinery and the 🎛️ Board Controls card already exist; this is a new writer.
-- **Jump to a board / change scene** (v2) — HyperCard's `go to card`, and for the 360° side Pannellum's own
-  `sceneId` tour hotspots.
+  every card that listens (§Tours). The param machinery and the 🎛️ Board Controls card already exist; this is a new writer.
+- **Go — replace this card's own picture** (see §Tours) — HyperCard's `go to card` made literal: a zone whose
+  action is `go: <sceneId>` swaps the card's image, and on the 360° side it is Pannellum's own scene switch.
 - **External URL** (v2, with a rule) — http(s) only, the domain visible in the label, rejected in the validator's
   error list rather than silently neutralised. Boards are data from outside.
+
+## Tours — a zone that replaces the card's own content (asked 2026-10-05)
+
+Andrew asked for a third action beside *send*: a zone that **replaces the card's own picture** — 2D or 360° — so one
+card can be a chain of scenes, Myst-style. The mechanics allow it, in two different ways, and they are worth keeping
+distinct:
+
+| the tour lives… | the zone's action | who follows | already proven by |
+|---|---|---|---|
+| **in the card** — a `scenes` list, each scene a file with its own zones | `go: <sceneId>` | just this card | the 🎞️ Media player navigates itself today: playlist index, ◀ ▶, loop, no board change |
+| **on the board** — the card's file is `"File:{{scene}}"` | `set: scene = <file>` | **every card wired to that param** | `public/article-switcher-demo.json` ships exactly this shape — Board Controls writes `{{article}}` and two cards follow |
+
+Recommendation: **the card-local tour first** (it is the thing asked for, it changes nothing about the board, and its
+3D half is largely a config translation — Pannellum already has `scenes`, `firstScene`, `sceneFadeDuration` and
+`loadScene`), then the **param write** second: that one is also ROADMAP item 6's missing *CYOA control* (click → set
+param), and it is what makes a whole *wall* move together — one zone on a map card re-aims a photo card, a caption
+card and an article card at once.
+
+Shape (card-local):
+
+```json
+{ "scenes": [
+    { "id": "wide", "file": "File:Scuol-Motta Naluns…jpg",
+      "zones": [ { "label": "Piz Nuna", "kind": "article", "value": "de:Piz Nuna", "go": "planetarium" } ] },
+    { "id": "planetarium", "file": "File:'Imiloa grounds 360…jpg",
+      "zones": [ { "label": "Mauna Kea", "kind": "article", "value": "en:Mauna Kea", "go": "detail" } ] },
+    { "id": "detail", "file": "File:Scuol-Motta Naluns…jpg", "zones": [] }
+  ], "firstScene": "wide" }
+```
+
+- **Zones belong to the scene, not to the card** — the Commons-notes import is per file, and the geometry rule of
+  §The data model applies scene by scene: `box` where the scene is flat, `at` where it is a sphere.
+- **The chrome answers "where am I"**: ◀ Back walks the card's own stack, a `2 of 3` counter, and the title follows
+  the current scene (the frame already takes its title from fetched data via `labelFromData`).
+- **The position is not in the URL — by decision, not omission.** `docs/URL-STATE.md` puts *"where you are looking"*
+  in tier **C3: never carried**, and the app writes the URL with `replaceState` only (no `popstate` re-boot, so a
+  `pushState` would break Back). A shared link therefore reproduces the **tour**, not where the last visitor stood,
+  and Back is the card's own — exactly like the playlist's. Becoming URL-driven is a bigger decision than this
+  feature and is not on the table.
+- **Instant swaps need prefetching we do ourselves**: Pannellum has no `preload` (checked — absent from the vendored
+  build), so a scene loads when entered; entering scene *n* should warm scene *n+1*'s image, at the thumbnail width
+  we already choose.
+- **The roadmap's cap holds.** Scenes are a **list**; zones point at scene ids; there is deliberately no node canvas.
+  ROADMAP item 6 already names the destination as *scenes + zones + gates* — this is the scenes half, and *gates*
+  (a card visible only when `{{param}} == X`, the Router family) stays separate.
+- **A Myst still lacks**: saved position (the board's `firstScene` is the reset), inventory (out of scope by design),
+  and gates. Sound is free *today* — a zone that emits to the 🔊 Speaker card is a click that speaks.
+- Worth banking for exhibitions: **reset to `firstScene` after N seconds idle**, beside the panorama's `autoRotate`.
 
 ## The editor
 
@@ -251,7 +300,9 @@ free. A phase-3 nicety, not the engine.
 | 1 | the walking skeleton on the flat side: rect zones on a single-image Gallery, emit-only, the overlay editor (draw, move, resize, list, delete, undo, apply/cancel), the three-fit crop rule, validator rules, geometry unit tests + one browser check that a click changes the neighbouring card | **2–3 days** |
 | 2 | read Commons: `{{ImageNote}}` import (labels + targets), *Suggest from depicts* (P2677) | half a day |
 | 3 | the sphere: zones on the 360° viewer in the same model, engine pins, click → emit, pin placement in the editor, the tour action | **half a day** — the render above proves the engine half; the editor's pin mode is the work |
-| 4 | the polish that makes it feel finished: the chrome toggle, the numbered print legend, `<area>` export, ellipse/polygon, a third host (media player, grid tiles) | open |
+| 4 | tours: the `scenes` list, the `go` action, ◀ Back + a counter, prefetch of the next scene; then the param
+variant (`set: scene = …`) which is the roadmap's CYOA control | 1–2 days |
+| 5 | the polish that makes it feel finished: the chrome toggle, the numbered print legend, `<area>` export, ellipse/polygon, a third host (media player, grid tiles) | open |
 
 Where the cost sits: **the editor**, not the wiring — and the wiring is the part people usually underestimate
 because it is invisible when it already exists. Risks, in order: the editor's mobile ergonomics, the crop preview
@@ -271,6 +322,8 @@ a HyperCard stack about an image" faster.
 2. **The host** — a `zones` field on the Gallery (fewer types, reuses Single image, `imageFit`, `edgeToEdge`, the
    click path) or a dedicated type? I lean to the field; the sphere answer above leans the same way, for the same
    reason: hosts differ, the model does not.
-3. ~~Touch semantics~~ **decided**: tap reveals, second tap acts.
-4. ~~Crop policy~~ **decided**: `contain | cover | smart`, and `smart` falls back to letterbox rather than hiding
+3. **Tours** — card-local first, then the param write, as §Tours recommends? And does a tour stay a `scenes` field on
+   the existing hosts, or is "a card that is a scene chain" enough of a product to want its own type?
+4. ~~Touch semantics~~ **decided**: tap reveals, second tap acts.
+5. ~~Crop policy~~ **decided**: `contain | cover | smart`, and `smart` falls back to letterbox rather than hiding
    a zone.

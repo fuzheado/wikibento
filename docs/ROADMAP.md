@@ -192,9 +192,10 @@ polish, 6 when Level-2 wiring lands.**
    `{{param}} == X`), then hotspot primitives: image-map widget (click
    regions on a Commons image → param/scene) and panorama multi-scene tours
    (Pannellum `sceneId` hotspots — banked in WIDGET-IDEAS; **the image-map half was designed 2026-10-05 —
-   `docs/ZONES.md`, ISSUE-138, and its emit path already exists; the sphere half was 
-   answered the same day with the vendored Pannellum's own `hotSpots`/`clickHandlerFunc`/`mouseEventToCoords`
-   verified live — one model, two hosts)**). Myst-like
+   `docs/ZONES.md`, ISSUE-138, and its emit path already exists; the sphere half was answered the same day with the
+   vendored Pannellum's own `hotSpots`/`clickHandlerFunc`/`mouseEventToCoords` verified live; and the **tour half** — a
+   zone that replaces the card's own picture, which is what makes "scenes + zones + gates" walkable — is specified in
+   `docs/ZONES.md` §Tours, whose second step *is* this item's click-to-set-param control**). Myst-like
    "worlds" = scenes + hotspots + gates; deliberately capped per
    MODULARITY Part 3 (Path C) — never a visual wiring canvas. Effort L.
 7. **Keep-mounted board instances** *(optional, later)* — hide (not unmount)

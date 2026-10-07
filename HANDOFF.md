@@ -671,7 +671,11 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      editing, `mouseEventToCoords()` to place a pin by clicking the sphere). Verified, not assumed:
      `docs/zone-sphere.png` is a live render of the app's own default panorama by that build — two pins drawn, its
      own tooltip on hover, and a dispatched click delivering `{kind:'article', value:'en:Mauna Kea'}` to our handler.
-     So the sphere phase is about half a day, and it also ticks `panorama360` off ISSUE-96's next-ones list.
+     So the sphere phase is about half a day, and it also ticks `panorama360` off ISSUE-96's next-ones list. **Tours are
+     specified too** (`docs/ZONES.md` §Tours, `docs/zone-tour.png`): a `scenes` list with a `go` action turns one card
+     into a Myst-style chain — card-local, ◀ Back, and the position is not in the URL because "where you are looking"
+     is tier C3 by decision — while the param variant (`set: scene = …`) moves a whole wall together, which the shipped
+     `article-switcher-demo.json` already proves.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the

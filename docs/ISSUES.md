@@ -6372,3 +6372,19 @@ dangerous area, and "hot" appears in this repository only as *hot spot*, the mus
 has shipped, so no board in the wild carries the old name and no alias is needed. The design doc is now
 `docs/ZONES.md` and the three wireframes are `docs/zone-card.png`, `docs/zone-editor.png`, `docs/zone-sphere.png`;
 this entry keeps its original wording as the record of what was called what, when.
+
+**Tours — a zone that replaces the card's own content (asked 2026-10-05).** Andrew asked whether a zone can swap the
+card's own picture (2D or 360°) instead of only emitting — Myst-style node-to-node navigation. The mechanics allow it
+two ways, and they are different products. **Card-local** — a `scenes` list plus a `go: <sceneId>` action, with ◀ Back
+and a `2 of 3` counter in the chrome — changes nothing about the board and has a working precedent inside this repo:
+the media player's playlist navigates itself today (index state, ◀ ▶, loop). Its 3D half is largely a config
+translation, since the vendored Pannellum already provides `scenes`, `firstScene`, `sceneFadeDuration` and
+`loadScene`. **Board-level** — the card's file is `"File:{{scene}}"` and a zone *writes* the param — makes every card
+wired to that param move at once: the shipped `public/article-switcher-demo.json` proves that mechanism (Board
+Controls writes `{{article}}`, two cards follow), and it is exactly ROADMAP item 6's missing CYOA control. Honest
+limits, both decided elsewhere and respected rather than worked around: *"where you are looking"* is tier C3 in
+`docs/URL-STATE.md` — **never carried** — and the app writes the URL with `replaceState` only (no `popstate` re-boot),
+so a shared link reproduces the tour but not where the last visitor stood, and Back is the card's own; and Pannellum
+has no `preload` (checked — absent from the vendored build), so entering a scene loads it and we prefetch the next
+ourselves. Design, JSON shape, the Myst deltas and the cap (scenes are a **list**, never a drawn canvas) are in
+§Tours of `docs/ZONES.md`; the wireframe is `docs/zone-tour.png`. Recommended order: card-local first, param second.
