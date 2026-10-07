@@ -16,6 +16,10 @@
  *   5. its layout slot is ADJACENT to the parent's (beside when the 12 columns allow, else directly below);
  *   6. it is the highlighted "keep chaining" card, and there are no page errors and no non-upstream console
  *      errors.
+ *   9. Andrew's reported case (2026-10-07): a gallery reading an ARTICLE is offered NO prose producer, and the
+ *      card NEVER renders `Article not found: <prose>` — the value-form axis (`outputs.denotes`: what a value IS,
+ *      not only what it is about), proved against the built app, with a control showing the empty side is the rule
+ *      and not a panel that renders nothing.
  *
  * Two repo rules are baked in, both from AGENTS.md. First: a browser check refuses to run against a stale
  * `dist/` (twice on 2026-09-24 a fixed feature measured as broken because the build was old). Second: an
@@ -76,10 +80,10 @@ const PARENT = 'cimstats';
  * public/dashboard.json's own gallery widget so it cannot drift from the real defaults, and pasted through the
  * app's ⬆ Import panel (AGENTS.md: a scratch board goes through Import, never a file in public/ or dist/).
  */
-const galleryBoard = () => {
+const galleryBoard = (over = {}) => {
   const dash = JSON.parse(readFileSync(join(process.cwd(), 'public/dashboard.json'), 'utf8'));
   const w = dash.widgets.find((x) => x.widgetType === 'gallery');
-  const widgets = [{ ...w, config: { ...w.config, from: 'article', article: 'Albert Einstein', displayMode: 'grid' } }];
+  const widgets = [{ ...w, config: { ...w.config, from: 'article', article: 'Albert Einstein', displayMode: 'grid', ...over } }];
   const layout = (dash.layout || []).filter((l) => l.i === w.id);
   return JSON.stringify({ ...dash, widgets, layout });
 };
@@ -216,6 +220,11 @@ try {
     await gp.waitForSelector('[data-widget-id="commons-gallery"]', { timeout: 20000 });
     await gp.waitForTimeout(1000);
 
+    // The card as it renders. The reported symptom is `Article not found: <the excerpt paragraph>` — a LONG value
+    // in the error slot. A title (or no error at all) is short, so a length threshold catches the prose without
+    // hard-coding API text; a URL (the earlier symptom) is the same shape.
+    const cardText = await gp.locator('[data-widget-id="commons-gallery"]').innerText();
+
     await gp.locator('[data-widget-id="commons-gallery"] button.spawn-btn').click();
     await gp.waitForSelector('.spawn-panel', { timeout: 5000 });
     const leftNames = (await gp.locator('.spawn-side-left .spawn-item-name').allTextContents()).map((s) => s.trim());
@@ -235,6 +244,22 @@ try {
       ? ok(`the feed side is empty and names what it wanted: "${(leftNotes[0] || '').slice(0, 70)}…"`)
       : bad(`expected an empty feed side with a note naming "a name for article", got ${leftNames.length} offer(s), notes ${JSON.stringify(leftNotes)}`);
 
+    // (c) the reported SYMPTOM can never render: `Article not found: <prose>`. Assert on the CARD's own text. The
+    // error echoes whatever is in the slot, so a TITLE (~40 chars) stays, while the excerpt's PARAGRAPH (~250) or a
+    // File: URL does not — an 80-char threshold separates the two without hard-coding API text. (The check does not
+    // demand zero errors: the article-gallery fetch can fail in a sandbox, and a short failure is not the bug.)
+    const errLine = (cardText.match(/Article not found[^\n]*/) || [''])[0];
+    (errLine.length >= 80)
+      ? bad(`the card shows "Article not found: <prose/URL>" — the reported symptom: ${errLine.slice(0, 120)}`)
+      : ok(`the card never shows "Article not found: <prose>" (error line: ${JSON.stringify(errLine.slice(0, 60)) || 'none'})`);
+    // (d) …because nothing prose-shaped reached the slot: the gallery's `article` is still the title (or its
+    // trimmed default), never a `{{widget:…}}` reference to the excerpt.
+    const boardA = await gp.evaluate(() => { try { return JSON.parse(localStorage.getItem('wikibento-layout') || 'null'); } catch { return null; } });
+    const cfgA = boardA?.widgets?.find((w) => w.id === 'commons-gallery')?.config || {};
+    (typeof cfgA.article === 'string' && cfgA.article.includes('{{widget:'))
+      ? bad(`the article slot was written with a widget reference: ${JSON.stringify(cfgA.article)}`)
+      : ok(`the article slot holds the title, not a prose reference (article: ${JSON.stringify(cfgA.article ?? '(default Albert Einstein)')})`);
+
     // choose a valid neighbour on the "use this card's value" side — the gallery publishes `lines`, which filter/
     // count/speaker read — so the old invalid feeder is not needed for chaining.
     const g0 = await gp.$$eval('[data-widget-id]', (els) => els.length);
@@ -249,6 +274,23 @@ try {
     } else {
       bad('the gallery panel offers no "use this card\'s value" candidate to choose');
     }
+
+    // (e) CONTROL — the same panel on a gallery that DOES read a file list still offers producers, so the empty
+    // feed side above is the value-form rule and NOT a panel that renders nothing on any gallery.
+    await gp.goto(`${base}/?config=/dashboard.json`, { waitUntil: 'domcontentloaded' });
+    await gp.waitForSelector('[data-widget-id]', { timeout: 45000 });
+    await gp.getByRole('button', { name: /Import/ }).click();
+    await gp.waitForSelector('.import-textarea', { timeout: 10000 });
+    await gp.locator('.import-textarea').fill(galleryBoard({ from: 'list' }));
+    await gp.locator('.import-panel button.btn-primary').click();
+    await gp.waitForSelector('[data-widget-id="commons-gallery"]', { timeout: 20000 });
+    await gp.waitForTimeout(800);
+    await gp.locator('[data-widget-id="commons-gallery"] button.spawn-btn').click();
+    await gp.waitForSelector('.spawn-panel', { timeout: 5000 });
+    const listNames = (await gp.locator('.spawn-side-left .spawn-item-name').allTextContents()).map((s) => s.trim());
+    listNames.length
+      ? ok(`control: a gallery reading a LIST still offers producers (${listNames.join(', ')}) — the empty article side is the rule`)
+      : bad('control failed: a list-reading gallery offers nothing either, so the empty side may be a broken panel, not the rule');
 
     gerrs.length ? bad(`errors on the gallery-spawn check: ${gerrs[0]}`) : ok('0 errors on the gallery-spawn check');
     await gp.close();
