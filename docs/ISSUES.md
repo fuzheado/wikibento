@@ -6342,3 +6342,26 @@ Phase 1 — rect regions on the single-image Gallery, emit-only, the overlay edi
 and one browser check that a click changes the neighbouring card — is **≈2–3 days**; phase 2 (the Commons import) is
 about half a day. Waiting on three decisions: touch semantics (tap acts, or tap reveals then acts), the
 letterbox-vs-crop policy for a card that has regions, and the name (`hotspot` vs `region`).
+
+**Decisions, same day (Andrew).** *Touch:* tap reveals, a second tap on the same spot acts (tapping elsewhere
+dismisses) — the map-app rule, because a touch has no hover and an accidental tap should cost nothing. *Crop:*
+three fits — letterbox, fill crop, and **`smart`** (*"Fill crop, never cutting off a spot"*), which positions the
+cover window to contain every spot's box and **falls back to letterbox rather than hide a spot** when the spots
+straddle more of the picture than the window can hold. *Name:* **`spot`** recommended (field `spots`) — it is the
+one candidate with no collision in this codebase (`region`, `area`, `shape`, `overlay`, `marker`, `pin`, `button`,
+`target`, `tag`, `badge`, `anchor` and `note` are all taken), and Pannellum — the engine already vendored for the
+360° card — calls its own pins `hotSpots`, so the model and the engine speak the same word one hop apart.
+
+**The 360° half, answered with the engine's own evidence (2026-10-05).** Andrew's question — is a solo clickable
+image a degenerate photosphere, and can the two share fundamentals? — resolves as: **one model, two hosts, two
+draw modes.** Shared: the spot record, the emit, the validator rules, the guide/manifest/schema regeneration, the
+editor's list panel, the reader rules. Not shared: the geometry, because a box on a sphere is a curve that is wrong
+the moment the camera turns — sphere spots are `pitch`/`yaw` directions (`at`), flat spots are `box` percentages,
+and the validator enforces the pairing against the viewer. And the sphere needs no new rendering at all: the
+vendored **Pannellum 2.5.7** already has `hotSpots` (pins + hover labels), `clickHandlerFunc` (attached to any
+hotspot that declares it), `addHotSpot`/`removeHotSpot(id)` for live editing, `mouseEventToCoords()` for placing a
+pin by clicking the sphere, and `sceneId` tours. **Verified, not assumed:** `docs/hotspot-sphere.png` is a live
+render of the app's own default panorama ('Imiloa grounds, NOIRLab, CC BY 4.0) by that vendored build — it drew two
+pins, showed its own *"Mauna Kea"* tooltip on hover, and a dispatched click called our handler with
+`{kind:'article', value:'en:Mauna Kea'}`, the exact payload shape every card already emits. So the sphere phase is
+about half a day, and making the panorama an emitter also ticks `panorama360` off ISSUE-96's next-ones list.

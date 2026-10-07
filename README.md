@@ -414,8 +414,9 @@ front door.
   intake rules, and why none of it is a dialect) · [MODULARITY-AND-DATAFLOW](docs/MODULARITY-AND-DATAFLOW.md) ·
   [MEDIA-DATAFLOW](docs/MEDIA-DATAFLOW.md) · [SCALABILITY](docs/SCALABILITY.md) ·
   [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md) ·
-  [HOTSPOTS](docs/HOTSPOTS.md) (proposed, not built: clickable regions on an image — the HyperCard button layer, the
-  Commons and Wikidata formats that already carry regions, the editor, and the honest cost)
+  [HOTSPOTS](docs/HOTSPOTS.md) (proposed, not built: clickable **spots** on an image or a 360° panorama — the
+  HyperCard button layer, the Commons and Wikidata formats that already carry the areas, the crop rule that never
+  hides a spot, the editor, and the honest cost; the sphere wireframe is a live Pannellum render)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

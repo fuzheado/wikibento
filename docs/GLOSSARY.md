@@ -28,10 +28,9 @@ shipped for one day, 2026-09-29, before the rename).
    *Not to be confused with:* **bleed** in print (content deliberately running off the trimmed edge), or a story's
 `full` **panel**, which is one of three panel kinds *inside* a story (the others are `plate` and `split`).
 
-**Hotspot** — a drawn region on an image card that is live: hovering shows the region exists, clicking emits its value (an article, a Commons file, a category) on the card's `selection` channel, so any card listening to it reacts. Placed with the region editor; imported from Commons notes when the file already has them.
-   *Proposed, not built* (2026-10-05) — designed in [HOTSPOTS](HOTSPOTS.md), filed as ISSUE-138.
-   *Not to be confused with:* **region** (this repo's map and GeoJSON word for an area of the world), or HTML's
-   **`<area>`** element — the feature that resembles an image map is deliberately not built on one (the doc says why).
+**Spot** — a drawn box on an image card, or a pin on a 360° panorama, that is live: hovering (or a first tap on a touch screen) shows it exists, activating it emits its value — an article, a Commons file, a category — on the card's `selection` channel, so any card listening reacts. One record for both, two geometry dialects: `box` (percent of the image) on a flat picture, `at` (pitch/yaw) on a sphere. Placed with the spot editor; imported from Commons notes when the file already has them.
+   *Recommended name* (2026-10-05) — `spots` in the board JSON, "spot" in the UI. Designed in [HOTSPOTS](HOTSPOTS.md), filed as ISSUE-138. **Not built.**
+   *Avoid — all taken in this repo:* **region** (the map and GeoJSON word for an area of the world), **area** (HTML's `<area>`, which this is deliberately not built on), **marker** and **pin** (the map's), **button** (the card's chrome), **target**, **badge**, **tag**, **anchor**, **note**. The museum and IIIF-viewer word is *hotspot*; Pannellum's own config key is `hotSpots` — the engine keeps its word, we use ours, one hop apart.
 
 ## The board
 

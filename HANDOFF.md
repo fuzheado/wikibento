@@ -662,8 +662,16 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      `dimx`/`dimy`, labels included, so one API call imports them), while Wikidata's `P2677` is the same `pct:x,y,w,h`
      shape. So the work is an editor plus a coordinate rule: **≈2–3 days for phase 1** (rect regions on the single-image
      Gallery, the overlay editor, validator rules, geometry unit tests, one browser check that a click changes the
-     neighbouring card). Waiting on: touch semantics (does the first tap act, or reveal?), the letterbox-vs-crop policy,
-     and the name (`hotspot` vs `region`).
+     neighbouring card). Waiting on: the name
+     (`spot`, recommended, vs `zone`) and the host (a `spots` field on the Gallery, or a type of its own). **Decided 2026-10-05:** tap reveals and a second tap acts; three fits — letterbox · fill crop · **`smart`**, which
+     keeps every spot visible and falls back to letterbox rather than hide one. **The 360° half is answered too, with
+     the engine's own evidence:** one model, two hosts, two draw modes — sphere spots are `pitch`/`yaw` directions
+     (`at`) and flat spots are `box` percentages, and the vendored Pannellum 2.5.7 needs no new rendering at all
+     (`hotSpots` pins + hover labels, `clickHandlerFunc` → our `selection` emit, `addHotSpot`/`removeHotSpot` for live
+     editing, `mouseEventToCoords()` to place a pin by clicking the sphere). Verified, not assumed:
+     `docs/hotspot-sphere.png` is a live render of the app's own default panorama by that build — two pins drawn, its
+     own tooltip on hover, and a dispatched click delivering `{kind:'article', value:'en:Mauna Kea'}` to our handler.
+     So the sphere phase is about half a day, and it also ticks `panorama360` off ISSUE-96's next-ones list.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the
