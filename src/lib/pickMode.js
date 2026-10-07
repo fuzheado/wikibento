@@ -26,6 +26,25 @@ export function kindsAccepting(kind) {
   return [kind, ...(KIND_SUPERSET[kind] || [])];
 }
 
+/**
+ * The value FORMS a config field can resolve — the reader of the emitter model's third axis, `outputs.denotes`
+ * (VALUE_KINDS in dataflow.js).
+ *
+ * A field that declares a `kind` is a THING field: the card takes its value and RESOLVES it as that thing (it looks
+ * a title up). It therefore wants the thing's NAME — one for a single-line `text` field, one or many for a
+ * `textarea` — and never PROSE about the thing, nor a count of it. A field with no `kind` is not part of the
+ * subject match at all, so the question does not apply and `null` says so (unrestricted).
+ *
+ * The bug this exists for (reported by Andrew, 2026-10-07): the Article Excerpt — a PROSE producer whose subject
+ * is an article — was offered to a gallery's `article` field; the wire put the excerpt's paragraph into the title
+ * slot and the card showed `Article not found: <paragraph>`. `subject` alone could not tell "an article" from "a
+ * name for one", which is why the third axis is declared and REQUIRED.
+ */
+export function valueFormsForField(field) {
+  if (!field || typeof field.kind !== 'string' || !field.kind) return null;
+  return field.type === 'textarea' ? ['name', 'list'] : ['name'];
+}
+
 /** "an article", "a wiki page" — for messages that read like sentences. Vowel-letter based, which is enough here. */
 export function aOrAn(word) {
   return `${/^[aeiou]/i.test(String(word)) ? 'an' : 'a'} ${word}`;

@@ -38,7 +38,7 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { execFileSync } from 'node:child_process';   // the board guide's own --check is the comparison; not reimplemented here
-import { OUTPUT_KINDS } from '../src/lib/dataflow.js';   // the documented set, read from the code rather than copied
+import { OUTPUT_KINDS, VALUE_KINDS } from '../src/lib/dataflow.js';   // the documented set, read from the code rather than copied
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LIVE = process.argv.includes('--live');
@@ -630,17 +630,18 @@ check('every demo board on disk is linked from the README and the hub', () => {
   return `${boards.length} boards linked from the README${boards.length > 1 ? ' and the hub' : ''}`;
 });
 
-check('the Emitter Contract names every documented output kind (ISSUE-97)', () => {
+check('the Emitter Contract names every documented output kind and value form (ISSUE-97)', () => {
   // The kinds are load-bearing in three places now — the registry's `outputs`, a consumer field's `kinds` (which
   // narrows the ⚙ picker) and the gates in tests/manifest-compliance.test.mjs — all reading one list in
-  // src/lib/dataflow.js. This keeps the fourth reader honest: the doc that says what a kind MEANS.
+  // src/lib/dataflow.js. This keeps the fourth reader honest: the doc that says what a kind MEANS. The value FORMS
+  // (`denotes`, the third axis) are documented in the same section, so they are held to the same rule.
   const doc = read('docs/WIDGET-DEVELOPMENT.md');
-  const missing = OUTPUT_KINDS.filter((k) => !doc.includes(`\`${k}\``));
+  const missing = [...OUTPUT_KINDS, ...VALUE_KINDS].filter((k) => !doc.includes(`\`${k}\``));
   if (missing.length) {
     fail(`docs/WIDGET-DEVELOPMENT.md does not name: ${missing.join(', ')}`
-      + ' — every kind in OUTPUT_KINDS needs a row in the emitter table, because "Adding a new output kind" says a kind is a design act');
+      + ' — every output kind and value form needs a row in the emitter table, because "Adding a new output kind" says a kind is a design act');
   }
-  return `${OUTPUT_KINDS.length} kinds named in the emitter contract`;
+  return `${OUTPUT_KINDS.length} kinds and ${VALUE_KINDS.length} value forms named in the emitter contract`;
 });
 
 check('present-tense docs carry no volatile facts', () => {

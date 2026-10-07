@@ -29,17 +29,39 @@ export const OUTPUT_KINDS = ['extract', 'lines', 'count', 'value', 'speech', 'ge
 
 /**
  * The keys an `outputs` declaration reserves for METADATA (ISSUE-96): `kind` (the shape of the value the bare id
- * publishes) and `subject` (the thing that value is about, from pickMode.js's KIND_IDS). Every OTHER key is a named
- * channel — a second thing the widget publishes, addressed as `{{widget:id#channel}}` (ISSUE-91).
+ * publishes), `subject` (the thing that value is about, from pickMode.js's KIND_IDS) and `denotes` (what the value
+ * IS — see VALUE_KINDS just above). Every OTHER key is a named channel — a second thing the widget publishes,
+ * addressed as `{{widget:id#channel}}` (ISSUE-91).
  *
- * One declaration, three shapes:
+ * One declaration, four shapes:
  *   { kind: 'lines' }                                          a single output
  *   { kind: 'lines', subject: 'cim-category' }                 …and what it is about
+ *   { kind: 'extract', subject: 'article', denotes: 'prose' }  …and what the value IS (the third axis)
  *   { kind: 'extract', subject: 'article', reference: 'value' } …plus named channels
  *
  * Readers that enumerate channels must skip these keys — see outputChannels.
  */
-export const OUTPUT_RESERVED_KEYS = ['kind', 'subject'];
+export const OUTPUT_RESERVED_KEYS = ['kind', 'subject', 'denotes'];
+
+/**
+ * VALUE_KINDS — the THIRD axis of the emitter data model, beside `kind` and `subject` (ISSUE-96's follow-up):
+ * what a published value IS, as opposed to what it is ABOUT. `subject` answers "an article"; this answers "a NAME
+ * for that article — or PROSE about it?". Two values can share a subject and differ here, and the difference is
+ * load-bearing, not decoration: a `kind` config field RESOLVES its value as the thing (it looks the title up), so a
+ * value that is merely ABOUT the thing lands in the title slot and the card fails — the reported bug of 2026-10-07,
+ * `Article not found: <the whole paragraph>`.
+ *
+ *   · `name`  — the value IS the subject: its title, its page reference (`enwiki:Title`), or a resolvable URL.
+ *   · `prose` — the value is TEXT ABOUT the subject; nothing a field can resolve as a title.
+ *   · `list`  — several names, one per line (a multi-line `kind` field takes it; a single-line field does not).
+ *   · `count` — a number of them (a reading of the thing, never the thing itself).
+ *
+ * A producer that names a `subject` therefore also declares `denotes` — the two travel together — and the spawn
+ * menu REQUIRES the axis: a subject with no `denotes` is offered to no thing field, so an omission cannot quietly
+ * re-admit a prose value into a name slot. The reader is `valueFormsForField()` (pickMode.js); the gates are in
+ * tests/manifest-compliance.test.mjs and tests/spawn-pairings.test.mjs.
+ */
+export const VALUE_KINDS = ['name', 'prose', 'list', 'count'];
 
 /** The named channels of an `outputs` declaration: `{ name: kind }` — everything that is not reserved metadata. */
 export function outputChannels(outputs) {

@@ -133,6 +133,29 @@ Corollaries:
    (`excerpt`, `gallery`, `wikiBox`, `translate`) each name a `kind` today, so a
    matcher reading `outputs.kind` can finally see them.
 
+## What the value IS: `denotes` (the third axis, ISSUE-96)
+
+`outputs.kind` says the SHAPE of the value; `outputs.subject` says what it is ABOUT. Neither says what it IS — and
+that gap shipped a bug. The Article Excerpt's value is `extract` (prose) and it is *about* an article, so a match on
+`subject: 'article'` alone offered it to a gallery's `article` field, whose value must be the article's **name**.
+The paragraph landed in the title slot and the card showed `Article not found: Albert Einstein was a German-born…`.
+
+So a producer that names a `subject` also declares **`denotes`** — what the value denotes, from `VALUE_KINDS`
+(`src/lib/dataflow.js`):
+
+| `denotes` | the value is… | example |
+|---|---|---|
+| `name` | the thing itself: its title, its page reference (`enwiki:Title`), or a resolvable URL | `enwiki:Albert Einstein` |
+| `prose` | text ABOUT the thing — never something a field can look up as a title | `Albert Einstein was a German-born…` |
+| `list` | several names, one per line | `enwiki:Marie Curie\ncommonswiki:File:X.jpg` |
+| `count` | a number of them (a reading, never the thing) | `42` |
+
+The two axes are independent — the same subject pairs with either — and they are matched together. A `name` fills a
+`kind` field, which RESOLVES its value as the thing; `prose` and `count` never do, and a `list` fills a multi-line
+(`textarea`) `kind` field but not a single-line one. `denotes` is **required** with a `subject`: the spawn menu
+offers a producer with no value form to no field at all (rather than guessing), and a manifest-constitution test
+refuses the omission — so an axis left out cannot quietly re-admit a paragraph into a name slot.
+
 ## The validated lookup param (ISSUE-68/99)
 
 A Board Controls param may be `type: 'lookup'`, which renders a box that checks what you type against live

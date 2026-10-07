@@ -368,9 +368,9 @@ const askManual = (m) => {
   }[kind] || `a ${kind}`);
   const emitterList = emitters
     .map((w) => {
-      // ISSUE-96: `kind`/`subject` are metadata; the named channels are every other key. A publisher may carry
-      // both a bare-id kind and channels (the four named-channel emitters now do), so name both.
-      const chans = Object.entries(w.outputs).filter(([k]) => k !== 'kind' && k !== 'subject');
+      // ISSUE-96: `kind`/`subject`/`denotes` are metadata; the named channels are every other key. A publisher may
+      // carry both a bare-id kind and channels (the four named-channel emitters now do), so name both.
+      const chans = Object.entries(w.outputs).filter(([k]) => k !== 'kind' && k !== 'subject' && k !== 'denotes');
       const bare = w.outputs.kind ? `${w.id} emits ${whatOf(w.outputs.kind)} (kind: ${w.outputs.kind})` : '';
       if (!chans.length) return bare || `${w.id} emits ${whatOf(Object.values(w.outputs)[0])}`;
       const chan = chans
@@ -669,9 +669,9 @@ function validateAssembly(parsed, widgetDefs) {
         if (!channel) return true;
         const outputs = widgetDefs.get(typeById.get(id))?.outputs;
         if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) return false;
-        // ISSUE-96: `kind`/`subject` are metadata, not channels; a producer with a bare-id kind may STILL declare
-        // named channels (the Translator's `speech`), and a channel ref is valid exactly when it names one.
-        if (channel === 'kind' || channel === 'subject') return false;
+        // ISSUE-96: `kind`/`subject`/`denotes` are metadata, not channels; a producer with a bare-id kind may STILL
+        // declare named channels (the Translator's `speech`), and a channel ref is valid exactly when it names one.
+        if (channel === 'kind' || channel === 'subject' || channel === 'denotes') return false;
         return Object.prototype.hasOwnProperty.call(outputs, channel);
       };
       const dangling = widgetRefs.some((r) => !refOk(r))
