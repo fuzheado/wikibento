@@ -151,6 +151,13 @@ for (const [path, type] of Object.entries(DOOR)) {
     : bad('validate: ?d= / ?z=', `d ${d.status} ${bd?.verdict} · z ${z.status} ${bz?.verdict}`);
 
   // POST, for scripts (and later for MCP).
+  // The next two probes are calibrated to THIS script's env (a 4,000-byte cap and an 8/min limit, set at spawn
+  // above). Against a deployment running its own values (the 256 KB / 30-min defaults) a 12 KB body and 5 spare
+  // requests are legitimately fine — 2026-10-05: they went red against production while the server was right.
+  // The mechanisms they prove are proven in the localhost run; remote mode skips them and says so.
+  if (fixed !== -1) {
+    console.log('  ➖ validate: oversized + rate limit — localhost-only probes (env-calibrated; the deployment sets its own)');
+  } else {
   const posted = await fetch(`${base}/api/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(broken) });
   const bp = await posted.json().catch(() => null);
   posted.status === 200 && bp?.verdict === 'unusable'
@@ -175,6 +182,7 @@ for (const [path, type] of Object.entries(DOOR)) {
     if (rr.status === 429) limited++;
   }
   limited > 0 ? ok('validate: rate limited', `${limited}× 429 in 5 more requests (limit 8/min, 7 already used)`) : bad('validate: rate limit', 'no 429');
+  }
 }
 
 // ── 1b. the door's etiquette: a missing path is a 404 that names nothing ──────

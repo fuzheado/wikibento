@@ -682,6 +682,10 @@ check('built bundle is within the documented size magnitude', () => {
 // ── 7. --live: the claimed deployed bundle is what production serves ───────
 if (LIVE) {
   const LIVE_NAME = 'the bundle HANDOFF claims is deployed is what production serves';
+  // Hoisted because the retry path (below, in the catch) compares against it: a const inside the try is not in
+  // the catch's scope, and the retry died with "claimed is not defined" — masking the real verdict (2026-10-05,
+  // found when a stale HANDOFF claim met a working retry).
+  let claimed = null;
   try {
     const claimedMatch = prose['HANDOFF.md'].match(
       // tolerate prose, "=" / ":", and markdown table cells (| production bundle | `index-….js` |)
@@ -690,7 +694,7 @@ if (LIVE) {
     if (!claimedMatch) {
       fail('HANDOFF does not state a current production bundle (expected "production bundle = index-….js")');
     }
-    const claimed = claimedMatch[1];
+    claimed = claimedMatch[1];
     const res = await fetch(PROD_URL, {
       headers: {
         'User-Agent':
