@@ -6292,3 +6292,28 @@ measures a **304×152** container / **302×150** canvas (was 2px / 0px), and
 **1/1 clean** against the fixed build, while the *same* command against production reports
 `collapsed viewer: panorama: canvas 302x0px` — so the new rule fails on the bug it was written for and not
 otherwise. `docs-facts` 17/17; `build-validator` and `smoke-built` pass.
+
+## ISSUE-137 · "No fullscreen on the panorama, and the title crowds it" — the button iPhone Safari cannot have — **done** (asked by Andrew 2026-10-05)
+
+Andrew, from the iPhone after ISSUE-136's fix: the panorama now *renders*, but (a) the title text inside the
+viewer takes up a lot of the space, and (b) there is no fullscreen button — which is the main way anyone wants
+to view a 360° on a phone.
+
+**What:** two separate causes.
+
+- *The title* is Pannellum's own info overlay, `.pnlm-title-box` at **20px** — a headline inside a card-sized
+  box (2:1 of ~370px ≈ 185px tall at ISSUE-136's aspect), and it wraps. The card's meta row already names the
+  file, so the overlay is now a whisper: 12px title / 10px author, `max-width: 72%`.
+- *The missing button* is the vendor's own gate: `(document.fullscreenEnabled || …webkitFullscreenEnabled…)
+  && container.appendChild(fullscreen)` — the button is **never appended** where the Fullscreen API is
+  absent, and iPhone Safari has no Fullscreen API for non-video elements. Not stylable: the element does not
+  exist. So the fix is app-owned — React state plus a **portal to `document.body`** (`position: fixed`
+  inside a transformed grid item would anchor to the grid item, not the viewport), a ⛶ button in the meta row
+  (28×24, always present), ✕/Esc to close, and body scroll locked while open so iOS doesn't scroll the page
+  behind the overlay. The grid slot keeps a placeholder so the layout never jumps. The viewer is recreated on
+  toggle (the effect is keyed on `expanded`); the existing `ResizeObserver` re-sizes it.
+
+**Verified** on a local build, Playwright **WebKit** (Safari's engine) at an iPhone 14 viewport (390×844,
+DPR 3, touch): in-viewer title **12px**; ⛶ visible at 28×24 and tappable; expanding produces an overlay
+measuring **exactly 390×844** with the viewer filling it (366×793); ✕ and Esc both return to the grid with
+the 2:1 container intact (304×152); no page errors.

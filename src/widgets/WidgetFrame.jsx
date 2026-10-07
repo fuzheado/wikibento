@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { boxLinkSelection } from '../lib/wikiBox';
 import {
   orderProjects, filterProjects, labelFor, readRecentProjects, noteRecentProject,
@@ -2540,6 +2541,25 @@ function MediaPlayerCard({ data }) {
 function PanoramaCard({ data }) {
   const containerRef = useRef(null);
   const [status, setStatus] = useState('mounting');
+  // ⛶ Expand — app-owned, because pannellum's own fullscreen button does not exist on iPhone: the vendor
+  // appends it only when the Fullscreen API is supported (`(g.fullscreenEnabled || …) &&
+  // v.container.appendChild(v.fullscreen)`), and iPhone Safari has no Fullscreen API for non-video elements,
+  // so there the button is never even created — nothing to style into visibility (ISSUE-137). This one is
+  // React state + a portal to document.body: a real fixed overlay in every browser. It must portal because
+  // `position: fixed` inside a transformed grid item anchors to the grid item, not the viewport.
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e) => { if (e.key === 'Escape') setExpanded(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';   // iOS scrolls the page behind a fixed overlay otherwise
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -2576,30 +2596,58 @@ function PanoramaCard({ data }) {
       ro.disconnect();
       try { viewer?.destroy(); } catch { /* noop */ }
     };
-  }, [data.url, data.autoRotate, data.equirectangular, data.fileTitle]);
+  }, [data.url, data.autoRotate, data.equirectangular, data.fileTitle, expanded]);
 
   const label = data.fileTitle ? data.fileTitle.replace(/^File:/, '').replace(/_/g, ' ') : '360° panorama';
+  const meta = (
+    <div className="panorama-meta">
+      <span className="panorama-file" title={data.fileTitle}>{label}</span>
+      {data.equirectangular === false ? (
+        <span className="panorama-badge warn">not 2:1 — may not be a 360°</span>
+      ) : (
+        <span className="panorama-badge">360° · {data.width}×{data.height}</span>
+      )}
+      {data.originalUrl && (
+        <a className="panorama-orig" href={data.originalUrl} target="_blank" rel="noopener noreferrer" title="Open original file">⤴</a>
+      )}
+      {expanded ? (
+        <button className="panorama-btn" onClick={() => setExpanded(false)} title="Close (Esc)">✕</button>
+      ) : (
+        <button className="panorama-btn" onClick={() => setExpanded(true)} title="View fullscreen (fills the screen)">⛶</button>
+      )}
+    </div>
+  );
+  const viewer = (
+    <div className="panorama-container no-drag" ref={containerRef}>
+      {status.startsWith('error') && (
+        <div className="widget-error"><span>⚠ {status.slice(6)}</span></div>
+      )}
+      {status === 'not360' && (
+        <div className="panorama-placeholder">This file is not 2:1 equirectangular — it may still be a Photo Sphere (Pannellum auto-detects GPano XMP).</div>
+      )}
+    </div>
+  );
+  if (expanded) {
+    // Portaled to document.body; the grid slot keeps a placeholder so the layout never jumps.
+    return (
+      <>
+        <div className="panorama-card">
+          <div className="panorama-meta">
+            <span className="panorama-file">Viewing fullscreen — ✕ or Esc to return</span>
+          </div>
+          <div className="panorama-placeholder">The panorama is overlaid on the whole page.</div>
+        </div>
+        {createPortal(
+          <div className="panorama-card panorama-expanded">{meta}{viewer}</div>,
+          document.body,
+        )}
+      </>
+    );
+  }
   return (
     <div className="panorama-card">
-      <div className="panorama-meta">
-        <span className="panorama-file" title={data.fileTitle}>{label}</span>
-        {data.equirectangular === false ? (
-          <span className="panorama-badge warn">not 2:1 — may not be a 360°</span>
-        ) : (
-          <span className="panorama-badge">360° · {data.width}×{data.height}</span>
-        )}
-        {data.originalUrl && (
-          <a className="panorama-orig" href={data.originalUrl} target="_blank" rel="noopener noreferrer" title="Open original file">⤴</a>
-        )}
-      </div>
-      <div className="panorama-container no-drag" ref={containerRef}>
-        {status.startsWith('error') && (
-          <div className="widget-error"><span>⚠ {status.slice(6)}</span></div>
-        )}
-        {status === 'not360' && (
-          <div className="panorama-placeholder">This file is not 2:1 equirectangular — it may still be a Photo Sphere (Pannellum auto-detects GPano XMP).</div>
-        )}
-      </div>
+      {meta}
+      {viewer}
     </div>
   );
 }

@@ -1623,6 +1623,30 @@ body {
 .panorama-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
 .panorama-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; min-height: 16px; }
 .panorama-file { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+/* ISSUE-137: pannellum's own info overlay (`.pnlm-title-box`) defaults to 20px — a headline inside a
+   card-sized viewer, and it wraps over half the box on a phone. The card's meta row already names the file,
+   so the overlay is a whisper, not a headline. */
+.panorama-card .pnlm-panorama-info { max-width: 72%; padding: 2px 8px 2px 5px; }
+.panorama-card .pnlm-title-box { font-size: 12px; margin-bottom: 1px; }
+.panorama-card .pnlm-author-box { font-size: 10px; }
+/* ISSUE-137: the ⛶ expand button, app-owned. Pannellum's own fullscreen button does not exist on iPhone
+   Safari (no Fullscreen API for non-video elements — the vendor never appends it), so this is React state
+   plus a portal to document.body; the expanded card is a real fixed overlay in every browser. */
+.panorama-btn {
+  flex: 0 0 auto; min-width: 28px; height: 24px; padding: 0 6px;
+  font-size: 14px; line-height: 1;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: none; color: var(--text-secondary); cursor: pointer;
+}
+.panorama-btn:hover { background: rgba(0, 0, 0, 0.05); }
+.panorama-expanded {
+  position: fixed; inset: 0; z-index: 500;   /* above the app's top layer (200) */
+  border-radius: 0; background: #16161a;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+}
+.panorama-expanded .panorama-container { flex: 1 1 auto; width: 100%; aspect-ratio: auto; }
+.panorama-expanded .panorama-file { color: #c9c9d2; }
+.panorama-expanded .panorama-badge { color: #9a9aa4; }
 .panorama-badge { background: rgba(60,179,113,0.18); color: #55d98d; padding: 1px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .panorama-badge.warn { background: rgba(224,133,85,0.2); color: #efb184; }
 .panorama-orig { color: var(--text-secondary); text-decoration: none; font-size: 12px; }
