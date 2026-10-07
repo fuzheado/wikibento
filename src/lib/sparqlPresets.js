@@ -152,6 +152,30 @@ ORDER BY ?who ?date`,
 ORDER BY ?who ?date`,
   },
   {
+    id: 'six-careers',
+    label: 'Six careers on one axis (Nobel 2026 — medicine, physics, chemistry)',
+    endpoint: 'wdqs',
+    // Measured live 2026-10-07 (two days after the last of the three prizes): 0.69 s, 77 dated rows,
+    // 6 lanes. The argument is the SHAPE, not the count — Deisseroth's lane is a 28-event award ladder
+    // (2005 -> 2026), Kagan's runs 1974 -> 2026 (a 52-year climb), and Soai's is two dots: born, then the
+    // Nobel. An almost empty lane is a finding, not a failure, so the query keeps him.
+    //
+    // What it reaches: birth, and every DATED award, post and degree. What it cannot: anything narration
+    // needs. These six items carry no dated publications, "joined the faculty" is missing for half of
+    // them, and there is no research event at all — the Nobel arrives as one more `awarded` row among 65.
+    // Wikidata dates what is recordable; the prose is where the rest lives (docs/LIFELINE-WIDGET.md).
+    query: `SELECT ?who ?whoLabel ?date ?kind ?what ?whatLabel WHERE {
+  VALUES ?who { wd:Q935993 wd:Q2075526 wd:Q1247068 wd:Q20942818 wd:Q354979 wd:Q24284511 }
+  { ?who wdt:P569 ?date . BIND("born" AS ?kind) } UNION
+  { ?who p:P69  ?st . ?st ps:P69  ?what ; pq:P580 ?date . BIND("studied at" AS ?kind) } UNION
+  { ?who p:P108 ?st . ?st ps:P108 ?what ; pq:P580 ?date . BIND("worked at" AS ?kind) } UNION
+  { ?who p:P166 ?st . ?st ps:P166 ?what ; pq:P585 ?date . BIND("awarded" AS ?kind) } UNION
+  { ?who p:P512 ?st . ?st ps:P512 ?what ; pq:P585 ?date . BIND("degree" AS ?kind) }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+}
+ORDER BY ?whoLabel ?date`,
+  },
+  {
     id: 'women-in-red',
     label: 'Women in Red — % of enwiki biographies that are women',
     endpoint: 'humaniki',
