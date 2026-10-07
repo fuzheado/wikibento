@@ -6388,3 +6388,20 @@ so a shared link reproduces the tour but not where the last visitor stood, and B
 has no `preload` (checked — absent from the vendored build), so entering a scene loads it and we prefetch the next
 ourselves. Design, JSON shape, the Myst deltas and the cap (scenes are a **list**, never a drawn canvas) are in
 §Tours of `docs/ZONES.md`; the wireframe is `docs/zone-tour.png`. Recommended order: card-local first, param second.
+
+**Arrival views — where a jump lands (asked 2026-10-05).** Andrew's point: in a 360° tour the destination's orientation
+must be settable per jump, because "direction and view will be different depending on where the person arrives from".
+Answered with the engine's own API surface rather than a workaround: the arrival belongs to the **link** (the zone),
+not to the scene, so one destination can be entered two ways — and the vendored Pannellum 2.5.7 already carries it (a
+`sceneId` hotspot passes `targetPitch`/`targetYaw`/`targetHfov` into the scene switch; `loadScene(scene, pitch, yaw,
+hfov)` takes the same three by hand; `getPitch()`/`getYaw()`/`getHfov()`/`getScene()` read the **live** camera).
+Three modes: **absolute** (`arrive: {pitch, yaw, hfov}`), **relative** (a yaw offset from the departure view — `+180`
+turns you about, `+0` keeps you going — which is the arrival that genuinely depends on where you came from), or the
+**scene's own default** when a link does not care. Because the camera is read at click time, **◀ Back can restore the
+exact view you left**, not the scene's opening view. Rules that follow: yaw is stored in the engine's [-180°, 180°)
+convention, an out-of-circle yaw is a lossless **wrap** (repaired and reported) while a pitch outside ±90° is an
+**error**; `sceneFadeDuration` gives a crossfade, not a camera walk (there is no fly-through); zoom (`hfov`) is part of
+the arrival; flat scenes have no camera to aim, so their arrival view is a future question and a flat `go` lands on the
+whole picture. The editor gets a view picker that reads the live camera (*Use this view*) plus an arrival preview, and
+hotspot `cssClass` lets a walk marker differ from an emit marker so a tour's zones do not all look alike. Design and the
+four-view wireframe: §Arrival view of `docs/ZONES.md`, `docs/zone-arrival.png`.

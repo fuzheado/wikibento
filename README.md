@@ -416,7 +416,8 @@ front door.
   [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md) ·
   [ZONES](docs/ZONES.md) (proposed, not built: clickable **zones** on an image or a 360° panorama — the
   HyperCard button layer, the Commons and Wikidata formats that already carry the areas, the crop rule that never
-  hides a zone, the editor, and the honest cost; the sphere wireframe is a live Pannellum render)
+  hides a zone, tours that move the card and choose where a jump **lands**, the editor, and the honest cost; the
+  sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

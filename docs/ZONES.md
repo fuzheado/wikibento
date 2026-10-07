@@ -4,7 +4,8 @@
 > Wireframes, all rendered from real data rather than drawn by hand:
 > `docs/zone-card.png` (the reader's view) · `docs/zone-editor.png` (the editor) ·
 > `docs/zone-sphere.png` (the 360° case — **this one is a live Pannellum render**, see §Photospheres) ·
-> `docs/zone-tour.png` (a zone that moves the card itself — see §Tours).
+> `docs/zone-tour.png` (a zone that moves the card itself — see §Tours) ·
+> `docs/zone-arrival.png` (where a jump lands — see §Arrival view).
 
 ## The word: a **zone** (field `zones`)
 
@@ -190,6 +191,49 @@ Shape (card-local):
   and gates. Sound is free *today* — a zone that emits to the 🔊 Speaker card is a click that speaks.
 - Worth banking for exhibitions: **reset to `firstScene` after N seconds idle**, beside the panorama's `autoRotate`.
 
+### Arrival view — the view travels with the link, not the scene
+
+A jump between panoramas is not finished until it says **where you land**. That belongs to the **link** — the zone —
+not to the destination, because the same scene entered from two zones is two different arrivals: from one you arrive
+facing the thing you came to see, from the other you arrive turned back toward the door you came through. So `go`
+carries an `arrive`:
+
+```json
+{ "label": "→ inside the pyramid", "go": { "scene": "inside", "arrive": { "pitch": -2, "yaw": 20, "hfov": 95 } } }
+{ "label": "→ inside the pyramid", "go": { "scene": "inside", "arrive": { "yaw": "+180" } } }   // turn about
+```
+
+Three modes, in the order an author reaches for them:
+
+1. **Absolute** — give `pitch`/`yaw`/`hfov`. Deterministic, authorable, and what `docs/zone-arrival.png` shows.
+2. **Relative** — a `yaw` offset from the view you *actually left*: `+180` turns you about, `+0` keeps you going.
+   This is the arrival that genuinely depends on where you came from.
+3. **The destination's own default** — omit `arrive`; the scene's own `pitch`/`yaw`/`hfov` is used (the values
+   `firstScene` starts at).
+
+**The engine already takes all of this** — checked in the vendored 2.5.7, not in the docs: a `sceneId` hotspot
+passes `targetPitch`/`targetYaw`/`targetHfov` into the scene switch, `loadScene(scene, pitch, yaw, hfov)` does the
+same by hand, and `getPitch()`/`getYaw()`/`getHfov()`/`getScene()` read the **live** camera. That last part is what
+makes the relative mode and **◀ Back** exact: the stack stores the view you had when you clicked, not the scene's
+default, so returning puts you where you stood, looking where you were looking.
+
+Things that will bite if they are not decided now:
+
+- **`getYaw()` returns [-180°, 180°)** — the engine's own convention, so that is what we store. A stored yaw outside
+  the circle is a **wrap** (lossless → repaired and reported, per ISSUE-134's model); a `pitch` outside ±90° is an
+  **error**, because it cannot mean what it says.
+- **The transition is a fade, not a walk.** `sceneFadeDuration` crossfades the picture; there is no camera
+  fly-through between scenes, and promising one would need frame interpolation we do not have.
+- **Zoom is part of the arrival** — `hfov` 95° is a stroll, 50° is "look at that". The editor sets it by turning the
+  destination and clicking *Use this view*, which reads the live camera; a **preview** of the arrival is part of the
+  picker, because arrivals are easy to get wrong blind.
+- **Flat (2D) scenes have no camera to aim.** Their analogue of an arrival view is *which part of the picture you land
+  on*, which only means something once flat scenes can zoom; until then a flat `go` lands on the whole image, and
+  this doc should say so rather than pretend otherwise.
+- **A reader should be able to tell a *go* from a *send***: Pannellum takes a `cssClass` per hotspot, so the marker
+  can differ by action — a walk marker where a zone moves you, an emit marker where it feeds another card. Cheap, and
+  it keeps a tour from reading as a wall of identical pins.
+
 ## The editor
 
 A four-column card is ~300px wide, so the editor is **a full-screen overlay** — the panorama's portal pattern, not
@@ -300,8 +344,9 @@ free. A phase-3 nicety, not the engine.
 | 1 | the walking skeleton on the flat side: rect zones on a single-image Gallery, emit-only, the overlay editor (draw, move, resize, list, delete, undo, apply/cancel), the three-fit crop rule, validator rules, geometry unit tests + one browser check that a click changes the neighbouring card | **2–3 days** |
 | 2 | read Commons: `{{ImageNote}}` import (labels + targets), *Suggest from depicts* (P2677) | half a day |
 | 3 | the sphere: zones on the 360° viewer in the same model, engine pins, click → emit, pin placement in the editor, the tour action | **half a day** — the render above proves the engine half; the editor's pin mode is the work |
-| 4 | tours: the `scenes` list, the `go` action, ◀ Back + a counter, prefetch of the next scene; then the param
-variant (`set: scene = …`) which is the roadmap's CYOA control | 1–2 days |
+| 4 | tours: the `scenes` list, the `go` action with its **arrival view** (absolute · relative · the scene's own) and the
+editor's view picker, ◀ Back + a counter, prefetch of the next scene; then the param variant (`set: scene = …`) —
+the roadmap's CYOA control | 2–3 days |
 | 5 | the polish that makes it feel finished: the chrome toggle, the numbered print legend, `<area>` export, ellipse/polygon, a third host (media player, grid tiles) | open |
 
 Where the cost sits: **the editor**, not the wiring — and the wiring is the part people usually underestimate
