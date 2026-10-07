@@ -5,7 +5,8 @@
 > `docs/zone-card.png` (the reader's view) · `docs/zone-editor.png` (the editor) ·
 > `docs/zone-sphere.png` (the 360° case — **this one is a live Pannellum render**, see §Photospheres) ·
 > `docs/zone-tour.png` (a zone that moves the card itself — see §Tours) ·
-> `docs/zone-arrival.png` (where a jump lands — see §Arrival view).
+> `docs/zone-arrival.png` (where a jump lands — see §Arrival view) ·
+> `docs/zone-suggest.png` (importing notes and choosing their targets — see §Where the zones come from).
 
 ## The word: a **zone** (field `zones`)
 
@@ -87,6 +88,53 @@ So **you do not draw what Commons already knows**: *Read Commons notes* is one A
 (`prop=revisions&rvprop=content`, CORS ✓) plus a small parse, and the zones arrive with labels and often links.
 A 360° upload usually has **no** notes (the example in `docs/zone-sphere.png` has none), so the import is a
 flat-image superpower first.
+
+## Where the zones come from — Commons notes, and the targets they do not have
+
+*Read Commons notes* is one Action API call (verified): a file's `{{ImageNote}}` boxes arrive with their labels, at
+their real coordinates. What arrives **without** a target is the interesting part, and it is where this feature either
+becomes useful or becomes a quiet source of wrong links.
+
+| rung | the source | what it gives |
+|---|---|---|
+| 1 | **a link inside the note text** | the note author's own answer, free — a `[[Dom Pedro II]]` needs no search |
+| 2 | **the file's structured data** | `depicts` statements give QIDs, sometimes with a `P2677` relative position that lands inside the same box |
+| 3 | **search, with the role kept** | head form *plus* the role words, full-text, on a wiki — the rung that does the work |
+| 4 | **the author's eye** | the last word, always; and "no target" is a legitimate outcome |
+
+Measured on a real file (`docs/zone-suggest.png`): Porto-alegre's *Estudo para a sagração de Dom Pedro II*, c. 1840 —
+**11 notes**, English labels, **0** structured-data claims, **0** links inside the notes. Rungs 1 and 2 are empty, so
+rung 3 carries it, and here is what rung 3 does on that file:
+
+- **The head form alone: 8 of 11 hits, three of them the wrong thing.** "Dom Pedro II" → a *work of the Brasiliana
+  Iconográfica*; "Dona Francisca" → a *municipality of Rio Grande do Sul*; "Dona Januária" → an **1820 ship**.
+- **The full label is worse: 0 of 3.** The appositives ("…, archbishop of Bahia province.") stop the search dead.
+- **Head form + the role words fixes them**, on the board's wiki — *"Dona Januária Princess Imperial of Brazil"* →
+  *Princess Januária of Brazil*; the ship disappears once the role is in the query.
+- **The notes' language is not the subject's.** These are English notes on a Brazilian painting: `pt.wikipedia` found
+  *Romualdo Antônio de Seixas* that English never surfaced, while English found the princess under a spelling
+  Portuguese does not use. Search the label's language **and** the board's wiki; let the author choose.
+- **A role is a fine target.** "Rei-de-armas (King-of-Arms)" resolves to the *concept* article **King of Arms** —
+  which is what a reader hovering that figure wants.
+- **A sentence is not a name.** The eleventh note describes the painting-within-the-painting; its proposal is "no
+  target", and it should stay one. A zone may be nothing but a label until someone gives it a job.
+
+Rules that follow — all of them about not lying to the reader:
+
+1. **Propose, never bind.** Candidates arrive with their **description** (the thing that tells *Princess Januária* from
+   *Dona Januária (1820 ship)*) and their wiki, and the author accepts or rejects each. A silent wrong bind is worse
+   than an unbound zone: the reader clicks a face and gets a municipality.
+2. **Store what the consumer reads** — a page title in the app's `lang:Title` form — and keep the QID beside it as
+   provenance, so a later re-run re-checks rather than re-guesses.
+3. **"No target" is first class.** The zone still outlines and still labels, and can still be a `go` link in a tour.
+4. **Keep the role words.** They are not noise to strip: they are the disambiguator, so the cleaning rules (cut at the
+   first comma, lift the parentheses) should *feed them to the search*, not discard them.
+5. **Nested boxes need an order.** A detail inside a scene is two notes, one inside the other; the list order decides
+   which wins a click (later on top), and the import preserves the file's own order.
+
+None of this is new machinery: the app already searches — `src/lib/paramSources.js` does `prefixsearch`,
+`list=search` and `wbsearchentities` for the param pickers — so the import's *suggest* step is a new caller of an
+existing client, not a new client.
 
 ## Reader interaction — decided (2026-10-05)
 
@@ -342,7 +390,8 @@ free. A phase-3 nicety, not the engine.
 |---|---|---|
 | 0 | the two remaining decisions (name, host) | a conversation |
 | 1 | the walking skeleton on the flat side: rect zones on a single-image Gallery, emit-only, the overlay editor (draw, move, resize, list, delete, undo, apply/cancel), the three-fit crop rule, validator rules, geometry unit tests + one browser check that a click changes the neighbouring card | **2–3 days** |
-| 2 | read Commons: `{{ImageNote}}` import (labels + targets), *Suggest from depicts* (P2677) | half a day |
+| 2 | read Commons: the `{{ImageNote}}` import, then the **suggest-and-confirm** step — rungs 1–3 of §Where the zones
+come from, candidates shown with their descriptions, never a silent bind | ≈1 day |
 | 3 | the sphere: zones on the 360° viewer in the same model, engine pins, click → emit, pin placement in the editor, the tour action | **half a day** — the render above proves the engine half; the editor's pin mode is the work |
 | 4 | tours: the `scenes` list, the `go` action with its **arrival view** (absolute · relative · the scene's own) and the
 editor's view picker, ◀ Back + a counter, prefetch of the next scene; then the param variant (`set: scene = …`) —

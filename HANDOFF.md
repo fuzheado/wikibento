@@ -678,7 +678,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      `article-switcher-demo.json` already proves. The **arrival view** is native as well: a `sceneId` hotspot passes
      `targetPitch`/`targetYaw`/`targetHfov`, `loadScene` takes the same three, and `getPitch`/`getYaw`/`getHfov` read
      the live camera — so a jump lands facing what you came to see (or turned back toward the door), and ◀ Back can
-     restore the exact view you left.
+     restore the exact view you left. The **import and its targets** are specified too: one API call brings a file's
+     `{{ImageNote}}` boxes in with their labels, and the labels are *proposed* as targets — measured on a real file
+     (`docs/zone-suggest.png`): the head form alone hits 8 of 11 names with **three of them the wrong thing** (an artwork
+     item, a municipality, an 1820 ship), the full label hits 0 of 3, and head-plus-role-words on the label's own wiki
+     fixes it. Hence the rule: propose with descriptions and a wiki, never bind silently, and let "no target" be a
+     normal outcome.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the

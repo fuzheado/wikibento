@@ -6405,3 +6405,20 @@ the arrival; flat scenes have no camera to aim, so their arrival view is a futur
 whole picture. The editor gets a view picker that reads the live camera (*Use this view*) plus an arrival preview, and
 hotspot `cssClass` lets a walk marker differ from an emit marker so a tour's zones do not all look alike. Design and the
 four-view wireframe: §Arrival view of `docs/ZONES.md`, `docs/zone-arrival.png`.
+
+**Using a real file's notes as emitters, and where the targets come from (asked 2026-10-05).** Andrew pointed at
+Porto-alegre's *Estudo para a sagração de Dom Pedro II* (c. 1840) and asked whether its `{{ImageNote}}`s could be the
+basis for emitters, and whether suggesting Wikipedia matches for the labels is worth having. Checked against the live
+file: **11 notes**, English labels, and **no structured data at all** (M4613284 has zero claims — no `depicts`, no
+`P2677`) and **no wikilinks inside the notes**, so neither the "read the file's SDC" nor the "read the note's own
+links" shortcut applies. That makes label→target resolution necessary, and it is measurably unreliable if done naively:
+the head form of each label searched as-is hits **8 of 11** names, of which **three are the wrong thing** ("Dom Pedro
+II" → an artwork item, "Dona Francisca" → a municipality, "Dona Januária" → an **1820 ship**), and the **full label
+hits 0 of 3**. What works: the head form **plus the role words**, full-text, on the label's wiki — *"Dona Januária
+Princess Imperial of Brazil"* finds **Princess Januária of Brazil**; `pt.wikipedia` found *Romualdo Antônio de Seixas*
+that English could not, while English found the princess Portuguese files under another spelling. Roles resolve
+happily to concept articles ("King-of-Arms" → **King of Arms**), and a descriptive note should stay targetless. So the
+design is a four-rung ladder (a link in the note → the file's SDC → search with the role words → the author's eye) and
+a **propose-never-bind** confirmation UI with descriptions, wikis and a first-class "no target". Reuses the search
+client the app already has (`src/lib/paramSources.js`: `prefixsearch`, `list=search`, `wbsearchentities`). Design and
+the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/zone-suggest.png`.
