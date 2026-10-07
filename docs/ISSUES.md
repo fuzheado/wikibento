@@ -6422,3 +6422,54 @@ design is a four-rung ladder (a link in the note → the file's SDC → search w
 a **propose-never-bind** confirmation UI with descriptions, wikis and a first-class "no target". Reuses the search
 client the app already has (`src/lib/paramSources.js`: `prefixsearch`, `list=search`, `wbsearchentities`). Design and
 the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/zone-suggest.png`.
+
+## ISSUE-139 · The action bar is 1028 px wide, so a phone pans 811 px sideways and 13 of 15 toolbar buttons are off-screen — **open** (asked by Lodewijk 2026-10-07)
+
+Lodewijk, having opened the 2026 Nobel board on a phone: *"Mobile version didn't work great. Is that design or tool?"*
+Measured answer: **the tool** — and not that board's doing, since every board does it, the app's own demos included,
+and production serves it today.
+
+**What:** at a 390 px viewport the document lays out at **1201 px** — **811 px of horizontal pan** — and **13 of the 15
+toolbar buttons are off-screen**: everything after *Add Widget* (✨ Ask, 🖌 Pick ▾, ⬆ Import, 🔗 Share, 🖨 Print ▾,
+⬇ Export, ⬇ Canvas, ↺ Reset, ⚙, ⓘ, ⛶ Present, ▣ Lean, 🧪). Measured x positions run 340 → 1155, the last one ending
+at 1201 — the document width exactly. The header row, `#root`, `.app` and the grid all measure **390 px**, so the
+shell is correct and the **actions row is the entire defect**: `.app-actions` is **1028 px** wide on a 390 px screen.
+
+**Why:** `src/App.css:92` — `.app-actions { display: flex; gap: 8px; }` — is a single flex row with the default
+`flex-wrap: nowrap`, holding **15** controls whose natural width totals 1028 px. Nothing wraps it, scrolls it or
+folds it at any breakpoint, so it stretches the document and the *phone* pans instead of the toolbar.
+
+**Reproduction** (needs no board of ours — the app's own demo shows it):
+
+    npx vite preview --port 4173   # then, against the local build:
+    node scripts/browser-matrix.mjs --base http://localhost:4173 --viewports phone --engines chromium
+
+or directly, in a 390×844 `isMobile` Chromium context on `?config=/parallel-lives-demo.json`:
+
+    document.querySelector('.app-actions').getBoundingClientRect().width   // 1028
+    document.documentElement.scrollWidth                                    // 1201  (clientWidth 390)
+
+Verified identical against `https://wikibento.toolforge.org` — **live, not local**. Measured 2026-10-07.
+
+**Proposed fix — two one-liners, both measured by injecting the CSS into the live page:**
+- `.app-actions { flex-wrap: wrap }` → document back to **390**, header becomes **292 px** tall (two rows; nothing
+  hidden, but a third of an 844 px screen).
+- `.app-actions { overflow-x: auto }` → document **390**, header stays **59 px**, but the strip is squeezed to ~**197 px**
+  of visible buttons over a 1028 px scroll width — a narrow scroll target.
+
+Both remove the sideways pan; neither is a real phone treatment. The right shape is a breakpoint that folds the
+secondary controls (Canvas, Lean, ⚙, ⓘ, 🧪 — arguably Export, Print, Reset too) behind a **More** control, leaving
+Example / Add Widget / Share / Present. Andrew's call; the one-liners are the interim.
+
+**Screenshots:** `docs/screenshots/wikibento-2026-10-07-phone-toolbar-overflow.png` (390 px, as shipped — the buttons
+after *Add Widget* are off-screen) and `wikibento-2026-10-07-phone-toolbar-wrapped.png` (same width with `flex-wrap:
+wrap`: all 15 reachable, and the 292 px header the wrap costs).
+
+**Not the board's doing** (checked so the report does not blame the wrong thing): all 21 cards of the adventure board
+stack full-width at 390 px with no clipped, empty or overflowing card and no collapsed viewer, and the same holds for
+the 13-card facts board. The board is structurally clean on a phone; only the shared toolbar breaks. The board *is*
+long (15,160 px ≈ 18 phone screens against ≈2 for the app's own 3-card demo) — a composition question, raised
+separately, not a defect.
+
+*Renumbered from ISSUE-137 on landing (2026-10-08): `main` took **137** for the panorama fullscreen button
+(`4b9af31`, merged while this branch was in flight), so this finding takes the next free number.*
