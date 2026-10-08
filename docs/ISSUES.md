@@ -6488,6 +6488,26 @@ There are **nine** presets — `laureates-by-country`, `berlin-museums-on-a-map`
 person is fine: the ⚙ panel's select lists them by label. But the Ask door's premise is that a model can write a board
 from the guide, and today it cannot name a preset without guessing one.
 
-The fix is small and lands in two generators: both already render `options` for `select` fields (the guide prints
-``endpoint`:select [wdqs | qlever-commons | humaniki]``), and the `preset` type is simply not included. Nine short ids
-cost a couple of hundred bytes in each artefact.
+**Corrected the same day, because the first draft of this entry blamed two files: it is one root cause with two
+symptoms.** `scripts/generate-manifest.mjs` cannot import the registry — the registry pulls in JSX, so plain node cannot
+load it — so it parses `src/widgets/index.js` as **text**, and its field parser recognises exactly two shapes for a
+value list (`scripts/generate-manifest.mjs` lines ~117–123): an inline `options: [ … ]` literal, or a bare
+`options: SOME_CONST` naming an array declared in the same file. The SPARQL field uses a third — a *computed*
+`options: SPARQL_PRESETS.map((p) => ({ value: p.id, label: … }))`, where the constant lives in another module
+(`src/lib/sparqlPresets.js`) — and the parser drops it **silently**, publishing the field with no values at all. The
+served `board-guide.md` is built *from* the manifest (`scripts/board-guide.mjs` reads `public/manifest.json`), which is
+why the same gap appears in both artefacts: one cause, two symptoms, no second fix needed.
+
+The blast radius today is small and the class is not: of the 37 options-bearing fields in the registry, 32 are inline
+literals and 4 are bare constant names — both handled — and exactly 1 is computed. Nothing warns when a third shape
+appears; the field simply ships without its values, which is how this went unnoticed through the preset's whole life.
+
+The fix, therefore, is to stop text-parsing the fields and **evaluate the registry** — esbuild-bundle a tiny entry that
+re-exports `WIDGET_TYPES` and import it, the same trick `npm test` already uses to load tests that import the registry —
+then copy the live field objects. That removes the class rather than the instance, and it makes the manifest's field
+data authoritative instead of regex-derived. Two companions belong with it: a field that declares a closed set of values
+(`select`, `preset`) must **never** be published without them (the drop must be an error, not silence), and
+`fieldLine` in the guide caps a list at six values with `…`, which would hide three of the nine presets — a *contract*
+list should not be truncated. Nine ids cost about 250 B in the manifest and 160 B in the guide. The catalog version
+wants bumping with it (3 → 4): the Ask cache keys on `manifestVersion`, so a changed catalog should invalidate cached
+prompts rather than answer from the old one.
