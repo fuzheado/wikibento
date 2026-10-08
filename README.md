@@ -168,7 +168,10 @@ All 27 data-driven widget types render live data in the browser; the 9 static on
 - **🔀 Widget-to-widget dataflow** — a widget can **emit** its output and another can consume it, either
   through a `source` picker in the ⚙ panel or `{{widget:id}}` interpolation in any config field; consumers
   re-fetch automatically when the value changes. Article Excerpt emits its first paragraph, so a Translator,
-  Speaker or Markdown card can read the article. Try it: `?config=/flow-demo.json`.
+  Speaker or Markdown card can read the article. Try it: `?config=/flow-demo.json`. Every card's **⊕** opens the
+  two-sided **spawn panel**: the producers it can read from, the consumers it can feed, and the refused wires said out
+  loud rather than dropped — the pairings come from the registry's own `outputs`/`kinds`, so nothing is offered that
+  cannot work. `npm run smoke:spawn` proves it in a browser.
 - **🏷️ Names, not positions** — every widget has a visible, editable instance name. Renaming one that others
   reference repoints them atomically, after a confirm dialog that says how many references it will update.
 - **✨ Ask** — describe what you want in plain language ("random sampling of images from a category") and get
@@ -272,7 +275,7 @@ npm run lint           # oxlint
 Also available: `npm run docs-facts` (the consistency gates alone; `:live` also checks what production serves),
 `smoke:map` (the Map card in a browser — resolved name, relay failure, Try again), `check:map-landmarks` (the map
 projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`, `smoke:canvas` and `smoke:canvas-import`
-(board ⇄ JSON Canvas, both directions),
+(board ⇄ JSON Canvas, both directions), `smoke:spawn` (the two-sided wiring panel),
 `guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
 `check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
 `--check` fails on a stale one), and `update:cim-allow-list`.
