@@ -418,7 +418,8 @@ front door.
   HyperCard button layer, the Commons and Wikidata formats that already carry the areas, the crop rule that never
   hides a zone, how a file's own Commons notes become zones (and how their labels become targets, measured), tours
   that move the card and choose where a jump **lands**, the editor, and the honest cost; the
-  sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry)
+  sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry; the build is
+  sequenced in five slices, each with its own gate)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

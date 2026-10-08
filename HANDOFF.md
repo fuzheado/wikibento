@@ -683,7 +683,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      (`docs/zone-suggest.png`): the head form alone hits 8 of 11 names with **three of them the wrong thing** (an artwork
      item, a municipality, an 1820 ship), the full label hits 0 of 3, and head-plus-role-words on the label's own wiki
      fixes it. Hence the rule: propose with descriptions and a wiki, never bind silently, and let "no target" be a
-     normal outcome.
+     normal outcome. **Sequenced 2026-10-05 as five slices** — §Can this be a clean feature branch? of
+     `docs/ZONES.md`: **A** zones-as-text + render + emit · **B** the editor + the three crop fits · **C** the Commons
+     import and its target suggestions · **D** the 360° half · **E** tours + arrival views — ≈6–7 days in total, one
+     branch each, each green on `npm test` with its own gate. The one decision that blocks slice A: **how a zone list
+     is stored** — my recommendation is *structured text in a textarea*, following the map's `points`/`geojson`
+     precedent, so no new field type is needed at all.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the

@@ -384,23 +384,76 @@ free. A phase-3 nicety, not the engine.
 9. **Board params** (v2) — a zone that writes a param is a different job from a zone that emits a value; keep them
    separate fields, or the panel becomes a puzzle.
 
-## Effort — an honest shape, revised with the sphere evidence
+## Can this be a clean feature branch? — yes, as five slices, with one decision first
 
-| phase | what | estimate |
-|---|---|---|
-| 0 | the two remaining decisions (name, host) | a conversation |
-| 1 | the walking skeleton on the flat side: rect zones on a single-image Gallery, emit-only, the overlay editor (draw, move, resize, list, delete, undo, apply/cancel), the three-fit crop rule, validator rules, geometry unit tests + one browser check that a click changes the neighbouring card | **2–3 days** |
-| 2 | read Commons: the `{{ImageNote}}` import, then the **suggest-and-confirm** step — rungs 1–3 of §Where the zones
-come from, candidates shown with their descriptions, never a silent bind | ≈1 day |
-| 3 | the sphere: zones on the 360° viewer in the same model, engine pins, click → emit, pin placement in the editor, the tour action | **half a day** — the render above proves the engine half; the editor's pin mode is the work |
-| 4 | tours: the `scenes` list, the `go` action with its **arrival view** (absolute · relative · the scene's own) and the
-editor's view picker, ◀ Back + a counter, prefetch of the next scene; then the param variant (`set: scene = …`) —
-the roadmap's CYOA control | 2–3 days |
-| 5 | the polish that makes it feel finished: the chrome toggle, the numbered print legend, `<area>` export, ellipse/polygon, a third host (media player, grid tiles) | open |
+Asked before building (Andrew, 2026-10-05). The honest answer: the *design* fits this project unusually well, and the
+*feature set* is too big for one branch.
 
-Where the cost sits: **the editor**, not the wiring — and the wiring is the part people usually underestimate
-because it is invisible when it already exists. Risks, in order: the editor's mobile ergonomics, the crop preview
-staying honest, and touch discovery. Not a risk: emit, consume, validation, guide, and the sphere rendering.
+### Where it fits, with no new machinery
+
+- **Emit → consume reuses ISSUE-91**: a zone click fires the same `selection` emit the Gallery already sends, and the
+  consumer contract (`source: id#selection`) does not change.
+- **Kinds, pairing and the wiring view** come free from `OUTPUT_KINDS`, `kindsAccepting()` and the spawn menu.
+- **One source per fact**: declaring the field regenerates the manifest, the served `board-guide.md` and the JSON
+  schema, and the widget map follows — no hand-written counts anywhere.
+- **Bad values already have a policy**: ISSUE-134's three lists answer "repair or refuse" for every value a zone
+  carries — a yaw outside the circle is a wrap, a pitch outside ±90° is an error.
+- **The 360° half needs no vendor patch**: Pannellum 2.5.7 is vendored and already has `hotSpots`,
+  `clickHandlerFunc`, `addHotSpot`/`removeHotSpot`, `mouseEventToCoords`, `scenes`, `loadScene` and the `target*`
+  arrival parameters (all checked in our copy).
+- **A card that navigates itself already exists**: the 🎞️ Media player's playlist (index state, ◀ ▶, loop) is the
+  pattern a tour follows.
+- **Searching for targets already exists**: `src/lib/paramSources.js` does `prefixsearch`, `list=search` and
+  `wbsearchentities` for the param pickers.
+
+### The three frictions, and the call I would make
+
+1. **How is a zone list stored?** This repo has **no nested array-of-objects config field**, and its precedent for
+   structured config is *structured text in a textarea*: `points` ("one place per line"), `spec`
+   (`name | type | Label | options`), `geojson` (RFC 7946, pasted) — text you can read, paste, diff, and let a model
+   write. **Recommendation: follow the map.** Make `zones` a text field (a compact line form — geometry | label |
+   kind | value | action) and let the editor be the friendly front end that reads and writes that text. Then slice A
+   adds **no new field type at all**: `configNormalize` keeps coercing a string, `boardDoctor` needs no nested error
+   paths, the ⬆ import/export story stays uniform, and an agent authoring a board writes lines rather than nested
+   JSON. Cost: a parser and a formatter, with the `repack-layout.mjs` discipline (generate the text the editor was
+   already showing).
+2. **Two ways to change which file a card shows.** A card-local `scenes` tour and a `{{param}}`-driven board move are
+   both "the picture changes". **Recommendation: ship the card-local tour alone**, and document the param route as the
+   *same feature, board-wide*; add its `set` action in its own slice, because that slice is also ROADMAP item 6's
+   CYOA control and deserves to be judged on its own.
+3. **Zones touch every mode and every output.** Normal, lean, kiosk, edge-to-edge and print; the overlay must not
+   fight the chrome's hover-fade in edge-to-edge; print needs a decision (hidden, or a numbered legend); ⬆ export and
+   the JSON Canvas round trip must carry them; and `pickMode` must intercept a click (pick, do not navigate).
+   **Recommendation: make each an explicit checklist item in slices A–B**, verified in the browser matrix, per
+   `AGENTS.md`'s "verify every mode you touched".
+
+### The five slices
+
+One branch each, merged independently, green on `npm test`, each adding its own gate. The design doc is the contract,
+so a slice that changes a decision edits this file in the same PR.
+
+| slice | what | the gate it adds | estimate |
+|---|---|---|---|
+| **A · zones as text, drawn, emitting** | the `zones` text field; the render layer (percentages inside a box whose aspect ratio *is* the file's); hover-reveal and tap-reveal-then-act; click → the existing `selection` emit; the validator rules; regenerated guide, schema and manifest | geometry + parser unit tests, and a browser check that a click on a zone changes a neighbouring card | 1–1.5 days |
+| **B · the editor** | the full-screen overlay: draw, move, resize, list, delete, undo, Apply/Cancel; the three-fit crop rule with its preview; the print decision | an editor e2e — draw a zone, apply, reload, click it, watch the consumer move | 1.5–2 days |
+| **C · Commons notes and their targets** | the `{{ImageNote}}` import; the four-rung ladder of §Where the zones come from; the propose-never-bind list | unit tests for the note parser and the label cleaner, on a fixture of a real file's notes | ≈1 day |
+| **D · the 360° half** | zones on the panorama in the same model — `hotSpots` + `clickHandlerFunc`, pin placement via `mouseEventToCoords`, a `cssClass` per action | an e2e against a real Commons panorama | 0.5 day |
+| **E · tours** | `scenes`, the `go` action, the arrival view (absolute · relative · the scene's own), the ◀ Back stack, prefetching the next scene | an e2e that walks two scenes, checks the arrival yaw, and returns | 1.5–2 days |
+
+A–E ≈ **6–7 days**, which is why this is a program and not a branch. The polish that follows — the chrome toggle, the
+numbered print legend, `<area>` export, ellipse/polygon, a third host — is deliberately unscheduled.
+**F · the board-wide move** (`set: scene = …`, the param writer) waits until somebody wants a wall to move together.
+
+### Branch mechanics, per this repo's own rules
+
+- `git worktree add ../wikibento-<slice> -b zones/<slice>` plus a symlinked `node_modules` — the recipe this repo
+  already uses to run a branch safely — and **one writer per cwd**.
+- A new test file means **three** `package.json` references (the esbuild step, the `node --test` list, the `rm -f`
+  list); a new browser check gets an `npm run smoke:zones`-style alias and must keep the **stale-`dist` mtime guard**
+  that `smoke-built` and `pick-mode-e2e` use.
+- **Regenerate the generated artefacts before committing** — PR #102's lesson.
+- The deploy shape: slice A changes `boardDoctor`/the validator, so **`dist/` + `validator-bundle.mjs`** ship
+  together (`server.js` only if a route changes), and `docs-facts --live` polices the bundle claim in HANDOFF.
 
 ## The smallest demo worth building
 
@@ -413,11 +466,14 @@ a HyperCard stack about an image" faster.
 
 1. ~~The name~~ **decided**: `zone` (field `zones`). The first draft said *spot*, and *hot zone* was considered and
    declined (see §The word) — nothing has shipped, so no alias is needed.
-2. **The host** — a `zones` field on the Gallery (fewer types, reuses Single image, `imageFit`, `edgeToEdge`, the
+2. **How the zone list is stored** — *structured text in a textarea*, following the map's `points`/`geojson`
+   precedent (my recommendation, and the reason slice A needs no new field type), or a nested JSON array, which would
+   be the first of its kind here.
+3. **The host** — a `zones` field on the Gallery (fewer types, reuses Single image, `imageFit`, `edgeToEdge`, the
    click path) or a dedicated type? I lean to the field; the sphere answer above leans the same way, for the same
    reason: hosts differ, the model does not.
-3. **Tours** — card-local first, then the param write, as §Tours recommends? And does a tour stay a `scenes` field on
+4. **Tours** — card-local first, then the param write, as §Tours recommends? And does a tour stay a `scenes` field on
    the existing hosts, or is "a card that is a scene chain" enough of a product to want its own type?
-4. ~~Touch semantics~~ **decided**: tap reveals, second tap acts.
-5. ~~Crop policy~~ **decided**: `contain | cover | smart`, and `smart` falls back to letterbox rather than hiding
+5. ~~Touch semantics~~ **decided**: tap reveals, second tap acts.
+6. ~~Crop policy~~ **decided**: `contain | cover | smart`, and `smart` falls back to letterbox rather than hiding
    a zone.
