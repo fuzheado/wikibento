@@ -72,7 +72,7 @@ minutiae), but the shape is exactly right for a background band.
 | `timeline` renderer — lanes on one shared axis | `src/lib/timeline.js` (all layout maths, 19 unit tests) + `TimelineCard` in `src/widgets/WidgetFrame.jsx` |
 | auto-detection: dated rows with no numeric column become a timeline | `src/widgets/index.js` (transform) — anything with a numeric column keeps its old path (a date column + a count is still a trend chart) |
 | manual override in ⚙ | renderer list gains "Timeline (dated rows, one lane per group)" |
-| two presets, both verified live: `two-lives` (Anne Frank × MLK) and `curie-pair` (Marie × Pierre) | `src/lib/sparqlPresets.js` |
+| three presets, all verified live: `two-lives` (Anne Frank × MLK), `curie-pair` (Marie × Pierre), and `six-careers` (the 2026 Nobel laureates — 6 lanes, 77 dated rows, 0.69 s, measured 2026-10-07) | `src/lib/sparqlPresets.js` |
 | demo board | `public/parallel-lives-demo.json`, linked from the hub |
 
 What it draws, all from the tested layout module:
