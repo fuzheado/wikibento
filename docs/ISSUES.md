@@ -6475,7 +6475,7 @@ separately, not a defect.
 (`4b9af31`, merged while this branch was in flight), so this finding takes the next free number.*
 
 
-## ISSUE-140 · An agent cannot discover the SPARQL preset ids — neither the guide nor the catalog lists them — **fixed on a branch, pending review** (found by the sync check, 2026-10-05)
+## ISSUE-140 · An agent cannot discover the SPARQL preset ids — neither the guide nor the catalog lists them — **fixed — PR #110, pending review** (found by the sync check, 2026-10-05)
 
 The manifest that `/mcp`'s catalog serves (59 KB, `dist/manifest.json`) and the served `board-guide.md` both list the
 SPARQL widget's `preset` field, and **neither carries its values**: the manifest has
