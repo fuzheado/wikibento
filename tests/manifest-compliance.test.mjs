@@ -64,22 +64,48 @@ const KNOWN_NODE_KINDS = {
 const ALLOWED_NODE_KINDS = ['source', 'controller', 'transformer', 'reducer', 'display', 'effector', 'ai'];
 const ALLOWED_TIME_SCOPES = ['month', 'range', 'day', 'point'];
 
-test('manifest is v3 with a full catalog', () => {
-  assert.equal(manifest.version, 3);
+test('manifest is v4 with a full catalog', () => {
+  // The version moves when the catalog's *content* changes, not when the generator runs: the Ask cache keys on it,
+  // so a reader that cached a plan built from v3 is not answered from v4. v3 → v4 is ISSUE-140 — the catalog gained
+  // the value lists it had been silently dropping (the SPARQL presets), plus three hints and placeholders the text
+  // parser had mangled.
+  assert.equal(manifest.version, 4);
   assert.ok(manifest.widgetCount >= 35, `widgetCount ${manifest.widgetCount} >= 35`);
   assert.equal(manifest.widgets.length, manifest.widgetCount);
   const ids = manifest.widgets.map((w) => w.id);
   assert.equal(new Set(ids).size, ids.length, 'widget ids are unique');
 });
 
-test('no description is truncated at an apostrophe (v2 bug regression)', () => {
+test('no field text is truncated at an apostrophe, escaped, or lost (the v2 bug, widened)', () => {
+  // The v2 bug was truncation at an apostrophe; it was fixed for `description` and then survived for years in the two
+  // properties nobody checked. ISSUE-140 found the survivors: wikiBox.page's hint ended as the literal text `\u2019`,
+  // wikiBox.linkAction's hint was cut mid-token at 132 characters, and map.points' hint was missing entirely — all
+  // three the text parser's doing, all three repaired by reading the registry instead. So the guard now covers every
+  // property a reader can see, and it looks for the escapes the parser published as text rather than for a trailing
+  // backslash alone.
+  const TEXTY = ['description', 'hint', 'placeholder', 'label'];
+  const damaged = /\\[a-z0-9]/i;   // a leaked escape sequence: \u2019, \n, \'
   for (const w of manifest.widgets) {
-    const d = w.description || '';
-    assert.ok(!d.endsWith('\\'), `${w.id}: description ends with a stray backslash: ${d}`);
-    assert.ok(!d.includes("\\'"), `${w.id}: description contains an unescaped apostrophe artifact: ${d}`);
+    const pairs = [[w.id, w, TEXTY], ...(w.configFields || []).map((f) => [`${w.id}.${f.key}`, f, TEXTY])];
+    for (const [label, obj, keys] of pairs) {
+      for (const k of keys) {
+        const v = obj[k];
+        if (typeof v !== 'string') continue;
+        assert.ok(!v.endsWith('\\'), `${label}.${k}: ends with a stray backslash: ${v}`);
+        assert.ok(!v.includes("\\'"), `${label}.${k}: unescaped apostrophe artifact: ${v}`);
+        assert.ok(!damaged.test(v), `${label}.${k}: a leaked escape is published as text: ${v}`);
+      }
+    }
   }
   const fl = byId.get('filterLines').description;
   assert.ok(fl.length > 50 && fl.includes('output'), `filterLines description restored: ${fl}`);
+  // The three ISSUE-140 recoveries, named so they cannot silently regress to empty or truncated again.
+  const field = (id, key) => (manifest.widgets.find((w) => w.id === id).configFields || []).find((f) => f.key === key);
+  assert.ok(field('map', 'points').hint.length > 60, 'map.points keeps its hint (it had none at all)');
+  assert.ok(field('wikiBox', 'linkAction').hint.includes('#selection}'),
+    'wikiBox.linkAction keeps its whole hint (it was cut mid-token)');
+  assert.ok(field('wikiBox', 'page').hint.includes('\u2019'),
+    'wikiBox.page keeps a real apostrophe (U+2019), not the literal \\u2019 the text parser published');
 });
 
 test('a multi-channel widget says what its bare id means (the compatibility rule)', () => {
@@ -318,5 +344,18 @@ test('the manifest projects the registry’s configFields exactly (generator com
     const want = [...new Set((def.configFields || []).map((f) => f.key))].sort();
     const got = [...new Set((w.configFields || []).map((f) => f.key))].sort();
     assert.deepEqual(got, want, `${w.id}: manifest configFields must be every field the registry declares`);
+    // ISSUE-140: the keys were compared and the VALUES were not — so a field whose list the generator could not read
+    // (a computed `options: SOMETHING.map(…)`, the SPARQL presets) shipped with no values at all, and nothing failed.
+    // The values are contract: an author chooses from them, the served guide prints them, the MCP catalog serves them.
+    for (const f of def.configFields || []) {
+      // `''` is a legitimate value here (linkcount.namespace's "All namespaces"), so this filters only the values that
+      // cannot be offered at all — `.filter(Boolean)` would quietly drop it and then fail against a correct manifest.
+      const wantVals = (f.options || []).map((o) => (typeof o === 'string' ? o : o.value))
+        .filter((v) => v !== undefined && v !== null);
+      const mf = (w.configFields || []).find((x) => x.key === f.key);
+      assert.ok(mf, `${w.id}.${f.key}: missing from the manifest`);
+      assert.deepEqual(mf.options || [], wantVals,
+        `${w.id}.${f.key}: the manifest must carry every value the registry declares`);
+    }
   }
 });

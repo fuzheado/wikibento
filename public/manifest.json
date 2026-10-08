@@ -1,6 +1,6 @@
 {
- "version": 3,
- "generatedAt": "2026-10-07T15:04:30.293Z",
+ "version": 4,
+ "generatedAt": "2026-10-08T19:31:08.430Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -422,7 +422,7 @@
      "key": "text",
      "type": "textarea",
      "label": "Markdown content",
-     "placeholder": "# Heading\\n\\nSome **bold** text…"
+     "placeholder": "# Heading\n\nSome **bold** text…"
     },
     {
      "key": "allowExternalImages",
@@ -726,7 +726,7 @@
      "key": "files",
      "type": "textarea",
      "label": "Commons files (one per line)",
-     "placeholder": "File:Example.jpg\\nFile:Another photo.png",
+     "placeholder": "File:Example.jpg\nFile:Another photo.png",
      "showIf": {
       "from": "list"
      }
@@ -841,6 +841,12 @@
      "hint": "Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes."
     },
     {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
+    },
+    {
      "key": "maxItems",
      "type": "number",
      "label": "Max images (0 = all)",
@@ -856,12 +862,6 @@
       "send to the board",
       "both"
      ]
-    },
-    {
-     "key": "edgeToEdge",
-     "type": "boolean",
-     "label": "Edge to edge",
-     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -910,7 +910,7 @@
      "key": "articles",
      "type": "textarea",
      "label": "Article titles (one per line)",
-     "placeholder": "Ada Lovelace\\nAlbert Einstein"
+     "placeholder": "Ada Lovelace\nAlbert Einstein"
     },
     {
      "key": "project",
@@ -953,6 +953,25 @@
    "consumesSource": false,
    "configFields": [
     {
+     "key": "subject",
+     "type": "select",
+     "label": "What it is about",
+     "options": [
+      "category",
+      "file"
+     ]
+    },
+    {
+     "key": "category",
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "subject": "category"
+     }
+    },
+    {
      "key": "scope",
      "type": "select",
      "label": "Scope",
@@ -987,25 +1006,6 @@
      "label": "Show image preview",
      "showIf": {
       "subject": "file"
-     }
-    },
-    {
-     "key": "subject",
-     "type": "select",
-     "label": "What it is about",
-     "options": [
-      "category",
-      "file"
-     ]
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library",
-     "showIf": {
-      "subject": "category"
      }
     },
     {
@@ -1047,6 +1047,25 @@
    "consumesSource": false,
    "configFields": [
     {
+     "key": "subject",
+     "type": "select",
+     "label": "What it is about",
+     "options": [
+      "category",
+      "file"
+     ]
+    },
+    {
+     "key": "category",
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "subject": "category"
+     }
+    },
+    {
      "key": "scope",
      "type": "select",
      "label": "Scope",
@@ -1079,6 +1098,12 @@
      "placeholder": "6"
     },
     {
+     "key": "month",
+     "type": "number",
+     "label": "Month (default: last complete month)",
+     "placeholder": "7"
+    },
+    {
      "key": "zeroY",
      "type": "boolean",
      "label": "Y axis starts at 0",
@@ -1086,31 +1111,6 @@
      "showIf": {
       "subject": "category"
      }
-    },
-    {
-     "key": "subject",
-     "type": "select",
-     "label": "What it is about",
-     "options": [
-      "category",
-      "file"
-     ]
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library",
-     "showIf": {
-      "subject": "category"
-     }
-    },
-    {
-     "key": "month",
-     "type": "number",
-     "label": "Month (default: last complete month)",
-     "placeholder": "7"
     }
    ],
    "defaults": [
@@ -1145,6 +1145,33 @@
    "nodeKind": "source",
    "consumesSource": false,
    "configFields": [
+    {
+     "key": "facet",
+     "type": "select",
+     "label": "Rank",
+     "options": [
+      "files",
+      "wikis",
+      "pages",
+      "editors",
+      "categories"
+     ]
+    },
+    {
+     "key": "category",
+     "type": "text",
+     "label": "Commons category",
+     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
+     "placeholder": "Files from the Biodiversity Heritage Library",
+     "showIf": {
+      "facet": [
+       "files",
+       "wikis",
+       "pages",
+       "editors"
+      ]
+     }
+    },
     {
      "key": "scope",
      "type": "select",
@@ -1203,33 +1230,6 @@
      }
     },
     {
-     "key": "facet",
-     "type": "select",
-     "label": "Rank",
-     "options": [
-      "files",
-      "wikis",
-      "pages",
-      "editors",
-      "categories"
-     ]
-    },
-    {
-     "key": "category",
-     "type": "text",
-     "label": "Commons category",
-     "hint": "Commons Impact Metrics is precomputed for a curated ALLOW LIST of categories (mostly GLAM, archive and museum collections), so a general or niche category has no data — the card will say so and name the request process. For any other category use 📈 GLAM Category Usage or 📁 Category Size, which are live.",
-     "placeholder": "Files from the Biodiversity Heritage Library",
-     "showIf": {
-      "facet": [
-       "files",
-       "wikis",
-       "pages",
-       "editors"
-      ]
-     }
-    },
-    {
      "key": "month",
      "type": "number",
      "label": "Month (default: last complete month)",
@@ -1279,7 +1279,7 @@
      "type": "textarea",
      "label": "Params (one per line: name | type | Label | options)",
      "hint": "One param per line — name | type | Label | options. Types: buttons/select/text/number/month/lookup. number: min, max, step. month: a Latest + ‹ › stepper (value 0 = latest available). lookup (ISSUE-68): a validated combobox — the 4th field is the option SOURCE (cim-category, commons-category, commons-file, article, wikidata-item), so the value is suggested and checked against live Wikimedia data. Saving updates the board params; widgets referencing {{name}} re-fetch.",
-     "placeholder": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\\ncount | number | Photos | 3, 12, 1\\nmonth | month | Data month\\nyear | select | Year | 2023, 2024\\ninstitution | lookup | Institution | cim-category"
+     "placeholder": "category | buttons | Collection | Images from the Smithsonian Institution, Images from the Rijksmuseum\ncount | number | Photos | 3, 12, 1\nmonth | month | Data month\nyear | select | Year | 2023, 2024\ninstitution | lookup | Institution | cim-category"
     },
     {
      "key": "show",
@@ -1387,7 +1387,7 @@
      "key": "page",
      "type": "text",
      "label": "Page",
-     "hint": "Any page — an article, a portal, a Wikipedia: page. Its own tables, images and references come with it, styled by the app rather than by Wikipedia\\u2019s skin.",
+     "hint": "Any page — an article, a portal, a Wikipedia: page. Its own tables, images and references come with it, styled by the app rather than by Wikipedia’s skin.",
      "placeholder": "Metropolitan Museum of Art",
      "showIf": {
       "source": "Page"
@@ -1424,7 +1424,7 @@
      "key": "linkAction",
      "type": "select",
      "label": "Links in the box",
-     "hint": "\"send to the board\" publishes the clicked page title on this box\\u2019s selection channel — wire another widget to it with {{widget:",
+     "hint": "\"send to the board\" publishes the clicked page title on this box’s selection channel — wire another widget to it with {{widget:this-box#selection}}",
      "options": [
       "new tab",
       "send to the board",
@@ -1602,7 +1602,18 @@
     {
      "key": "preset",
      "type": "preset",
-     "label": "Preset (fills the query)"
+     "label": "Preset (fills the query)",
+     "options": [
+      "laureates-by-country",
+      "berlin-museums-on-a-map",
+      "met-collection",
+      "multi-institution",
+      "two-lives",
+      "curie-pair",
+      "six-careers",
+      "women-in-red",
+      "commons-top-depicts"
+     ]
     },
     {
      "key": "query",
@@ -1709,7 +1720,8 @@
      "key": "points",
      "type": "textarea",
      "label": "Points (one place per line)",
-     "placeholder": "Q64\\nQ243\\n48.8584, 2.2945\\nBrandenburg Gate"
+     "hint": "The same vocabulary as Place, up to 100 lines. A line that cannot be placed is counted on the card rather than dropped in silence.",
+     "placeholder": "Q64\nQ243\n48.8584, 2.2945\nBrandenburg Gate"
     },
     {
      "key": "shape",
@@ -1825,6 +1837,12 @@
      "placeholder": "File:Example 360.jpg"
     },
     {
+     "key": "edgeToEdge",
+     "type": "boolean",
+     "label": "Edge to edge",
+     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
+    },
+    {
      "key": "project",
      "type": "project",
      "label": "Project"
@@ -1833,12 +1851,6 @@
      "key": "autoRotate",
      "type": "boolean",
      "label": "Auto-rotate"
-    },
-    {
-     "key": "edgeToEdge",
-     "type": "boolean",
-     "label": "Edge to edge",
-     "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
     }
    ],
    "defaults": [
@@ -1869,7 +1881,7 @@
      "type": "textarea",
      "label": "Commons files or media URLs (one per line)",
      "hint": "Either a Commons <code>File:</code> name or a direct audio/video URL — an archive.org <code>/download/</code> file plays with no API call and no key, and Range requests make seeking work. A direct URL is listed before Commons files when a playlist mixes them.",
-     "placeholder": "File:Example.webm\\nFile:Spoken article.ogg\\nhttps://archive.org/download/{id}/{file}.mp4"
+     "placeholder": "File:Example.webm\nFile:Spoken article.ogg\nhttps://archive.org/download/{id}/{file}.mp4"
     },
     {
      "key": "mediaType",
@@ -1923,16 +1935,16 @@
      ]
     },
     {
-     "key": "annotation",
-     "type": "textarea",
-     "label": "Your annotation (Markdown)",
-     "placeholder": "Free-form caption for this board — **bold**, [links](https://…), credit lines…"
-    },
-    {
      "key": "edgeToEdge",
      "type": "boolean",
      "label": "Edge to edge",
      "hint": "The content reaches the card edges: the title bar fades in on hover, and the padding goes with it."
+    },
+    {
+     "key": "annotation",
+     "type": "textarea",
+     "label": "Your annotation (Markdown)",
+     "placeholder": "Free-form caption for this board — **bold**, [links](https://…), credit lines…"
     }
    ],
    "defaults": [
@@ -2168,7 +2180,7 @@
      "type": "textarea",
      "label": "Items (one per line)",
      "hint": "Lines are emitted to the board: any widget can reference this list via the `source` picker or {{widget:<this widget id>}} interpolation.",
-     "placeholder": "Ada Lovelace\\nAlbert Einstein"
+     "placeholder": "Ada Lovelace\nAlbert Einstein"
     }
    ],
    "defaults": [

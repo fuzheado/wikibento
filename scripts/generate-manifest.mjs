@@ -21,12 +21,84 @@
  * Run as part of `npm test` / `npm run build` (see package.json), BEFORE
  * vite build so Vite copies the file from public/ into dist/.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = await readFile(join(root, 'src/widgets/index.js'), 'utf8');
+
+const fail = (msg) => { console.error(`manifest generation failed: ${msg}`); process.exit(1); };
+
+/**
+ * The registry, EVALUATED rather than re-read as text (ISSUE-140).
+ *
+ * The fields used to be learned by scanning src/widgets/index.js, which cannot see a value list that is computed:
+ * the SPARQL field's `options: SPARQL_PRESETS.map((p) => ({ value: p.id, … }))` matched neither of the parser's two
+ * shapes (an inline `[…]` literal, or a bare `CONST` name), so the field shipped in the catalog with no values at
+ * all — and nothing said so, which is how it went unnoticed for the preset's whole life. The served board guide reads
+ * the manifest, so the same hole appeared in both artefacts from this one cause.
+ *
+ * The registry cannot simply be imported: it pulls in JSX, which plain node cannot load. esbuild can bundle it — the
+ * same trick `npm test` already uses for the tests that import the registry — so this bundles a one-line entry to a
+ * temp file and imports that. The live objects are then the source of truth for the fields, and the text scan stays
+ * only as a check on itself (see the disagreement guard at the field assembly below).
+ */
+async function loadRegistry() {
+  const dir = await mkdtemp(join(tmpdir(), 'wikibento-manifest-'));
+  const entry = join(dir, 'registry-entry.mjs');
+  const out = join(dir, 'registry-bundle.mjs');
+  await writeFile(entry, `export { WIDGET_TYPES } from ${JSON.stringify(join(root, 'src/widgets/index.js'))};\n`);
+  const args = [entry, '--bundle', '--platform=node', '--format=esm', `--outfile=${out}`, '--log-level=error'];
+  const esbuild = join(root, 'node_modules', '.bin', 'esbuild');
+  try {
+    if (existsSync(esbuild)) execFileSync(esbuild, args, { cwd: root, stdio: 'inherit' });
+    else execFileSync('npx', ['esbuild', ...args], { cwd: root, stdio: 'inherit' });
+  } catch {
+    await rm(dir, { recursive: true, force: true });
+    fail('could not bundle the registry — the manifest cannot be built by reading text alone');
+  }
+  const mod = await import(pathToFileURL(out).href);
+  await rm(dir, { recursive: true, force: true });
+  if (!mod.WIDGET_TYPES) fail('the registry bundle exported no WIDGET_TYPES');
+  return mod.WIDGET_TYPES;
+}
+const REGISTRY = await loadRegistry();
+
+/**
+ * One live field → the manifest's field shape. An explicit whitelist, in the order the manifest has always written
+ * these keys, for two reasons: the manifest must not gain keys we have not decided to publish (the SPARQL field also
+ * carries `presets` — the queries themselves — and the catalog is public), and the diff should contain the change and
+ * nothing else.
+ */
+const FIELD_KEYS = ['key', 'type', 'label', 'hint', 'placeholder', 'mode', 'vocab', 'kinds', 'showIf'];
+function projectFields(fields, widgetId) {
+  return fields.map((f) => {
+    const out = {};
+    for (const k of FIELD_KEYS) {
+      // A placeholder is text a reader sees; the registry also uses `placeholder: false` on checkboxes to mean
+      // "this field has none", which the manifest has never carried and consumers would have to special-case.
+      if (k === 'placeholder' && typeof f[k] !== 'string') continue;
+      if (f[k] !== undefined) out[k] = f[k];
+    }
+    if (Array.isArray(f.options)) {
+      const values = f.options.map((o) => (typeof o === 'string' ? o : o.value));
+      if (!values.length) {
+        fail(`${widgetId}.${f.key}: declares an empty options list — a closed set must never ship empty (ISSUE-140)`);
+      }
+      if (values.some((v) => v === undefined || v === null)) {
+        fail(`${widgetId}.${f.key}: an option carries no value, so the catalog cannot offer it (ISSUE-140)`);
+      }
+      out.options = values;
+    } else if (f.options !== undefined) {
+      fail(`${widgetId}.${f.key}: declares options that are not an array — the catalog would ship them as nothing`);
+    }
+    return out;
+  });
+}
 
 // renderer → type family (mirrors TYPE_BY_RENDERER in AddWidgetPanel.jsx —
 // keep in sync when new renderers are added).
@@ -192,6 +264,22 @@ while ((m = blockRe.exec(src)) !== null) {
     }
   }
 
+  // ── The fields the manifest publishes come from the REGISTRY, evaluated (ISSUE-140) ────────────────────
+  // The text scan above is kept as a check on itself: it is no longer the source, but if it and the registry disagree
+  // about which fields exist, that is a generator bug — and a partial catalog is worse than a failed build, so it stops
+  // here rather than shipping. (Its other product, `constFields`, is still what resolves shared constants *for that
+  // comparison*.)
+  const liveDef = REGISTRY[id];
+  if (!liveDef) fail(`${id}: parsed out of the registry text but absent from the registry`);
+  const liveKeys = new Set((liveDef.configFields || []).map((f) => f.key));
+  const textKeys = new Set(configFields.map((f) => f.key));
+  const textMisses = [...liveKeys].filter((k) => !textKeys.has(k));
+  const textInvents = [...textKeys].filter((k) => !liveKeys.has(k));
+  if (textMisses.length || textInvents.length) {
+    fail(`${id}: the text scan and the registry disagree — text misses [${textMisses.join(', ')}], invents [${textInvents.join(', ')}]`);
+  }
+  const manifestFields = projectFields(liveDef.configFields || [], id);
+
   // Top-level default keys (for pre-filling configs).
   const defaults = [];
   const dStart = block.indexOf('defaults: {');
@@ -242,8 +330,8 @@ while ((m = blockRe.exec(src)) !== null) {
     relay: /needsRelay:\s*true/.test(block),
     timeScope: prop(block, 'timeScope') || 'point',
     nodeKind,
-    consumesSource: configFields.some((f) => f.type === 'source'),
-    configFields,
+    consumesSource: manifestFields.some((f) => f.type === 'source'),
+    configFields: manifestFields,
     defaults,
   };
   const primary = prop(block, 'primary');
@@ -268,7 +356,7 @@ if (widgets.length < 25) {
 const manifestPath = join(root, 'public/manifest.json');
 const stamp = new Date().toISOString();
 const manifest = {
-  version: 3,
+  version: 4,
   generatedAt: stamp,
   widgetCount: widgets.length,
   widgets,
