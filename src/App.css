@@ -186,7 +186,7 @@ body {
 /* `auto`: a vector image (a Commons thumb URL keeps the file's name, so `….svg.png` is visible) gets the light
    plate; an opaque photograph keeps the card's own background, which is what makes this per-image rather than
    per-card — a photo gallery must not get a white letterbox. */
-img.plate-vector { --media-plate: #ffffff; }
+img.plate-vector, img.plate-alpha { --media-plate: #ffffff; }
 
 /* ── Widget Frame ───────────────────────────────────────── */
 

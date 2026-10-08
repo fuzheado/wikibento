@@ -6566,9 +6566,23 @@ background behind the media instead of the card's:
   `….svg.png` with no extra request and gets a **white plate**, while an opaque photograph keeps the card's
   background. Per-image matters because a per-card light plate would repaint the letterbox of every photo gallery.
 - `light` / `dark` / `none` are card-wide; `dark` is explicit so a board can restore the previous behaviour.
-- `light` is the answer for a transparent **PNG**, which no URL can distinguish from an opaque one.
+- `light` forces the plate on a whole card; `none` and `dark` are there so a board can restore or remove the
+  behaviour deliberately.
 
-The measurements, the rejected routes (relay-side flattening, per-image canvas re-encode, a checkerboard) and the
-follow-ups are in **GitHub issue #111**; the light-theme question it raised is filed separately as **#112**, with
+**The transparent raster, found rather than declared.** A PNG's pixels are the only evidence that it is
+transparent, and the measurements above say no URL, header or Commons parameter carries it. So `auto` reads the
+pixels it has already downloaded: the thumbnail is requested again as a CORS request (Commons thumbs send
+`access-control-allow-origin: *`), drawn into an 8×8 canvas, and the **four corner alphas** are checked — at or
+below 64/255 counts as transparent, which is where a picture's own letterbox is. Everything about this is
+bounded: a `.jpg` cannot have an alpha channel so it is never read back (which is what keeps a photo gallery
+free of the extra decode); answers are cached per URL; the readbacks are queued at four at a time so a 40-tile
+gallery cannot start 40 decodes; and a failure, a tainted canvas or a missing 2D context means **no plate**,
+never a broken or plated-wrong image. The plate arrives after the first paint, so nothing waits on it.
+
+Measured in the built app (`npm run smoke:plate`, 18 checks): under `auto`, a vector and a **transparent PNG**
+each paint `rgb(255, 255, 255)` — by two different routes, the URL and the readback — while an opaque JPEG keeps
+`rgb(15, 17, 23)`; under `none` neither of them is plated; under `light` the photograph is. The measurements, the
+rejected routes (relay-side flattening, per-image canvas re-encode, a checkerboard) and the remaining idea (a
+per-board default) are in **GitHub issue #111**; the light-theme question it raised is filed separately as **#112**, with
 its own cost analysis (`src/App.css` is 3,357 lines, 54 distinct hard-coded colours) and the note that it is not a
 substitute for this.

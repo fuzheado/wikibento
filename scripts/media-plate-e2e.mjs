@@ -11,12 +11,15 @@
  * trip the demos gate, and no scratch file in `dist/`, which is not loadable as a board — both learned in this
  * repo the hard way):
  *
- *   1. `auto` (the default) with a vector AND a raster in one gallery — the vector gets a white plate, the
- *      photograph keeps the card background. This is the assertion that keeps `auto` per-IMAGE: a per-card light
- *      plate would give every photo gallery a white letterbox.
- *   2. `none` — the same vector, no plate. The card's own background shows through, which is what `none` means.
- *   3. `light` — the raster gets a white plate too, because a transparent PNG cannot be told from an opaque one
- *      by URL and the user's answer is the only signal there is.
+ *   1. `auto` (the default) with three files in one gallery: a vector, a TRANSPARENT PNG and an opaque JPEG.
+ *      The vector and the transparent PNG each get a white plate — by two different routes (the URL for the
+ *      vector, a corner-alpha readback of the decoded pixels for the PNG) — and the photograph keeps the card
+ *      background. This is the assertion that keeps `auto` per-IMAGE: a per-card light plate would give every
+ *      photo gallery a white letterbox.
+ *   2. `none` — the vector, no plate. The card's own background shows through, which is what `none` means, and
+ *      no readback should be able to add one.
+ *   3. `light` — the JPEG gets a white plate too, because there is no way to detect anything about a card the
+ *      user has already decided about.
  *
  * Usage: npm run build && node scripts/media-plate-e2e.mjs [--port 8993]
  */
@@ -67,6 +70,7 @@ function assertFreshBuild() {
 assertFreshBuild();
 
 const SVG = 'File:Symbol question.svg';          // black line art on transparency — the reported case
+const PNG = 'File:Cscr-featured.png';            // a transparent RASTER: no URL can tell it from an opaque PNG
 const RASTER = 'File:Albert Einstein Head.jpg';  // opaque, and must stay unplated under `auto`
 
 const board = (mediaBackground) => ({
@@ -76,7 +80,7 @@ const board = (mediaBackground) => ({
     {
       id: 'plate-gallery',
       widgetType: 'gallery',
-      config: { title: `plate ${mediaBackground}`, from: 'list', files: `${SVG}\n${RASTER}`, displayMode: 'grid', showCaptions: false, mediaBackground },
+      config: { title: `plate ${mediaBackground}`, from: 'list', files: `${SVG}\n${PNG}\n${RASTER}`, displayMode: 'grid', showCaptions: false, mediaBackground },
     },
   ],
 });
@@ -127,12 +131,17 @@ try {
     // Give the imageinfo fetch a chance to resolve the two files, then measure.
     await page.waitForFunction(() => document.querySelectorAll('img.gallery-thumb[src]').length >= 1, null, { timeout: 30000 })
       .catch(() => {});
-    await page.waitForTimeout(2500);
+    // The transparent-PNG decision is asynchronous by design (it waits for decoded pixels), so wait for the
+    // class rather than for a stopwatch. The timeout is the honest bound: if detection never lands, this check
+    // fails instead of quietly passing on a timer.
+    await page.waitForSelector('img.gallery-thumb.plate-alpha', { timeout: 25000 }).catch(() => {});
+    await page.waitForTimeout(1200);
     return page.evaluate(() => {
       const frame = document.querySelector('.widget-frame');
       const imgs = [...document.querySelectorAll('img.gallery-thumb')].map((el) => ({
         src: el.getAttribute('src') || '',
         plateVector: el.classList.contains('plate-vector'),
+        plateAlpha: el.classList.contains('plate-alpha'),
         background: getComputedStyle(el).backgroundColor,
       }));
       return { frameClass: frame ? frame.className : '', imgs };
@@ -140,21 +149,28 @@ try {
   };
 
   const svgOf = (r) => r.imgs.find((i) => /\.svg/i.test(i.src));
-  const rasterOf = (r) => r.imgs.find((i) => !/\.svg/i.test(i.src));
+  const pngOf = (r) => r.imgs.find((i) => /\.png$/i.test(i.src) && !/\.svg/i.test(i.src));
+  const rasterOf = (r) => r.imgs.find((i) => /\.jpe?g$/i.test(i.src)) || r.imgs.find((i) => !/\.svg/i.test(i.src));
 
   // ── 1 · auto ──────────────────────────────────────────────────────────────────────────────────
   const auto = await inspect('auto');
   check(!/(plate-light|plate-dark|plate-none)/.test(auto.frameClass), 'auto puts no class on the frame (each image decides)', `frame="${auto.frameClass}"`);
-  check(auto.imgs.length >= 2, 'the gallery rendered both files', `${auto.imgs.length} tile(s)`);
+  check(auto.imgs.length >= 3, 'the gallery rendered all three files', `${auto.imgs.length} tile(s)`);
   const svg1 = svgOf(auto); const raster1 = rasterOf(auto);
   check(!!svg1, 'the vector file is on the board');
   if (svg1) {
     check(svg1.plateVector, 'the SVG tile carries plate-vector under auto');
     check(svg1.background === 'rgb(255, 255, 255)', 'the SVG tile paints a LIGHT plate', svg1.background);
   }
+  const png1 = pngOf(auto);
+  check(!!png1, 'the transparent PNG is on the board');
+  if (png1) {
+    check(png1.plateAlpha, 'the transparent PNG was DETECTED (a corner-alpha readback, no URL signal)');
+    check(png1.background === 'rgb(255, 255, 255)', 'the transparent PNG paints a white plate', png1.background);
+  }
   check(!!raster1, 'the raster file is on the board');
   if (raster1) {
-    check(!raster1.plateVector, 'the photograph does NOT get a plate under auto');
+    check(!raster1.plateVector && !raster1.plateAlpha, 'the opaque JPEG gets no plate under auto (no decode spent on a .jpg)');
     check(raster1.background !== 'rgb(255, 255, 255)', 'the photograph keeps the card background', raster1.background);
   }
 
@@ -163,6 +179,8 @@ try {
   check(/\bplate-none\b/.test(none.frameClass), 'none puts plate-none on the frame', `frame="${none.frameClass}"`);
   const svg2 = svgOf(none);
   check(!!svg2 && !svg2.plateVector, 'under none, even a vector gets no image-level plate');
+  const png2 = pngOf(none);
+  if (png2) check(!png2.plateAlpha, 'under none the readback adds no plate either (the choice wins over detection)');
   if (svg2) check(svg2.background === 'rgba(0, 0, 0, 0)', 'under none the tile is transparent (the card shows through)', svg2.background);
 
   // ── 3 · light ────────────────────────────────────────────────────────────────────────────────

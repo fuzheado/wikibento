@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-08T22:10:46.655Z",
+ "generatedAt": "2026-10-08T22:27:05.571Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -850,7 +850,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -945,7 +945,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -1044,7 +1044,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -1278,7 +1278,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -1569,7 +1569,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -2009,7 +2009,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
@@ -2221,7 +2221,7 @@
      "key": "mediaBackground",
      "type": "select",
      "label": "Media background",
-     "hint": "What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.",
+     "hint": "Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.",
      "options": [
       "auto",
       "light",
