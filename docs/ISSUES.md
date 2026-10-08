@@ -6535,3 +6535,40 @@ the escapes the parser used to publish as text. With the pre-fix catalog restore
 `sparql.preset: the manifest must carry every value the registry declares`, `markdown.text.placeholder: a leaked
 escape is published as text`, and the version — which is how this fix was checked, rather than by reading the diff.
 Suite: 793 tests, 0 failures; docs-facts 17/17.
+
+## ISSUE-141 · Transparent and vector media were invisible on the dark surface — the media plate (GitHub issue #111) — **done** (asked by Andrew 2026-10-08)
+
+Andrew, from a board built in another project: a row of chemical-reaction diagrams came out as **black content on a
+black tile** — the red arrows visible, the structures and their labels not. Photos on the same board looked fine.
+
+**What:** every image site painted the *card's* background behind its media — `background: var(--bg)` on
+`.gallery-thumb`, `.gallery-single-img`, `.gallery-list-thumb`, `.article-list-thumb`, `.cim-top-file-thumb`,
+`.map-img` — and `--bg` is `#0f1117`. Commons renders **SVG files and transparent PNGs onto transparency**, and
+diagram line art is usually **black**, so the drawing arrived black-on-near-black: present, and unreadable. It is
+not board-specific; any line-art file shows it, the app's own demos included, and `object-fit: contain` is what
+makes the plate visible as the letterbox around the picture.
+
+**Measured 2026-10-08** (pixels read back with PIL, not inferred):
+
+| probe | result |
+|---|---|
+| `…/500px-Grignard_reaction_scheme.svg.png` | `200 image/png`, RGBA, corner `(0,0,0,0)`, 1595/1600 corner pixels fully transparent — black strokes, no background |
+| `…/Grignard_reaction_scheme.svg.jpg` | `200 image/jpeg`, **RGB, corner `(0,0,0,255)`** — Commons flattens vector → JPEG onto **BLACK**, so the obvious "ask for a JPEG" trick makes it worse: recorded as a *do not use* |
+| `File:Cscr-featured.png` (transparent PNG) | RGBA, corners `(0,0,0,0)`; its forced `.jpg` variant → **`404`**, i.e. no server-side white flatten for PNGs either |
+| `…500px-….svg.png?bgcolor=white` | `200`, **byte-identical** to the plain request — the parameter is ignored |
+| a `200` thumbnail's headers | `access-control-allow-origin: *` — a client-side readback is possible, which is what a future `auto` for transparent *rasters* would need |
+
+**Fix:** a `mediaBackground` field — `auto | light | dark | none`, default `auto` — on the picture-bearing types
+(Gallery, Media player, Wiki page, Document reader, Article list, CIM snapshot, CIM ranking), settling the
+background behind the media instead of the card's:
+
+- `auto` is **per image, not per card**: a Commons thumb URL keeps the source file's name, so a vector reads as
+  `….svg.png` with no extra request and gets a **white plate**, while an opaque photograph keeps the card's
+  background. Per-image matters because a per-card light plate would repaint the letterbox of every photo gallery.
+- `light` / `dark` / `none` are card-wide; `dark` is explicit so a board can restore the previous behaviour.
+- `light` is the answer for a transparent **PNG**, which no URL can distinguish from an opaque one.
+
+The measurements, the rejected routes (relay-side flattening, per-image canvas re-encode, a checkerboard) and the
+follow-ups are in **GitHub issue #111**; the light-theme question it raised is filed separately as **#112**, with
+its own cost analysis (`src/App.css` is 3,357 lines, 54 distinct hard-coded colours) and the note that it is not a
+substitute for this.

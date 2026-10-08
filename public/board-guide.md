@@ -236,24 +236,24 @@ Images from one source — an article, a Commons gallery page, a wiki category, 
 
 - role: `display` · publishes: `#lines` (`lines`) ← the bare id · `#selection` (`value`)
 - reads: four sources → one row shape: REST media-list + imageinfo (article) · gallery wikitext + imageinfo (page) · categorymembers + imageinfo (category) · imageinfo (list)
-- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `edgeToEdge`:boolean · `maxItems`:number · `linkAction`:select [new tab | send to the board | both]
-- defaults: may be omitted: `from`, `article`, `page`, `category`, `files`, `displayMode`, `showCaptions`, `edgeToEdge`, `iconSize`, `imageFit`, `order`, `minSize`, `maxItems`, `includeAll`, `hideDecorative`, `groupBy`, `linkAction`, `refreshSeconds`
+- fields: `from`:select [article | page | category | list] · `article`:text only when `from` is `article` · `page`:text only when `from` is `page` · `category`:text only when `from` is `category` · `files`:textarea only when `from` is `list` · `project`:project only when `from` is `article` or `page` or `category` · `order`:select [listed | random | alpha | largest | newest] only when `from` is `list` or `category` · `minSize`:number only when `from` is `article` · `includeAll`:boolean only when `from` is `article` · `hideDecorative`:boolean only when `from` is `article` · `groupBy`:select [none | section | gallery] only when `from` is `article` or `page` · `displayMode`:select [grid | list | story | single] · `iconSize`:select [small | medium | large] · `imageFit`:select [contain | cover] · `showCaptions`:boolean · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none] · `maxItems`:number · `linkAction`:select [new tab | send to the board | both]
+- defaults: may be omitted: `from`, `article`, `page`, `category`, `files`, `displayMode`, `showCaptions`, `edgeToEdge`, `iconSize`, `imageFit`, `mediaBackground`, `order`, `minSize`, `maxItems`, `includeAll`, `hideDecorative`, `groupBy`, `linkAction`, `refreshSeconds`
 
 ### `articleList` — Article List
 Clickable list of articles — pasted titles, optional thumbnails + intros
 
 - role: `source`
 - reads: MediaWiki API pageimages|extracts (batched, optional)
-- fields: `articles`:textarea · `project`:project · `enrich`:boolean · `maxItems`:number
-- defaults: may be omitted: `articles`, `project`, `enrich`, `maxItems`, `refreshSeconds`
+- fields: `articles`:textarea · `project`:project · `enrich`:boolean · `maxItems`:number · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `articles`, `mediaBackground`, `project`, `enrich`, `maxItems`, `refreshSeconds`
 
 ### `cimStats` — CIM Snapshot · CIM-allow-list
 Exact precomputed stats for one Commons category or one Commons file — files, used, wikis, pages, and the views of the pages that use them
 
 - role: `source` · publishes `value` (the bare id) · about a cim-category
 - reads: CIM category-metrics-snapshot · media-file-metrics-snapshot (precomputed, allow-list)
-- fields: `subject`:select [category | file] · `category`:text only when `subject` is `category` · `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `month`:number
-- defaults: may be omitted: `subject`, `category`, `scope`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
+- fields: `subject`:select [category | file] · `category`:text only when `subject` is `category` · `scope`:select [deep | shallow] only when `subject` is `category` · `filename`:text only when `subject` is `file` · `wiki`:project only when `subject` is `file` · `showImage`:boolean only when `subject` is `file` · `month`:number · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `subject`, `category`, `scope`, `mediaBackground`, `filename`, `wiki`, `showImage`, `month`, `refreshSeconds`
 
 ### `cimTrend` — CIM Views Over Time · CIM-allow-list
 Monthly pageview trend over a window you choose — the pages using a Commons category, or one Commons file
@@ -268,8 +268,8 @@ Ranked rows for one month — the top files, wikis, pages or editors of a CIM ca
 
 - role: `source` · publishes `lines` (the bare id) · about a cim-category
 - reads: CIM top-viewed-media-files-monthly · top-wikis-per-category-monthly · top-pages-per-category-monthly · top-editors-monthly · top-viewed-categories-monthly
-- fields: `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `month`:number
-- defaults: may be omitted: `facet`, `category`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
+- fields: `facet`:select [files | wikis | pages | editors | categories] · `category`:text only when `facet` is `files` or `wikis` or `pages` or `editors` · `scope`:select [deep | shallow] · `wiki`:project only when `facet` is `files` or `pages` or `categories` · `editType`:select [all-edit-types | create | update] only when `facet` is `editors` · `topN`:number only when `facet` is `files` or `wikis` or `pages` or `editors` · `highlight`:text only when `facet` is `categories` · `month`:number · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `facet`, `category`, `mediaBackground`, `scope`, `wiki`, `editType`, `topN`, `highlight`, `month`, `refreshSeconds`
 
 ### `boardControls` — Board Controls
 Buttons / menus that drive board params ({{param}}) — one click re-aims every widget that references the param (ISSUE-50)
@@ -300,8 +300,8 @@ Embed a MediaWiki page (desktop or mobile) — or any embeddable URL, e.g. an Ob
 
 - role: `display`
 - reads: static (iframe to the wiki)
-- fields: `url`:text · `page`:text · `project`:project · `mobile`:boolean · `fragment`:text · `cropChrome`:boolean · `edgeToEdge`:boolean
-- defaults: may be omitted: `edgeToEdge`, `url`, `page`, `project`, `mobile`, `cropChrome`, `fragment`, `refreshSeconds`
+- fields: `url`:text · `page`:text · `project`:project · `mobile`:boolean · `fragment`:text · `cropChrome`:boolean · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `edgeToEdge`, `mediaBackground`, `url`, `page`, `project`, `mobile`, `cropChrome`, `fragment`, `refreshSeconds`
 
 ### `translate` — Translator (MinT)
 Machine-translates its text (typed or via {{param}}) into another language — Wikimedia MinT: 200+ languages on open NMT models (NLLB-200, OpusMT, IndicTrans2). No key, no proxy (CORS ✓). MinT has no auto-detect — set the source language.
@@ -340,8 +340,8 @@ Play video or audio — Commons files, or any direct media URL such as an archiv
 
 - role: `source`
 - reads: Commons API videoinfo (batched) for File: names; a direct media URL (e.g. archive.org/download/…) needs no API call
-- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `edgeToEdge`:boolean · `annotation`:textarea
-- defaults: may be omitted: `files`, `mediaType`, `quality`, `loopPlaylist`, `shuffle`, `autoplay`, `showDescription`, `objectFit`, `edgeToEdge`, `annotation`, `refreshSeconds`
+- fields: `files`:textarea · `mediaType`:select [auto | video | audio] · `quality`:select [auto | 240 | 480 | 720 | 1080] · `loopPlaylist`:boolean · `shuffle`:boolean · `autoplay`:boolean · `showDescription`:boolean · `objectFit`:select [contain | cover] · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none] · `annotation`:textarea
+- defaults: may be omitted: `files`, `mediaBackground`, `mediaType`, `quality`, `loopPlaylist`, `shuffle`, `autoplay`, `showDescription`, `objectFit`, `edgeToEdge`, `annotation`, `refreshSeconds`
 
 ### `waybackGallery` — Wayback Snapshot Gallery · experimental · heavy (many API calls)
 Screenshot tiles of a website across history — one Wayback capture per requested date. Experimental: depends on the Wayback Machine backend health; failed lookups retry on refresh
@@ -372,8 +372,8 @@ Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn,
 
 - role: `source` · publishes `value` (the bare id) · about a commons-file
 - reads: Commons API imageinfo — pagecount + a page-N thumbnail template (one call)
-- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean
-- defaults: may be omitted: `edgeToEdge`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
+- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `edgeToEdge`, `mediaBackground`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
 
 ### `listSource` — Text List
 A pasted list of lines (articles, files, anything) published for other widgets — connect via a `source` picker or {{widget:id}}

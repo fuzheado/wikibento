@@ -171,6 +171,23 @@ body {
 .mobile-stack .panorama-container { flex: 0 0 auto; aspect-ratio: 2 / 1; }
 
 
+/* ── Issue #111 · the media plate ──────────────────────────────────────────────────────────────
+   What sits BEHIND a picture. Every image site used to paint the card's own `var(--bg)` behind its media, and
+   Commons renders SVG files and transparent PNGs onto TRANSPARENCY — so black diagram line art arrived as black
+   on #0f1117, present and unreadable. Measured 2026-10-08: the standard `.svg.png` thumb is RGBA with a
+   `(0,0,0,0)` corner, the forced `.svg.jpg` variant is `(0,0,0,255)` (Commons flattens vector onto BLACK, so
+   that trick is worse), a transparent PNG's `.jpg` variant is a 404, and `?bgcolor=white` is ignored. So the
+   plate comes from here, and `auto` gives it only to the pictures that need it — the rule is in
+   `src/lib/mediaPlate.js`, the setting is the card's `mediaBackground` field. */
+.widget-frame { --media-plate: var(--bg); }          /* the old behaviour stays the default */
+.widget-frame.plate-light { --media-plate: #ffffff; }
+.widget-frame.plate-dark  { --media-plate: var(--bg); }
+.widget-frame.plate-none  { --media-plate: transparent; }
+/* `auto`: a vector image (a Commons thumb URL keeps the file's name, so `….svg.png` is visible) gets the light
+   plate; an opaque photograph keeps the card's own background, which is what makes this per-image rather than
+   per-card — a photo gallery must not get a white letterbox. */
+img.plate-vector { --media-plate: #ffffff; }
+
 /* ── Widget Frame ───────────────────────────────────────── */
 
 .widget-frame {
@@ -521,7 +538,7 @@ body {
    image's own centre and therefore the coordinate we asked for. */
 .map-card { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; }
 .map-link { position: relative; display: block; width: 100%; height: 100%; }
-.map-img { display: block; width: 100%; height: 100%; object-fit: cover; background: var(--bg); }
+.map-img { display: block; width: 100%; height: 100%; object-fit: cover; background: var(--media-plate, var(--bg)); }
 .map-card.is-contain .map-img { object-fit: contain; }
 /* One frame of empty card while the box is measured — `ResizeObserver` runs before paint, so it is never seen. */
 .map-skeleton { background: linear-gradient(100deg, var(--bg) 30%, rgba(255,255,255,0.03) 50%, var(--bg) 70%); }
@@ -1591,7 +1608,7 @@ body {
    `overflow: hidden` clipped it to a band: 193px-wide tiles holding 191px thumbnails in 125px rows.
    Measured on a real card (reported 2026-09-18 with a screenshot). A fixed height per size class
    removes the cycle, keeps the column count fluid, and lets the body scroll instead of squeezing. */
-.gallery-thumb { width: 100%; object-fit: contain; background: var(--bg); }
+.gallery-thumb { width: 100%; object-fit: contain; background: var(--media-plate, var(--bg)); }
 .gallery-caption { font-size: 10px; color: var(--text-secondary); padding: 4px 6px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .gallery-item:hover .gallery-caption { color: var(--text); }
 .gallery-group-header { grid-column: 1 / -1; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); padding: 12px 2px 2px; margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
@@ -1599,7 +1616,7 @@ body {
 .gallery-list { flex: 1; min-height: 0; overflow-y: auto; }
 .gallery-list-item { display: flex; gap: 10px; padding: 6px 4px; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .gallery-list-item:hover { background: rgba(255,255,255,0.02); }
-.gallery-list-thumb { width: 90px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+.gallery-list-thumb { width: 90px; height: 60px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--media-plate, var(--bg)); }
 .gallery-list-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .gallery-list-caption { font-size: 11px; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gallery-list-file { font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1610,7 +1627,7 @@ body {
    crop. Without the frame's Bare option the picture fills the card's body; with it, the card. */
 .gallery-single { position: relative; width: 100%; height: 100%; min-height: 0; display: flex; }
 .gallery-single-link { position: relative; display: block; width: 100%; height: 100%; }
-.gallery-single-img { display: block; width: 100%; height: 100%; background: var(--bg); }
+.gallery-single-img { display: block; width: 100%; height: 100%; background: var(--media-plate, var(--bg)); }
 /* The caption is an overlay, so having one costs no height — the same treatment as the story's `full` panel. */
 .gallery-single-caption {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px 8px;
@@ -1659,7 +1676,7 @@ body {
 .article-list-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
 .article-list-row { display: flex; gap: 10px; align-items: flex-start; padding: 6px 4px; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .article-list-row:hover { background: rgba(255,255,255,0.02); }
-.article-list-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+.article-list-thumb { width: 56px; height: 56px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--media-plate, var(--bg)); }
 .article-list-body { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
 .article-list-title { font-size: 13px; color: var(--accent); line-height: 1.3; }
 .article-list-row:hover .article-list-title { text-decoration: underline; }
@@ -1683,7 +1700,7 @@ body {
 /* ── CIM Top Files ────────────────────────────────────────── */
 .cim-top-file { align-items: center !important; }
 .cim-top-file-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; text-decoration: none; color: var(--text); }
-.cim-top-file-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); }
+.cim-top-file-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); flex-shrink: 0; background: var(--media-plate, var(--bg)); }
 .cim-top-file-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cim-top-file-main:hover .cim-top-file-name { color: var(--accent); }
 /* ── CIM ranking columns (explicit, not positional) ──────── */
@@ -3312,7 +3329,7 @@ body[data-print-mode='document'] .react-grid-layout {
   font-variant-numeric: tabular-nums; font-size: 0.66rem; color: #fff; text-shadow: 0 1px 3px rgb(0 0 0 / 0.75);
 }
 .story-idx-dark { color: var(--text-dim); text-shadow: none; }
-.story-img { display: block; }
+.story-img { display: block; background: var(--media-plate, transparent); }
 
 /* Full-bleed: the image fills the panel, the caption sits on a gradient — panoramas. */
 .story-full { min-height: 46vh; justify-content: flex-end; }

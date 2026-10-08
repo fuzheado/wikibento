@@ -6,6 +6,7 @@
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
+import { MEDIA_PLATE_DEFAULT, MEDIA_PLATE_OPTIONS, plateChoice } from '../lib/mediaPlate';
 import { cimSubject, cimFacet, cimSubjectRef, cimRankingLines, LEGACY_CIM_IDS } from '../lib/cimFamily';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
 import {
@@ -253,6 +254,25 @@ const EDGE_TO_EDGE_FIELD = {
   hint: 'The content reaches the card edges: the title bar fades in on hover, and the padding goes with it.',
 };
 
+/**
+ * "Media background" — what sits BEHIND a picture (issue #111, 2026-10-08).
+ *
+ * Every image site painted the card's own dark background behind its media, and Commons renders **SVG files and
+ * transparent PNGs onto transparency** — so black diagram line art arrived as black on `#0f1117`. Measured with
+ * the pixels read back: the standard `.svg.png` thumb is RGBA with a `(0,0,0,0)` corner, the forced `.svg.jpg`
+ * variant is `(0,0,0,255)` (Commons flattens vector onto BLACK, so that trick is worse), a transparent PNG's
+ * `.jpg` variant is a 404, and `?bgcolor=white` is ignored. The plate has to come from the app, and it is a
+ * property of the *media*: a dark-mode user still needs a light plate behind a diagram.
+ *
+ * Declared per type, like EDGE_TO_EDGE_FIELD, because only a type that shows a picture has anything to plate.
+ * `auto` (the default) is decided per IMAGE on the cards whose content is a set of pictures (a Gallery, the
+ * media player) and per card elsewhere; the whole story is in `src/lib/mediaPlate.js`.
+ */
+const MEDIA_BACKGROUND_FIELD = {
+  key: 'mediaBackground', label: 'Media background', type: 'select', options: MEDIA_PLATE_OPTIONS,
+  hint: 'What sits behind the picture. Light is what a transparent PNG needs; the details are in lib/mediaPlate.js.',
+};
+
 export const WIDGET_TYPES = {
   pageviews: {
     id: 'pageviews',
@@ -441,6 +461,7 @@ export const WIDGET_TYPES = {
       columns: ['Wiki', 'Uses'],
       rows: data.top.map(({ wiki, count }) => [wiki, count.toLocaleString()]),
       image: config.showImage !== false ? data.image : null,
+      mediaPlate: plateChoice(config.mediaBackground),
       caption: config.showCaption ? data.image?.description : null,
     }),
   },
@@ -911,6 +932,7 @@ export const WIDGET_TYPES = {
       edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       iconSize: 'medium',
       imageFit: 'contain',
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
       order: 'listed',       // list/category: 'listed' | 'random' | 'alpha' | 'largest' | 'newest'
       minSize: 200,          // article: drop images smaller than this (px)
       maxItems: 0,           // 0 = all (a Commons gallery page treats 0 as 48 — see fetch)
@@ -978,6 +1000,8 @@ export const WIDGET_TYPES = {
       ], hint: 'Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.' },
       { key: 'showCaptions', label: 'Show captions', type: 'boolean', hint: 'Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes.' },
       EDGE_TO_EDGE_FIELD,
+      MEDIA_BACKGROUND_FIELD,
+
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500,
         hint: 'A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs.' },
       { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
@@ -1042,6 +1066,7 @@ export const WIDGET_TYPES = {
         showCaptions: config.showCaptions !== false,
         selectable: (config.linkAction || 'new tab') !== 'new tab',
         linkAction: config.linkAction || 'new tab',
+        mediaPlate: plateChoice(config.mediaBackground),
       };
 
       if (source === 'article') {
@@ -1152,6 +1177,8 @@ export const WIDGET_TYPES = {
     labelFromConfig: (c) => `${(c.articles || '').split('\n').filter(Boolean).length} articles`,
     defaults: {
       articles: 'Ada Lovelace\nAlbert Einstein',
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
+
       project: 'en.wikipedia',
       enrich: true,          // thumbnails + intros via pageimages|extracts
       maxItems: 0,           // 0 = all
@@ -1164,6 +1191,7 @@ export const WIDGET_TYPES = {
       { key: 'project', label: 'Project', type: 'project' },
       { key: 'enrich', label: 'Thumbnails + intros', type: 'boolean' },
       { key: 'maxItems', label: 'Max articles (0 = all)', type: 'number', placeholder: '0' },
+      MEDIA_BACKGROUND_FIELD,
     ],
     fetch: (config) => { const lines = resolveRefLines(config.articles, config.project); return fetchArticleList(lines.map((l) => l.title).join('\n'), lines[0]?.projectConfig || config.project, { enrich: config.enrich, maxItems: config.maxItems }); },
     transform: (data, config) => ({
@@ -1185,6 +1213,7 @@ export const WIDGET_TYPES = {
       subject: 'category',
       category: 'Files from the Biodiversity Heritage Library',
       scope: 'deep',
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
       filename: 'Dogs, jackals, wolves, and foxes (Plate XI).jpg',
       wiki: 'all-wikis',
       showImage: true,
@@ -1201,6 +1230,7 @@ export const WIDGET_TYPES = {
       { key: 'wiki', label: 'Wiki', type: 'project', showIf: { subject: 'file' }, extras: [{ value: 'all-wikis', label: 'All wikis' }] },
       { key: 'showImage', label: 'Show image preview', type: 'boolean', showIf: { subject: 'file' } },
       CIM_MONTH_FIELD,
+      MEDIA_BACKGROUND_FIELD,
     ],
     fetch: (config) => {
       if (cimSubject(config) === 'file') return fetchCimFileSpotlight(config.filename, config.wiki, undefined, config.month, config.showImage !== false);
@@ -1216,6 +1246,7 @@ export const WIDGET_TYPES = {
           fileHref: `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(data.file)}`,
           subtitle: `${fmtMonth(scope.year, scope.month)} · precomputed (CIM) · pageviews of pages using this file`,
           image: config.showImage !== false ? data.image : null,
+      mediaPlate: plateChoice(config.mediaBackground),
           stats: [
             { label: 'Wikis using it', value: data.wikis.toLocaleString(), sub: 'leveraging-wiki-count' },
             { label: 'Pages using it', value: data.pages.toLocaleString(), sub: 'leveraging-page-count' },
@@ -1328,6 +1359,8 @@ export const WIDGET_TYPES = {
     defaults: {
       facet: 'files',
       category: 'Files from the Biodiversity Heritage Library',
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
+
       scope: 'deep',
       wiki: 'all-wikis',
       editType: 'all-edit-types',
@@ -1348,6 +1381,7 @@ export const WIDGET_TYPES = {
       { key: 'topN', label: 'Top N', type: 'number', showIf: { facet: ['files', 'wikis', 'pages', 'editors'] }, placeholder: '10' },
       { key: 'highlight', label: 'Highlight category (optional)', type: 'text', showIf: { facet: 'categories' }, placeholder: 'Wiki Loves Monuments 2024' },
       CIM_MONTH_FIELD,
+      MEDIA_BACKGROUND_FIELD,
     ],
     fetch: (config) => {
       const facet = cimFacet(config);
@@ -1579,6 +1613,7 @@ export const WIDGET_TYPES = {
     },
     defaults: {
       edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
       url: '',
       page: 'Help:Introduction',
       project: 'en.wikipedia',
@@ -1597,6 +1632,8 @@ export const WIDGET_TYPES = {
       { key: 'fragment', label: 'Section anchor (optional)', type: 'text', placeholder: 'History' },
       { key: 'cropChrome', label: 'Crop the page’s own header', type: 'boolean', hint: 'Scales the embedded page up and shifts it so that page’s own header sits outside the card — a crop, not something the site knows about, so it depends on that page’s layout (written for the Objectium 3D viewer). Check it on the card.' },
       EDGE_TO_EDGE_FIELD,
+      MEDIA_BACKGROUND_FIELD,
+
     ],
     // Static widget — no fetch: the iframe IS the widget (Wikimedia pages
     // send no X-Frame-Options / frame-ancestors, verified 2026-08-13).
@@ -2054,6 +2091,8 @@ export const WIDGET_TYPES = {
     },
     defaults: {
       files: 'File:FA-18 Automated Aerial Refueling.ogv\nFile:EN-Abbe.ogg',
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
+
       mediaType: 'auto',   // 'auto' | 'video' | 'audio'
       quality: 'auto',     // 'auto' | '240' | '480' | '720' | '1080'
       loopPlaylist: false,
@@ -2091,6 +2130,7 @@ export const WIDGET_TYPES = {
         { value: 'cover', label: 'Fill crop (fills the box)' },
       ]},
       EDGE_TO_EDGE_FIELD,
+      MEDIA_BACKGROUND_FIELD,
       { key: 'annotation', label: 'Your annotation (Markdown)', type: 'textarea', rows: 3, placeholder: 'Free-form caption for this board — **bold**, [links](https://…), credit lines…' },
     ],
     fetch: (config) => fetchMediaPlaylist(config.files),
@@ -2106,6 +2146,7 @@ export const WIDGET_TYPES = {
       loopPlaylist: !!config.loopPlaylist,
       shuffle: !!config.shuffle,
       autoplay: !!config.autoplay,
+      mediaPlate: plateChoice(config.mediaBackground),
     }),
   },
   waybackGallery: {
@@ -2227,6 +2268,7 @@ export const WIDGET_TYPES = {
     labelFromConfig: (c) => (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null,
     defaults: {
       edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
+      mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
       file: 'File:The Three Hostages (1924).pdf',
       project: 'commons.wikimedia',
       spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
@@ -2248,6 +2290,7 @@ export const WIDGET_TYPES = {
         { value: 'off', label: 'Hidden until I press ¶' },
       ], hint: 'Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.' },
       EDGE_TO_EDGE_FIELD,
+      MEDIA_BACKGROUND_FIELD,
     ],
     fetch: (config) => { const p = pageRef(config, 'file'); return fetchDocumentPages(p.title, p.projectConfig); },
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
