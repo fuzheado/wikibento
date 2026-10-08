@@ -130,9 +130,9 @@ const defaultsLine = (w) => {
  */
 const publishes = (w) => {
   if (!w.outputs) return '';
-  // ISSUE-96: `kind`/`subject` are metadata; the named channels are every other key, and a publisher may carry
-  // both a bare-id kind and channels — so list the channels when there are any, and always name the subject.
-  const channels = Object.entries(w.outputs).filter(([name]) => name !== 'kind' && name !== 'subject');
+  // ISSUE-96: `kind`/`subject`/`denotes` are metadata; the named channels are every other key, and a publisher may
+  // carry both a bare-id kind and channels — so list the channels when there are any, and always name the subject.
+  const channels = Object.entries(w.outputs).filter(([name]) => name !== 'kind' && name !== 'subject' && name !== 'denotes');
   const subject = w.outputs.subject ? ` · about a ${w.outputs.subject}` : '';
   if (channels.length) {
     const list = channels.map(([name, kind]) => `\`#${name}\` (\`${kind}\`)${name === w.primary ? ' ← the bare id' : ''}`);

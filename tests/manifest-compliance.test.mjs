@@ -23,20 +23,21 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
-import { OUTPUT_KINDS, declaredOutputKinds } from '../src/lib/dataflow';
+import { OUTPUT_KINDS, VALUE_KINDS, declaredOutputKinds } from '../src/lib/dataflow';
 import { KIND_IDS, kindsAccepting } from '../src/lib/pickMode.js';
 
 const manifest = JSON.parse(
   await readFile(join(process.cwd(), 'public/manifest.json'), 'utf8'),
 );
 const byId = new Map(manifest.widgets.map((w) => [w.id, w]));
-// ISSUE-96: `kind`/`subject` are the reserved metadata keys; every other key of `outputs` is a named channel.
-const NAMED = (outputs) => Object.entries(outputs || {}).filter(([k]) => k !== 'kind' && k !== 'subject');
+// ISSUE-96: `kind`/`subject`/`denotes` are the reserved metadata keys; every other key of `outputs` is a named channel.
+const NAMED = (outputs) => Object.entries(outputs || {}).filter(([k]) => k !== 'kind' && k !== 'subject' && k !== 'denotes');
 
 const KNOWN_EMITTERS = {
   // ISSUE-96: each entry pins the metadata the emitter must carry — `kind` (the bare id's shape), `subject`
-  // (the thing it is about) and any named channels. A bare string means "the kind, exactly".
-  excerpt: { kind: 'extract', subject: 'article', channels: { extract: 'extract', reference: 'value' } },
+  // (the thing it is about), `denotes` (what the value IS — the third axis) and any named channels. A bare string
+  // means "the kind, exactly".
+  excerpt: { kind: 'extract', subject: 'article', denotes: 'prose', channels: { extract: 'extract', reference: 'value' } },
   gallery: { kind: 'lines', channels: { lines: 'lines', selection: 'value' } },
   wikiBox: { kind: 'lines', channels: { items: 'lines', selection: 'value' } },
   translate: { kind: 'value', channels: { translation: 'value', speech: 'speech' } },
@@ -46,9 +47,9 @@ const KNOWN_EMITTERS = {
   echo: 'value',
   // The CIM family's emitters (2026-10-03, ISSUE-96's checklist): a stats/trend card publishes the subject it
   // resolved, and a ranking publishes the ranked names.
-  cimStats: { kind: 'value', subject: 'cim-category' },
-  cimTrend: { kind: 'value', subject: 'cim-category' },
-  cimRanking: { kind: 'lines', subject: 'cim-category' },
+  cimStats: { kind: 'value', subject: 'cim-category', denotes: 'name' },
+  cimTrend: { kind: 'value', subject: 'cim-category', denotes: 'name' },
+  cimRanking: { kind: 'lines', subject: 'cim-category', denotes: 'list' },
 };
 const KNOWN_NODE_KINDS = {
   filterLines: 'transformer',
@@ -140,6 +141,7 @@ test('the emitters declare their output kinds', () => {
     } else {
       if (spec.kind) assert.equal(w.outputs.kind, spec.kind, `${id} outputs.kind === '${spec.kind}'`);
       if (spec.subject) assert.equal(w.outputs.subject, spec.subject, `${id} outputs.subject === '${spec.subject}'`);
+      if (spec.denotes) assert.equal(w.outputs.denotes, spec.denotes, `${id} outputs.denotes === '${spec.denotes}'`);
       for (const [channel, ck] of Object.entries(spec.channels || {})) {
         assert.equal(w.outputs[channel], ck, `${id}: channel "${channel}" === '${ck}'`);
       }
@@ -258,6 +260,35 @@ test('every declared output subject is a thing kind, and something consumes it (
       `${w.id}: subject "${s}" is consumed by no consumer kind field and is not listed as intentionally unconsumed`);
   }
   assert.ok(declared >= 4, `expected several producers to declare a subject, found ${declared}`);
+});
+
+test('a declared output subject also declares what the value IS (denotes) — the third axis (ISSUE-96)', () => {
+  // A subject answers "what is this value ABOUT"; it does not answer "what IS it". Two producers can name the same
+  // article and publish different things — its name, or a paragraph about it — and only the value-form tells them
+  // apart. The empirical case (2026-10-07): the Article Excerpt (subject article, value PROSE) was offered to a
+  // gallery's `article` field, and the paragraph landed in the title slot. So a subject and a `denotes` TRAVEL
+  // TOGETHER: a producer that names a thing must say what its value is, or the spawn menu cannot match it (it
+  // fails closed). This gate is what makes `denotes` a required axis rather than an optional label.
+  let paired = 0;
+  for (const w of manifest.widgets) {
+    const out = w.outputs;
+    if (!out) continue;
+    const hasSubject = 'subject' in out;
+    const hasDenotes = 'denotes' in out;
+    if (hasSubject) {
+      paired += 1;
+      assert.ok(VALUE_KINDS.includes(out.denotes),
+        `${w.id}: declares a subject but its denotes "${out.denotes}" is not in [${VALUE_KINDS.join(', ')}]`);
+    } else {
+      assert.ok(!hasDenotes, `${w.id}: declares a denotes with no subject — there is no thing for it to be about`);
+    }
+  }
+  assert.ok(paired >= 4, `expected several producers to pair a subject with a denotes, found ${paired}`);
+  // The two axes are independent: same subject, different value-form.
+  assert.equal(byId.get('excerpt').outputs.subject, 'article');
+  assert.equal(byId.get('excerpt').outputs.denotes, 'prose');
+  assert.equal(byId.get('cimStats').outputs.denotes, 'name');
+  assert.equal(byId.get('cimRanking').outputs.denotes, 'list');
 });
 
 test('the four publishers that declare a kind only now (ISSUE-96)', () => {

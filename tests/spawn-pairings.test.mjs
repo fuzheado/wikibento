@@ -2,29 +2,38 @@
  * The spawn-from-a-card pairing gate (ISSUE-96) — a whole-registry proof that every offer the menu makes is one
  * the card can actually accept and read.
  *
- * The bug it was written for: a `gallery` with `from: 'article'` was offered a **Document Reader** on its "feed
- * this card" side. Choosing it wired the producer's emitted value (a `File:` page URL) into the gallery's ARTICLE
- * field — because `spawnOptions` ignored its `config` argument and matched producers against every kind field the
- * type declares, including the three the source selector hides. The card then showed `Article not found: <URL>`.
+ * Two bugs it was written for, both with the same shape (a value that is merely ABOUT a thing treated AS the thing):
+ *   · a `gallery` with `from: 'article'` was offered a **Document Reader**. Choosing it wired the producer's `File:`
+ *     page URL into the gallery's ARTICLE field — because `spawnOptions` ignored its `config` argument and matched
+ *     producers against every kind field the type declares, including the three the source selector hides. The card
+ *     showed `Article not found: <URL>`.
+ *   · a `gallery` with `from: 'article'` was still offered the **Article Excerpt**, whose value is a PARAGRAPH *about*
+ *     an article, not the article's name. The paragraph landed in the title slot and the card showed
+ *     `Article not found: Albert Einstein was a German-born theoretical physicist…` (Andrew, 2026-10-07). `subject`
+ *     answered "what is this about", never "what does this value denote" — so the emitter model gained a third axis,
+ *     `outputs.denotes` (VALUE_KINDS), and the match now requires BOTH.
  *
  * For EVERY widget type × a set of representative configs (the registry defaults, one per value any `showIf`
  * selector can take, and — for the gallery — each of its four sources) this enumerates the offers and asserts,
  * for every offered pair:
  *   (a) the field the value would land in is one the config actually READS (`fieldVisible`), so a hidden field
  *       cannot attract a producer;
- *   (b) the producer's `outputs.subject` is a kind that field's `kind` accepts, via `kindsAccepting()` — the match
- *       is on the SUBJECT, never the producer's `outputs.kind` shape (an excerpt is an `extract`, about an article);
- *   (c) merging the wire `wireConfig` produces yields a board `validateDashboard` accepts.
- * It also asserts the offer set equals an independent oracle (no over- or under-offering), and the REVERSE of the
- * reported pair: a gallery on `from: 'article'` must offer no producer whose subject is not article/page.
+ *   (b) the producer's `outputs.subject` is a kind that field's `kind` accepts, via `kindsAccepting()` — what the
+ *       value is ABOUT;
+ *   (c) the producer's `outputs.denotes` is a form the field can RESOLVE, via `valueFormsForField()` — what the
+ *       value IS (a name, not prose about it; a list only into a multi-line field) — and the axis is REQUIRED;
+ *   (d) merging the wire `wireConfig` produces yields a board `validateDashboard` accepts.
+ * It also asserts the offer set equals an independent oracle (no over- or under-offering), that every producer
+ * naming a subject declares a documented `denotes`, and the REVERSES of the reported pairs: a gallery on
+ * `from: 'article'` must offer no producer that is not a NAME for an article/page.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnOptions, wireConfig } from '../src/lib/spawnOptions.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { fieldVisible } from '../src/lib/configFields.js';
-import { kindsAccepting } from '../src/lib/pickMode.js';
-import { declaredOutputKinds } from '../src/lib/dataflow.js';
+import { kindsAccepting, valueFormsForField } from '../src/lib/pickMode.js';
+import { declaredOutputKinds, VALUE_KINDS } from '../src/lib/dataflow.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
 
 const REG = WIDGET_TYPES;
@@ -54,14 +63,18 @@ const offeredProducers = (feeds) => [...new Set(feeds.flatMap((g) => g.types.map
 
 /**
  * The fields of `def` that would accept a producer's value — a `kind` field whose kind accepts the producer's
- * SUBJECT (through `kindsAccepting`), or a `source` field whose `kinds` include a kind the producer publishes.
- * This is an INDEPENDENT oracle: it reads the registry directly rather than trusting `spawnOptions`' own answer.
+ * SUBJECT (through `kindsAccepting`) AND whose resolvable forms include the producer's `denotes`, or a `source`
+ * field whose `kinds` include a kind the producer publishes. This is an INDEPENDENT oracle: it reads the registry
+ * directly rather than trusting `spawnOptions`' own answer.
  */
 function acceptingFields(def, producerDef) {
-  const subj = producerDef?.outputs?.subject;
-  const outKinds = declaredOutputKinds(producerDef?.outputs);
+  const outputs = producerDef?.outputs;
+  const subj = outputs?.subject;
+  const denotes = outputs?.denotes;
+  const outKinds = declaredOutputKinds(outputs);
   return (def.configFields || []).filter((f) => (
-    (f.kind && subj && kindsAccepting(subj).includes(f.kind))
+    (f.kind && subj && denotes && kindsAccepting(subj).includes(f.kind)
+      && valueFormsForField(f).includes(denotes))
     || (f.type === 'source' && Array.isArray(f.kinds) && outKinds.some((k) => f.kinds.includes(k)))
   ));
 }
@@ -73,9 +86,11 @@ function expectedProducers(def, config) {
   for (const [type, other] of Object.entries(REG)) {
     if (!other?.outputs) continue;
     const subj = other.outputs.subject;
+    const denotes = other.outputs.denotes;
     const outKinds = declaredOutputKinds(other.outputs);
     for (const f of live) {
-      if (f.kind && subj && kindsAccepting(subj).includes(f.kind)) out.add(type);
+      if (f.kind && subj && denotes && kindsAccepting(subj).includes(f.kind)
+        && valueFormsForField(f).includes(denotes)) out.add(type);
       if (f.type === 'source' && Array.isArray(f.kinds) && outKinds.some((k) => f.kinds.includes(k))) out.add(type);
     }
   }
@@ -85,7 +100,7 @@ function expectedProducers(def, config) {
 /** The patch a wire produces, tolerant of the structured return shape. */
 const patchOf = (res) => (res && typeof res === 'object' && res.config && typeof res.config === 'object' ? res.config : (res || {}));
 
-test('the whole registry offers only sound pairs: visible field, accepted subject, valid wired board', () => {
+test('the whole registry offers only sound pairs: visible field, accepted subject, resolvable value form, valid wired board', () => {
   const violations = [];
   let pairs = 0;
 
@@ -116,17 +131,26 @@ test('the whole registry offers only sound pairs: visible field, accepted subjec
             continue;
           }
 
-          // (b) the field the offer NAMES (`spawnOptions` reports it) must be one of the visible accepting fields.
+          // (b) the field the offer NAMES (`spawnOptions` reports it) must be one of the visible accepting fields,
+          //     and the producer's value form must be one that field can RESOLVE.
           const named = def.configFields?.find((f) => f.key === g.field);
           if (named && !(visible.includes(named))) {
             violations.push(`${type} [${JSON.stringify(config)}] names field "${g.field}" for ${t.type} but it is not a visible accepting field`);
           }
+          if (named && named.kind) {
+            const forms = valueFormsForField(named);
+            const denotes = pdef?.outputs?.denotes;
+            if (!denotes || !forms.includes(denotes)) {
+              violations.push(`${type} [${JSON.stringify(config)}] offers ${t.type} (denotes ${denotes}) into "${g.field}", whose forms are [${forms.join(', ')}]`);
+            }
+          }
 
-          // (c) the wired board must validate. Wire the way the pair was OFFERED: a thing match passes the
-          // subject (the field's kind), a channel match passes no subject so the source field takes the id.
+          // (c) the wired board must validate. Wire the way the pair was OFFERED: a thing match passes the subject
+          // (the field's kind) AND the producer's denotes, a channel match passes no subject so the source field
+          // takes the id.
           const producerId = `${t.type}-1`;
           const wireArgs = g.subject
-            ? { fromId: producerId, subject: g.subject, config }
+            ? { fromId: producerId, subject: g.subject, denotes: g.denotes, config }
             : { fromId: producerId, config };
           const wire = wireConfig(def, wireArgs);
           if (wire.refused) {
@@ -154,22 +178,72 @@ test('the whole registry offers only sound pairs: visible field, accepted subjec
   assert.deepEqual(violations, [], `\n  ${violations.length} unsound pairing(s):\n    ${violations.join('\n    ')}\n`);
 });
 
-test('the reported pair cannot return: a gallery on `from: article` offers no commons-file producer', () => {
-  const { feeds } = spawnOptions('gallery', { from: 'article', article: 'Albert Einstein' }, REG);
+test('the reported pair cannot return: a gallery on `from: article` is offered nothing — no commons-file, no prose', () => {
+  const cfg = { from: 'article', article: 'Albert Einstein' };
+  const { feeds, notes } = spawnOptions('gallery', cfg, REG);
   const types = offeredProducers(feeds);
+  // (i) the 2026-10-02 bug: a Commons-file producer must not be offered to an ARTICLE field.
   assert.ok(!types.includes('documentReader'), `documentReader must not be offered: ${JSON.stringify(feeds)}`);
   assert.ok(!types.includes('iaBook'), `iaBook (a commons-file producer) must not be offered: ${JSON.stringify(feeds)}`);
-  // Every offer is about an article or a page — nothing else can feed the one field this card reads.
+  // (ii) the 2026-10-07 bug: the Article Excerpt's value is PROSE about an article, not the article's name.
+  assert.ok(!types.includes('excerpt'), `the prose producer must not be offered to a title field: ${JSON.stringify(feeds)}`);
+  // Every offer would have to be a NAME about an article or a page — nothing else can fill the one field this card reads.
   for (const g of feeds) {
     assert.ok(g.subject && kindsAccepting(g.subject).includes('article'),
       `only article-about producers may feed it, saw subject ${g.subject}: ${JSON.stringify(feeds)}`);
+    assert.equal(g.denotes, 'name', `and only a NAME for it, saw denotes ${g.denotes}: ${JSON.stringify(feeds)}`);
   }
-  // And the sound pair still exists: the Article Excerpt, landing in the `article` field.
-  const about = feeds.find((f) => f.types.some((t) => t.type === 'excerpt'));
-  assert.ok(about, JSON.stringify(feeds));
-  assert.equal(about.field, 'article');
-  // Wire it: it must NOT refuse, and the field it chose is the one the card reads.
-  const wire = wireConfig(REG.gallery, { fromId: 'ex', subject: 'article', config: { from: 'article', article: 'Albert Einstein' } });
-  assert.equal(wire.refused, false);
-  assert.equal(wire.field, 'article');
+  // With no NAME producer for an article in the registry, the honest answer is an empty side and a note that says
+  // what it wanted — not a prose producer pressed into a title slot.
+  assert.deepEqual(feeds, [], `the article field has no name producer yet: ${JSON.stringify(feeds)}`);
+  assert.ok(notes.some((n) => /a name for article/.test(n)), `the note names what it wanted: ${notes.join(' | ')}`);
+  // Wire the prose producer anyway: `wireConfig` refuses it — the menu and the wire agree.
+  const wire = wireConfig(REG.gallery, { fromId: 'ex', subject: 'article', denotes: 'prose', config: cfg });
+  assert.equal(wire.refused, true);
+  assert.match(wire.reason, /prose/);
+  assert.deepEqual(wire.config, {}, 'a refusal writes nothing');
+  // …and a NAME would still land in the field the card reads.
+  const named = wireConfig(REG.gallery, { fromId: 'x', subject: 'article', denotes: 'name', config: cfg });
+  assert.equal(named.refused, false);
+  assert.equal(named.field, 'article');
+});
+
+test('the third axis proves it EITHER WAY: prose refused, a name admitted (a synthetic pair)', () => {
+  // Same subject, same field, three producers: only the value-form tells them apart. This is the axis in
+  // isolation; the whole-registry check above proves it against the real widgets.
+  const registry = {
+    art: { id: 'art', name: 'Article', icon: '📄',
+      configFields: [{ key: 'article', label: 'Article', type: 'text', kind: 'article' }], defaults: {} },
+    prose: { id: 'prose', name: 'Prose', icon: 'P', outputs: { kind: 'extract', subject: 'article', denotes: 'prose' } },
+    title: { id: 'title', name: 'Title', icon: 'T', outputs: { kind: 'value', subject: 'article', denotes: 'name' } },
+    many: { id: 'many', name: 'Many', icon: 'M', outputs: { kind: 'lines', subject: 'article', denotes: 'list' } },
+  };
+  const offered = (reg) => { const { feeds: f } = spawnOptions('art', {}, reg); return offeredProducers(f).sort(); };
+  // a single-line `kind` field takes a NAME…
+  assert.deepEqual(offered(registry), ['title'], 'only the name producer feeds a single-line thing field');
+  // …and a multi-line one takes a name OR a list — still never prose.
+  const multi = { ...registry, art: { ...registry.art, configFields: [{ key: 'articles', type: 'textarea', kind: 'article' }] } };
+  assert.deepEqual(offered(multi), ['many', 'title'], 'a textarea takes one name or many');
+  // The wire agrees, and REFUSES a subject with no value-form (the axis is required, not optional).
+  const w = (o) => wireConfig(registry.art, { fromId: 'x', subject: 'article', ...o });
+  assert.equal(w({ denotes: 'prose' }).refused, true);
+  assert.equal(w({ denotes: 'name' }).refused, false);
+  assert.equal(w({}).refused, true, 'a subject with no denotes refuses — the axis cannot be dropped');
+});
+
+test('every producer that names a subject declares what its value IS (denotes) — whole registry', () => {
+  const bad = [];
+  let paired = 0;
+  for (const [id, def] of Object.entries(REG)) {
+    const out = def?.outputs;
+    if (!out) continue;
+    if ('subject' in out) {
+      paired += 1;
+      if (!VALUE_KINDS.includes(out.denotes)) bad.push(`${id}: subject "${out.subject}" with denotes "${out.denotes}"`);
+    } else if ('denotes' in out) {
+      bad.push(`${id}: denotes "${out.denotes}" with no subject`);
+    }
+  }
+  assert.ok(paired >= 4, `expected several subject-paired producers, found ${paired}`);
+  assert.deepEqual(bad, [], `producers whose value-form is missing or undocumented:\n  ${bad.join('\n  ')}`);
 });

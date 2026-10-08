@@ -211,16 +211,18 @@ while ((m = blockRe.exec(src)) !== null) {
   }
 
   const renderer = prop(block, 'renderer');
-  // Outputs carry the metadata keys `kind` (the bare id's shape) and `subject` (the thing it is about, ISSUE-96),
-  // beside any NAMED channels (ISSUE-91/92) — a widget can publish more than one thing, e.g. an Article Excerpt's
-  // prose *and* the page it came from. The manifest is the app's advertised contract, so every part travels.
+  // Outputs carry the metadata keys `kind` (the bare id's shape), `subject` (the thing it is about) and `denotes`
+  // (what the value IS — `name`/`prose`/`list`/`count`, the third axis of ISSUE-96's model), beside any NAMED
+  // channels (ISSUE-91/92) — a widget can publish more than one thing, e.g. an Article Excerpt's prose *and* the
+  // page it came from. The manifest is the app's advertised contract, so every part travels.
   const outputsKind = (block.match(/outputs:\s*\{\s*kind:\s*'([\w-]+)'/) || [])[1];
   const outputsSubject = (block.match(/outputs:\s*\{[^}]*?\bsubject:\s*'([\w-]+)'/) || [])[1];
+  const outputsDenotes = (block.match(/outputs:\s*\{[^}]*?\bdenotes:\s*'([\w-]+)'/) || [])[1];
   const outputsMap = (block.match(/outputs:\s*\{([^}]*)\}/) || [])[1] || '';
   // A named channel is every key/value pair that is not reserved metadata.
   const channels = Object.fromEntries(
     [...outputsMap.matchAll(/(\w+):\s*'([\w-]+)'/g)]
-      .filter(([, key]) => key !== 'kind' && key !== 'subject')
+      .filter(([, key]) => key !== 'kind' && key !== 'subject' && key !== 'denotes')
       .map((m) => [m[1], m[2]]),
   );
   const nodeKind = (block.match(/nodeKind:\s*'(\w+)'/) || [])[1] || DEFAULT_NODE_KIND;
@@ -246,10 +248,11 @@ while ((m = blockRe.exec(src)) !== null) {
   };
   const primary = prop(block, 'primary');
   const named = Object.keys(channels).length > 0;
-  if (named || outputsKind || outputsSubject) {
+  if (named || outputsKind || outputsSubject || outputsDenotes) {
     widget.outputs = {
       ...(outputsKind ? { kind: outputsKind } : {}),
       ...(outputsSubject ? { subject: outputsSubject } : {}),
+      ...(outputsDenotes ? { denotes: outputsDenotes } : {}),
       ...(named ? channels : {}),
     };
   }

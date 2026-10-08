@@ -18,7 +18,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../src/lib/params.js';
-import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens, OUTPUT_KINDS, declaredOutputKinds, outputChannels } from '../src/lib/dataflow.js';
+import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens, OUTPUT_KINDS, VALUE_KINDS, declaredOutputKinds, outputChannels } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
 import { KIND_IDS } from '../src/lib/pickMode.js';
@@ -295,8 +295,8 @@ test('validateDashboard: the shipped flow demo is valid', async () => {
 test('registry: Article Excerpt declares emit and publishes both channels (ISSUE-92)', () => {
   const def = WIDGET_TYPES.excerpt;
   assert.ok(def.emit, 'excerpt declares emit');
-  assert.deepEqual(def.outputs, { kind: 'extract', subject: 'article', extract: 'extract', reference: 'value' },
-    'the prose and the page it came from travel on separate channels, beside the kind/subject metadata');
+  assert.deepEqual(def.outputs, { kind: 'extract', subject: 'article', denotes: 'prose', extract: 'extract', reference: 'value' },
+    'the prose and the page it came from travel on separate channels, beside the kind/subject/denotes metadata');
   const emitted = def.emit({ extract: 'Grace Coolidge was…', reference: 'enwiki:Grace Coolidge' });
   assert.equal(emitted.extract, 'Grace Coolidge was…');
   assert.equal(emitted.reference, 'enwiki:Grace Coolidge', 'a reference, not a bare title');
@@ -326,7 +326,7 @@ test('the four publishers that used to declare no kind name one now (ISSUE-96)',
   }
 });
 
-test('every declared output kind and subject is from the documented vocabularies (ISSUE-96)', () => {
+test('every declared output kind, subject and value form is from the documented vocabularies (ISSUE-96)', () => {
   let subjects = 0;
   for (const [id, def] of Object.entries(WIDGET_TYPES)) {
     for (const kind of declaredOutputKinds(def.outputs)) {
@@ -335,6 +335,11 @@ test('every declared output kind and subject is from the documented vocabularies
     if (def.outputs && 'subject' in def.outputs) {
       subjects += 1;
       assert.ok(KIND_IDS.includes(def.outputs.subject), `${id}: subject "${def.outputs.subject}" is a thing kind`);
+      // The THIRD axis travels WITH the subject (2026-10-07): a producer that names a thing must also say what its
+      // value IS, or a subject match cannot tell a name from prose about it.
+      assert.ok(VALUE_KINDS.includes(def.outputs.denotes), `${id}: a subject requires a documented denotes (VALUE_KINDS): ${def.outputs.denotes}`);
+    } else {
+      assert.ok(!(def.outputs && 'denotes' in def.outputs), `${id}: a denotes with no subject describes nothing`);
     }
   }
   assert.ok(subjects >= 4, `expected several producers to declare a subject, found ${subjects}`);
@@ -343,10 +348,20 @@ test('every declared output kind and subject is from the documented vocabularies
   assert.equal(WIDGET_TYPES.cimTrend.outputs.subject, 'cim-category');
   assert.equal(WIDGET_TYPES.cimRanking.outputs.subject, 'cim-category');
   assert.equal(WIDGET_TYPES.documentReader.outputs.subject, 'commons-file');
+  // …and what each of their VALUES is: the excerpt is prose ABOUT an article, not the article's name.
+  assert.equal(WIDGET_TYPES.excerpt.outputs.denotes, 'prose', 'the excerpt value IS prose about the article');
+  assert.equal(WIDGET_TYPES.cimStats.outputs.denotes, 'name', 'a stats card publishes the thing it resolved');
+  assert.equal(WIDGET_TYPES.cimTrend.outputs.denotes, 'name');
+  assert.equal(WIDGET_TYPES.cimRanking.outputs.denotes, 'list', 'a ranking names several things, one per line');
+  assert.equal(WIDGET_TYPES.documentReader.outputs.denotes, 'name');
 });
 
 test('outputChannels and declaredOutputKinds skip the reserved metadata keys (ISSUE-96)', () => {
   assert.deepEqual(outputChannels({ kind: 'lines', subject: 'cim-category', selection: 'value' }), { selection: 'value' });
+  // `denotes` is the third reserved key — it must not read as a channel named "denotes"
+  assert.deepEqual(
+    outputChannels({ kind: 'extract', subject: 'article', denotes: 'prose', extract: 'extract', reference: 'value' }),
+    { extract: 'extract', reference: 'value' });
   assert.deepEqual(outputChannels(undefined), {});
   assert.deepEqual(declaredOutputKinds({ kind: 'extract', subject: 'article', reference: 'value' }), ['extract', 'value']);
   assert.deepEqual(declaredOutputKinds({ kind: 'lines' }), ['lines']);

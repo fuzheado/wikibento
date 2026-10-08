@@ -133,6 +133,29 @@ Corollaries:
    (`excerpt`, `gallery`, `wikiBox`, `translate`) each name a `kind` today, so a
    matcher reading `outputs.kind` can finally see them.
 
+## What the value IS: `denotes` (the third axis, ISSUE-96)
+
+`outputs.kind` says the SHAPE of the value; `outputs.subject` says what it is ABOUT. Neither says what it IS — and
+that gap shipped a bug. The Article Excerpt's value is `extract` (prose) and it is *about* an article, so a match on
+`subject: 'article'` alone offered it to a gallery's `article` field, whose value must be the article's **name**.
+The paragraph landed in the title slot and the card showed `Article not found: Albert Einstein was a German-born…`.
+
+So a producer that names a `subject` also declares **`denotes`** — what the value denotes, from `VALUE_KINDS`
+(`src/lib/dataflow.js`):
+
+| `denotes` | the value is… | example |
+|---|---|---|
+| `name` | the thing itself: its title, its page reference (`enwiki:Title`), or a resolvable URL | `enwiki:Albert Einstein` |
+| `prose` | text ABOUT the thing — never something a field can look up as a title | `Albert Einstein was a German-born…` |
+| `list` | several names, one per line | `enwiki:Marie Curie\ncommonswiki:File:X.jpg` |
+| `count` | a number of them (a reading, never the thing) | `42` |
+
+The two axes are independent — the same subject pairs with either — and they are matched together. A `name` fills a
+`kind` field, which RESOLVES its value as the thing; `prose` and `count` never do, and a `list` fills a multi-line
+(`textarea`) `kind` field but not a single-line one. `denotes` is **required** with a `subject`: the spawn menu
+offers a producer with no value form to no field at all (rather than guessing), and a manifest-constitution test
+refuses the omission — so an axis left out cannot quietly re-admit a paragraph into a name slot.
+
 ## The validated lookup param (ISSUE-68/99)
 
 A Board Controls param may be `type: 'lookup'`, which renders a box that checks what you type against live
@@ -234,6 +257,53 @@ rejected: 3.1–9.3 KB per card (measured), renderable by nothing in the catalog
 and it would have been the first emitter to put *presentation* on the wire. The
 image output is filed as a future direction in `docs/MEDIA-DATAFLOW.md`, gated
 on an effector/compositor consumer (WIDGET-IDEAS family 7).
+
+# Spawning a neighbour from a card (ISSUE-96)
+
+The card chrome carries a **⇄** control (`button.spawn-btn`, title *"Add a card that feeds this one, or that
+this one can feed"*). Right-clicking the card, or a touch long-press on it, opens the same panel. It is
+called the **spawn menu** and it turns card creation from "describe one, it lands somewhere" into "start
+from a card that is already on the board".
+
+## The two sides
+
+The panel's whole content is computed by `spawnOptions(widgetType, config, registry)`
+(`src/lib/spawnOptions.js`, pure and unit-tested), which answers both directions for ONE card:
+
+| side | heading | answered by | a row is |
+|---|---|---|---|
+| LEFT | **Feed this card** | `feeds` — producers whose `outputs` satisfy what this card consumes (grouped by the shape/subject it wants) | a producer **type** that would feed this card |
+| RIGHT | **Use this card's value** | `feedsTo` — consumers whose `source` field accepts this card's `outputs.kind` (grouped by channel) | a consumer **type**, and the **field** it would write (`← source`) |
+
+A side with no candidates shows the human-readable sentence from `notes` in its place, never a blank list.
+
+## "Already wired" and the placement rule
+
+Clicking a row creates the neighbour through **the one add path** (`App.handleAddWidget`), so undo,
+localStorage, the registry's layout constraints and the borrowed-board adoption rule are identical to the
+⬜ Add-widget panel. The difference is the two things the panel adds:
+
+- **It is wired before you see it.** The neighbour is created with `wireConfig(def, { fromId })` already
+  applied — RIGHT writes the new card's source to read the parent; LEFT (the "feed" side) patches the
+  *parent's* config to read the new card, in the same state update, so creating-and-wiring is **one undo
+  step**. `wireConfig` deliberately writes a **plain** `id` / `id#channel` into a `source` field (that field
+  is read as an id) and the **braced** `{{widget:id}}` into a text / thing field (that is what `resolveParams`
+  substitutes). Do not "fix" that asymmetry — it is the contract.
+- **It lands beside its parent.** `adjacentSlot(layout, parentId, def)` (`src/App.jsx`) returns a deliberate
+  slot: to the **right** (`x = parent.x + parent.w`) when the new card's default width still fits in the 12
+  columns, otherwise **directly below** (`x = parent.x, y = parent.y + parent.h`). The board is
+  `compactType="vertical"`, so this can push cards that already occupied the slot **down** — that is the
+  chosen behaviour, not a collision to work around.
+- The new card is left **highlighted** (`.grid-item.spawn-focused`), i.e. the card you keep chaining from.
+
+## One honest limit: a channel is a NAME, not a kind
+
+`spawnOptions`' `feedsTo[].channel` is a producer's `outputs.kind` — the shape of the value on the **bare**
+id (`value`, `lines`, `count`, …). A card's addressable **channel names** are only the non-reserved keys of
+its `outputs` object (`translate` publishes `translation` and `speech`). The two happen to coincide for
+`speech` but not in general, so the panel calls `wireConfig` with **no** channel — the bare id — and a name
+like `{{widget:cimStats#value}}` would resolve to nothing. Surfacing the named channels (so a Speaker could
+be offered `translate#speech`, the one the ⚙ hint already steers you to) is the next step, not this one.
 
 # Adding a New Widget
 

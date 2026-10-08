@@ -53,6 +53,13 @@ One value is an object — the 🌐 Translator's `speech` channel, because a tra
 🔊 Speaker cannot know which voice to use. That exception is the shape of things to come (ISSUE-97), and it is the
 worked example below.
 
+A value can be *about* a thing without *being* it, and the two are different facts. An Article Excerpt's paragraph
+is about an article; a Wikipedia box's selection (`enwiki:Weddell Sea`) **is** a page. Only the second can fill a
+field that wants a page's name — a card RESOLVES what it is given, so a paragraph in a title field fails as
+`Article not found: …`. The registry declares the difference as `outputs.denotes` (`name` / `prose` / `list` /
+`count`) and the spawn menu matches on it, so a prose producer is never offered to a field that wants a name (see
+*What the value IS* in [WIDGET-DEVELOPMENT.md](WIDGET-DEVELOPMENT.md)).
+
 Two consequences worth knowing before you build a chain:
 
 **1. Structure survives one path and not the other.**

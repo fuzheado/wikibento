@@ -773,7 +773,7 @@ export const WIDGET_TYPES = {
     // follows a comma, and an intervening comment is not whitespace.
     // ISSUE-96: `kind` names what the bare id publishes (the prose); `subject` is the thing that prose is about —
     // the article, read off config.article (a field whose kind is 'article'). The named channels sit beside them.
-    outputs: { kind: 'extract', subject: 'article', extract: 'extract', reference: 'value' },
+    outputs: { kind: 'extract', subject: 'article', denotes: 'prose', extract: 'extract', reference: 'value' },
     primary: 'extract',
     emit: (data) => ({ extract: data.extract, reference: data.reference }),
   },
@@ -1250,7 +1250,7 @@ export const WIDGET_TYPES = {
     // not tokens: what a board pipes onward is the thing the card is about (ISSUE-96). ISSUE-96 names that thing:
     // `subject` is a cim-category on the default arm; on the `file` arm the same channel carries a Commons file. A
     // single declared subject cannot switch, so the default arm is the declared one and the file arm is noted here.
-    outputs: { kind: 'value', subject: 'cim-category' },
+    outputs: { kind: 'value', subject: 'cim-category', denotes: 'name' },
     emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
@@ -1313,7 +1313,7 @@ export const WIDGET_TYPES = {
     },
     // The subject again — a category or a file, as a reference. The trend itself is a reading, not a token.
     // ISSUE-96: `subject` = cim-category on the default arm, a Commons file on the `file` arm (see cimStats).
-    outputs: { kind: 'value', subject: 'cim-category' },
+    outputs: { kind: 'value', subject: 'cim-category', denotes: 'name' },
     emit: (data, config) => cimSubjectRef(config, data) || undefined,
   },
 
@@ -1415,7 +1415,7 @@ export const WIDGET_TYPES = {
     // pipes into a Filter, a Gallery or a Map. This is the emitter ISSUE-96's checklist ranked first among the CIM
     // family, and the merge is what made it one emitter instead of five.
     // ISSUE-96: the value is about the cim-category it ranked (`subject`); the lines are that category's top items.
-    outputs: { kind: 'lines', subject: 'cim-category' },
+    outputs: { kind: 'lines', subject: 'cim-category', denotes: 'list' },
     emit: (data, config) => cimRankingLines(cimFacet(config), data.rows) || undefined,
   },
 
@@ -2253,7 +2253,7 @@ export const WIDGET_TYPES = {
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
     // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
     // ISSUE-96: the value is about a commons-file (config.file carries kind 'commons-file').
-    outputs: { kind: 'value', subject: 'commons-file' },
+    outputs: { kind: 'value', subject: 'commons-file', denotes: 'name' },
     emit: (data) => data.pageUrl,
   },
 
