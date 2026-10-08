@@ -6475,7 +6475,7 @@ separately, not a defect.
 (`4b9af31`, merged while this branch was in flight), so this finding takes the next free number.*
 
 
-## ISSUE-140 · An agent cannot discover the SPARQL preset ids — neither the guide nor the catalog lists them — **open** (found by the sync check, 2026-10-05)
+## ISSUE-140 · An agent cannot discover the SPARQL preset ids — neither the guide nor the catalog lists them — **fixed on a branch, pending review** (found by the sync check, 2026-10-05)
 
 The manifest that `/mcp`'s catalog serves (59 KB, `dist/manifest.json`) and the served `board-guide.md` both list the
 SPARQL widget's `preset` field, and **neither carries its values**: the manifest has
@@ -6511,3 +6511,27 @@ data authoritative instead of regex-derived. Two companions belong with it: a fi
 list should not be truncated. Nine ids cost about 250 B in the manifest and 160 B in the guide. The catalog version
 wants bumping with it (3 → 4): the Ask cache keys on `manifestVersion`, so a changed catalog should invalidate cached
 prompts rather than answer from the old one.
+
+**Outcome.** The manifest and the served guide now learn their fields from the registry **itself** rather than from a
+text scan: `scripts/generate-manifest.mjs` esbuild-bundles a two-line entry that re-exports `WIDGET_TYPES` — the trick
+`npm test` already uses for its own tests, since plain node cannot load JSX — and projects the live objects through an
+explicit whitelist (so nothing unpublished rides along: the SPARQL field also carries `presets`, the queries
+themselves, and the catalog is public). The text scan stays, but only as a check on itself: if it and the registry
+disagree about which fields exist, generation **stops** instead of shipping a partial catalog.
+
+**Four defects went with it, all the same class — a text parser quietly degrading the catalog.** The reported one: the
+nine SPARQL preset ids. Then three that nobody had noticed: `map.points`' hint was **missing entirely** from the
+manifest, `wikiBox.linkAction`'s hint was **cut mid-token** at 132 characters, and `wikiBox.page`'s hint ended as the
+literal text `\u2019` instead of an apostrophe. Placeholders are reader-facing strings again (the parser was
+publishing their escapes), and field order now matches the ⚙ panel because it is the registry's order rather than the
+scan's.
+
+The catalog version moves **3 → 4**: the Ask cache keys on `manifestVersion`, so a plan built from the old catalog is
+no longer served as if it were current.
+
+**Gates, and proof they bite.** The generator-completeness test now compares option *values*, not only keys, and the
+v2 truncation guard covers every reader-visible property (`label`, `hint`, `placeholder`, `description`) looking for
+the escapes the parser used to publish as text. With the pre-fix catalog restored, the suite fails naming
+`sparql.preset: the manifest must carry every value the registry declares`, `markdown.text.placeholder: a leaked
+escape is published as text`, and the version — which is how this fix was checked, rather than by reading the diff.
+Suite: 793 tests, 0 failures; docs-facts 17/17.

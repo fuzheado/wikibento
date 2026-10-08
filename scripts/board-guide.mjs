@@ -101,8 +101,10 @@ const body = (md) => md.slice(md.indexOf('\n## ')).trim();
 const fieldLine = (f) => {
   const bits = [`\`${f.key}\`:${f.type}`];
   if (Array.isArray(f.options) && f.options.length) {
+    // ISSUE-140: a list an author has to choose FROM is contract, not a preview. This used to print six values and
+    // "…", which hid three of the nine SPARQL presets from the served guide once the manifest started carrying them.
     const vals = f.options.map((o) => (typeof o === 'string' ? o : o.value)).filter(Boolean);
-    bits.push(`[${vals.slice(0, 6).join(' | ')}${vals.length > 6 ? ' | …' : ''}]`);
+    bits.push(`[${vals.join(' | ')}]`);
   }
   if (f.kinds) bits.push(`kinds:${f.kinds.join('/')}`);
   if (f.showIf) {
