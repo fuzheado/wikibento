@@ -6473,3 +6473,21 @@ separately, not a defect.
 
 *Renumbered from ISSUE-137 on landing (2026-10-08): `main` took **137** for the panorama fullscreen button
 (`4b9af31`, merged while this branch was in flight), so this finding takes the next free number.*
+
+
+## ISSUE-140 · An agent cannot discover the SPARQL preset ids — neither the guide nor the catalog lists them — **open** (found by the sync check, 2026-10-05)
+
+The manifest that `/mcp`'s catalog serves (59 KB, `dist/manifest.json`) and the served `board-guide.md` both list the
+SPARQL widget's `preset` field, and **neither carries its values**: the manifest has
+`{"key": "preset", "type": "preset", "label": "Preset (fills the query)"}` with no `options`, and the guide says
+*"preset id (fills `query` + `endpoint`; see `src/lib/sparqlPresets.js`)"* — a source file that the reader of a served
+guide cannot open. Verified live against the current deploy.
+
+There are **nine** presets — `laureates-by-country`, `berlin-museums-on-a-map`, `met-collection`, `multi-institution`,
+`two-lives`, `curie-pair`, `six-careers`, `women-in-red`, `commons-top-depicts` — plus the three `endpoint` ids. A
+person is fine: the ⚙ panel's select lists them by label. But the Ask door's premise is that a model can write a board
+from the guide, and today it cannot name a preset without guessing one.
+
+The fix is small and lands in two generators: both already render `options` for `select` fields (the guide prints
+``endpoint`:select [wdqs | qlever-commons | humaniki]``), and the `preset` type is simply not included. Nine short ids
+cost a couple of hundred bytes in each artefact.

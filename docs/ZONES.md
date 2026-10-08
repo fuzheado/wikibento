@@ -46,25 +46,35 @@ is already made of.
 
 **A zone is not a new subsystem; it is a second way to fire an event the Gallery already fires.**
 
-## The data model — one record, two geometry dialects
+## The data model — one record, two geometry dialects, stored as text
 
-```json
-{ "zones": [
-  { "id": "s1", "label": "Piz Nuna", "kind": "article", "value": "de:Piz Nuna",
-    "box": { "x": 18.1, "y": 14.4, "w": 5.7, "h": 6.7 } },
-  { "id": "s2", "label": "Mauna Kea", "kind": "article", "value": "en:Mauna Kea",
-    "at": { "pitch": 4.0, "yaw": -30.0 } }
-] }
-```
+**Storage is decided (Andrew, 2026-10-05): structured text in a textarea**, following this repo's own precedent for
+structured config — the map's `points` ("one place per line"), `spec` (`name | type | Label | options`) and `geojson`
+(RFC 7946, pasted). Not a nested JSON array, for the reasons in §Can this be a clean feature branch: text is what the
+map already does, it needs **no new field type** (so `configNormalize` keeps coercing a string and `boardDoctor` needs
+no nested error paths), it stays readable and pasteable, and an agent authoring a board writes lines rather than
+nested JSON.
 
-- **`box`** — percentages of the image (never pixels): a box survives every thumbnail width, card resize, print DPI
-  and the editor's zoom. For flat images.
-- **`at`** — `pitch`/`yaw` in degrees: a direction on the sphere. For 360° panoramas.
+One zone is one line — `geometry | label | kind | value | action`:
 
-Everything else — `label`, `kind`, `value`, `id` — is identical in both, which is the whole point: the consumer,
-the validator, the guide and the editor's list panel never learn which geometry it is. The viewer decides which
-dialect is valid and the validator enforces the pairing (a `box` on a panorama, or an `at` on a flat image, is an
-**error**, not a repair — a silently reinterpreted geometry would point at the wrong place).
+    # the card's current file; `# scene: <id>` opens a scene's own block in a tour
+    18.1,14.4,5.7,6.7 | Piz Nuna     | article | de:Piz Nuna     | go planetarium
+    7.6,16.7,6.8,8.2  | Piz Sursass  | article | de:Piz Sursass  | send
+    at 4,-30          | Mauna Kea    | article | en:Mauna Kea    | go detail yaw=200 hfov=110
+    -                 | King of Arms | article | en:King of Arms | open
+
+- **geometry** — `x,y,w,h` as **percentages of the image** (never pixels) for a flat picture; `at pitch,yaw` in
+  degrees for a 360° panorama. Percentages survive every thumbnail width, card resize, print DPI and the editor's
+  zoom, and the viewer decides which dialect is valid — a percentage box on a panorama, or a `pitch,yaw` on a flat
+  image, is an **error**, not a repair, because a silently reinterpreted geometry points at the wrong place.
+- **label** — what the reader sees on reveal; `-` when a zone is anonymous.
+- **kind** + **value** — what a click emits (`article` → `de:Piz Nuna`); `-` for a zone with *no target*, which
+  §Where the zones come from makes a first-class and common outcome.
+- **action** — `send` (the default: emit on the card's channel), `open` (the file in a new tab), `go <sceneId>` with
+  an optional arrival view (`yaw=`, `pitch=`, `hfov=`; §Arrival view), or `-` for a zone that only outlines.
+
+The exact grammar is slice A's first commit, with parser *and* round-trip tests, because the editor reads and writes
+this text: the board file stays something a person can read, diff and fix — the property the map's geometry text has.
 
 ### Two Wikimedia standards already use this shape (verified 2026-10-05)
 
@@ -408,10 +418,10 @@ Asked before building (Andrew, 2026-10-05). The honest answer: the *design* fits
 
 ### The three frictions, and the call I would make
 
-1. **How is a zone list stored?** This repo has **no nested array-of-objects config field**, and its precedent for
-   structured config is *structured text in a textarea*: `points` ("one place per line"), `spec`
-   (`name | type | Label | options`), `geojson` (RFC 7946, pasted) — text you can read, paste, diff, and let a model
-   write. **Recommendation: follow the map.** Make `zones` a text field (a compact line form — geometry | label |
+1. ~~How is a zone list stored?~~ **Decided: structured text in a textarea.** This repo has **no nested
+   array-of-objects config field**, and its precedent for structured config is *structured text*: `points` ("one place
+   per line"), `spec` (`name | type | Label | options`), `geojson` (RFC 7946, pasted) — text you can read, paste,
+   diff, and let a model write. So `zones` is a text field (a compact line form — geometry | label |
    kind | value | action) and let the editor be the friendly front end that reads and writes that text. Then slice A
    adds **no new field type at all**: `configNormalize` keeps coercing a string, `boardDoctor` needs no nested error
    paths, the ⬆ import/export story stays uniform, and an agent authoring a board writes lines rather than nested
@@ -466,9 +476,8 @@ a HyperCard stack about an image" faster.
 
 1. ~~The name~~ **decided**: `zone` (field `zones`). The first draft said *spot*, and *hot zone* was considered and
    declined (see §The word) — nothing has shipped, so no alias is needed.
-2. **How the zone list is stored** — *structured text in a textarea*, following the map's `points`/`geojson`
-   precedent (my recommendation, and the reason slice A needs no new field type), or a nested JSON array, which would
-   be the first of its kind here.
+2. ~~How the zone list is stored~~ **decided**: *structured text in a textarea*, following the map's
+   `points`/`geojson`/`spec` precedent (see §The data model) — so slice A adds **no new field type**.
 3. **The host** — a `zones` field on the Gallery (fewer types, reuses Single image, `imageFit`, `edgeToEdge`, the
    click path) or a dedicated type? I lean to the field; the sphere answer above leans the same way, for the same
    reason: hosts differ, the model does not.
