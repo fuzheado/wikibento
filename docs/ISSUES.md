@@ -6912,3 +6912,31 @@ prose: the same lesson this repo already learned one level down, applied to its 
 local `dist/` and refuses a stale one — and it keeps the historical lesson that a sweep measuring the wrong artefact
 reported 22/24 clean while production served the previous bundle. The rule and the script agree now; if they ever
 disagree again the script is the one telling the truth, and the number to distrust is the one whose base you cannot name.
+
+## ISSUE-148 · The picture's placeholder→bitmap step moves everything below it (measured, open)
+
+**What:** on a phone, a board with text *before* a picture is "more jumpy" than the same board with the picture first.
+Measured with `scripts/mobile-reflow-probe.mjs` (WebKit, iPhone 390×844; the numbers below are its output):
+
+| card | height while loading | on-screen top |
+|---|---|---|
+| note (above) | 269px, steady | 51 → 51 |
+| picture (middle) | **58 → 274px** — one step, **+216px at 516ms** | 332 → 332 |
+| consumer (below) | 117px, steady | **402 → 618px** |
+
+The scroller never moved (17 → 17): the page did not scroll — **the content moved under the reader**. Clicking a zone
+afterwards was stable (the consumer's on-screen top held at 618px while its height went 117 → 528px), because a card that
+grows downwards from a fixed top moves nothing above itself.
+
+**Why image-first feels stable:** the growing card is then above nothing the reader has read, so their anchor (the top of
+the page) never moves. That is an *authoring* fix and a good one, but it should not be the only defence.
+
+**The stylesheet route does not work (measured):** `aspect-ratio: 3 / 2 !important; width: 100% !important` on the
+picture applied (computed style confirms it) and the growth still happened — **+200px at 162ms** — because the
+pre-measure placeholder is a flex/grid child with no definite width to resolve the ratio against.
+
+**Fix (recommended, in the component):** give the `<img>` its real `width`/`height` **attributes** (imageinfo already
+carries them, and the browser then reserves the intrinsic box by itself — the standard fix for this class of shift), and
+give the placeholder the same ratio. Then add the *general* guarantee — restore the reader's place after a value-driven
+reflow (the card at the viewport top plus its offset), which is the same machinery ISSUE-144's height floor already
+sketches. Options, costs and the rejected alternatives are in `docs/research/MOBILE-RESIZE-STABILITY.md`.

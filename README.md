@@ -434,7 +434,8 @@ front door.
   [PHILOSOPHY](docs/research/PHILOSOPHY.md) · [PARADIGMS](docs/research/PARADIGMS.md) · [WIDGET-MESSAGING](docs/research/WIDGET-MESSAGING.md)
   · [PLUGIN-TRUST](docs/research/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/research/TOOL-LANDSCAPE.md) and its
   [synthesis](docs/research/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/research/TOOLFLOW-ANALYSIS.md) ·
-  [TAPESTRY-EVALUATION](docs/research/TAPESTRY-EVALUATION.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
+  [TAPESTRY-EVALUATION](docs/research/TAPESTRY-EVALUATION.md) ·
+  [MOBILE-RESIZE-STABILITY](docs/research/MOBILE-RESIZE-STABILITY.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·
   [INTERNET-ARCHIVE](docs/INTERNET-ARCHIVE.md) (the IA widget family: verified API surface, per-media
   file conventions, quotas, ranked proposal) ·
