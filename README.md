@@ -17,7 +17,7 @@ behaviour (timeouts, CORS realities, honest failure states) that a one-shot dash
 widgets are the demo; the ledger is the product.
 
 It's a single-page React app built on [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)
-(the grid engine behind Grafana and Kibana), ≈0.8 MB (~235 KB gzipped), hostable as static files on Toolforge
+(the grid engine behind Grafana and Kibana), ≈0.84 MB (~248 KB gzipped), hostable as static files on Toolforge
 or anywhere. **Client-driven, with a server side only where a browser cannot go.** Every widget fetches its own
 data in your browser — Wikimedia's REST and Action APIs, Commons, Wikidata, Wikistats, Commons Impact Metrics,
 WDQS, MinT, and the Internet Archive's metadata, IIIF and Wayback APIs — and the app carries a **small, audited set
@@ -139,7 +139,9 @@ All 27 data-driven widget types render live data in the browser; the 9 static on
   the box) and the **Edge to edge** switch, which takes away the title bar, the padding and the card's own title so the picture
   reaches the edges. **Edge to edge** works on the 🎬 **Video / Media Player** too — its file line goes, and for a single file
   its transport controls with it, while the video's own controls stay — and on the 🌐 **360° Panorama**, the 🔳 **QR Code**, the 📄 **Document Reader**, the 📖 **IA Book** and the 📄 **Wiki Page**. A gallery's
-  captions are a switch as well, so a tile can carry no text at all. Open
+  captions are a switch as well, so a tile can carry no text at all. **A click on a picture does nothing by default** — *Clicking an image* offers
+  *Open the file page in a new tab*, *Send it to the board*, *Both*, or *Nothing*, because on a phone a click that misses
+  what you were aiming at should not throw you onto Commons; a gallery you *can* click through says so in one setting. Open
   [`?config=/image-tile-demo.json`](https://wikibento.toolforge.org/?config=/image-tile-demo.json) to see all four.
 - **A wiki page in a card** — the 📰 **Wikipedia Box** renders **any page by title**, not only a Main Page template:
   choose the **lead** (light, and dense with links), a section by number or heading name, or the whole page. Its own
@@ -193,7 +195,7 @@ All 27 data-driven widget types render live data in the browser; the 9 static on
   say what each widget is analyzing.
 - **🎞️ Commons galleries** — a *gallery page* (a main-namespace page with a `<gallery>` tag: hand-picked images
   and hand-written captions, unlike a category, which has neither) rendered as a grid or a list. The captions travel
-  as data — they can feed a Translator or a Speaker — and clicking a tile publishes that file for another card.
+  as data — they can feed a Translator or a Speaker — and a tile click publishes that file for another card once *Clicking an image* is set to *Send it to the board*.
 - **🔎 One box, any wiki, validated** — type a page name and the board follows: suggestions as you type, a ✓/✗
   verdict against the wiki you chose, and `en:`/`de:`/`commons:` typed as a shortcut that moves the wiki picker.
   What the box stores is a **reference**, so the wiki travels with the page.
@@ -281,6 +283,10 @@ projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smo
 `guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
 `check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
 `--check` fails on a stale one), and `update:cim-allow-list`.
+
+For the mobile reflow — what actually moves when a card above the reader changes size, and the options for it:
+`node scripts/mobile-reflow-probe.mjs` (the measured numbers are in
+[docs/research/MOBILE-RESIZE-STABILITY.md](docs/research/MOBILE-RESIZE-STABILITY.md)).
 
 Browser runs need the engines installed **with the repo's own `playwright-core`**, and some hosts need a
 remote-browser daemon or an explicit engine path — see [docs/BROWSER-TESTING.md](docs/BROWSER-TESTING.md).
@@ -381,7 +387,7 @@ a board, validate it against the app's own rules and hand back a link, with no J
 `npm run check:board -- board.json` (and the served `/api/validate`, which is the same checker) reports what a board
 from a chat will do — what blocks it, what the app will repair silently, what it will quietly ignore — and
 `npm run smoke:boards` pastes boards through the app's own ⬆ Import panel and requires a card per widget with nothing
-left at "Waiting for a reference". Both exist because that path had a defect nothing checked: Import silently dropped a
+left waiting for a value. Both exist because that path had a defect nothing checked: Import silently dropped a
 board's `params`, so every `{{param}}` card sat waiting, and the demo sweep never noticed because no demo board arrives
 that way. The
 feature E2Es drive the reading and URL behaviour in a real browser (`smoke:iabook`, `smoke:document`, `smoke:url`,
@@ -399,7 +405,7 @@ front door.
 
 - **Start here** — [GUIDE](docs/GUIDE.md) (the model + cookbook) · [TUTORIAL](docs/TUTORIAL.md) (build a board
   step by step, then store it on a wiki) · [EXPORT](docs/EXPORT.md) (getting data, a PDF or the whole
-  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (all 42, with APIs) · [WIDGET-MAP](docs/WIDGET-MAP.md) (all 42 on
+  board out — and why PNG waits) · [WIDGET-CATALOG](docs/WIDGET-CATALOG.md) (every widget type, with its API) · [WIDGET-MAP](docs/WIDGET-MAP.md) (every type on
   one page, grouped by what you must supply — with the gates and the wiring; the picture is [widget-map.pdf](docs/widget-map.pdf)) ·
   [JSON-FORMAT](docs/JSON-FORMAT.md) (board spec v1 + [schema](docs/dashboard.schema.json)) ·
   [SCREENSHOTS](docs/SCREENSHOTS.md) (dated snapshots of real boards)
