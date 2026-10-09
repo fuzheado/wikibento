@@ -1046,3 +1046,45 @@ single month as a stat, a window as a trend — the `pageviews` card, for a list
 3. **A list *mode* on existing widgets, or the emitter in §1 with consumers wired to it?** The original architecture
    idea was "every list consumer accepts a pile ID" (N widgets, no wiring); §1 is one widget and one contract.
    Recommendation: §1 now, modes later if the demand is real.
+
+## Zone sources: what the corpora actually contain (measured 2026-10-09, for ISSUE-138)
+
+*The design of record for clickable zones is **ISSUE-138** and [`ZONES.md`](ZONES.md). This is not a second proposal —
+it is the measurement pass its §"Where the zones come from" needs before phase 2 (the Commons import) is sized, and it
+replaces the `insource:` estimates in ZONES.md §"Two Wikimedia standards…" with counts taken over all namespaces.*
+
+| source | count (2026-10-09, live) | shape of it |
+|---|---|---|
+| `{{ImageNote}}` transclusions | **363,459 files** | the label sits between `{{ImageNote\|id=N\|…}}` and `{{ImageNoteEnd\|id=N}}`, and may be a `{{LangSwitch}}` |
+| …the `{{Artwork}}` stratum | **11,599 files** (30,032 notes) | the curated, annotated-art part of the corpus |
+| `<imagemap>` | **1,043 files** | rect/poly **plus a real link target** — the only on-wiki source that has one |
+| files with any `depicts` | 29,400,675 | rung 2 in general |
+| …**with a P2677 region** | **7,926 files / 23,561 regions** | rung 2 with geometry — 0.03% of the depicts corpus |
+| hand-set in the editor | — | rung 4 |
+
+**Three findings that shape the import:**
+
+1. **Rung 2 is three orders of magnitude thinner than rung 1 needs it to be.** 7,926 files with a region against
+   363,459 files with notes: the structured layer cannot carry the import. So the suggestion step (rung 3) is the
+   *main* path and "no target" is the common outcome, not the edge case. The 2026-10-08 audit measured the same gap
+   from the other side — only **4.2%** of notes agree with the file's own SDC — and on one real painting
+   (*Estudo para a sagração de Dom Pedro II*) 11 notes had 0 links and 0 claims.
+2. **`<imagemap>` is the one corpus that already has targets.** `rect 0 0 1267 1250 [[:Image:Mother and daughter
+   edit.jpg|1: Yellow Chamomile]]` on `File:Asteracea poster 3.jpg` is a finished zone set — geometry *and* a target,
+   for composite/plate images that most want zones. Only 1,043 files, but each is free. It deserves its own rung: the
+   targets are files or articles rather than items, so a zone imported from an imagemap publishes `commons:File:X`
+   or a page title, not a QID.
+3. **Never ask search whether a qualifier exists.** `haswbstatement:P2677` reports **1 file** where SPARQL finds
+   **7,926**, and the single file it returns (`File:Jesus Fabian Moreno.jpg`, M89045763) carries no P2677 qualifier at
+   all when read back. Read regions with SPARQL (`?f p:P180 ?st . ?st pq:P2677 ?pos . ?st ps:P180 ?depicted`) — the
+   query and the trap are in the `wikimedia-commons-sparql` and `wikimedia-search-cirrussearch` skills.
+
+**Two parsing and geometry facts the import has to survive:**
+
+- **Language-templated labels.** `File:Waldermarsudde Panorama February 2012.jpg` labels one of its four boxes with
+  `{{LangSwitch|en=Main building|fr=Immeuble principal}}` — so a "drop everything inside `{{…}}`" strip blanks it and
+  the file imports with three labels and one silence. Pair the tags by `id`; resolve language/formatting payloads.
+- **Geometry rot is a fifth of the problem.** The same file's `dimx=9346 dimy=2309` matches its live size (good), but
+  the audit found **11.6%** of annotated files (1,117 of 9,643) carrying boxes anchored to a superseded revision.
+  Compare `dimx/dimy` against `prop=imageinfo` at import and treat a mismatch as a **blocker** — the `sha1` pin in
+  ZONES.md §Traps covers hand-set zones; the import needs the same discipline for imported ones.
