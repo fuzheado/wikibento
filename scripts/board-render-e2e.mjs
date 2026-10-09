@@ -588,6 +588,44 @@ try {
   }
 
   /**
+   * A diagram whose every word is a door — the general case of a zones board, and the one that has to hand its value to
+   * TWO consumers (an Excerpt and a Pageviews card). The zones are the drawing's own labels, read out by OCR, and they
+   * publish a *bare* article title because a Pageviews card reads its `article` field as a title, not as a reference
+   * (`en:X` made it show its error state — ISSUE-150).
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    const readCards = () => page.evaluate(() => ({
+      article: (document.querySelector('[data-widget-id="turbine-article"]')?.innerText || '').replace(/\s+/g, ' '),
+      traffic: (document.querySelector('[data-widget-id="turbine-traffic"]')?.innerText || '').replace(/\s+/g, ' '),
+    }));
+    const clickLabel = async (label) => {
+      await page.click(`[data-widget-id="turbine-diagram"] .zone[aria-label="${label}"]`);
+      await page.waitForTimeout(3000);
+      return readCards();
+    };
+    try {
+      await page.goto(`${base}/?config=/turbine-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="turbine-diagram"] .zone', { timeout: 60000 });
+      await page.waitForTimeout(600);
+      const zones = await page.evaluate(() => [...document.querySelectorAll('[data-widget-id="turbine-diagram"] .zone')].map((b) => b.getAttribute('aria-label')));
+      const boiler = await clickLabel('Boiler');
+      const warm = await clickLabel('Warm water out');
+      if (zones.length !== 10) bad('turbine: a label loads the article and its traffic', `${zones.length} zones on the diagram — the drawing has 10 labels`);
+      else if (!/Boiler/.test(boiler.article) || !/Boiler/.test(boiler.traffic)) bad('turbine: a label loads the article and its traffic', `clicking "Boiler" gave article ${JSON.stringify(boiler.article.slice(0, 40))} / traffic ${JSON.stringify(boiler.traffic.slice(0, 40))}`);
+      else if (/⚠/.test(boiler.traffic)) bad('turbine: a label loads the article and its traffic', `the traffic card is in its error state — a value it cannot read as a title is the usual cause (${boiler.traffic.slice(0, 60)})`);
+      else if (!/Thermal pollution/.test(warm.article) || !/Thermal pollution/.test(warm.traffic)) bad('turbine: a label loads the article and its traffic', `clicking "Warm water out" gave ${JSON.stringify(warm.article.slice(0, 50))}`);
+      else if (errors.length) bad('turbine: a label loads the article and its traffic', errors[0]);
+      else ok('turbine: a label loads the article and its traffic', `10 labels → two cards follow: "Boiler" → article + traffic, "Warm water out" → Thermal pollution`);
+    } catch (e) {
+      bad('turbine: a label loads the article and its traffic', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
+  /**
    * The reader's place survives a reload — the mobile jump (ISSUE-144, reported from an iPhone).
    *
    * The cause was measured, not guessed: when the consumer card replaced its article it emptied itself first, and a

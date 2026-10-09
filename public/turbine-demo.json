@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "params": {},
+  "widgets": [
+    {
+      "id": "turbine-note",
+      "widgetType": "markdown",
+      "name": "What this is",
+      "config": {
+        "_title": "What this is",
+        "text": "## A building-services diagram you can read by clicking\n\nEvery **label in this drawing is a door**: a click publishes `en:…` on the diagram's `zones` channel, and both cards to\nthe right follow — the **article**, and its **traffic**.\n\n- The zones are the drawing's **own words**, read out of the picture by OCR (14 runs, every one at confidence 1.00) —\n  not hand-drawn boxes.\n- One label needed judgement, not a lookup: the drawing spells it **\"Condensor\"**. The zone sits on that word and opens\n  **Surface condenser**.\n- Two parts of the drawing have no label at all — the chimney (`Flue gas`) and the steam circuit itself (`Rankine cycle`).\n  They are deliberately *not* zones: a zone goes on something the drawing names.\n- Note the opposite of a **tour** board: here the zones `send`, because the consumers want an *article*; on a tour the\n  content zones must `open`, or the next view receives an article name where it wants a file.\n\n*Image: MIT OpenCourseWare — 4.401 Introduction to Building Technology (Spring 2006). [Steam Turbine](https://commons.wikimedia.org/wiki/File:MIT_4.401_Introduction_to_Building_Technology,_Spring_2006_-_Steam_Turbine_-_3040752949.jpg) · CC BY-SA 4.0.*"
+      }
+    },
+    {
+      "id": "turbine-diagram",
+      "widgetType": "gallery",
+      "name": "Steam turbine",
+      "config": {
+        "_title": "Click any label",
+        "from": "list",
+        "files": "File:MIT 4.401 Introduction to Building Technology, Spring 2006 - Steam Turbine - 3040752949.jpg",
+        "displayMode": "single",
+        "imageFit": "contain",
+        "linkAction": "nothing",
+        "showCaptions": false,
+        "hotspotStyle": "subtle",
+        "zones": "59.04,22.21,30.12,3.36 | Electrical Energy | article | Electrical energy | send\n46.57,31.98,14.09,5.71 | Steam Turbine | article | Steam turbine | send\n19.46,35.71,11.29,2.42 | Boiler | article | Boiler (power generation) | send\n68.64,46.95,17.94,2.76 | Generator | article | Electric generator | send\n19.48,52.61,8.23,2.61 | Fuel | article | Fuel | send\n29.72,60.9,20.48,5.96 | Condensate Pump | article | Condensate pump | send\n49.59,68.44,19.49,2.66 | Condensor | article | Surface condenser | send\n49.52,81.62,17.81,2.71 | Waterway | article | Waterway | send\n32.31,86.49,14.29,5.72 | Cool water in | article | Water cooling | send\n66.67,86.49,17.07,5.52 | Warm water out | article | Thermal pollution | send"
+      }
+    },
+    {
+      "id": "turbine-article",
+      "widgetType": "excerpt",
+      "name": "The article",
+      "config": {
+        "_title": "The article behind the label",
+        "article": "{{widget:turbine-diagram#zones}}",
+        "project": "en.wikipedia"
+      }
+    },
+    {
+      "id": "turbine-traffic",
+      "widgetType": "pageviews",
+      "name": "Its traffic",
+      "config": {
+        "_title": "How many people read it",
+        "article": "{{widget:turbine-diagram#zones}}",
+        "project": "en.wikipedia"
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "turbine-diagram",
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 10
+    },
+    {
+      "i": "turbine-article",
+      "x": 5,
+      "y": 0,
+      "w": 7,
+      "h": 6
+    },
+    {
+      "i": "turbine-traffic",
+      "x": 5,
+      "y": 6,
+      "w": 4,
+      "h": 4
+    },
+    {
+      "i": "turbine-note",
+      "x": 9,
+      "y": 6,
+      "w": 3,
+      "h": 4
+    }
+  ]
+}

@@ -6940,3 +6940,43 @@ carries them, and the browser then reserves the intrinsic box by itself — the 
 give the placeholder the same ratio. Then add the *general* guarantee — restore the reader's place after a value-driven
 reflow (the card at the viewport top plus its offset), which is the same machinery ISSUE-144's height floor already
 sketches. Options, costs and the rejected alternatives are in `docs/research/MOBILE-RESIZE-STABILITY.md`.
+
+## ISSUE-149 · Multi-image tours: the quirks, noted for later (found 2026-10-09, open)
+
+Andrew, after trying the tour: *"multiple images in a json seems to work, but has a few quirks. Note that, so we can come
+back later and address them."* The mechanism works (`public/image-tour-demo.json`, asserted in the sweep:
+21 → 26 → 29 → 26); these are the rough edges, in the order they will bite:
+
+1. **One card per view.** Three views is three cards, each authored by hand: a fifty-room museum is fifty cards. Lifting
+   it needs **E1** (a `## File:…` header in the `zones` field, so one card holds the whole tour) and **E2** (`set` — a
+   zone sets a board param, so one card *is* a tour) — both specced in §*Image to image* above, ½ day each.
+2. **A tour cannot be pre-seeded.** The first card carries a literal file and the rest carry `{widget:prev#zones}`; an
+   *unresolved* reference makes the whole card wait, so a literal and a reference cannot share the `files` field. Every
+   downstream card therefore opens as *Nothing selected yet* — polite, but a board of six waiting cards is a board of six
+   question marks.
+3. **A tour cannot loop.** The entry card's `files` is a literal, so nothing can move it; a closed ring or a jump back to
+   the start needs `set` (E2).
+4. **All of a card's zones publish on ONE channel.** Mixing "go to the next view" with "read about this part" on one card
+   only works because `open` publishes nothing and `send` does; a per-zone channel (or a `set` action per zone) is what
+   would let one card offer both cleanly.
+5. **Back is hand-written.** Each `◀ Back` names its predecessor's full file title, by hand — and these titles are long
+   (`File:Scuol-Motta Naluns, 11-10-2024. (actm.) 26.jpg`). A tour wants a history, or at least a `set previous`.
+6. **No preloading.** Each stop re-fetches imageinfo and the bitmap, and reflows the card (ISSUE-148's +216px). The next
+   file's name is known the moment a tour card is drawn, so prefetching its thumbnail is nearly free — and it is the
+   difference between "click" and "wait" on a phone.
+7. **Authoring is all text.** Zones are one line each and the wiring is a hand-typed `{widget:id#channels}`; slice B's
+   editor and slice C's import are what turn this from a careful person's afternoon into a five-minute job.
+8. **(Andrew's list may be longer — add what you hit.)** The quirks above are the ones this build produced; anything the
+   demo did on a phone that is not written here is worth a line, with the board it happened on.
+
+## ISSUE-150 · A reference (`en:X`) is resolved by some consumers and not others (found 2026-10-09, open)
+
+Found while wiring a zones board to two consumers at once (`public/turbine-demo.json`). The zones published
+`en:Steam turbine` (the app's reference form, which the Excerpt card renders correctly). The **Pageviews** card read the
+same value as a *title*: it asked for the page `En:Steam turbine` and showed its error state — `⚠ Pageviews failed`. With
+the zones publishing the bare title `Steam turbine`, both cards work.
+
+Both fields are declared the same way (`key: 'article', kind: 'article'`), so the difference is in the consumers, not in
+the contract. Either every `kind: 'article'` field should resolve a reference the same way, or the difference should be
+documented where an author will look. Until then the rule that works is in `docs/ZONES.md`: **a zone that feeds a
+non-reference consumer publishes a bare title, and the board pins `project` on that consumer.**

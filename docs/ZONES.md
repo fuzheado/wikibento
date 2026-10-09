@@ -567,6 +567,10 @@ fits both this app and the standards is an **image-keyed map**:
   a content zone that `send`s an article name hands it to a card that wants a **file** — the next view receives
   `de:Piz Nuna` and shows nothing. `open` visits the wiki page and publishes nothing, which is exactly right: the demo's
   six named peaks are `open`; only `Next view →` and `◀ Back` are `send`.
+- **A zone that feeds a card outside the tour should publish a BARE title, with the board pinning `project`.** An
+  `en:X` reference is resolved by the Excerpt card and *not* by the Pageviews card, which reads `article` as a title and
+  goes to its error state (ISSUE-150). Publishing `Steam turbine` and setting `project: en.wikipedia` on every consumer
+  works for both. (The zones demo can use `de:…` because its consumers are reference-typed.)
 - **ISSUE-146 is what makes a tour usable on a phone** — the picture's background is not a link, so only the zones act.
 - **ISSUE-148 matters most here.** Every stop is a *new image load*, which is exactly the reflow the probe measured
   (+216px in a single frame). A tour is the feature that pays for reserving the picture's box.
