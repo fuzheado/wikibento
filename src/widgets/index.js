@@ -941,7 +941,11 @@ export const WIDGET_TYPES = {
       includeAll: false,     // article: also caption-less images (gallery blocks, table lists)
       hideDecorative: true,  // article: (with includeAll) hide flags/coats of arms/logos/locator maps …
       groupBy: 'none',       // 'none' | 'section' | 'gallery'
-      linkAction: 'new tab', // 'new tab' | 'send to the board' | 'both'
+      // ISSUE-146: a click on an image does NOTHING unless the card says otherwise. A misclick used to throw the
+      // reader onto Commons — and on a phone, aiming at something *inside* the picture (a zone, a label) and missing
+      // landed them on a file page that was usually not what they wanted. Boards that set this field keep exactly the
+      // behaviour they asked for; this is only the value a card has when nobody has said anything.
+      linkAction: 'nothing', // 'nothing' | 'new tab' | 'send to the board' | 'both'
       refreshSeconds: 3600,
     },
     renderer: 'GalleryGridCard',
@@ -1014,10 +1018,11 @@ export const WIDGET_TYPES = {
       { key: 'maxItems', label: 'Max images (0 = all)', type: 'number', min: 0, max: 500,
         hint: 'A Commons gallery page treats 0 as 48 — they can be enormous (London has 542 images). List and category sources read only as much as the order needs.' },
       { key: 'linkAction', label: 'Clicking an image', type: 'select', options: [
+        { value: 'nothing', label: 'Nothing' },
         { value: 'new tab', label: 'Open the file page in a new tab' },
         { value: 'send to the board', label: 'Send it to the board' },
         { value: 'both', label: 'Both' },
-      ], hint: 'Send to the board publishes the clicked image on this widget\'s `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.' },
+      ], hint: 'Nothing is the default: a click that misses a zone does nothing. Send to the board publishes the clicked image on this widget\'s `selection` channel.' },
     ],
     fetch: (config) => {
       const source = inferGallerySource(config);
@@ -1072,12 +1077,15 @@ export const WIDGET_TYPES = {
       // ISSUE-138: a zone click publishes a value, so the zones ride on the data the renderer already has. The
       // problems travel with them: a line that cannot be read is reported on the card, never dropped in silence.
       const { zones, problems: zoneProblems } = parseZones(config.zones);
+      // ISSUE-146: `nothing` is a real, handled value now — the renderer removes the link rather than falling through
+      // to the anchor's own behaviour — and only the two *sending* values make the card selectable.
+      const linkAction = config.linkAction || 'nothing';
       const common = {
         size: config.iconSize || 'medium',
         fit: config.imageFit || 'contain',
         showCaptions: config.showCaptions !== false,
-        selectable: (config.linkAction || 'new tab') !== 'new tab',
-        linkAction: config.linkAction || 'new tab',
+        selectable: linkAction === 'send to the board' || linkAction === 'both',
+        linkAction,
         mediaPlate: plateChoice(config.mediaBackground),
         zones,
         zoneProblems,

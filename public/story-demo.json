@@ -18,7 +18,8 @@
         "project": "en.wikipedia",
         "displayMode": "story",
         "minSize": 200,
-        "refreshSeconds": 3600
+        "refreshSeconds": 3600,
+        "linkAction": "new tab"
       }
     }
   ],

@@ -177,3 +177,20 @@ test("a board's retired `frame: 'bare'` still resolves as edgeToEdge", () => {
   // a widget that never declared the setting is untouched
   assert.equal(normalizeConfigForDef({ frame: 'bare' }, WIDGET_TYPES.markdown).frame, 'bare');
 });
+
+test('ISSUE-146: clicking an image does nothing unless the card says so', () => {
+  const gallery = WIDGET_TYPES.gallery;
+  assert.equal(gallery.defaults.linkAction, 'nothing', 'a fresh gallery links nowhere');
+  const field = gallery.configFields.find((f) => f.key === 'linkAction');
+  assert.deepEqual(field.options.map((o) => o.value), ['nothing', 'new tab', 'send to the board', 'both'],
+    'the do-nothing value is offered, and first, so an unset select shows it');
+  // `selectable` means "this card publishes what you click" — a card whose click does nothing must not claim it, or a
+  // consumer offering its `selection` channel would be offering a value that can never arrive.
+  const of = (linkAction) => gallery.transform({ rows: [] }, { from: 'list', files: 'File:X.jpg', ...(linkAction ? { linkAction } : {}) });
+  assert.equal(of().selectable, false, 'the default publishes nothing');
+  assert.equal(of().linkAction, 'nothing');
+  assert.equal(of('nothing').selectable, false);
+  assert.equal(of('new tab').selectable, false, 'following a link is not publishing');
+  assert.equal(of('send to the board').selectable, true);
+  assert.equal(of('both').selectable, true);
+});

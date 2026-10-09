@@ -40,6 +40,7 @@ is already made of.
 | the piece | where it lives today |
 |---|---|
 | click → emit | the Gallery already does exactly this: its `Clicking an image` field set to *Send it to the board* publishes the clicked file on the widget's `selection` channel (`handleSelect` → `onOutput(id, value, 'selection')`, ISSUE-91) |
+| a click that does nothing | **ISSUE-146 — the default.** A Gallery's `Clicking an image` is **Nothing**, so the picture is not a link at all: a click that misses every zone does nothing, and on a phone it no longer visits Commons by accident. The other three values are opt-ins — *Open the file page in a new tab*, *Send it to the board*, *Both* — and a board that already set this field keeps exactly the behaviour it asked for |
 | the consumer contract | any card with `source: id#selection`, or the `{{widget:id#selection}}` token — Article, Excerpt, Gallery, Media player, List, Filter, Map, Translate … |
 | kind compatibility | `OUTPUT_KINDS`, per-widget `outputs`/`kinds`, `kindsAccepting()` and the article ⊂ page rule (ISSUE-118), and the spawn menu built on them (PR #105) |
 | the host cards | the Gallery in `displayMode: single` (*"Single image (the first image fills the box)"*) with `imageFit` and `edgeToEdge`; and the 🌐 360° Panorama Viewer, whose engine already draws and clicks zones |

@@ -34,7 +34,6 @@
       "id": "cat-alpha",
       "widgetType": "gallery",
       "config": {
-      "from": "category",
         "from": "category",
         "category": "{{category}}",
         "project": "commons.wikimedia",
@@ -44,7 +43,8 @@
         "imageFit": "cover",
         "maxItems": 24,
         "_title": "{{category}} \u2014 alphabetical (from the API)",
-        "refreshSeconds": 3600
+        "refreshSeconds": 3600,
+        "linkAction": "new tab"
       }
     },
     {
@@ -60,7 +60,8 @@
         "imageFit": "cover",
         "maxItems": 12,
         "_title": "{{category}} \u2014 random picks",
-        "refreshSeconds": 1800
+        "refreshSeconds": 1800,
+        "linkAction": "new tab"
       }
     }
   ],

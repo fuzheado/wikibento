@@ -9,12 +9,16 @@ needs, commit messages in a file, the append-only docs) are in the global `~/.pi
 
 ## Which build are you testing?
 
-- **Always pass `--base` to the browser sweep.** The default is **production**
-  (`https://wikibento.toolforge.org`), which is right for checking a deploy and wrong for everything else. A run
-  without it reported a change as 22/24 clean while production was still serving the previous bundle — so it was
-  measuring the last release. The first honest run found a bug that threw on every render.
-  - Local build: `npm run build && npx vite preview --port 4173`, then `--base http://localhost:4173`.
-  - The script prints the base it is using, and warns when that is the implicit production default. Read that line.
+- **`--base <url>` measures a DEPLOYMENT; without it the sweep serves the local `dist/`.** `board-render-e2e.mjs`
+  starts a preview of the local build and **refuses to run against a stale one** — a fresh `src/` with no rebuild exits
+  with a reason instead of measuring the previous bundle — which is what `npm test` relies on, so the suite's sweep
+  measures the build it just made. Pass a base only when the thing under test is not your working tree:
+  `--base https://wikibento.toolforge.org` for a deploy check. The script says which base it is using — read that line.
+  - Local, by hand: `npm run build && npx vite preview --port 4173`, then `--base http://localhost:4173` — or omit
+    `--base` and let the script serve `dist/` itself.
+  - The lesson that put this here: a sweep that measured the **wrong build** reported a change as 22/24 clean while
+    production still served the previous bundle — it was measuring the last release, and the first honest run found a
+    bug that threw on every render. Know which artefact every number came from.
 
 ## Vocabulary — say what the thing is
 

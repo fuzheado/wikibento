@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-09T12:07:31.761Z",
+ "generatedAt": "2026-10-09T15:08:59.367Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -891,8 +891,9 @@
      "key": "linkAction",
      "type": "select",
      "label": "Clicking an image",
-     "hint": "Send to the board publishes the clicked image on this widget's `selection` channel, so another widget can show it — a Document Reader, a pageviews card, anything.",
+     "hint": "Nothing is the default: a click that misses a zone does nothing. Send to the board publishes the clicked image on this widget's `selection` channel.",
      "options": [
+      "nothing",
       "new tab",
       "send to the board",
       "both"

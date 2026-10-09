@@ -21,7 +21,6 @@
     "imageFit": "contain",
     "showCaptions": false,
     "hotspotStyle": "subtle",
-    "linkAction": "new tab",
     "zones": "31.42,1.17,12.23,7.74 | organelles | article | en:Organelle | send\n77.75,3.37,19.94,6.12 | BIOSPHERE | article | en:Biosphere | send\n49.26,5.38,10.2,3.84 | molecules | article | en:Molecule | send\n18.6,5.66,4.51,3.49 | cell | article | en:Cell (biology) | send\n9.3,18.08,6.4,3.7 | tissue | article | en:Tissue (biology) | send\n59.45,18.08,6.4,3.49 | atoms | article | en:Atom | send\n2.17,41.12,6.71,3.61 | organ | article | en:Organ (biology) | send\n75.26,67.41,11.97,6.14 | biosphere | article | en:Biosphere | send\n56.6,77.29,11.78,5.27 | ecosystem | article | en:Ecosystem | send\n3.48,77.59,15.17,5.04 | organ system | article | en:Organ system | send\n48.11,89.54,12.21,5.23 | community | article | en:Community (ecology) | send\n15.53,90.74,10.5,3.93 | organism | article | en:Organism | send\n31.39,92.78,12.22,5.73 | population | article | en:Population (biology) | send"
    }
   },

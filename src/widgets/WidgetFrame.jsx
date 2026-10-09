@@ -979,7 +979,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'MapCard': return <MapCard data={data} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
-    case 'StoryCard': return <StoryCard data={data} picking={picking} onPickItem={onPickItem} />;
+    case 'StoryCard': return <StoryCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
 
     case 'ListSourceCard': return <ListSourceCard data={data} />;
     case 'EchoCard': return <EchoCard data={data} />;
@@ -1864,12 +1864,12 @@ function AssessmentsCard({ data }) {
  * untouched.
  */
 function galleryTileClick(data, img, onSelect) {
-  if (!data?.selectable || !onSelect) return undefined;
-  const action = data.linkAction || 'new tab';
+  const action = data?.linkAction || 'nothing';
+  if (action === 'new tab') return undefined;   // the reader asked for the file page: the anchor does it, keyboard included
   return (event) => {
-    event.preventDefault();                 // both modes move the reader somewhere deliberate
-    onSelect(`File:${img.title}`);          // the reference form the page widgets already resolve
-    if (action === 'both' || action === 'new tab') window.open(img.fileUrl, '_blank', 'noopener,noreferrer');
+    event.preventDefault();                     // nothing, send or both: the click never follows the link (ISSUE-146)
+    if (data?.selectable && onSelect) onSelect(`File:${img.title}`);   // the reference form the page widgets already resolve
+    if (action === 'both') window.open(img.fileUrl, '_blank', 'noopener,noreferrer');
   };
 }
 
@@ -1907,6 +1907,12 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
   const onClick = picking
     ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem)
     : galleryTileClick(data, img, onSelect);
+  // ISSUE-146: "clicking glass" has to be literal — a card whose click does nothing is NOT an anchor, so there is no
+  // href to follow on Enter, no "open in a new tab" on a phone's long-press, and no tab stop that promises one.
+  // `new tab` (and `both`) DO open the file page, so those keep the anchor, as does picking, which replaces the link.
+  const asLink = !picking && (data.linkAction === 'new tab' || data.linkAction === 'both');
+  const Frame = asLink ? 'a' : 'div';
+  const frameProps = asLink ? { href: img.fileUrl, target: '_blank', rel: 'noopener noreferrer' } : {};
   // srcset and `sizes` arrive together and only once the box has been measured — the grid's lesson (ISSUE-109):
   // with width descriptors and no `sizes`, a browser assumes 100vw and fetches a rendition it then replaces.
   const sizes = measured ? `${measured}px` : undefined;
@@ -1988,14 +1994,15 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
   });
   return (
     <div className="gallery-single" ref={wrapRef}>
-      <a className={`gallery-single-link${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl}
+      <Frame className={`gallery-single-link${img.mediaType === 'video' ? ' is-video' : ''}`} {...frameProps}
+        data-photo-click={data.linkAction || 'nothing'}
         /* An <a> and an <img> are natively draggable, and a bare card is one big link — so a drag across the picture
            would otherwise start a browser drag *ghost* instead of doing nothing. This stops that. It does NOT make the
            picture a layout handle: intent in this app has always been that a card moves by its title bar (measured
            2026-09-29 — header drag 229px, content drag 0px, bare or not), which is exactly why a bare card reveals that
            bar on hover. The video stage is deliberately untouched: a drag on a seek bar is a seek, not a layout move. */
         draggable={false}
-        target="_blank" rel="noopener noreferrer" onClick={onClick} title={img.caption || img.title}>
+        onClick={onClick} title={img.caption || img.title}>
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         {sizes ? (
           <PlateImage choice={data.mediaPlate} className="gallery-single-img" draggable={false} src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
@@ -2006,7 +2013,7 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
         {data.showCaptions !== false && (img.caption || img.title)
           ? <span className="gallery-single-caption">{img.caption || img.title}</span>
           : null}
-      </a>
+      </Frame>
       {!picking && zones.length ? (
         <div className={`zone-layer${data.hotspotStyle === 'subtle' ? ' is-subtle' : ''}`} role="group" aria-label="Clickable zones">
           <div className="zone-frame" style={frame} ref={frameRef}>
@@ -2163,7 +2170,7 @@ function useContentWidth(ref) {
  *   split  image + text side by side, the text side alternating for rhythm
  * Chapters come from the same section groups the grid mode uses; index numbers run across the whole story.
  */
-function StoryCard({ data, picking, onPickItem }) {
+function StoryCard({ data, onSelect, picking, onPickItem }) {
   const panels = data.panels || [];
   const scrollRef = useRef(null);
   const barRef = useRef(null);
@@ -2198,11 +2205,16 @@ function StoryCard({ data, picking, onPickItem }) {
       );
     }
     const caption = p.caption || p.title;
-    // Picking a panel places a card for that Commons file; an ordinary click opens the file page, which is what the
-    // gallery's tiles do with `linkAction: 'new tab'`.
+    // Picking a panel places a card for that Commons file. Otherwise the panel obeys the same `linkAction` as every
+    // other gallery mode (ISSUE-146): `nothing` is not a link, and the sending values publish the file.
+    const clicking = data.linkAction || 'nothing';
     const onClick = picking && onPickItem
       ? pickClick({ kind: 'commons-file', value: `File:${p.title}`, label: caption, project: 'commons.wikimedia' }, onPickItem)
-      : () => window.open(p.fileUrl, '_blank', 'noopener,noreferrer');
+      : clicking === 'nothing' ? undefined
+        : () => {
+          if (data.selectable && onSelect) onSelect(`File:${p.title}`);
+          if (clicking === 'new tab' || clicking === 'both') window.open(p.fileUrl, '_blank', 'noopener,noreferrer');
+        };
     const img = (
       <PlateImage
         choice={data.mediaPlate}

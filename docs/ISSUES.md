@@ -6847,3 +6847,68 @@ live manual in `deploy/server.js` never named the state.)
 
 **Fixed 2026-10-09:** verified in Chromium at 2× — `cache/waiting-awaiting.png` (state `awaiting`) and
 `cache/waiting-unresolved.png` (state `unresolved`).
+
+## ISSUE-146 · A click that missed a zone visited Commons (raised by Andrew, 2026-10-09)
+
+**What:** on a phone, aiming at a zone inside the Biosphere diagram and missing visited the file on Wikimedia Commons.
+Andrew: *"I'd like for the default to be a no-op — if someone misses a 'zone click' then nothing happens. Too often on
+mobile, you misclick and you go to the Commons page, which is usually not useful... let's make the default like
+clicking on glass."*
+
+**Why it was so easy to hit:** a single image was an `<a href={img.fileUrl} target="_blank">` — the whole picture was one
+big link, so **any** click that did not land on a zone was a click *on* Commons. The card had a `Clicking an image`
+field (`linkAction`) but its default was *Open the file page in a new tab*, and a click that missed was
+indistinguishable from a click that meant it.
+
+**Fix — the default is now nothing, for every gallery mode:**
+
+| `Clicking an image` | what happens |
+|---|---|
+| **Nothing** (the default) | a plain element, not a link: no href, no "open in a new tab" on a long-press, no tab stop, no click handler |
+| *Open the file page in a new tab* | the anchor, exactly as before (the opt-in) |
+| *Send it to the board* | publishes the clicked file on the card's `selection` channel |
+| *Both* | publishes, then opens |
+
+One value, four modes: the single picture, grid tiles, list rows and the story panels all obey it (`StoryCard` now
+receives `onSelect`, so *Send it to the board* works in story mode too, where it previously did nothing). A card whose
+click does nothing is **not** `selectable` — that flag means "this card publishes what you click".
+
+**Migration:** nothing is rewritten. A board that set `linkAction` keeps exactly what it asked for — the demos that
+browse (category images, article vitals, the Anne Frank/MLK galleries, the story, WIPO) now say `new tab` explicitly,
+because being clickable is their point; `?config=/biosphere-demo.json` drops the field so the *default* is what you see
+there. A gallery that never said anything is now a picture you can look at rather than a door you fall through.
+
+**Gated:** a unit test pins the default, the option list and what `selectable` means (including `'follow a link' is not
+publishing`), and `scripts/board-render-e2e.mjs` gained two checks — *a picture click does nothing* (the card is a
+`<div>` with no href, the click navigated nowhere and opened nothing, the excerpt did not move) and *the opt-in still
+opens the file page* (an `<a>`, and the click opened a tab, aborted before Commons). **Restoring the old default fails
+the first by name** ("the card says a click does "new tab" — a board that does not ask for the file page must read
+"nothing"") while the second stays green, which is what makes them two checks rather than one.
+
+**Two things this cost, both worth writing down.** (1) The first version of the new check aborted *every*
+`commons.wikimedia.org` request: the gallery never got its rows, the card rendered "No image found", and the check
+failed for a reason unrelated to what it measured — the route now aborts only `resourceType() === 'document'`.
+(2) The longer hint I first wrote pushed the Ask prompt's catalog past its measured 12,600-token cap
+(`the static prompt stays inside its measured token budget`), and the fix was to trim **my own** hint — the block that
+grew is the block to trim.
+
+**Fixed 2026-10-09:** 21/21 checks against the local build (`--base http://localhost:4173`), 825 tests with the budget,
+guide and docs gates green, and the live sweep against `index-*` after deploy.
+
+## ISSUE-147 · The browser-testing rule said the sweep defaults to production — it defaults to the local build (found 2026-10-09, **done**)
+
+**What:** `AGENTS.md` opened its browser-testing section with *"Always pass `--base` to the browser sweep. The default is
+**production**"*. It is not. With no `--base`, `scripts/board-render-e2e.mjs` starts a preview of the local `dist/`
+(`base = http://127.0.0.1:${port}`, with the stale-build guard on that branch) and prints the deployment banner **only**
+when a base is given — so `npm test`'s sweep measures the build it just made, which is exactly right, and `--base <url>`
+is how a *deployment* is measured.
+
+**Why it matters:** a stale instruction is worse than none. It made me file this entry as "`npm test` measures
+production" — which would have been a real defect — and I caught it only by reading the script instead of trusting the
+prose: the same lesson this repo already learned one level down, applied to its own rules. It also sent a reader to pass
+`--base` when the local default was what they wanted.
+
+**Fixed:** the AGENTS.md section now says what the script does — a base measures a deployment, omitting it serves the
+local `dist/` and refuses a stale one — and it keeps the historical lesson that a sweep measuring the wrong artefact
+reported 22/24 clean while production served the previous bundle. The rule and the script agree now; if they ever
+disagree again the script is the one telling the truth, and the number to distrust is the one whose base you cannot name.

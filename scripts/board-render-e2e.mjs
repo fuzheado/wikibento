@@ -441,6 +441,104 @@ try {
   }
 
   /**
+   * ISSUE-146 — the picture is not a link any more.
+   *
+   * Andrew, on a phone: aiming at a zone inside the Biosphere diagram and missing visited the file on Commons, which
+   * was "usually not useful" — so the default is now a no-op ("like clicking on glass"). The check is two-fold: the
+   * card SAYS what a click does (`data-photo-click`, a state hook, not a sentence), and a click on the picture's own
+   * background neither navigates nor opens a tab. The point is chosen away from every zone on purpose: clicking a
+   * *zone* is the check above.
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
+    const opened = [];
+    page.context().on('page', (p) => opened.push(p.url()));
+    let errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    try {
+      await page.goto(`${base}/?config=/biosphere-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="xbio-image"] .zone', { timeout: 30000 });
+      const before = page.url();
+      const card = await page.evaluate(() => {
+        const el = document.querySelector('[data-widget-id="xbio-image"] [data-photo-click]');
+        return { value: el?.getAttribute('data-photo-click'), tag: el?.tagName.toLowerCase(), href: el?.getAttribute('href') || '' };
+      });
+      // A spot INSIDE the picture that is outside every zone's own box — found, not guessed, so a label that happens to
+      // sit in a corner cannot make this check pass for the wrong reason.
+      const point = await page.evaluate(() => {
+        const el = document.querySelector('[data-widget-id="xbio-image"] [data-photo-click]');
+        const r = el.getBoundingClientRect();
+        const boxes = [...document.querySelectorAll('[data-widget-id="xbio-image"] .zone-item')].map((b) => b.getBoundingClientRect());
+        const candidates = [
+          { x: r.left + r.width * 0.97, y: r.top + r.height * 0.03 },
+          { x: r.left + r.width * 0.97, y: r.top + r.height * 0.97 },
+          { x: r.left + r.width * 0.03, y: r.top + r.height * 0.97 },
+          { x: r.left + r.width * 0.5, y: r.top + r.height * 0.97 },
+        ];
+        const free = candidates.find((c) => !boxes.some((b) => c.x >= b.left - 6 && c.x <= b.right + 6 && c.y >= b.top - 6 && c.y <= b.bottom + 6));
+        return free ? { x: Math.round(free.x), y: Math.round(free.y) } : null;
+      });
+      if (!point) bad('a picture click does nothing', 'every corner of the picture is inside a zone box — this check needs a spot that misses them all');
+      await page.mouse.click(point.x, point.y);
+      await page.waitForTimeout(1500);
+      const after = await page.evaluate(() => (document.querySelector('[data-widget-id="xbio-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 40));
+      if (card.value !== 'nothing') bad('a picture click does nothing', `the card says a click does ${JSON.stringify(card.value)} — a board that does not ask for the file page must read "nothing"`);
+      else if (card.tag !== 'div' || card.href) bad('a picture click does nothing', `the picture is still a link (${card.tag}${card.href ? ` href=${card.href.slice(0, 40)}` : ''}) — nothing clicked must not be an anchor`);
+      else if (page.url() !== before) bad('a picture click does nothing', `the click navigated to ${page.url().slice(0, 70)}`);
+      else if (opened.length) bad('a picture click does nothing', `the click opened ${opened.length} tab(s), e.g. ${String(opened[0]).slice(0, 60)}`);
+      else if (errors.length) bad('a picture click does nothing', errors[0]);
+      else ok('a picture click does nothing', `the picture is a <${card.tag}> with no href — a click that missed every zone went nowhere (excerpt still ${JSON.stringify(after)})`);
+    } catch (e) {
+      bad('a picture click does nothing', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
+  /**
+   * The opt-in still works: a card that ASKS for the file page is still a link. This is a default, not a removal — so a
+   * board built for clicking through (the image-tile and dashboard demos, and anyone who sets the field) must keep it,
+   * keyboard included. Aborted at the network so the check never leaves the machine.
+   */
+  {
+    const board = {
+      version: 1, params: {},
+      widgets: [{ id: 'pic', widgetType: 'gallery', name: 'Picture', config: {
+        from: 'list', files: 'File:XBio illustration – Biosphere.png', displayMode: 'single', linkAction: 'new tab' } }],
+      layout: [{ i: 'pic', x: 0, y: 0, w: 6, h: 5 }],
+    };
+    const b64 = Buffer.from(JSON.stringify(board), 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+    const opened = [];
+    page.context().on('page', (p) => opened.push(p.url()));
+    // Only the FILE PAGE is aborted. The first version aborted every commons.wikimedia.org request and the gallery
+    // never got its rows — so the card rendered "No image found", there was nothing to click, and the check failed for
+    // a reason that had nothing to do with the thing it was measuring.
+    await page.context().route('**://commons.wikimedia.org/**',
+      (r) => (r.request().resourceType() === 'document' ? r.abort() : r.continue()));
+    try {
+      await page.goto(`${base}/#/d/${b64}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="pic"] [data-photo-click="new tab"]', { timeout: 30000 });
+      const link = await page.evaluate(() => {
+        const el = document.querySelector('[data-widget-id="pic"] [data-photo-click]');
+        return { tag: el.tagName.toLowerCase(), href: el.getAttribute('href') || '' };
+      });
+      const point = await page.evaluate(() => {
+        const r = document.querySelector('[data-widget-id="pic"] [data-photo-click]').getBoundingClientRect();
+        return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+      });
+      await page.mouse.click(point.x, point.y);
+      await page.waitForTimeout(1800);
+      if (link.tag !== 'a' || !/commons\.wikimedia\.org/.test(link.href)) bad('the opt-in still opens the file page', `asked for "new tab" but the picture is a <${link.tag}> with href ${JSON.stringify(link.href.slice(0, 44))}`);
+      else if (!opened.length) bad('the opt-in still opens the file page', 'asked for "new tab" and the click opened nothing');
+      else ok('the opt-in still opens the file page', `asked for it and got it — the picture is an <a> and the click opened a tab (aborted before Commons)`);
+    } catch (e) {
+      bad('the opt-in still opens the file page', String(e).slice(0, 130));
+    }
+    await page.context().unroute('**://commons.wikimedia.org/**');
+    await page.close();
+  }
+
+  /**
    * The reader's place survives a reload — the mobile jump (ISSUE-144, reported from an iPhone).
    *
    * The cause was measured, not guessed: when the consumer card replaced its article it emptied itself first, and a

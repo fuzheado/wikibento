@@ -115,6 +115,7 @@
 			"id": "gallery",
 			"widgetType": "gallery",
 			"config": {
+        "linkAction": "new tab",
 				"from": "list",
 				"files": "File:IP Related Innovation in Agriculture 2000-2021.png\nFile:Participation of women inventors in PCT Applications 2009-2023.png\nFile:Global leaders in innovation in 2021.png\nFile:GII Index 2023 Report Cover.png\nFile:Global Innovation Index Report 2024.png\nFile:Global innovation index 2025 en cover.png\nFile:WIPR 2024.png\nFile:WIPO Director General Daren Tang 20 Oct 2023.jpg\nFile:World IP Day 2022- Innovating for Better Health – Supporting Young Innovators through IP - 52031981682.jpg\nFile:Number of articles with WIPO reference per Wikipedia language (June, 2025).svg\nFile:Poster Wikimania 2025-UN3.jpg",
 				"imageFit": "cover",

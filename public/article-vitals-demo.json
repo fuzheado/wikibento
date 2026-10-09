@@ -18,7 +18,7 @@
       "id": "note",
       "widgetType": "markdown",
       "config": {
-        "text": "# 🔎 Article vitals\n\nOne article, six angles — all follow the **Article** buttons: summary and traffic, ORES quality, WikiProject assessments, the latest edits, and the images the article uses.\n\nUseful before an edit, a cleanup pass, or a story pitch.",
+        "text": "# \ud83d\udd0e Article vitals\n\nOne article, six angles \u2014 all follow the **Article** buttons: summary and traffic, ORES quality, WikiProject assessments, the latest edits, and the images the article uses.\n\nUseful before an edit, a cleanup pass, or a story pitch.",
         "refreshSeconds": 86400
       }
     },
@@ -89,7 +89,8 @@
         "iconSize": "medium",
         "minSize": 200,
         "maxItems": 0,
-        "refreshSeconds": 3600
+        "refreshSeconds": 3600,
+        "linkAction": "new tab"
       }
     }
   ],
