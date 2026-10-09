@@ -90,7 +90,14 @@ export function imagePlateClass(value, url) {
    `mayHaveAlpha`, which is what keeps photo galleries free of the extra decode), and the readback is
    best-effort — an error, a tainted canvas or a missing 2D context means "no plate", never a broken image.
    Answers are cached per URL and queued (`MAX_ALPHA_IN_FLIGHT`) so a 40-tile gallery cannot start 40
-   decodes at once. */
+   decodes at once.
+
+   And the plate has a DIRECTION. Transparency alone does not mean "needs a white background": white line art
+   designed for a dark page is just as transparent, and a white plate would swallow it — the mirror of the bug
+   this whole module exists for. So the same readback also measures the INK: the mean luminance of the pixels
+   that are not transparent. Dark ink gets the light plate; light ink gets the dark card background back, which
+   is what `plate-alpha-dark` says. (Measured on real files, 2026-10-08: `File:Cscr-featured.png` ink 131.9 ->
+   light plate; `File:Globe Icon White.png` ink 255.0 -> dark plate.) */
 
 /** Alpha at or below this (out of 255) counts as transparent. Anti-aliased edges sit well above it. */
 export const ALPHA_CORNER_THRESHOLD = 64;
@@ -118,30 +125,59 @@ export function plateRasterNeedsCheck(value, url) {
   return plateChoice(value) === 'auto' && !isVectorMedia(url) && mayHaveAlpha(url);
 }
 
-/** Read the corners of an image the browser has already decoded. Never throws. */
-export function sampleImageAlpha(imgEl, doc = typeof document === 'undefined' ? null : document) {
-  if (!imgEl || !doc) return false;
+/** Mean ink luminance at or above this (0-255) reads as LIGHT ink — a white plate would swallow it. */
+export const LIGHT_INK_LUMINANCE = 192;
+
+/** Below this alpha a sample is a ghost of the downscale rather than ink. */
+export const INK_ALPHA_FLOOR = 32;
+
+/** Is the ink light? (i.e. does it need the dark card background rather than a white plate) */
+export function inkIsLight(luminance) {
+  return typeof luminance === 'number' && luminance >= LIGHT_INK_LUMINANCE;
+}
+
+/** Read the corners AND the ink of an image the browser has already decoded. Never throws.
+ *  Returns `{ transparent, inkLuminance }` — `inkLuminance` is null when nothing opaque enough was sampled. */
+export function sampleImage(imgEl, doc = typeof document === 'undefined' ? null : document) {
+  const nothing = { transparent: false, inkLuminance: null };
+  if (!imgEl || !doc) return nothing;
   try {
     const size = ALPHA_SAMPLE_SIZE;
     const canvas = doc.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return false;
+    if (!ctx) return nothing;
     ctx.drawImage(imgEl, 0, 0, size, size);
     const data = ctx.getImageData(0, 0, size, size).data;
     const corners = [[0, 0], [size - 1, 0], [0, size - 1], [size - 1, size - 1]]
       .map(([x, y]) => data[(y * size + x) * 4 + 3]);
-    return cornersImplyPlate(corners);
+    let sum = 0;
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < INK_ALPHA_FLOOR) continue;
+      sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      count += 1;
+    }
+    return {
+      transparent: cornersImplyPlate(corners),
+      inkLuminance: count ? sum / count : null,
+    };
   } catch {
     // A tainted canvas (a source that sends no CORS header) or no 2D context: no plate, no error.
-    return false;
+    return nothing;
   }
 }
 
+/** The plate a sample calls for: '' · ' plate-alpha' (light plate) · ' plate-alpha-dark' (light ink). */
+export function plateClassFromSample(sample) {
+  if (!sample || sample.transparent !== true) return '';
+  return inkIsLight(sample.inkLuminance) ? ' plate-alpha-dark' : ' plate-alpha';
+}
+
 /** The default readback: ask for the thumbnail again (from cache) as a CORS request, then sample it. */
-async function loadAlphaFromUrl(url) {
-  if (typeof document === 'undefined' || typeof Image === 'undefined') return false;
+async function loadPlateFromUrl(url) {
+  if (typeof document === 'undefined' || typeof Image === 'undefined') return null;
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.decoding = 'async';
@@ -150,7 +186,7 @@ async function loadAlphaFromUrl(url) {
     img.onerror = () => resolve(false);
     img.src = url;
   });
-  return loaded ? sampleImageAlpha(img) : false;
+  return loaded ? sampleImage(img) : null;
 }
 
 const alphaCache = new Map();
@@ -169,10 +205,11 @@ export function alphaCacheSize() {
   return alphaCache.size;
 }
 
-/** Does this raster need a plate? Cached per URL, queued, and never rejecting. */
-export function plateAlphaNeeded(url, loader = loadAlphaFromUrl) {
+/** Which plate does this raster need? The class fragment, cached per URL, queued, never rejecting.
+ *  `''` means the card's own background stays — an opaque picture, or light ink that a white plate would hide. */
+export function rasterPlateClass(url, loader = loadPlateFromUrl) {
   const key = String(url || '');
-  if (!key) return Promise.resolve(false);
+  if (!key) return Promise.resolve('');
   if (alphaCache.has(key)) return alphaCache.get(key);
   const run = () => {
     alphaInFlight += 1;
@@ -180,13 +217,13 @@ export function plateAlphaNeeded(url, loader = loadAlphaFromUrl) {
     try {
       work = Promise.resolve(loader(key));
     } catch {
-      work = Promise.resolve(false);
+      work = Promise.resolve(null);
     }
-    const done = work.catch(() => false).then((value) => {
+    const done = work.catch(() => null).then((sample) => {
       alphaInFlight -= 1;
       const next = alphaWaiting.shift();
       if (next) next();
-      return value === true;
+      return plateClassFromSample(sample);
     });
     alphaCache.set(key, done);
     return done;
