@@ -6764,3 +6764,39 @@ boxes drawn on the image, a row per label with editable text, candidates with de
 (✓ bound · ? needs a choice · ⚠ ambiguous · · no target), *accept all confident* stating its count, provenance recorded
 per zone, and Apply/Cancel on a copy. Phases and costs are in the memo — phases 0-1 deliver the feature without touching
 the server at all.
+
+
+## ISSUE-144 · A reload emptied the card, and the reader was thrown to the top of the page (reported from an iPhone, 2026-10-09)
+
+Andrew, on a phone in lean mode: clicking a zone in the stacked board filled the consumer card, "but it makes kind of a
+jump down there... it's not very smooth", and his own hypothesis was the right one — *"you are resetting the content
+within the widget first, which might cause for the height to be affected, and then when you fill it with content, it
+re-expands, and that might cause this jarring action."*
+
+**Measured, per animation frame**, WebKit at 390×844 with the reader scrolled to the bottom of
+`?config=/biosphere-demo.json&lean=1`:
+
+    1168/362/304   ← the document, the consumer card, the reader's scroll — before the click
+     844/ 34/  0   ← ONE FRAME LATER: the card is a 34px "Loading…" line, the document is exactly the viewport
+                      height, so the browser clamps the scroll to 0 — 304px above the reader
+    1096/290/  0   ← the new article arrives; the scroll never comes back
+
+The cause was one render condition: the card's content was gated on `!state.loading`, so every reload replaced the
+article with the loading line. On a phone the stack is auto-height, so emptying a card shrinks the *page*, and a page
+that shrinks below the scroll offset is clamped by the browser. Neither `overflow-anchor: none` nor a fixed floor in CSS
+changed anything (both tried, both measured) — the card has to keep its size.
+
+**Fix, two halves.** The previous content now stays rendered while a new value is in flight (dimmed, with the loading
+line reserved for a card that has nothing yet), and the card's height is remembered before the reload and held as a
+`min-height` floor until a frame after the content paints, released with a short transition so a genuinely shorter
+article settles rather than snaps. After: the card never falls below 290px, the page never collapses to the viewport, and
+the reader's scroll moves by the 35px a shorter article actually takes — or not at all when the article grows.
+
+Gated in `scripts/board-render-e2e.mjs` ("reader holds their place"): with a mobile viewport, a lean board and the reader
+scrolled to the bottom, the card must not fall below 60% of its height while loading, the document must not collapse to
+the viewport, and the scroll must not be thrown more than 60px. **Restoring the original behaviour fails it by name** —
+`card ... never below 34 · page never below 844px (viewport 844) · scroll 304→0`. Worth knowing, because the drill
+taught it: **each half of the fix prevents the collapse on its own** (a card that keeps its content does not empty, and a
+card with a height floor does not shrink), so reverting either one alone still passes. Both are kept deliberately — the
+content stays for continuity (no blank flash, and the loading line is reserved for a card that has nothing), while the
+floor is what protects a card that genuinely has no content yet and the settle afterwards.

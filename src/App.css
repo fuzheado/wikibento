@@ -1639,6 +1639,14 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
 }
 
 
+/* ── A card holding its size while it reloads (ISSUE-144) ─────────────────────────────────────────────────────
+   The height is held in JS (see WidgetFrame): a card that empties itself shrinks the document, and the browser clamps
+   the reader's scroll to the top. The transition is what makes the release a settle rather than a snap — a shorter
+   article eases into its own height instead of jumping to it. The dimming is the "this is being replaced" cue that the
+   loading line used to be. */
+.widget-frame.is-holding-height { transition: min-height 180ms ease; }
+.widget-body.is-updating { opacity: 0.55; transition: opacity 120ms ease; }
+
 /* ── Clickable zones on a single image (ISSUE-138, slice A) ────────────────────────────────────────────────────
    A zone is a button placed in percentages of the *picture*, not of the card: `.zone-frame` is sized to the image's
    own rect (the renderer measures the card and the file's dimensions), so a box lands on the same pixels whether the

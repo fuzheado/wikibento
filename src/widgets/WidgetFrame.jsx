@@ -329,7 +329,26 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 
   // What the export menu captures: the card itself, chrome and panels excluded by the serialiser.
   const cardRef = useRef(null);
+
   const [state, setState] = useState({ loading: true, error: null, data: null });
+  /**
+   * ISSUE-144 — a reload must not empty the card.
+   *
+   * Emptying it is what threw the reader to the top of the page: measured on an iPhone, a click on a zone replaced the
+   * consumer's article with a 34px "Loading…" line, which shrank the document to exactly the viewport height — so the
+   * browser clamped the scroll to 0, 304px above where the reader was, and it stayed there when the new article
+   * arrived. Neither disabling scroll anchoring nor a fixed floor in CSS helps; the card has to keep its size.
+   *
+   * So the height is remembered before the reload and held as a floor while the new value is in flight, then released a
+   * frame after the content paints (long enough that the floor never fights the content, short enough that a genuinely
+   * shorter article settles immediately).
+   */
+  const [holdHeight, setHoldHeight] = useState(null);
+  useEffect(() => {
+    if (state.loading || !holdHeight) return undefined;
+    const id = requestAnimationFrame(() => setHoldHeight(null));
+    return () => cancelAnimationFrame(id);
+  }, [state.loading, holdHeight]);
   const [showConfig, setShowConfig] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -509,6 +528,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       return;
     }
     const seq = ++loadSeqRef.current; // this run owns the state until a newer run starts
+    // Remember the height this card is about to give up, so the page — and the reader's scroll — does not move. A card
+    // showing only "Loading…" is ~34px; anything past 60px is real content worth holding a place for.
+    const currentHeight = cardRef.current?.offsetHeight;
+    if (currentHeight && currentHeight > 60) setHoldHeight(currentHeight);
     setState(s => ({ ...s, loading: true, error: null, waiting: null }));
     try {
       const data = await def.fetch(resolvedConfig, { force, sourceOutput: sourceOutputValue }); // force = bust TTL/SWR caches (manual ↻ / Apply)
@@ -613,8 +636,9 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 
   return (
       <div
-        className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}${plateClass}`}
+        className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}${plateClass}${holdHeight ? ' is-holding-height' : ''}`}
         ref={cardRef}
+        style={holdHeight ? { minHeight: `${holdHeight}px` } : undefined}
         onContextMenu={handleSpawnContextMenu}
         onPointerDown={startTouchHold}
         onPointerMove={moveTouchHold}
@@ -882,8 +906,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         </div>
       )}
 
-      <div className={`widget-body${vAlign ? ` v-align-${vAlign}` : ''}`}>
-        {state.loading && (
+      <div className={`widget-body${vAlign ? ` v-align-${vAlign}` : ''}${state.loading && state.data ? ' is-updating' : ''}`}>
+        {/* The previous content stays while a new value is in flight (dimmed, not replaced): an empty card is a card
+            that collapses the page under the reader's thumb. The loading line is for a card that has nothing yet. */}
+        {state.loading && !state.data && (
         <div className="widget-loading">
           {def?.intensity === 'high'
             ? (def?.loadingHint || 'Running a live scan — may take 10–60 s…')
@@ -908,7 +934,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             </div>
           </div>
         )}
-        {state.data && !state.loading && (
+        {state.data && (
   <>
     <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} onZone={handleZone} picking={picking} onPickItem={onPickItem} projects={projectList} />
     {def?.fetch && (

@@ -440,6 +440,80 @@ try {
     await page.close();
   }
 
+  /**
+   * The reader's place survives a reload — the mobile jump (ISSUE-144, reported from an iPhone).
+   *
+   * The cause was measured, not guessed: when the consumer card replaced its article it emptied itself first, and a
+   * 34px "Loading…" line shrank the document to exactly the viewport height — so the browser clamped the scroll to 0,
+   * 304px above where the reader was, and it stayed there when the new article arrived. Neither disabling scroll
+   * anchoring nor a CSS floor helped; the card has to keep its size.
+   *
+   * What this asserts, with the reader scrolled to the bottom of a stacked (mobile, lean) board: the card never falls
+   * below 60% of its height while the new value is in flight, the document never collapses to the viewport, and the
+   * scroll moves only by what a genuinely shorter article has to take (measured here at 35px; it was 304).
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 110)));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const text = String(m.text());
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(text)) return;
+      errors.push(`console: ${text.slice(0, 100)}`);
+    });
+    try {
+      await page.goto(`${base}/?config=/biosphere-demo.json&lean=1`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="xbio-image"] .zone', { timeout: 30000 });
+      await page.waitForTimeout(2000);
+      const tap = (word) => page.evaluate((w) => {
+        // A tap on a zone, dispatched where it is — no scrolling first, so the measurement is about the update itself.
+        document.querySelector(`[data-widget-id="xbio-image"] .zone[aria-label="${w}"]`)
+          .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      }, word);
+      const read = () => page.evaluate(() => ({
+        scroll: Math.round(document.scrollingElement.scrollTop),
+        docH: Math.round(document.scrollingElement.scrollHeight),
+        cardH: Math.round(document.querySelector('[data-widget-id="xbio-excerpt"]').getBoundingClientRect().height),
+      }));
+      await tap('cell');                                    // a tall article first, so the next one shrinks it
+      await page.waitForTimeout(3000);
+      await page.evaluate(() => { const s = document.scrollingElement; s.scrollTop = s.scrollHeight - innerHeight - 20; });
+      await page.waitForTimeout(400);
+      const before = await read();
+      await page.evaluate(() => {
+        window.__frames = [];
+        const card = document.querySelector('[data-widget-id="xbio-excerpt"]');
+        let n = 0;
+        const tick = () => {
+          window.__frames.push({ docH: Math.round(document.scrollingElement.scrollHeight),
+            scroll: Math.round(document.scrollingElement.scrollTop),
+            cardH: Math.round(card.getBoundingClientRect().height) });
+          if (++n < 200) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      await tap('molecules');                               // shorter: the case that used to throw the reader away
+      await page.waitForTimeout(3500);
+      const after = await read();
+      const frames = await page.evaluate(() => window.__frames);
+      const minCard = Math.min(...frames.map((f) => f.cardH));
+      const minDoc = Math.min(...frames.map((f) => f.docH));
+      const least = Math.min(...frames.map((f) => f.scroll));
+      const detail = `card ${before.cardH}→${after.cardH}px, never below ${minCard} · page never below ${minDoc}px (viewport 844) · scroll ${before.scroll}→${after.scroll}, least ${least}`;
+      if (minCard < before.cardH * 0.6) bad('reader holds their place', `the card emptied itself while loading — ${detail}`);
+      else if (minDoc <= 844 + 20) bad('reader holds their place', `the page collapsed to the viewport, which clamps the scroll — ${detail}`);
+      // A genuinely shorter article still costs the reader something — the page really is shorter — measured at 52px in
+      // Chromium and 71px in WebKit. The old behaviour was 304px *to the top of the page*, which is what this catches.
+      else if (Math.abs(before.scroll - least) > 120) bad('reader holds their place', `the scroll was thrown ${Math.abs(before.scroll - least)}px — ${detail}`);
+      else if (errors.length) bad('reader holds their place', errors[0]);
+      else ok('reader holds their place', `a reload no longer empties the card — ${detail}`);
+    } catch (e) {
+      bad('reader holds their place', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
 } finally {
   await browser.close();
   server?.kill();
