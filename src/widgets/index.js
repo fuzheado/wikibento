@@ -1055,7 +1055,7 @@ export const WIDGET_TYPES = {
     // list — and the file the reader clicked. `primary` keeps the bare id meaning the captions.
     // ISSUE-96: `kind` = the bare id publishes the captions. No `subject`: the four sources are four different
     // things (an article, a Commons gallery page, a Commons category, a pasted file list) and one label would lie.
-    outputs: { kind: 'lines', lines: 'lines', selection: 'value' },
+    outputs: { kind: 'lines', lines: 'lines', selection: 'value', zones: 'value' },
     primary: 'lines',
     emit: (data) => ({
       lines: (data && data.rows ? data.rows : []).map((r) => r.caption || r.title),

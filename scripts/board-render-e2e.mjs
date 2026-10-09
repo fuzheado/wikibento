@@ -292,8 +292,27 @@ try {
         zones: document.querySelectorAll('[data-widget-id="zones-image"] .zone').length,
         labels: [...document.querySelectorAll('[data-widget-id="zones-image"] .zone')].map((z) => z.getAttribute('aria-label')),
       }));
-      // By name, not by index: the demo's order is the file's own note order, and a reordered board must not quietly
-      // point this check at a different mountain.
+      // FIRST, the collision Andrew's test found: a click on the picture itself publishes the FILE it shows on the
+      // card's `selection` channel, and that must NOT reach an article consumer wired to `zones`. Click the middle of
+      // the photograph (away from every zone) and assert the excerpt has not moved.
+      const frame = await page.evaluate(() => {
+        const layer = document.querySelector('[data-widget-id="zones-image"] .zone-layer');
+        const r = layer.getBoundingClientRect();
+        return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height * 0.88) };
+      });
+      await page.mouse.click(frame.x, frame.y);
+      await page.waitForTimeout(1200);
+      const afterPictureClick = await page.evaluate(() => {
+        const el = document.querySelector('[data-widget-id="zones-excerpt"]');
+        return { text: (el?.innerText || '').slice(0, 80), waiting: /Waiting for a reference/i.test(el?.innerText || '') };
+      });
+      if (!afterPictureClick.waiting) {
+        bad('zones: the picture click stays out of it', `the excerpt moved on a plain picture click: ${JSON.stringify(afterPictureClick.text)}`);
+      } else {
+        ok('zones: picture click stays out', 'clicking the photograph publishes the file on `selection`; the article consumer did not move');
+      }
+      // THEN, by name, not by index: the demo's order is the file's own note order, and a reordered board must not
+      // quietly point this check at a different mountain.
       await page.click('[data-widget-id="zones-image"] .zone[aria-label="Piz Nuna"]');
       await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
@@ -301,6 +320,18 @@ try {
       }, null, { timeout: 30000, polling: 250 });
       const after = await page.evaluate(() =>
         (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
+      // A SECOND zone, and deliberately one whose target used to 404: Andrew's report named "Piz Macun" and
+      // "Piz d'Arpiglias", whose articles did not exist on de.wikipedia, so the demo's targets are now found by search
+      // — and this is the guard that keeps them found. A click must never leave the consumer on "Article not found".
+      await page.click('[data-widget-id="zones-image"] .zone[aria-label="Piz Macun"]');
+      const second = await page.waitForFunction(() => {
+        const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
+        return /Macun/i.test(text) && !/not found/i.test(text) && !/Waiting for a reference/i.test(text);
+      }, null, { timeout: 30000, polling: 250 }).then(() => null)
+        .catch(async () => `the second zone left the consumer at ${JSON.stringify(
+          (await page.evaluate(() => (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').slice(0, 70))))}`);
+      if (second) bad('zones: a second target', second);
+      else ok('zones: a second target', 'clicked "Piz Macun" (its article did not exist before) → the excerpt followed');
       if (drawn.zones < 5) bad('zones: click → excerpt', `only ${drawn.zones} zone buttons drawn`);
       else if (!drawn.labels.includes('Piz Nuna')) bad('zones: click → excerpt', `no zone labelled Piz Nuna (${drawn.labels.join(', ')})`);
       else if (errors.length) bad('zones: click → excerpt', errors[0]);
@@ -321,4 +352,4 @@ if (problems.length) {
   for (const p of problems) console.error(`    ✘ ${p}`);
   process.exit(1);
 }
-console.log(`\n  ✔ board render: ${results.length} board(s) drew every card, no page errors`);
+console.log(`\n  ✔ board render: ${results.length} check(s) passed — every board drew each card, no page errors`);

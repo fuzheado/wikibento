@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-09T10:26:04.239Z",
+ "generatedAt": "2026-10-09T11:29:38.870Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -910,7 +910,8 @@
    "outputs": {
     "kind": "lines",
     "lines": "lines",
-    "selection": "value"
+    "selection": "value",
+    "zones": "value"
    },
    "primary": "lines"
   },

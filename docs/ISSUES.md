@@ -6446,6 +6446,18 @@ the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/
   nothing passes "no errors" and fails that. One title-bar fix came out of the demo: a card waiting for a producer is no
   longer *titled* by the unresolved token (`{{widget:…}}` is a promise of a name, not a name).
 
+**Two things the first live demo taught, both recorded here because they shape the remaining slices.** (1) *One
+channel was not enough.* A zone published on the card's `selection` channel, which is also where the **picture's own
+click** publishes the file it shows — so clicking the photograph (not a zone) fed `File:Scuol-Motta Naluns…jpg` to the
+article consumer, which said *"Article not found"*. Zones now publish on their own **`zones`** channel, the gallery
+declares it beside `selection`, and the browser check asserts both: a plain picture click must leave the article
+consumer alone, and a zone click must move it. (2) *A note's label is not a title.* Five of the demo's six zones were
+written as `de:<the note's label>` and **only one of those articles existed** — `Piz Nuna`. The other five peaks have no
+article of their own on de.wikipedia at all, and the demo now points at the nearest thing that does (the valley, the
+lakes, the list a peak appears in), found by search and labelled with the note's own wording. That is precisely the
+work slice C's *suggest* step exists to do for an author, and it is the strongest argument yet for proposing candidates
+and never binding one silently.
+
 Deliberately **not** in this slice, and still designed: the editor (zones are written by hand today), the Commons-notes
 import and its target suggestions, the 360° host, tours with arrival views, the decided
 **tap-reveals-then-acts touch rule** (the MVP's click acts at once), the numbered print legend (the layer hides in

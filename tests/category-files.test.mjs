@@ -104,7 +104,9 @@ test('a gallery is wireable: lines come out of the same card that shows the imag
   const emitted = def.emit({ rows: [{ title: 'A.jpg', caption: 'A caption' }, { title: 'B.jpg' }] });
   assert.deepEqual(emitted.lines, ['A caption', 'B.jpg']);
   assert.equal(def.primary, 'lines');
-  assert.deepEqual(def.outputs, { kind: 'lines', lines: 'lines', selection: 'value' });
+  // `zones` joined them in ISSUE-138: the picture's own click publishes the file it shows (`selection`), and a
+  // clickable zone publishes the thing it names (`zones`) — one card, two kinds of thing, one channel each.
+  assert.deepEqual(def.outputs, { kind: 'lines', lines: 'lines', selection: 'value', zones: 'value' });
 });
 
 test('the source fields are mutually exclusive in the config UI', () => {

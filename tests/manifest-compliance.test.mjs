@@ -38,7 +38,7 @@ const KNOWN_EMITTERS = {
   // (the thing it is about), `denotes` (what the value IS — the third axis) and any named channels. A bare string
   // means "the kind, exactly".
   excerpt: { kind: 'extract', subject: 'article', denotes: 'prose', channels: { extract: 'extract', reference: 'value' } },
-  gallery: { kind: 'lines', channels: { lines: 'lines', selection: 'value' } },
+  gallery: { kind: 'lines', channels: { lines: 'lines', selection: 'value', zones: 'value' } },
   wikiBox: { kind: 'lines', channels: { items: 'lines', selection: 'value' } },
   translate: { kind: 'value', channels: { translation: 'value', speech: 'speech' } },
   listSource: 'lines',

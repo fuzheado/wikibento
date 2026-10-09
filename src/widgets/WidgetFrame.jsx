@@ -293,6 +293,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       if (onOutput) onOutput(widget.id, value, 'selection');
     }, [onOutput, widget.id]);
 
+    /** A click on a zone (ISSUE-138) publishes on the card's OWN `zones` channel, beside `selection` — where the
+     *  picture's own click publishes the file it shows. One picture, two kinds of thing, one channel each: the first
+     *  live demo showed the collision, because clicking the photograph fed `File:Scuol-…jpg` to an article consumer. */
+    const handleZone = useCallback((value) => {
+      if (value === undefined || value === null || value === '') return;
+      if (onOutput) onOutput(widget.id, value, 'zones');
+    }, [onOutput, widget.id]);
+
     /** ISSUE-96 — the spawn menu, from a right-click anywhere on the card. */
     const handleSpawnContextMenu = useCallback((e) => {
       if (!onSpawn) return;
@@ -902,7 +910,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         )}
         {state.data && !state.loading && (
   <>
-    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} picking={picking} onPickItem={onPickItem} projects={projectList} />
+    <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} onZone={handleZone} picking={picking} onPickItem={onPickItem} projects={projectList} />
     {def?.fetch && (
       <div className="widget-fetched" title={`Last fetched: ${new Date(state.data._fetchedAt).toLocaleString()}`}>
         ⏱ updated {new Date(state.data._fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · auto-refresh {fmtRefresh(resolvedConfig.refreshSeconds)}
@@ -915,7 +923,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
   );
 }
 
-function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, projects, picking, onPickItem }) {
+function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSelect, onZone, projects, picking, onPickItem }) {
   switch (type) {
     case 'StatCard': return <StatCard data={data} />;
     case 'RankingCard': return <RankingCard data={data} picking={picking} onPickItem={onPickItem} />;
@@ -933,7 +941,7 @@ function WidgetContent({ type, data, paramSpecs, paramValues, onSetParam, onSele
     case 'AssessmentsCard': return <AssessmentsCard data={data} />;
     case 'GalleryGridCard': return <GalleryGridCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
     case 'GalleryListCard': return <GalleryListCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
-    case 'GallerySingleCard': return <GallerySingleCard data={data} onSelect={onSelect} picking={picking} onPickItem={onPickItem} />;
+    case 'GallerySingleCard': return <GallerySingleCard data={data} onSelect={onSelect} onZone={onZone} picking={picking} onPickItem={onPickItem} />;
     case 'MapCard': return <MapCard data={data} />;
 case 'MediaPlayerCard': return <MediaPlayerCard data={data} />;
     case 'ArticleListCard': return <ArticleListCard data={data} picking={picking} onPickItem={onPickItem} />;
@@ -1854,7 +1862,7 @@ function pickLinkClick(url, onPickItem) {
  *  Bare option takes the chrome away so the picture can reach the edges.
  *  The caption, when it is wanted, is an overlay on a gradient (the story's `full` panel already does this), so
  *  it costs no height. A video's poster keeps its ▶ badge. */
-function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
+function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
   const wrapRef = useRef(null);
   const measured = useContentWidth(wrapRef);
   const box = useBoxSize(wrapRef);          // both dimensions: the zone overlay is placed on the picture, not the card
@@ -1895,9 +1903,9 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
         const href = zoneUrl(z.value);
         if (href) { event.preventDefault(); window.open(href, '_blank', 'noopener,noreferrer'); return; }
       }
-      // `send` (and any `open` whose value is not a reference): publish the value on this card's selection channel,
-      // which is the same event a tile click raises — a consumer cannot tell the two apart, which is the point.
-      if (z.value) onSelect?.(z.value);
+      // `send` (and any `open` whose value is not a reference) publishes on the card's own `zones` channel: the
+      // picture's click publishes the FILE it shows on `selection`, and a zone publishes the thing it NAMES here.
+      if (z.value) onZone?.(z.value);
     },
   });
   return (

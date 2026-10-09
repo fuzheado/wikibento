@@ -181,8 +181,14 @@ the crop live, with the parts outside it dimmed, or you will place a zone and th
 
 ## What a click emits
 
-**A selection emit on the card's own channel — the same event a Gallery click sends.** A consumer cannot tell a
-zone click from a tile click, which is exactly right. Per zone, the payload is `value` and the kind is `kind`:
+**A zone publishes on the card's own `zones` channel; the picture's own click keeps `selection`.** The first version
+used `selection` for both — "a consumer cannot tell a zone click from a tile click" — and the first live demo showed
+why that is wrong for a card that does both: a click on a photograph publishes the **file** it shows, so an article
+consumer wired to that channel answered *"Article not found: File:Scuol-Motta Naluns…jpg"* the moment a reader clicked
+the picture instead of a zone. One picture can publish two kinds of thing; each gets a channel. Wire a file consumer to
+`selection` and an article consumer to `zones` and both work, side by side, from the same photograph.
+
+Per zone, the payload is `value` and the kind is `kind`:
 
 | zone kind | natural consumer |
 |---|---|

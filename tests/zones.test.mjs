@@ -100,6 +100,12 @@ test('an `open` zone\'s reference becomes a wiki URL — language codes and dbna
 
 test('the registry offers the field, only where it applies, and carries the parse into the renderer', () => {
   const def = WIDGET_TYPES.gallery;
+  // A picture publishes TWO kinds of thing: the file it shows (its own click → `selection`) and the things its zones
+  // name (→ `zones`). One channel each — the first live demo collided them, and an article consumer said
+  // "Article not found: File:Scuol-…jpg".
+  assert.equal(def.outputs.zones, 'value', 'the gallery declares the channel its zones publish on');
+  assert.equal(def.outputs.selection, 'value', 'and keeps the one its own click uses');
+  assert.equal(def.primary, 'lines', 'the bare id still means its lines');
   const field = (def.configFields || []).find((f) => f.key === 'zones');
   assert.ok(field, 'the gallery declares a zones field');
   assert.equal(field.type, 'textarea', 'zones are text — no new field type (the map\'s precedent)');
@@ -126,7 +132,9 @@ test('the demo board\'s zones parse, and every one names something a consumer ca
     assert.match(z.value, /^[a-z-]+:/, `${z.label}: the value is a reference, so the consumer knows the wiki`);
     assert.ok(ZONE_ACTIONS.includes(z.action));
   }
-  // …and the consumer really is wired to the producer's selection channel.
+  // …and the consumer really is wired to the producer's ZONE channel, not to the one a picture click uses.
   const excerpt = board.widgets.find((w) => w.id === 'zones-excerpt');
-  assert.match(excerpt.config.article, /\{\{widget:zones-image#selection\}\}/);
+  assert.match(excerpt.config.article, /\{\{widget:zones-image#zones\}\}/);
+  assert.doesNotMatch(excerpt.config.article, /#selection/,
+    'the picture click publishes the FILE it shows on selection — an article consumer must not be wired there');
 });

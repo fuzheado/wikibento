@@ -7,7 +7,7 @@
    "widgetType": "markdown",
    "name": "How this demo works",
    "config": {
-    "text": "# \ud83d\udc46 Click a mountain\n\nThis board is **one photograph with clickable zones on it** \u2014 and the zones are not ours: they are the *file's own*\n[Commons image notes](https://commons.wikimedia.org/wiki/File:Scuol-Motta_Naluns,_11-10-2024._(actm.)_21.jpg), written\nby the photographer, read out of the file's wikitext and converted to percentages of the picture. Six peaks, exactly\nwhere that file says they are.\n\nHover a box (a tap reveals it on a phone) and its name appears. A click **publishes the name** on the picture card's\n`selection` channel, which is the same event a gallery tile raises \u2014 so the \ud83d\udcc4 Article Excerpt beside it, listening to\nthat channel, loads the mountain you clicked. No page reload; the URL never changes.\n\n- `Piz Mezdi` is the odd one out: its line ends `open`, so it opens the article in a new tab instead of feeding the card.\n- Zones live in the card's \u2699 panel as **text**, one per line \u2014 `x,y,w,h | label | kind | value | action`, with the box in\n  percentages of the picture. Fix one by hand, or write a board that has them from the start.\n\nThe extract card starts at \"waiting for a reference\": that is the app's own state for a consumer whose producer has not\nemitted yet, and the first click fills it.\n"
+    "text": "# \ud83d\udc46 Click a mountain\n\nThis board is **one photograph with clickable zones on it** \u2014 and the zones are not ours: they are the *file's own*\n[Commons image notes](https://commons.wikimedia.org/wiki/File:Scuol-Motta_Naluns,_11-10-2024._(actm.)_21.jpg), written\nby the photographer, read out of the file's wikitext and converted to percentages of the picture. Six peaks, exactly\nwhere that file says they are.\n\nHover a box (a tap reveals it on a phone) and its name appears. Clicking one **publishes the article it names** on the\ncard's `zones` channel, and the \ud83d\udcc4 Article Excerpt below, listening to that channel, loads it. No page reload; the URL\nnever changes.\n\n**Two channels, one picture.** Clicking the *photograph itself* publishes the **file** it shows on the card's\n`selection` channel \u2014 the gallery's own behaviour \u2014 while a zone publishes the **thing it names** on `zones`. Wire a\nfile consumer to `selection` and an article consumer to `zones` and both work from the same picture.\n\n**About the targets.** Only `Piz Nuna` has an article of its own on de.wikipedia; the other five peaks do not. Each of\nthose zones points at the **nearest thing that does** \u2014 the valley, the lakes, the list the peak appears in \u2014 chosen by\nsearch, which is exactly the job the *suggest* step (slice C of `docs/ZONES.md`) will do for an author instead of\nleaving it to memory. `Piz Mezdi`'s line ends `open`, so it opens its article in a new tab rather than feeding the card.\n\nZones live in the card's \u2699 panel as **text**, one per line \u2014 `x,y,w,h | label | kind | value | action`, with the box in\npercentages of the picture. Fix one by hand, or write a board that has them from the start.\n"
    }
   },
   {
@@ -21,7 +21,7 @@
     "imageFit": "contain",
     "showCaptions": true,
     "linkAction": "send to the board",
-    "zones": "26.5,23.8,0.8,1.3 | Piz Sursass | article | de:Piz Sursass | send\n21.0,27.0,0.8,1.3 | Piz Nuna | article | de:Piz Nuna | send\n17.3,29.7,0.7,1.4 | Piz Macun | article | de:Piz Macun | send\n22.9,31.7,0.8,1.6 | Piz d'Arpiglias | article | de:Piz d'Arpiglias | send\n4.7,32.4,0.8,1.8 | Chast\u00e8 Steinsberg, Ardez | article | de:Chast\u00e8 Steinsberg, Ardez | send\n15.2,14.3,0.6,1.4 | Piz Mezdi | article | de:Piz Mezdi | open"
+    "zones": "26.5,23.8,0.8,1.3 | Piz Sursass | article | de:Val d\u2019Uina | send\n21.0,27.0,0.8,1.3 | Piz Nuna | article | de:Piz Nuna | send\n17.3,29.7,0.7,1.4 | Piz Macun | article | de:Macun-Seen | send\n22.9,31.7,0.8,1.6 | Piz d'Arpiglias | article | de:Liste der Dreitausender in der Sesvennagruppe | send\n4.7,32.4,0.8,1.8 | Chast\u00e8 Steinsberg, Ardez | article | de:Liste der Kulturg\u00fcter in Scuol | send\n15.2,14.3,0.6,1.4 | Piz Mezdi | article | de:Tamangur | open"
    }
   },
   {
@@ -29,7 +29,7 @@
    "widgetType": "excerpt",
    "name": "The peak you clicked",
    "config": {
-    "article": "{{widget:zones-image#selection}}",
+    "article": "{{widget:zones-image#zones}}",
     "project": "de.wikipedia",
     "refreshSeconds": 3600
    }
