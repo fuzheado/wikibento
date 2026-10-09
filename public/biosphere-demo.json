@@ -1,0 +1,68 @@
+{
+ "version": 1,
+ "params": {},
+ "widgets": [
+  {
+   "id": "xbio-note",
+   "widgetType": "markdown",
+   "name": "How this demo was made",
+   "config": {
+    "text": "# \ud83d\udd24 Every word is a door\n\nA diagram of biology's **levels of organisation** \u2014 and every label in it is a clickable zone. Hover a word and its box\nlights up; click it and the \ud83d\udcc4 Article Excerpt below loads the article for that level.\n\n**The words were not typed by hand.** They came *out of the picture*: Apple Vision OCR (locally, on this machine) found\neach label and its bounding box, the boxes were converted to percentages of the image, and each word was matched to the\nEnglish Wikipedia article its *meaning* wants \u2014 `cell` \u2192 **Cell (biology)** (not the disambiguation), `population` \u2192\n**Population (biology)** (not demography), `community` \u2192 **Community (ecology)**. Choosing those senses is the author's\njudgement, and it is exactly the step the *suggest* design (`docs/ZONES.md`, slice C) exists to do in the app.\n\nThe zones are text in the card's \u2699 panel, one line per word:\n\n```\n18.6,5.66,4.51,3.49 | cell | article | en:Cell (biology) | send\n```\n\n*Illustration: \u201cXBio illustration \u2013 Biosphere\u201d by explorebiology, [CC BY 4.0](https://commons.wikimedia.org/wiki/File:XBio_illustration_%E2%80%93_Biosphere.png), via Wikimedia Commons.*"
+   }
+  },
+  {
+   "id": "xbio-image",
+   "widgetType": "gallery",
+   "name": "Levels of organisation",
+   "config": {
+    "from": "list",
+    "files": "File:XBio illustration \u2013 Biosphere.png",
+    "displayMode": "single",
+    "imageFit": "contain",
+    "showCaptions": false,
+    "hotspotStyle": "subtle",
+    "linkAction": "new tab",
+    "zones": "31.42,1.17,12.23,7.74 | organelles | article | en:Organelle | send\n77.75,3.37,19.94,6.12 | BIOSPHERE | article | en:Biosphere | send\n49.26,5.38,10.2,3.84 | molecules | article | en:Molecule | send\n18.6,5.66,4.51,3.49 | cell | article | en:Cell (biology) | send\n9.3,18.08,6.4,3.7 | tissue | article | en:Tissue (biology) | send\n59.45,18.08,6.4,3.49 | atoms | article | en:Atom | send\n2.17,41.12,6.71,3.61 | organ | article | en:Organ (biology) | send\n75.26,67.41,11.97,6.14 | biosphere | article | en:Biosphere | send\n56.6,77.29,11.78,5.27 | ecosystem | article | en:Ecosystem | send\n3.48,77.59,15.17,5.04 | organ system | article | en:Organ system | send\n48.11,89.54,12.21,5.23 | community | article | en:Community (ecology) | send\n15.53,90.74,10.5,3.93 | organism | article | en:Organism | send\n31.39,92.78,12.22,5.73 | population | article | en:Population (biology) | send"
+   }
+  },
+  {
+   "id": "xbio-excerpt",
+   "widgetType": "excerpt",
+   "name": "The level you clicked",
+   "config": {
+    "article": "{{widget:xbio-image#zones}}",
+    "project": "en.wikipedia",
+    "refreshSeconds": 3600
+   }
+  }
+ ],
+ "layout": [
+  {
+   "i": "xbio-note",
+   "x": 0,
+   "y": 0,
+   "w": 5,
+   "h": 7,
+   "minW": 3,
+   "minH": 2
+  },
+  {
+   "i": "xbio-image",
+   "x": 5,
+   "y": 0,
+   "w": 7,
+   "h": 7,
+   "minW": 3,
+   "minH": 2
+  },
+  {
+   "i": "xbio-excerpt",
+   "x": 0,
+   "y": 7,
+   "w": 5,
+   "h": 4,
+   "minW": 3,
+   "minH": 2
+  }
+ ]
+}

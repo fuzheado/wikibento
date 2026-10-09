@@ -1974,7 +1974,7 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
           : null}
       </a>
       {!picking && zones.length ? (
-        <div className="zone-layer" role="group" aria-label="Clickable zones">
+        <div className={`zone-layer${data.hotspotStyle === 'subtle' ? ' is-subtle' : ''}`} role="group" aria-label="Clickable zones">
           <div className="zone-frame" style={frame} ref={frameRef}>
             {zones.map((z, i) => {
               const { key, style, name, onClick } = zoneAt(z, i);

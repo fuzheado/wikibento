@@ -929,6 +929,7 @@ export const WIDGET_TYPES = {
       category: 'Featured pictures',
       files: 'File:The Earth seen from Apollo 17.jpg\nFile:Airplane vortex edit.jpg\nFile:Albert Einstein Head.jpg',
       displayMode: 'grid',   // 'grid' | 'list' | 'story' | 'single'
+      hotspotStyle: 'always',   // 'always' (a ring per zone) | 'subtle' (no ring: the zone lights up on hover)
       showCaptions: true,    // off leaves the image alone: no caption under a tile, no overlay in single mode
       edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       iconSize: 'medium',
@@ -999,6 +1000,10 @@ export const WIDGET_TYPES = {
         { value: 'contain', label: 'Letterbox (always show whole image)' },
         { value: 'cover', label: 'Fill crop' },
       ], hint: 'Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.' },
+      { key: 'hotspotStyle', label: 'Zone markers', type: 'select', showIf: { displayMode: 'single' }, options: [
+        { value: 'always', label: 'Always — a visible ring on every zone' },
+        { value: 'subtle', label: 'Subtle — no ring; the zone lights up on hover (text, dense labels)' },
+      ], hint: 'A ring makes a tiny zone findable on a photograph. Where the zones ARE the visible thing — words in a diagram, labelled boxes — the ring is noise, and this turns it off.' },
       { key: 'zones', label: 'Clickable zones', type: 'textarea', rows: 4, showIf: { displayMode: 'single' },
         placeholder: '18.1,14.4,5.7,6.7 | Piz Nuna | article | de:Piz Nuna | send',
         hint: 'One zone per line: x,y,w,h | label | kind | value | action — percentages of the picture. A click publishes the value on this card\'s selection channel, so another card can consume it ({{widget:id#selection}}). A line that cannot be read is reported on the card, and a box is never clamped.' },
@@ -1076,6 +1081,7 @@ export const WIDGET_TYPES = {
         mediaPlate: plateChoice(config.mediaBackground),
         zones,
         zoneProblems,
+        hotspotStyle: config.hotspotStyle === 'subtle' ? 'subtle' : 'always',
       };
 
       if (source === 'article') {

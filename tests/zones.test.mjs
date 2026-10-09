@@ -138,3 +138,36 @@ test('the demo board\'s zones parse, and every one names something a consumer ca
   assert.doesNotMatch(excerpt.config.article, /#selection/,
     'the picture click publishes the FILE it shows on selection — an article consumer must not be wired there');
 });
+
+test('the OCR-read diagram demo: every label the reader can see is a zone with an article', () => {
+  // This board was not typed: Apple Vision OCR read the labels out of the picture and their boxes became the zones.
+  // The four words the request named are the acceptance test, and each must name an English article — the *sense* the
+  // diagram means (`cell` → Cell (biology), not the disambiguation; `population` → Population (biology), not demography).
+  const board = JSON.parse(readFileSync('public/biosphere-demo.json', 'utf8'));
+  const image = board.widgets.find((w) => w.id === 'xbio-image');
+  assert.equal(image.config.hotspotStyle, 'subtle', 'no ring per word: the words are their own affordance');
+  assert.equal(image.config.imageFit, 'contain');
+  const { zones, problems } = parseZones(image.config.zones);
+  assert.deepEqual(problems, []);
+  assert.equal(zones.length, 13, 'every label OCR found is a zone');
+  const byLabel = new Map(zones.map((z) => [z.label, z.value]));
+  for (const word of ['cell', 'tissue', 'organ', 'molecules']) {
+    assert.ok(byLabel.has(word), `the OCR found "${word}" (the request named it)`);
+  }
+  assert.equal(byLabel.get('cell'), 'en:Cell (biology)');
+  assert.equal(byLabel.get('population'), 'en:Population (biology)');
+  assert.equal(byLabel.get('community'), 'en:Community (ecology)');
+  assert.equal(byLabel.get('organ system'), 'en:Organ system');
+  for (const z of zones) {
+    assert.match(z.value, /^en:/, `${z.label}: an English article`);
+    assert.ok(z.w > 3 && z.h > 2, `${z.label}: the box has a real size (${z.w}%×${z.h}%)`);
+    assert.ok(zoneUrl(z.value), `${z.label}: its reference resolves to a URL`);
+  }
+  // …and the consumer listens to the zone channel, not to the picture's own click.
+  const excerpt = board.widgets.find((w) => w.id === 'xbio-excerpt');
+  assert.match(excerpt.config.article, /\{\{widget:xbio-image#zones\}\}/);
+  // The registry offers the style switch this board relies on.
+  const field = (WIDGET_TYPES.gallery.configFields || []).find((f) => f.key === 'hotspotStyle');
+  assert.ok(field && field.type === 'select', 'the gallery declares Zone markers');
+  assert.deepEqual(field.showIf, { displayMode: 'single' });
+});

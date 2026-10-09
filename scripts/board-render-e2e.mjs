@@ -390,6 +390,56 @@ try {
     }
     await page.close();
   }
+  /**
+   * The OCR-read diagram — the TEXT case (ISSUE-138).
+   *
+   * Here the zones ARE the visible thing: every label the reader can see is a clickable zone, so the board asks for the
+   * subtle style and there must be no ring on any of them (a ring per word would be noise; a dashed box around each word
+   * would be worse). The acceptance list is the four words the request named, and the click is by COORDINATE like a
+   * reader's — the word's own box centre — because the highlight, not a marker, is the affordance.
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const text = String(m.text());
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(text)) return;
+      errors.push(`console: ${text.slice(0, 110)}`);
+    });
+    try {
+      await page.goto(`${base}/?config=/biosphere-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="xbio-image"] .zone', { timeout: 30000 });
+      const drawn = await page.evaluate(() => {
+        const buttons = [...document.querySelectorAll('[data-widget-id="xbio-image"] .zone')];
+        return {
+          labels: buttons.map((b) => b.getAttribute('aria-label')),
+          ringed: buttons.filter((b) => parseFloat(getComputedStyle(b).borderTopWidth) > 0).length,
+        };
+      });
+      const missing = ['cell', 'tissue', 'organ', 'molecules'].filter((w) => !drawn.labels.includes(w));
+      const point = await page.evaluate(() => {
+        const b = document.querySelector('[data-widget-id="xbio-image"] .zone[aria-label="cell"]');
+        const r = b.getBoundingClientRect();
+        return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+      });
+      await page.mouse.click(point.x, point.y);
+      await page.waitForFunction(() => {
+        const text = document.querySelector('[data-widget-id="xbio-excerpt"]')?.innerText || '';
+        return /Cell/i.test(text) && !/Waiting for a reference/i.test(text);
+      }, null, { timeout: 30000, polling: 250 });
+      const after = await page.evaluate(() => (document.querySelector('[data-widget-id="xbio-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
+      if (missing.length) bad('zones: text diagram (OCR)', `the OCR labels this check needs are missing: ${missing.join(', ')}`);
+      else if (drawn.ringed) bad('zones: text diagram (OCR)', `${drawn.ringed} zones still draw a ring — the subtle style is meant to have none`);
+      else if (errors.length) bad('zones: text diagram (OCR)', errors[0]);
+      else ok('zones: text diagram (OCR)', `${drawn.labels.length} words clickable, no rings · clicked "cell" → the excerpt reads ${JSON.stringify(after)}`);
+    } catch (e) {
+      bad('zones: text diagram (OCR)', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
 } finally {
   await browser.close();
   server?.kill();

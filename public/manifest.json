@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-09T11:29:38.870Z",
+ "generatedAt": "2026-10-09T12:07:31.761Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -835,6 +835,19 @@
      ]
     },
     {
+     "key": "hotspotStyle",
+     "type": "select",
+     "label": "Zone markers",
+     "hint": "A ring makes a tiny zone findable on a photograph. Where the zones ARE the visible thing — words in a diagram, labelled boxes — the ring is noise, and this turns it off.",
+     "showIf": {
+      "displayMode": "single"
+     },
+     "options": [
+      "always",
+      "subtle"
+     ]
+    },
+    {
      "key": "zones",
      "type": "textarea",
      "label": "Clickable zones",
@@ -893,6 +906,7 @@
     "category",
     "files",
     "displayMode",
+    "hotspotStyle",
     "showCaptions",
     "edgeToEdge",
     "iconSize",
