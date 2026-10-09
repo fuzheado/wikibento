@@ -1621,9 +1621,10 @@ const server = createServer(async (req, res) => {
       // on rsync --delete; a stale index.html would 404 on them).
       'Cache-Control': immutable
         ? 'public, max-age=604800, immutable'
-        : pathname === '/index.html'
-          ? 'no-cache'
-          : 'public, max-age=3600',
+        : 'no-cache',   // everything not name-hashed: revalidate. A board, the guide or the manifest changes without
+                        // its URL changing, and a browser holding an hour-old copy shows a *working* feature as broken
+                        // (2026-10-09: zone-demo.json's wiring moved to the `zones` channel; cached copies kept feeding
+                        // the old one and the consumer waited forever). Fingerprinted assets keep their long cache.
     });
     res.end(data);
   } catch (e) {

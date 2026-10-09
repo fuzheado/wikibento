@@ -192,6 +192,9 @@ export function looksLikeHtml(text) {
 }
 
 export async function fetchRemoteConfig(url) {
+  // `no-cache` = revalidate before use, which is what a board needs: the same URL may be a different board after a
+  // deploy, and a cached copy is indistinguishable from a board that has not changed. Belt to the server's braces —
+  // it also covers boards hosted somewhere we do not control.
   // Bare w.wiki/XXXX (no scheme) → https://w.wiki/XXXX
   if (!/^[a-z][a-z0-9+.-]*:/i.test(url) && WWIKI_BARE_RE.test(url)) {
     url = `https://${url}`;
@@ -206,7 +209,7 @@ export async function fetchRemoteConfig(url) {
     } else {
       // No resolver (plain static host): try the browser fetch directly —
       // works only when the redirect target sends CORS headers.
-      const resp = await fetch(u);
+      const resp = await fetch(u, { cache: 'no-cache' });
       if (!resp.ok) throw new Error(httpError(resp.status, u.href, url));
       const text = await resp.text();
       if (looksLikeHtml(text)) {
@@ -217,7 +220,7 @@ export async function fetchRemoteConfig(url) {
   }
 
   if (WIKI_HOST_RE.test(u.hostname)) return fetchWikiPageText(u);
-  const resp = await fetch(u);
+  const resp = await fetch(u, { cache: 'no-cache' });
   if (!resp.ok) throw new Error(httpError(resp.status, u.href, url));
   const text = await resp.text();
   if (looksLikeHtml(text)) {

@@ -95,7 +95,11 @@ for (const [path, type] of Object.entries(DOOR)) {
   if (r.status !== 200) bad(`door: ${path}`, `HTTP ${r.status}`);
   else if (acao !== '*') bad(`door: ${path}`, `no Access-Control-Allow-Origin (got ${acao})`);
   else if (!ct.startsWith(type)) bad(`door: ${path}`, `Content-Type ${ct} (expected ${type}…)`);
-  else ok(`door: ${path}`, `HTTP 200, ACAO *, ${ct.split(';')[0]}`);
+  // These three files change on deploy without their URL changing, so a browser must revalidate them: `max-age` on a
+  // data file is how a *working* feature looked broken for an hour in Andrew's browser while an empty-cache sweep
+  // passed (2026-10-09). Asserted here because this is the block that already reads the door's headers.
+  else if (!/no-cache/.test(r.headers.get('cache-control') || '')) bad(`door: ${path}`, `Cache-Control "${r.headers.get('cache-control')}" — a data file must revalidate`);
+  else ok(`door: ${path}`, `HTTP 200, ACAO *, ${ct.split(';')[0]}, revalidates`);
 }
 {
   // …and the app's own files are NOT advertised that way: a dashboard bundle is not an API.
@@ -103,6 +107,17 @@ for (const [path, type] of Object.entries(DOOR)) {
   r.headers.get('access-control-allow-origin') === null
     ? ok('door: index.html stays same-origin', 'no CORS header')
     : bad('door: index.html', 'served with a CORS header');
+// The other half of the cache rule: a name-hashed asset is allowed to be cached hard, and should be — otherwise every
+// deploy makes every browser refetch the whole bundle for nothing.
+{
+  const html = await (await get('/')).text();
+  const asset = (html.match(/assets\/[\w.-]+\.js/) || [])[0];
+  const r = asset ? await get(`/${asset}`) : null;
+  const cc = (r && r.headers.get('cache-control')) || '';
+  if (!asset) bad('cache: fingerprinted assets', 'no /assets/*.js in index.html to check');
+  else if (!/immutable/.test(cc)) bad('cache: fingerprinted assets', `${asset} served with "${cc}"`);
+  else ok('cache: fingerprinted assets', `${asset} is immutable — a data file revalidates, a hashed one need not`);
+}
 }
 
 // ── 1. the closed parameter surface ─────────────────────────────────────────

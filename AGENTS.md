@@ -81,6 +81,13 @@ This project has lost time to a familiar word meaning something narrower than pe
   `scripts/smoke-built.mjs` compare the newest `src/` mtime with the newest `dist/assets/` one and exit with a reason if
   the build is older. Twice on 2026-09-24 a fixed feature *measured* as broken because of this; the doc line below did
   not prevent it, so the check is mechanical now.
+- **A browser check starts with an EMPTY cache, so it cannot see a stale data file.** A board, the guide, the manifest and
+  the schema are fetched by URL and change *without* their URL changing; if the server caches them with `max-age`, a
+  returning browser serves the old copy — and a working feature looks broken (2026-10-09: the zones demo's consumer sat
+  at "Waiting for a reference" for anyone who had visited before, because their cached board still named the old channel,
+  while the sweep against production passed every time). The served rule is now: name-hashed `/assets/*` immutable,
+  **everything else `no-cache`** — and `scripts/relay-guard-e2e.mjs` asserts both halves, which is the only check that can
+  see this class at all.
 **A kind is not a label, it is a position in a hierarchy.** `article` is the main namespace and `page` is the wider
   set, so an article is also a page; comparing the two labels for equality refused a pick that would have worked
   (ISSUE-118). `KIND_SUPERSET` / `kindsAccepting()` in `lib/pickMode.js` answer "does this widget accept a thing of
