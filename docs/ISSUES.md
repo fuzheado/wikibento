@@ -6462,6 +6462,19 @@ lakes, the list a peak appears in), found by search and labelled with the note's
 work slice C's *suggest* step exists to do for an author, and it is the strongest argument yet for proposing candidates
 and never binding one silently.
 
+**A second demo, and the rung above Commons notes (2026-10-09).** `?config=/biosphere-demo.json` is a biology diagram
+whose **13 labels are zones — and none of them was typed**. Apple Vision OCR (the `local-ocr` skill, offline) read the
+hand-lettered words *and their boxes*: the labels are the names, the boxes are the geometry, which is both halves of a
+zone. The hand-lettering is why tesseract's default mode found two words and Vision found all thirteen at score 1.00.
+OCR gives no *target*, so each label still needed the article its **meaning** wants — `cell` → Cell (biology) (not the
+disambiguation), `population` → Population (biology) (not demography), `community` → Community (ecology) — every one
+verified to exist before it was written down, which is the author's judgement the suggest step (slice C) exists to make.
+It also needed a renderer option: a ring per zone is wrong when the zones *are* the words, so the Gallery gained
+`hotspotStyle` (`always` | `subtle`) and this board uses `subtle` — no ring, no resting outline, the word's own box
+lights up on hover. The gates: the four words the request named are asserted in `tests/zones.test.mjs` (with their
+senses), and the browser check requires **no ring on any zone**, clicks "cell" by coordinate and waits for the excerpt to
+become `en:Cell (biology)`.
+
 Deliberately **not** in this slice, and still designed: the editor (zones are written by hand today), the Commons-notes
 import and its target suggestions, the 360° host, tours with arrival views, the decided
 **tap-reveals-then-acts touch rule** (the MVP's click acts at once), the numbered print legend (the layer hides in

@@ -110,6 +110,7 @@ becomes useful or becomes a quiet source of wrong links.
 
 | rung | the source | what it gives |
 |---|---|---|
+| 0 | **the image's own text** (OCR) | a *diagram's* labels are its own metadata: a local OCR pass (Apple Vision) gives each label **and its box**, which is both halves of a zone — geometry and a name. It gives no *target* though, so rungs below still decide the article; this is how `?config=/biosphere-demo.json` was built (13 words, hand-lettered, all found at score 1.00 where tesseract managed two) |
 | 1 | **a link inside the note text** | the note author's own answer, free — a `[[Dom Pedro II]]` needs no search |
 | 2 | **the file's structured data** | `depicts` statements give QIDs, sometimes with a `P2677` relative position that lands inside the same box |
 | 3 | **search, with the role kept** | head form *plus* the role words, full-text, on a wiki — the rung that does the work |
@@ -166,6 +167,10 @@ existing client, not a new client.
   hover highlight are resolved **by geometry**: a click inside a box means that box, otherwise the nearest centre wins,
   and the highlight follows the same rule rather than the DOM's `:hover`. A highlight that promises one zone while a
   click delivers its neighbour is worse than no highlight.
+- **Markers or not — `hotspotStyle` (built 2026-10-09).** `always` (the default) draws a ring of at least 30px per zone,
+  which is what makes a five-pixel box on a photograph findable. `subtle` draws **no ring and no resting outline**: the
+  zone's own box lights up when it is the one you mean. That is the right default for an image whose zones *are* the
+  visible thing — the words of a diagram — where a ring per word is noise; the first text board (below) uses it.
 - **A `showZones` chrome toggle** (`subtle | always`) for kiosk and exhibition use, where nobody will guess.
 
 ## Cropping — decided: three fits, the third one keeps the zones
