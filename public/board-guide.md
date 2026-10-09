@@ -664,8 +664,10 @@ Beyond board params, a widget can **emit** its output and another widget can
    `"config": { "articles": "{{widget:flow-list}}", ... }`
    Unknown widget ids are left literal (never break a board) — but a widget
    that **fetches** will not send an unresolved placeholder upstream: it shows
-   a **"Waiting for a reference"** state instead and loads automatically once
-   the producer emits (ISSUE-58). Under text/textarea config fields the ⚙
+   a waiting state instead (**"Nothing selected yet"** when the producer is a card
+   that simply has not sent a value yet, or a *warning* when no card on the board
+   can satisfy the reference) and loads automatically once the producer emits
+   (ISSUE-58, ISSUE-145). Under text/textarea config fields the ⚙
    panel lists the available emitters as clickable `{{widget:<id>}}` chips, so
    references are inserted precisely instead of typed from memory.
 

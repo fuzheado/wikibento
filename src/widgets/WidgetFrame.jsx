@@ -5,7 +5,7 @@ import {
   orderProjects, filterProjects, labelFor, readRecentProjects, noteRecentProject,
   readDefaultProject, toFieldValue, LANGUAGE_EN,
 } from '../lib/projects';
-import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
+import { resolveParams, findUnresolvedRefs, waitingCopy, selectParamNames } from '../lib/params';
 import { zoneUrl } from '../lib/zones';   // ISSUE-138: an `open` zone's value, as a URL
 import {
   getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue,
@@ -922,18 +922,26 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
             <button className="widget-btn" onClick={load}>Retry</button>
           </div>
         )}
-        {state.waiting && !state.loading && !state.data && (
-          <div className="widget-waiting">
-            <span className="widget-waiting-icon" aria-hidden="true">⏳</span>
-            <div className="widget-waiting-text">
-              <div className="widget-waiting-title">Waiting for a reference</div>
-              <div className="widget-waiting-detail">{describeUnresolvedRefs(state.waiting)}</div>
-              <div className="widget-waiting-hint">
-                No request was sent — this widget loads automatically once the reference resolves.
+        {state.waiting && !state.loading && !state.data && (() => {
+          // ISSUE-145: the three situations that used to share one sentence are told apart here — an empty card that
+          // will fill in (state `awaiting`, a neutral dot) and a reference nothing on the board can satisfy (state
+          // `unresolved`, a warning, because that one is a mistake). `data-state` is what the gates assert: the copy
+          // must be free to change without breaking a check.
+          const copy = waitingCopy(state.waiting, { emitters: sourceOptions });
+          return (
+            <div className={`widget-waiting${copy.state === 'unresolved' ? ' is-unresolved' : ''}`}
+              data-state={copy.state}>
+              <span className="widget-waiting-icon" aria-hidden="true">
+                {copy.state === 'unresolved' ? '⚠' : '◇'}
+              </span>
+              <div className="widget-waiting-text">
+                <div className="widget-waiting-title">{copy.title}</div>
+                {copy.detail && <div className="widget-waiting-detail">{copy.detail}</div>}
+                {copy.hint && <div className="widget-waiting-hint">{copy.hint}</div>}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         {state.data && (
   <>
     <WidgetContent type={renderer} data={state.data} paramSpecs={paramSpecs} paramValues={paramValues} onSetParam={onSetParam} onSelect={handleSelect} onZone={handleZone} picking={picking} onPickItem={onPickItem} projects={projectList} />

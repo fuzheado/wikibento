@@ -11,13 +11,13 @@
  *    chain List → Filter → Count → Echo yields the expected numbers;
  *  - validateDashboard warns (never errors) on a `source` pointing off-board;
  *  - ISSUE-58: the Article Excerpt emitter, and the unresolved-reference guard
- *    (findUnresolvedRefs / describeUnresolvedRefs) that stops a fetch widget
+ *    (findUnresolvedRefs / waitingCopy) that stops a fetch widget
  *    from sending a literal `{{widget:id}}`/`{{param}}` placeholder upstream.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../src/lib/params.js';
+import { resolveParams, stringifyOutput, extractWidgetRefs, findUnresolvedRefs, waitingCopy, selectParamNames } from '../src/lib/params.js';
 import { toLines, countOf, resolveSourceValue, widgetOutputSignature, renameWidgetRefs, findWidgetRefs, countWidgetTokens, OUTPUT_KINDS, VALUE_KINDS, declaredOutputKinds, outputChannels } from '../src/lib/dataflow.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import { validateDashboard } from '../src/lib/dashboardConfig.js';
@@ -414,14 +414,29 @@ test('findUnresolvedRefs: unknown refs stay literal AND are reported (the guard 
   assert.equal(refs[0].name, 'missing');
 });
 
-test('describeUnresolvedRefs: names the widget/param and why', () => {
-  const msg = describeUnresolvedRefs([
-    { raw: '{{widget:excerpt-1}}', kind: 'widget', name: 'excerpt-1' },
-    { raw: '{{topic}}', kind: 'param', name: 'topic' },
-  ]);
-  assert.match(msg, /widget output “excerpt-1”/);
-  assert.match(msg, /board param “topic”/);
-  assert.equal(describeUnresolvedRefs([]), '');
+test('waitingCopy: tells a wait that will resolve from a reference that cannot (ISSUE-145)', () => {
+  // What matters is the STATE, decided by the emitter list the frame already has — so the copy is free to change while
+  // the classification stays pinned. The producer is named by its *title*, never by its id.
+  const emitters = [{ id: 'zbio-image', label: 'Motta Naluns — click a peak' }];
+  const awaiting = waitingCopy([{ raw: '{{widget:zbio-image}}', kind: 'widget', name: 'zbio-image' }], { emitters });
+  assert.equal(awaiting.state, 'awaiting', 'a known producer means the card will fill in');
+  assert.match(awaiting.detail, /Motta Naluns — click a peak/);
+  assert.doesNotMatch(awaiting.detail, /zbio-image/);
+
+  const unknown = waitingCopy([{ raw: '{{widget:nope}}', kind: 'widget', name: 'nope' }], { emitters });
+  assert.equal(unknown.state, 'unresolved', 'a missing producer must not read as a normal wait');
+  assert.match(unknown.hint, /⚙/, 'a mistake names the place to fix it');
+
+  const param = waitingCopy([{ raw: '{{topic}}', kind: 'param', name: 'topic' }], { emitters });
+  assert.equal(param.state, 'unresolved');
+  assert.match(param.title, /param/i);
+  assert.match(param.hint, /Board Controls/);
+
+  const mixed = waitingCopy([{ raw: '{{widget:zbio-image}}', kind: 'widget', name: 'zbio-image' },
+    { raw: '{{topic}}', kind: 'param', name: 'topic' }], { emitters });
+  assert.equal(mixed.state, 'unresolved', 'a param nobody defines is not excused by a producer that exists');
+
+  assert.equal(waitingCopy([]).detail, '');
 });
 
 // ── ISSUE-59: per-card board-param scoping ──

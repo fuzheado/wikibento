@@ -251,13 +251,50 @@ export function selectParamNames(specs, show) {
   return all.filter((n) => want.includes(n));
 }
 
-/** Human one-liner for the waiting card — e.g.
- *  `widget output "excerpt-1" (not emitted yet — or the id is unknown)`. */
-export function describeUnresolvedRefs(refs) {
-  if (!Array.isArray(refs) || refs.length === 0) return '';
-  return refs
-    .map((r) => (r.kind === 'widget'
-      ? `widget output “${r.name}” (not emitted yet — or the id is unknown)`
-      : `board param “${r.name}” (not defined)`))
-    .join(' · ');
+/**
+ * What a card waiting for a value should say (ISSUE-145).
+ *
+ * The old copy was one sentence for three different situations — `Waiting for a reference` +
+ * `widget output “x” (not emitted yet — or the id is unknown)` — which made a *normal* wait look like a fault and left
+ * the reader to work out which of the two they had. NN/g's empty-state research lists exactly those questions ("is it
+ * still loading? did an error occur? did I set the wrong thing?") as the ones an ambiguous empty panel raises, and the
+ * frame already knows the answer: the emitter list it passes in tells us whether the reference *can* resolve.
+ *
+ * Two states, each saying what the reader has, where the value comes from, and what happens next:
+ *
+ *   · `awaiting`   — every reference names a card that publishes something; nothing has been selected yet, and it will
+ *                    arrive on its own. The producer is named by its **title**, not by its id: “Motta Naluns — click a
+ *                    peak”, not `xbio-image`.
+ *   · `unresolved` — a reference no card on this board can satisfy, or an undefined board param. This one is a mistake,
+ *                    so it says so and names the place to fix it.
+ */
+export function waitingCopy(refs, { emitters = [] } = {}) {
+  const list = (Array.isArray(refs) ? refs : []).filter(Boolean);
+  if (!list.length) return { state: 'awaiting', title: 'Nothing selected yet', detail: '', hint: '' };
+  const ofParam = list.filter((r) => r.kind !== 'widget');
+  const known = (name) => emitters.find((e) => e.id === name);
+  const ofWidget = list.filter((r) => r.kind === 'widget');
+  const detail = [
+    ...ofWidget.map((r) => (known(r.name)
+      ? `Fills in from “${known(r.name).title || known(r.name).label || r.name}”.`
+      : `No card on this board publishes “${r.name}”.`)),
+    ...ofParam.map((r) => `Nothing on this board defines “${r.name}”.`),
+  ].join(' ');
+  const canResolve = ofWidget.length > 0 && ofWidget.every((r) => known(r.name)) && ofParam.length === 0;
+  if (canResolve) {
+    return {
+      state: 'awaiting',
+      title: 'Nothing selected yet',
+      detail,
+      hint: 'This card updates when information is sent to it.',
+    };
+  }
+  return {
+    state: 'unresolved',
+    title: ofParam.length ? 'No such board param' : 'This card can’t receive anything',
+    detail,
+    hint: ofParam.length
+      ? 'Add it in 🎛️ Board Controls, or fix the reference in this card’s ⚙ settings.'
+      : 'Open ⚙ and point it at a card that publishes a value.',
+  };
 }

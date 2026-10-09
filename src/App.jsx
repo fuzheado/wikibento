@@ -852,7 +852,10 @@ const handleAutoHeight = useCallback((id, px) => {
         const baseKinds = def.outputs?.kind
           ? kindsOf(def.outputs.kind)
           : (def.primary && def.outputs?.[def.primary] ? kindsOf(def.outputs[def.primary]) : []);
-        const base = { id: w.id, label: `${def.icon} ${def.name} · ${w.id} — ${label}`, kinds: baseKinds };
+        // `title` is the card's own instance name (what its title bar calls it, or what a person renamed it to) —
+        // the friendly thing to name in the UI (ISSUE-145); `label` stays the picker's longer line.
+        const base = { id: w.id, title: w.name || def.name || w.widgetType,
+          label: `${def.icon} ${def.name} · ${w.id} — ${label}`, kinds: baseKinds };
         // Extra named channels (ISSUE-91) are sources in their own right, so the reader's selection can be
         // picked distinctly from the widget's own data.
         const extra = Object.keys(outputChannels(def.outputs));

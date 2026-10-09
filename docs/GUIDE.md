@@ -219,7 +219,7 @@ between cards*.
 |---|---|
 | *config not found (HTTP 404)* | wrong `?config=` path, or the file isn't deployed |
 | *returned an HTML page, not JSON* | the server sent the app shell — the file doesn't exist at that path |
-| *Waiting for a reference* | a `{{widget:id}}` producer hasn't emitted yet (or the id is wrong) — it loads automatically |
+| *Nothing selected yet* | a `{{widget:id}}` producer hasn't sent a value yet — the card loads it automatically. A **warning** means instead that no card on the board can satisfy that reference (or a `{{param}}` is defined nowhere) |
 | A widget changed when I clicked another card | it references the same `{{param}}` (broadcast) |
 | *views partial* / *N pages failed* | a budget or rate-limit guard — the number is a floor; refresh later |
 | Stale page after a deploy | hard refresh (⌘⇧R); `index.html` is `no-cache`, assets are immutable |

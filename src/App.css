@@ -719,6 +719,10 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
   padding: 4px 2px;
 }
 .widget-waiting-icon { font-size: 16px; line-height: 1.2; }
+/* A reference nothing on the board can satisfy is a mistake, not a wait — it wears the warning colour, and the doctor
+   says the same thing about it. An empty card that *will* fill in stays neutral. */
+.widget-waiting.is-unresolved .widget-waiting-icon,
+.widget-waiting.is-unresolved .widget-waiting-title { color: var(--danger, #e0556a); }
 .widget-waiting-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .widget-waiting-title { font-size: 12px; font-weight: 600; color: var(--text); }
 .widget-waiting-detail {

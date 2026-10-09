@@ -6800,3 +6800,50 @@ taught it: **each half of the fix prevents the collapse on its own** (a card tha
 card with a height floor does not shrink), so reverting either one alone still passes. Both are kept deliberately — the
 content stays for continuity (no blank flash, and the loading line is reserved for a card that has nothing), while the
 floor is what protects a card that genuinely has no content yet and the settle afterwards.
+
+## ISSUE-145 · One sentence for three situations: the empty card said "Waiting for a reference" (raised by Andrew, 2026-10-09)
+
+**What:** a card whose `{{widget:id}}` reference has not been filled yet showed the same message in every case:
+
+    ⏳ Waiting for a reference
+    widget output “xbio-image” (not emitted yet — or the id is unknown)
+    No request was sent — this widget loads automatically once the reference resolves.
+
+Three situations wore it: **(a)** a *normal* wait — the producer is on the board and simply has not been clicked yet;
+**(b)** the producer *cannot* exist — the id is misspelled, deleted, or names a card that publishes nothing; **(c)** a
+`{{param}}` nobody defines. Only (a) is fine; (b) and (c) are mistakes. The reader was left to work out which they had
+from “(not emitted yet — or the id is unknown)”, which is the app narrating its own uncertainty.
+
+**Why it matters:** NN/g's empty-state research names exactly those questions — *is it still loading? did it fail? did I
+set the wrong thing?* — as what an ambiguous empty panel makes people ask. The answer was already in the app: the frame
+holds the emitter list (`sourceOptions`), so it can tell whether the reference **can** resolve.
+
+**Fix:** `waitingCopy(refs, { emitters })` in `src/lib/params.js` returns `{ state, title, detail, hint }` and is the one
+source of this copy. Two states, rendered by the frame with a `data-state` attribute:
+
+    ◇ Nothing selected yet                                 ← state "awaiting", neutral
+      Fills in from “Levels of organisation”.
+      This card updates when information is sent to it.
+
+    ⚠ This card can’t receive anything                     ← state "unresolved", warning colour
+      No card on this board publishes “nope”.
+      Open ⚙ and point it at a card that publishes a value.
+
+and for (c): `⚠ No such board param` · `Nothing on this board defines “topic”.` · `Add it in 🎛️ Board Controls, or fix
+the reference in this card’s ⚙ settings.`
+
+Andrew chose the wording, and a *behaviour* sentence over an instruction: “this card updates when information is sent to
+it” is true of a card fed by a param or a timer, while “pick something there” describes only one way a value arrives.
+The producer is named by its **instance name** (`Fills in from “Levels of organisation”`), never by its id — a new
+`title` on the source options, while the ⚙ picker keeps its longer `🖼️ Gallery · xbio-image — 1 file` label.
+
+**The gates were asserting the sentence.** Seven checks in `scripts/board-render-e2e.mjs` matched the literal string,
+plus a comment in `tests/params.test.mjs` — the “never guard on prose” rule this repo wrote after a bare identifier in a
+comment satisfied a guard, broken by the check that was supposed to enforce it. They now assert the **state**:
+`document.querySelector('.widget-waiting')` for “is this card still waiting”, and the unit test asserts the
+classification and that the producer's name (not its id) appears. The copy is free to change again; the checks are not.
+(`scripts/benchmark-ask-variants.mjs`'s prompt variants are left alone — they are an experiment's fixed inputs, and the
+live manual in `deploy/server.js` never named the state.)
+
+**Fixed 2026-10-09:** verified in Chromium at 2× — `cache/waiting-awaiting.png` (state `awaiting`) and
+`cache/waiting-unresolved.png` (state `unresolved`).

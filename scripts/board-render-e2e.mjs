@@ -4,7 +4,7 @@
  *
  * What this replaces. The Ask audit's render probe (`tests/probe-ask-render.mjs`) was throwaway by design, and the
  * audit's own finding is why the check has to be permanent: the ⬆ Import panel silently dropped a board's `params`,
- * so every `{{param}}` card sat at "Waiting for a reference" — and **no check drove Import with a params board**,
+ * so every `{{param}}` card sat waiting for a value — and **no check drove Import with a params board**,
  * which is exactly why it survived. `npm test` runs the offline half of the same contract
  * (`tests/assembly-contract.test.mjs`: the validator's verdict on frozen model replies); this is the half that needs a
  * browser, because "validates" and "renders" are different claims.
@@ -17,7 +17,7 @@
  *      through the app's own ⬆ Import panel. No scratch file: a file in `public/` trips the demos gate, and a file in
  *      `dist/` is not loadable as a board.
  *
- * What it asserts, for each: one card per widget by id, no card left at "Waiting for a reference", and no page or
+ * What it asserts, for each: one card per widget by id, no card left waiting for a value, and no page or
  * console error (a report-only CSP note and a failed subresource are the environment talking — same policy as
  * `smoke-built.mjs`).
  *
@@ -110,10 +110,10 @@ const asBoard = (board) => ({
  */
 async function waitUntilWired(page, ms = 25000) {
   try {
-    await page.waitForFunction(() => !document.body.innerText.includes('Waiting for a reference'), null, { timeout: ms, polling: 250 });
+    await page.waitForFunction(() => !document.querySelector('.widget-waiting'), null, { timeout: ms, polling: 250 });
     return null;
   } catch {
-    return `a card is still at "Waiting for a reference" after ${ms / 1000}s — its producer never emitted`;
+    return `a card is still waiting for a value after ${ms / 1000}s — its producer never emitted`;
   }
 }
 
@@ -159,13 +159,13 @@ try {
     const stuck = await waitUntilWired(page);
     const state = await page.evaluate(() => ({
       cards: [...document.querySelectorAll('[data-widget-id]')].map((el) => el.getAttribute('data-widget-id')),
-      waiting: document.body.innerText.includes('Waiting for a reference'),
+      waiting: !!document.querySelector('.widget-waiting'),
     }));
     const expect = board.widgets.map((w) => w.id);
     const missing = expect.filter((id) => !state.cards.includes(id));
     if (state.cards.length !== expect.length) bad(file, `${state.cards.length} cards, expected ${expect.length}`);
     else if (missing.length) bad(file, `missing cards: ${missing.join(', ')}`);
-    else if (stuck || state.waiting) bad(file, stuck || 'a card is stuck at "Waiting for a reference"');
+    else if (stuck || state.waiting) bad(file, stuck || 'a card is still waiting for a value');
     else if (errors.length) bad(file, errors[0]);
     else ok(file, `${state.cards.length} cards, wired, no errors`);
     await page.close();
@@ -175,7 +175,7 @@ try {
    * Paste a board through the app's own ⬆ Import panel and check what it drew.
    *
    * This is the path a board from OUTSIDE takes, and it is where the audit's second defect lived: Import dropped the
-   * `params` block, so every `{{param}}` card sat at "Waiting for a reference". The first version of this script pasted
+   * `params` block, so every `{{param}}` card sat waiting for a value. The first version of this script pasted
    * only model boards — and every frozen reply that parsed happened to carry `params: {}` — so restoring the defect
    * changed nothing and the check passed. Coverage, not intent, is what makes a check bite: the boards we host are
    * pasted too (below), and one of them is a params switcher.
@@ -201,7 +201,7 @@ try {
       const stuck = await waitUntilWired(page);
       const state = await page.evaluate(() => ({
         cards: [...document.querySelectorAll('[data-widget-id]')].map((el) => el.getAttribute('data-widget-id')),
-        waiting: document.body.innerText.includes('Waiting for a reference'),
+        waiting: !!document.querySelector('.widget-waiting'),
         importErrors: [...document.querySelectorAll('.import-errors')].map((el) => el.innerText.trim()),
       }));
       const expect = board.widgets.map((w) => w.id);
@@ -210,7 +210,7 @@ try {
       if (state.importErrors.length) bad(name, `Import refused it: ${state.importErrors[0].slice(0, 90)}`);
       else if (state.cards.length !== expect.length) bad(name, `${state.cards.length} cards, expected ${expect.length}`);
       else if (missing.length) bad(name, `missing cards: ${missing.join(', ')}`);
-      else if (stuck || state.waiting) bad(name, stuck || 'a card is stuck at "Waiting for a reference"');
+      else if (stuck || state.waiting) bad(name, stuck || 'a card is still waiting for a value')
       else if (errors.length) bad(name, errors[0]);
       else if (extraProblem) bad(name, extraProblem);
       else ok(name, `${state.cards.length} cards pasted through Import, no errors`);
@@ -290,7 +290,7 @@ try {
    * The clickable zones demo — the MVP's own check (ISSUE-138, slice A).
    *
    * A picture that emits is only worth anything if the value actually travels, so this clicks a zone and waits for the
-   * consumer card to become the article that zone named. "Waiting for a reference" is the CORRECT state until then —
+   * consumer card to become the article that zone named. a waiting card is the CORRECT state until then —
    * the app's own contract for a consumer whose producer has not emitted — which is why this board is not in HOSTED,
    * whose check requires every card to settle wired before anything is touched.
    */
@@ -332,7 +332,7 @@ try {
       await page.waitForTimeout(1200);
       const afterPictureClick = await page.evaluate(() => {
         const el = document.querySelector('[data-widget-id="zones-excerpt"]');
-        return { text: (el?.innerText || '').slice(0, 80), waiting: /Waiting for a reference/i.test(el?.innerText || '') };
+        return { text: (el?.innerText || '').slice(0, 80), waiting: !!el?.querySelector('.widget-waiting') };
       });
       if (!afterPictureClick.waiting) {
         bad('zones: the picture click stays out of it', `the excerpt moved on a plain picture click: ${JSON.stringify(afterPictureClick.text)}`);
@@ -344,7 +344,7 @@ try {
       await clickZone(page, 'Piz Nuna');
       await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
-        return /Piz Nuna/i.test(text) && !/Waiting for a reference/i.test(text);
+        return /Piz Nuna/i.test(text) && !document.querySelector('.widget-waiting');
       }, null, { timeout: 30000, polling: 250 });
       const after = await page.evaluate(() =>
         (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
@@ -374,7 +374,7 @@ try {
       await clickZone(page, 'Piz Macun');
       const second = await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
-        return /Macun/i.test(text) && !/not found/i.test(text) && !/Waiting for a reference/i.test(text);
+        return /Macun/i.test(text) && !/not found/i.test(text) && !document.querySelector('.widget-waiting');
       }, null, { timeout: 30000, polling: 250 }).then(() => null)
         .catch(async () => `the second zone left the consumer at ${JSON.stringify(
           (await page.evaluate(() => (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').slice(0, 70))))}`);
@@ -427,7 +427,7 @@ try {
       await page.mouse.click(point.x, point.y);
       await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="xbio-excerpt"]')?.innerText || '';
-        return /Cell/i.test(text) && !/Waiting for a reference/i.test(text);
+        return /Cell/i.test(text) && !document.querySelector('.widget-waiting');
       }, null, { timeout: 30000, polling: 250 });
       const after = await page.evaluate(() => (document.querySelector('[data-widget-id="xbio-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
       if (missing.length) bad('zones: text diagram (OCR)', `the OCR labels this check needs are missing: ${missing.join(', ')}`);
