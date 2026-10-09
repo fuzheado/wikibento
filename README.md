@@ -425,6 +425,9 @@ front door.
   that move the card and choose where a jump **lands**, the editor, and the honest cost; the
   sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry; the build is
   sequenced in five slices, each with its own gate)
+  · [RECONCILIATION](docs/RECONCILIATION.md) (scoped, not built: turning a label into a target — OCR on a
+  CPU-only server (measured), the import-and-review UI, and the one resolver the page box, params and the Ask
+  door would share)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

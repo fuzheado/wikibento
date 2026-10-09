@@ -6735,3 +6735,32 @@ fields are simply inert under `subject: 'category'`, and once the app resolves t
 (`2026-09 · precomputed (CIM) · deep · direct: 389,046 files`). The `cimSnapshot` → `cimStats` rename is optional —
 worth doing for tidiness, not for correctness — and the placeholder in `filename` is worth clearing, because it would
 flip the branch if `subject` were ever dropped.
+
+
+## ISSUE-143 · Labels → targets: the import/review feature, and one reconciliation service for every widget — **scoped, not built** (asked by Andrew, 2026-10-09)
+
+Andrew asked for **"Import labels from this image"** (the hand-written path that built `?config=/biosphere-demo.json`
+should be a button), for an answer to *"can the server do OCR with CPU only, no GPU?"*, and for the reconciliation need
+to be treated as **general** — several widgets resolve a name to a thing, and each does it its own way today.
+
+**Answered with measurements, not assumptions** (the memo: `docs/RECONCILIATION.md`): on the same hand-lettered diagram,
+**RapidOCR (ONNX, CPU-only) read 11 of 12 labels in 2.21 s** — so CPU-only is enough — while **Tesseract managed 2 of 13**
+(it is blind to stylised lettering) and **Apple Vision read 13/13** in 0.45 s but cannot run on the server at all. The one
+label RapidOCR got wrong (`biosphere` → `6iosphere`) is the argument for the review step, not against the feature.
+
+**The entity-resolution question has a verified answer:** the canonical Wikidata reconciliation service is
+`https://wikidata-reconciliation.wmcloud.org/en/api` (the OpenRefine protocol), its **CORS is open**
+(`access-control-allow-origin: *`, checked 2026-10-09), so the **browser can call it directly with no relay**, and its
+candidates arrive **with descriptions** — the thing that separates *biosphere* (Q42762, "global sum of all ecosystems")
+from a *Norwegian musician* (Q616371). `reconcile.wikidata.org` is dead and `wikidata.reconcil.link` only redirects, so the
+wmcloud host is the one to use.
+
+**The design it proposes:** one module (`src/lib/reconcile.js`) with a source ladder — an exact reference read back → the
+wiki's own search with the role words → `wbsearchentities` → the reconciliation service → Wikipedia-title-first for
+renames → *nothing*, which is a valid answer — the `wikidata-reconciliation` skill's guardrails kept intact (a candidate is
+a hypothesis; below threshold means **needs human review**, never a guess; verify before binding), and three ways in (the
+image's own text by OCR, the file's Commons notes, or a pasted OCR result) landing in **one review overlay**: the proposed
+boxes drawn on the image, a row per label with editable text, candidates with descriptions, the four row states
+(✓ bound · ? needs a choice · ⚠ ambiguous · · no target), *accept all confident* stating its count, provenance recorded
+per zone, and Apply/Cancel on a copy. Phases and costs are in the memo — phases 0-1 deliver the feature without touching
+the server at all.
