@@ -63,5 +63,9 @@
     "oxlint": "^1.75.0",
     "playwright-core": "^1.59.1",
     "vite": "^8.2.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true
   }
 }

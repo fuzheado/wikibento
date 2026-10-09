@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "params": {},
+  "widgets": [
+    {
+      "id": "tour-note",
+      "widgetType": "markdown",
+      "name": "How this tour works",
+      "config": {
+        "text": "## A virtual tour, built out of zones\n\nEvery card holds **one view and its own zones**. A `send` zone on the picture publishes `File:…` on that card's **zones** channel, and the next card's *Commons files* field reads it — `{{widget:tour-a#zones}}` — so **a click loads the next view, zones and all**. Nothing outside the board is involved: the tour *is* board JSON.\n\n- **Next view →** and **◀ Back** are `send` zones whose value is the next *file*.\n- The six names on the first view are the file's **own Commons notes**, as `open` zones. `open` deliberately does not publish — a content zone that did would hand an article name to a card that wants a file.\n- Cards 2 and 3 wait until you click: that is what *Nothing selected yet* means."
+      }
+    },
+    {
+      "id": "tour-a",
+      "widgetType": "gallery",
+      "name": "1 · Motta Naluns — the named peaks",
+      "config": {
+        "_title": "1 · Motta Naluns — the named peaks",
+        "from": "list",
+        "files": "File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg",
+        "displayMode": "single",
+        "imageFit": "contain",
+        "linkAction": "nothing",
+        "showCaptions": false,
+        "zones": "7.62,16.67,6.75,8.23 | Piz Sursass | article | de:Val d’Uina | open\n18.13,14.44,5.75,6.65 | Piz Nuna | article | de:Piz Nuna | open\n44.75,22.87,4.49,4.66 | Piz Macun | article | de:Macun-Seen | open\n65.88,21.57,4.63,6.0 | Piz d’Arpiglias | article | de:Liste der Dreitausender in der Sesvennagruppe | open\n52.12,86.21,4.63,6.65 | Chastè Steinsberg | article | de:Liste der Kulturgüter in Scuol | open\n78.38,24.01,5.13,5.11 | Piz Mezdi | article | de:Tamangur | open\n74,78,22,18 | Next view → | file | File:Scuol-Motta Naluns, 11-10-2024. (actm.) 26.jpg | send"
+      }
+    },
+    {
+      "id": "tour-b",
+      "widgetType": "gallery",
+      "name": "2 · the larch on the ridge",
+      "config": {
+        "_title": "2 · the larch on the ridge",
+        "from": "list",
+        "files": "{{widget:tour-a#zones}}",
+        "displayMode": "single",
+        "imageFit": "contain",
+        "linkAction": "nothing",
+        "showCaptions": false,
+        "zones": "74,78,22,18 | Next view → | file | File:Scuol-Motta Naluns, 11-10-2024. (actm.) 29.jpg | send\n2,78,20,18 | ◀ Back | file | File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg | send"
+      }
+    },
+    {
+      "id": "tour-c",
+      "widgetType": "gallery",
+      "name": "3 · the same ridge, looking down",
+      "config": {
+        "_title": "3 · the same ridge, looking down",
+        "from": "list",
+        "files": "{{widget:tour-b#zones}}",
+        "displayMode": "single",
+        "imageFit": "contain",
+        "linkAction": "nothing",
+        "showCaptions": false,
+        "zones": "2,78,20,18 | ◀ Back | file | File:Scuol-Motta Naluns, 11-10-2024. (actm.) 26.jpg | send"
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "tour-note",
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 3
+    },
+    {
+      "i": "tour-a",
+      "x": 0,
+      "y": 3,
+      "w": 4,
+      "h": 6
+    },
+    {
+      "i": "tour-b",
+      "x": 4,
+      "y": 3,
+      "w": 4,
+      "h": 6
+    },
+    {
+      "i": "tour-c",
+      "x": 8,
+      "y": 3,
+      "w": 4,
+      "h": 6
+    }
+  ]
+}

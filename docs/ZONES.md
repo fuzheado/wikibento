@@ -510,3 +510,65 @@ a HyperCard stack about an image" faster.
 5. ~~Touch semantics~~ **decided**: tap reveals, second tap acts.
 6. ~~Crop policy~~ **decided**: `contain | cover | smart`, and `smart` falls back to letterbox rather than hiding
    a zone.
+
+## Image to image: the tour shape (measured 2026-10-09)
+
+**It already works, in board JSON alone, with no new code.** Two primitives shipped on 2026-10-09 are enough:
+
+1. a zone publishes its `value` on its card's own **`zones`** channel (action `send`), and
+2. **any config field interpolates `{{widget:id#channel}}`**.
+
+So a second gallery whose *Commons files* field reads `{{widget:tour-a#zones}}` loads whatever the first one published —
+and because each card carries **its own** `zones` field, the next view's zones are already in place when its picture
+arrives. `public/image-tour-demo.json` is that tour: three views of the Motta Naluns ridge, `Next view →` and `◀ Back`
+zones whose value is the next *file*, and the first view's six names are the file's own Commons notes. The board sweep
+asserts it (`tour: a click loads the next view`): **21 → 26 → 29 → 26**, each card with its own zones, while the
+downstream cards wait politely until the first click.
+
+**One card per view is this shape's limit.** Honest for a three-stop walk, wrong for a fifty-room museum (a card per
+image, each authored by hand). What lifts the limit is not the data model but a second action:
+
+### The two pieces slice E needs
+
+| # | what | why this shape | cost |
+|---|---|---|---|
+| **E1** | **zones know which image they belong to** — a `## File:…` header inside the `zones` field, so one card can hold a whole tour's zone sets and show the set for the file on screen | the field stays structured text (the map's `points` precedent), a board with no header keeps working unchanged, and `serialiseZones` gains the header for free | ½ day |
+| **E2** | **`set` — a zone can set a board param** (`action: set`, value `name=value`) | it is exactly what a Board Controls button already does, so the machinery exists (the param change, the re-fetch it triggers, the board's own persistence). With it ONE card is a tour: `files: {{place}}` plus zones that `set place = File:…`, and every other card reading `{{place}}` follows — a caption naming the room, a map that moves | ½ day |
+
+**360° tours need neither.** The sphere host is slice D, and Pannellum's own `scenes` + a `go` action already model a
+tour: `docs/zone-sphere.png` is a live render of the app's own panorama with two pins and a working click, and `sceneId`
+hotspots carry `targetPitch`/`targetYaw`/`targetHfov`, so a jump lands facing what you came to see.
+
+### The data model, if a tour ever becomes a file of its own
+
+A board *is* JSON, so the smallest form needs no file (E1). If tours are to be shared, imported for other files, or read
+from a wiki page (the app already loads `?config=https://commons.wikimedia.org/wiki/…Bento-demo.json`), the shape that
+fits both this app and the standards is an **image-keyed map**:
+
+```json
+{ "start": "File:A.jpg",
+  "images": {
+    "File:A.jpg": { "zones": [ { "box": "pct:7.6,16.7,6.8,8.2", "label": "Piz Nuna", "link": "File:B.jpg" } ] },
+    "File:B.jpg": { "zones": [ "…" ] }
+  } }
+```
+
+- **`pct:x,y,w,h` is Wikimedia's own box unit** — Commons image notes and Wikidata's `P2677` both use it, and the
+  importer already reads `{{ImageNote}}` — so nothing needs converting in either direction.
+- An image→image box is, to the letter, a **W3C Web Annotation** with `motivation: linking` and a `FragmentSelector`
+  target (`xywh=percent:…`), the shape IIIF viewers and museum annotation tools exchange. Keeping the board form compact
+  and the **export** in that shape is the pattern this project already follows for GeoJSON: standards at the boundary, a
+  readable field in the board.
+- **E1 removes the need for the file in one card; `send` removes it for two.**
+
+### Rules the measurement produced
+
+- **On a tour host, a content zone uses `open`, never `send`.** Every zone of a card publishes on the *same* channel, so
+  a content zone that `send`s an article name hands it to a card that wants a **file** — the next view receives
+  `de:Piz Nuna` and shows nothing. `open` visits the wiki page and publishes nothing, which is exactly right: the demo's
+  six named peaks are `open`; only `Next view →` and `◀ Back` are `send`.
+- **ISSUE-146 is what makes a tour usable on a phone** — the picture's background is not a link, so only the zones act.
+- **ISSUE-148 matters most here.** Every stop is a *new image load*, which is exactly the reflow the probe measured
+  (+216px in a single frame). A tour is the feature that pays for reserving the picture's box.
+- **Preloading the neighbours is the obvious comfort and it is cheap** — the gallery knows its next file's name before
+  the reader clicks.

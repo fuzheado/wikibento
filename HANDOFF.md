@@ -33,8 +33,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-C9F_ocm0.js`, `server.js` and `validator-bundle.mjs` (the relay, `/api/validate`, and the `/mcp` tool surface) |
-| deployed | 2026-10-09 (latest) — **eight deploys that day**; the row-by-row record is `docs/DEPLOYMENTS.md`: the zones MVP and its two follow-ups (bigger targets, a channel of its own), the caching policy that made a working deploy look broken, the OCR'd diagram demo, the mobile jump (ISSUE-144), the empty-card copy (ISSUE-145) and a click that misses a zone now doing nothing (ISSUE-146) — and, on 2026-10-02, the whole Ask door: the served guide, `/api/validate` and the `/mcp` tool surface. **The deploy shape to remember:** a `src/` change ships `dist/` **+** `validator-bundle.mjs` (the bundle, not the server, absorbs app code); `server.js` only when a route changes. |
+| production bundle | `index-YcF0cYWn.js`, `server.js` and `validator-bundle.mjs` (the relay, `/api/validate`, and the `/mcp` tool surface) |
+| deployed | 2026-10-09 (latest) — **nine deploys that day**; the row-by-row record is `docs/DEPLOYMENTS.md`: the zones MVP and its two follow-ups (bigger targets, a channel of its own), the caching policy that made a working deploy look broken, the OCR'd diagram demo, the mobile jump (ISSUE-144), the empty-card copy (ISSUE-145), a click that misses a zone now doing nothing (ISSUE-146) and **an image-to-image tour that needed no new code** (`?config=/image-tour-demo.json`) — and, on 2026-10-02, the whole Ask door: the served guide, `/api/validate` and the `/mcp` tool surface. **The deploy shape to remember:** a `src/` change ships `dist/` **+** `validator-bundle.mjs` (the bundle, not the server, absorbs app code); `server.js` only when a route changes. |
 | registry | 36 widget types — 27 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 37 widgets covering all 36 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -720,8 +720,14 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      outcome · **D** the 360° half (about half a day — the vendored Pannellum 2.5.7 needs no new rendering: `hotSpots` pins,
      `clickHandlerFunc`, `mouseEventToCoords()` to place a pin by clicking the sphere; `docs/zone-sphere.png` is a live render
      of the app's own panorama, two pins drawn and a dispatched click delivering `{kind:'article', value:'en:Mauna Kea'}`) ·
-     **E** tours and arrival views (`scenes` + a `go` action; `sceneId` hotspots pass `targetPitch`/`targetYaw`/`targetHfov`
-     and `loadScene` takes the same three, so a jump lands facing what you came to see).
+     **E** tours and arrival views — **and the image→image half is already live** (see below):
+`public/image-tour-demo.json` chains three views with no new code, because a zone publishes `File:…` on its card's
+     `zones` channel and the next card's *Commons files* field reads `{{widget:prev#zones}}`; the board sweep asserts
+     `21 → 26 → 29 → 26`. Making it scale past one card per view takes **E1** (a `## File:…` header in the `zones` field,
+     so one card holds a whole tour) and **E2** (`set` — a zone sets a board param, so `files: {{place}}` makes one card a
+     tour) — each ½ day, specified in `docs/ZONES.md` §*Image to image*. For 360°: `scenes` + a `go` action, and `sceneId`
+     hotspots pass `targetPitch`/`targetYaw`/`targetHfov` with `loadScene` taking the same three, so a jump lands facing
+     what you came to see.
    - **ISSUE-96 — finish the emitter audit.** **16 of 36** widget types publish anything (the 🖼️ Gallery publishes on every source since 2026-09-18; the 🎞️ Commons Gallery joined on
      2026-09-18: captions as `lines`, the clicked file as `selection`; the 🗺️ **Map** joined 2026-10-01, publishing what it draws as a `geojson` payload — the first non-text kind; and the three **CIM** types joined
      2026-10-03: `cimStats`/`cimTrend` publish the subject they resolved as a reference, `cimRanking` the ranked names — one emitter where this checklist used to name five, because the family is three types now), and the audit ranks the

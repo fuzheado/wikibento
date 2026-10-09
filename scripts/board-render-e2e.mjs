@@ -539,6 +539,55 @@ try {
   }
 
   /**
+   * A virtual tour: click a zone in one picture and the NEXT picture loads, zones and all (ISSUE-138).
+   *
+   * Nothing here is a feature — it is two things that already ship, and this check exists so that stays true: a zone
+   * publishes `File:…` on its card's own `zones` channel, and any config field interpolates `{{widget:id#channel}}`, so a
+   * second gallery whose *Commons files* field reads `{{widget:tour-a#zones}}` follows the click and brings its own
+   * view's zones with it. The tour lives entirely in board JSON.
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    const state = (id) => page.evaluate((w) => {
+      const el = document.querySelector(`[data-widget-id="${w}"]`);
+      const img = el?.querySelector('img.gallery-single-img');
+      const waiting = el?.querySelector('.widget-waiting');
+      return { image: ((img?.currentSrc || '').match(/(\d\d)\.jpg/) || [null])[0],
+               zones: [...(el?.querySelectorAll('.zone') || [])].map((b) => b.getAttribute('aria-label')),
+               waiting: waiting ? waiting.innerText.replace(/\s+/g, ' ').trim().slice(0, 80) : null };
+    }, id);
+    const clickZone = async (card, label) => {
+      await page.click(`[data-widget-id="${card}"] .zone[aria-label="${label}"]`);
+      await page.waitForTimeout(2200);
+    };
+    try {
+      await page.goto(`${base}/?config=/image-tour-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="tour-a"] .zone', { timeout: 60000 });
+      await page.waitForTimeout(800);
+      const first = await state('tour-a');
+      const second = await state('tour-b');
+      await clickZone('tour-a', 'Next view →');
+      const moved = await state('tour-b');
+      await clickZone('tour-b', 'Next view →');
+      const third = await state('tour-c');
+      await clickZone('tour-c', '◀ Back');
+      const back = await state('tour-b');
+      if (first.image !== '21.jpg' || first.zones.length < 7) bad('tour: a click loads the next view', `the first card shows ${first.image} with ${first.zones.length} zones — expected 21.jpg and the file's own notes plus Next`);
+      else if (!second.waiting || !/Motta Naluns/.test(second.waiting)) bad('tour: a click loads the next view', `the second card does not say what it is waiting for (${JSON.stringify(second.waiting)}) — the waiting copy must name the producer by its display title`);
+      else if (moved.image !== '26.jpg' || !moved.zones.includes('◀ Back')) bad('tour: a click loads the next view', `after one click the second card shows ${moved.image} with ${JSON.stringify(moved.zones)} — expected 26.jpg and its own zones`);
+      else if (third.image !== '29.jpg' || third.zones.length !== 1) bad('tour: a click loads the next view', `the third card shows ${third.image} with ${JSON.stringify(third.zones)}`);
+      else if (back.image !== '26.jpg') bad('tour: a click loads the next view', `"◀ Back" left the second card on ${back.image}`);
+      else if (errors.length) bad('tour: a click loads the next view', errors[0]);
+      else ok('tour: a click loads the next view', `21 → 26 → 29 → 26, each card with its OWN zones · the second waited with ${JSON.stringify(second.waiting.slice(0, 46))}`);
+    } catch (e) {
+      bad('tour: a click loads the next view', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
+  /**
    * The reader's place survives a reload — the mobile jump (ISSUE-144, reported from an iPhone).
    *
    * The cause was measured, not guessed: when the consumer card replaced its article it emptied itself first, and a
