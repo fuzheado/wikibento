@@ -11,11 +11,12 @@
  * trip the demos gate, and no scratch file in `dist/`, which is not loadable as a board — both learned in this
  * repo the hard way):
  *
- *   1. `auto` (the default) with three files in one gallery: a vector, a TRANSPARENT PNG and an opaque JPEG.
- *      The vector and the transparent PNG each get a white plate — by two different routes (the URL for the
- *      vector, a corner-alpha readback of the decoded pixels for the PNG) — and the photograph keeps the card
- *      background. This is the assertion that keeps `auto` per-IMAGE: a per-card light plate would give every
- *      photo gallery a white letterbox.
+ *   1. `auto` (the default) with FOUR files in one gallery: a vector, two transparent PNGs (one with dark ink,
+ *      one with white ink) and an opaque JPEG. The vector gets a white plate from its URL; the transparent
+ *      PNGs get their plate from a corner-alpha readback AND the readback decides the DIRECTION — dark ink
+ *      takes the white plate, white ink keeps the dark card background (a white plate under white line art is
+ *      the mirror of the bug); the opaque JPEG keeps the card background. This is the assertion that keeps
+ *      `auto` per-IMAGE: a per-card light plate would give every photo gallery a white letterbox.
  *   2. `none` — the vector, no plate. The card's own background shows through, which is what `none` means, and
  *      no readback should be able to add one.
  *   3. `light` — the JPEG gets a white plate too, because there is no way to detect anything about a card the
@@ -69,9 +70,10 @@ function assertFreshBuild() {
 }
 assertFreshBuild();
 
-const SVG = 'File:Symbol question.svg';          // black line art on transparency — the reported case
-const PNG = 'File:Cscr-featured.png';            // a transparent RASTER: no URL can tell it from an opaque PNG
-const RASTER = 'File:Albert Einstein Head.jpg';  // opaque, and must stay unplated under `auto`
+const SVG = 'File:Symbol question.svg';              // black line art on transparency — the reported case
+const PNG_DARK_INK = 'File:Cscr-featured.png';       // transparent RASTER, DARK ink (measured luminance 131.9)
+const PNG_LIGHT_INK = 'File:Globe Icon White.png';   // transparent RASTER, LIGHT ink (measured luminance 255.0)
+const RASTER = 'File:Albert Einstein Head.jpg';      // opaque, and must stay unplated under `auto`
 
 const board = (mediaBackground) => ({
   version: 1,
@@ -80,7 +82,7 @@ const board = (mediaBackground) => ({
     {
       id: 'plate-gallery',
       widgetType: 'gallery',
-      config: { title: `plate ${mediaBackground}`, from: 'list', files: `${SVG}\n${PNG}\n${RASTER}`, displayMode: 'grid', showCaptions: false, mediaBackground },
+      config: { title: `plate ${mediaBackground}`, from: 'list', files: `${SVG}\n${PNG_DARK_INK}\n${PNG_LIGHT_INK}\n${RASTER}`, displayMode: 'grid', showCaptions: false, mediaBackground },
     },
   ],
 });
@@ -134,7 +136,7 @@ try {
     // The transparent-PNG decision is asynchronous by design (it waits for decoded pixels), so wait for the
     // class rather than for a stopwatch. The timeout is the honest bound: if detection never lands, this check
     // fails instead of quietly passing on a timer.
-    await page.waitForSelector('img.gallery-thumb.plate-alpha', { timeout: 25000 }).catch(() => {});
+    await page.waitForSelector('img.gallery-thumb.plate-alpha-dark', { timeout: 25000 }).catch(() => {});
     await page.waitForTimeout(1200);
     return page.evaluate(() => {
       const frame = document.querySelector('.widget-frame');
@@ -142,6 +144,7 @@ try {
         src: el.getAttribute('src') || '',
         plateVector: el.classList.contains('plate-vector'),
         plateAlpha: el.classList.contains('plate-alpha'),
+        plateAlphaDark: el.classList.contains('plate-alpha-dark'),
         background: getComputedStyle(el).backgroundColor,
       }));
       return { frameClass: frame ? frame.className : '', imgs };
@@ -149,24 +152,31 @@ try {
   };
 
   const svgOf = (r) => r.imgs.find((i) => /\.svg/i.test(i.src));
-  const pngOf = (r) => r.imgs.find((i) => /\.png$/i.test(i.src) && !/\.svg/i.test(i.src));
+  const pngOf = (r, slug) => r.imgs.find((i) => i.src.includes(slug));
   const rasterOf = (r) => r.imgs.find((i) => /\.jpe?g$/i.test(i.src)) || r.imgs.find((i) => !/\.svg/i.test(i.src));
 
   // ── 1 · auto ──────────────────────────────────────────────────────────────────────────────────
   const auto = await inspect('auto');
   check(!/(plate-light|plate-dark|plate-none)/.test(auto.frameClass), 'auto puts no class on the frame (each image decides)', `frame="${auto.frameClass}"`);
-  check(auto.imgs.length >= 3, 'the gallery rendered all three files', `${auto.imgs.length} tile(s)`);
+  check(auto.imgs.length >= 4, 'the gallery rendered all four files', `${auto.imgs.length} tile(s)`);
   const svg1 = svgOf(auto); const raster1 = rasterOf(auto);
   check(!!svg1, 'the vector file is on the board');
   if (svg1) {
     check(svg1.plateVector, 'the SVG tile carries plate-vector under auto');
     check(svg1.background === 'rgb(255, 255, 255)', 'the SVG tile paints a LIGHT plate', svg1.background);
   }
-  const png1 = pngOf(auto);
-  check(!!png1, 'the transparent PNG is on the board');
+  const png1 = pngOf(auto, 'Cscr-featured');
+  check(!!png1, 'the transparent PNG with DARK ink is on the board');
   if (png1) {
-    check(png1.plateAlpha, 'the transparent PNG was DETECTED (a corner-alpha readback, no URL signal)');
-    check(png1.background === 'rgb(255, 255, 255)', 'the transparent PNG paints a white plate', png1.background);
+    check(png1.plateAlpha, 'it was DETECTED as transparent (a pixel readback, no URL signal)');
+    check(png1.background === 'rgb(255, 255, 255)', 'dark ink gets the WHITE plate', png1.background);
+  }
+  const pngWhite = pngOf(auto, 'Globe_Icon_White');
+  check(!!pngWhite, 'the transparent PNG with LIGHT (white) ink is on the board');
+  if (pngWhite) {
+    check(pngWhite.plateAlphaDark, 'it was DETECTED as transparent AND as light ink (the plate has a direction)');
+    check(pngWhite.background === 'rgb(15, 17, 23)', 'white ink keeps the DARK background — a white plate would swallow it', pngWhite.background);
+    check(!pngWhite.plateAlpha, 'and it is NOT given the white plate that would hide it');
   }
   check(!!raster1, 'the raster file is on the board');
   if (raster1) {
@@ -179,8 +189,10 @@ try {
   check(/\bplate-none\b/.test(none.frameClass), 'none puts plate-none on the frame', `frame="${none.frameClass}"`);
   const svg2 = svgOf(none);
   check(!!svg2 && !svg2.plateVector, 'under none, even a vector gets no image-level plate');
-  const png2 = pngOf(none);
+  const png2 = pngOf(none, 'Cscr-featured');
   if (png2) check(!png2.plateAlpha, 'under none the readback adds no plate either (the choice wins over detection)');
+  const png2w = pngOf(none, 'Globe_Icon_White');
+  if (png2w) check(!png2w.plateAlphaDark, 'under none, light ink gets no plate class either');
   if (svg2) check(svg2.background === 'rgba(0, 0, 0, 0)', 'under none the tile is transparent (the card shows through)', svg2.background);
 
   // ── 3 · light ────────────────────────────────────────────────────────────────────────────────

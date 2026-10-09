@@ -187,6 +187,9 @@ body {
    plate; an opaque photograph keeps the card's own background, which is what makes this per-image rather than
    per-card — a photo gallery must not get a white letterbox. */
 img.plate-vector, img.plate-alpha { --media-plate: #ffffff; }
+/* Light ink (white line art) keeps the card background: a white plate would swallow it, which is the mirror
+   of the bug this section exists for. Explicit rather than implicit so the browser check can see the decision. */
+img.plate-alpha-dark { --media-plate: var(--bg); }
 
 /* ── Widget Frame ───────────────────────────────────────── */
 

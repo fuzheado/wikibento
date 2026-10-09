@@ -16,10 +16,11 @@ import assert from 'node:assert/strict';
 
 import { WIDGET_TYPES } from '../src/widgets/index.js';
 import {
-  ALPHA_CORNER_THRESHOLD, MAX_ALPHA_IN_FLIGHT,
+  ALPHA_CORNER_THRESHOLD, LIGHT_INK_LUMINANCE, MAX_ALPHA_IN_FLIGHT,
   MEDIA_PLATE_DEFAULT, MEDIA_PLATE_OPTIONS,
-  alphaCacheSize, bodyPlateClass, cornersImplyPlate, imagePlateClass, isVectorMedia, mayHaveAlpha,
-  plateAlphaNeeded, plateChoice, plateColor, plateRasterNeedsCheck, resetAlphaCache,
+  alphaCacheSize, bodyPlateClass, cornersImplyPlate, imagePlateClass, inkIsLight, isVectorMedia,
+  mayHaveAlpha, plateChoice, plateClassFromSample, plateColor, plateRasterNeedsCheck, rasterPlateClass,
+  resetAlphaCache,
 } from '../src/lib/mediaPlate.js';
 
 test('plateChoice: the four settings, and anything else means auto', () => {
@@ -152,38 +153,62 @@ test('plateRasterNeedsCheck: only `auto`, and never for a vector or a .jpg', () 
   assert.equal(plateRasterNeedsCheck('none', '…/500px-Logo.png'), false);
 });
 
-test('plateAlphaNeeded caches per URL — one readback for a tile drawn twice', async () => {
-  resetAlphaCache();
-  let calls = 0;
-  const loader = async () => { calls += 1; return true; };
-  const [a, b] = await Promise.all([plateAlphaNeeded('…/A.png', loader), plateAlphaNeeded('…/A.png', loader)]);
-  assert.equal(a, true);
-  assert.equal(b, true);
-  assert.equal(calls, 1, 'the second ask is served from the cache');
-  assert.equal(alphaCacheSize(), 1);
-  assert.equal(await plateAlphaNeeded('…/A.png', async () => false), true, 'a later ask still gets the cached answer');
+test('inkIsLight: the boundary, and junk means "not light"', () => {
+  assert.equal(inkIsLight(255), true, 'white line art');
+  assert.equal(inkIsLight(LIGHT_INK_LUMINANCE), true, 'exactly at the threshold');
+  assert.equal(inkIsLight(LIGHT_INK_LUMINANCE - 1), false, 'one below it is dark ink');
+  assert.equal(inkIsLight(20), false, 'a black diagram');
+  assert.equal(inkIsLight(null), false, 'nothing sampled is not light ink');
+  assert.equal(inkIsLight(undefined), false);
 });
 
-test('plateAlphaNeeded queues: a 40-tile gallery cannot start 40 decodes at once', async () => {
+test('plateClassFromSample: the direction of the plate, from one readback', () => {
+  assert.equal(plateClassFromSample({ transparent: false, inkLuminance: 40 }), '',
+    'an opaque picture keeps the card background, whatever its ink');
+  assert.equal(plateClassFromSample({ transparent: true, inkLuminance: 131.9 }), ' plate-alpha',
+    'transparent with dark ink (measured: File:Cscr-featured.png) → white plate');
+  assert.equal(plateClassFromSample({ transparent: true, inkLuminance: 255 }), ' plate-alpha-dark',
+    'transparent with light ink (measured: File:Globe Icon White.png) → the dark background back');
+  assert.equal(plateClassFromSample({ transparent: true, inkLuminance: null }), ' plate-alpha',
+    'nothing opaque enough to judge: the light plate is the harmless default (an empty tile)');
+  assert.equal(plateClassFromSample(null), '', 'a failed readback is not a plate');
+  assert.equal(plateClassFromSample(undefined), '');
+});
+
+test('rasterPlateClass caches per URL — one readback for a tile drawn twice', async () => {
+  resetAlphaCache();
+  let calls = 0;
+  const loader = async () => { calls += 1; return { transparent: true, inkLuminance: 10 }; };
+  const [a, b] = await Promise.all([rasterPlateClass('…/A.png', loader), rasterPlateClass('…/A.png', loader)]);
+  assert.equal(a, ' plate-alpha');
+  assert.equal(b, ' plate-alpha');
+  assert.equal(calls, 1, 'the second ask is served from the cache');
+  assert.equal(alphaCacheSize(), 1);
+  assert.equal(await rasterPlateClass('…/A.png', async () => null), ' plate-alpha',
+    'a later ask still gets the cached answer, not the new loader');
+});
+
+test('rasterPlateClass queues: a 40-tile gallery cannot start 40 decodes at once', async () => {
   resetAlphaCache();
   let inFlight = 0;
   let peak = 0;
   const loader = () => new Promise((resolve) => {
     inFlight += 1;
     peak = Math.max(peak, inFlight);
-    setTimeout(() => { inFlight -= 1; resolve(true); }, 5);
+    setTimeout(() => { inFlight -= 1; resolve({ transparent: true, inkLuminance: 5 }); }, 5);
   });
   const urls = Array.from({ length: 40 }, (_, i) => `…/tile-${i}.png`);
-  const results = await Promise.all(urls.map((u) => plateAlphaNeeded(u, loader)));
-  assert.equal(results.filter(Boolean).length, 40, 'every tile still gets its answer');
+  const results = await Promise.all(urls.map((u) => rasterPlateClass(u, loader)));
+  assert.equal(results.filter((r) => r === ' plate-alpha').length, 40, 'every tile still gets its answer');
   assert.ok(peak <= MAX_ALPHA_IN_FLIGHT, `peak ${peak} readbacks in flight, cap ${MAX_ALPHA_IN_FLIGHT}`);
   assert.ok(peak > 1, 'but they do run in parallel — a serial queue would be needlessly slow');
 });
 
 test('a failing readback means no plate, and never an unhandled rejection', async () => {
   resetAlphaCache();
-  assert.equal(await plateAlphaNeeded('…/throws.png', () => { throw new Error('boom'); }), false);
-  assert.equal(await plateAlphaNeeded('…/rejects.png', async () => { throw new Error('boom'); }), false);
-  assert.equal(await plateAlphaNeeded('…/false.png', async () => false), false);
-  assert.equal(await plateAlphaNeeded(''), false, 'no URL, no work');
+  assert.equal(await rasterPlateClass('…/throws.png', () => { throw new Error('boom'); }), '');
+  assert.equal(await rasterPlateClass('…/rejects.png', async () => { throw new Error('boom'); }), '');
+  assert.equal(await rasterPlateClass('…/null.png', async () => null), '');
+  assert.equal(await rasterPlateClass('…/opaque.png', async () => ({ transparent: false, inkLuminance: 3 })), '');
+  assert.equal(await rasterPlateClass(''), '', 'no URL, no work');
 });
