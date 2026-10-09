@@ -103,10 +103,13 @@ function commonsTitle(raw, prefix) {
 
 /** The subject of a stats/trend card as a reference. `''` when there is nothing to name (the emitter skips it). */
 export function cimSubjectRef(config = {}, data = {}) {
+  // `data = {}` only catches `undefined`, and the loader's static pass can hand an emit `null` — which is how
+  // ISSUE-142 turned "no data yet" into a TypeError that broke the whole card. A missing value is not a crash.
+  const d = data || {};
   const subject = cimSubject(config);
   const title = subject === 'file'
-    ? commonsTitle(data.file || config.filename, 'File:')
-    : commonsTitle(data.category || config.category, 'Category:');
+    ? commonsTitle(d.file || config.filename, 'File:')
+    : commonsTitle(d.category || config.category, 'Category:');
   return title ? `commonswiki:${title}` : '';
 }
 
@@ -120,20 +123,21 @@ export function cimSubjectRef(config = {}, data = {}) {
  * configured with it.
  */
 export function cimRankingLine(facet, row = {}) {
+  const r = row || {};   // an explicit null row must read as "nothing", not crash (ISSUE-142's class)
   if (facet === 'files') {
-    const title = commonsTitle(row.title, 'File:');
+    const title = commonsTitle(r.title, 'File:');
     return title ? `commonswiki:${title}` : '';
   }
-  if (facet === 'wikis') return dbnameOf(row.wiki) || String(row.wiki ?? '').trim();
+  if (facet === 'wikis') return dbnameOf(r.wiki) || String(r.wiki ?? '').trim();
   if (facet === 'pages') {
-    const title = String(row.page ?? '').trim();
+    const title = String(r.page ?? '').trim();
     if (!title) return '';
-    const dbname = dbnameOf(row.wiki);
+    const dbname = dbnameOf(r.wiki);
     return dbname ? `${dbname}:${title}` : title;
   }
-  if (facet === 'editors') return String(row.user ?? '').trim();
+  if (facet === 'editors') return String(r.user ?? '').trim();
   if (facet === 'categories') {
-    const title = commonsTitle(row.category, 'Category:');
+    const title = commonsTitle(r.category, 'Category:');
     return title ? `commonswiki:${title}` : '';
   }
   return '';

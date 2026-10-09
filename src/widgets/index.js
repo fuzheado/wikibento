@@ -796,7 +796,7 @@ export const WIDGET_TYPES = {
     // the article, read off config.article (a field whose kind is 'article'). The named channels sit beside them.
     outputs: { kind: 'extract', subject: 'article', denotes: 'prose', extract: 'extract', reference: 'value' },
     primary: 'extract',
-    emit: (data) => ({ extract: data.extract, reference: data.reference }),
+    emit: (data) => ({ extract: data?.extract, reference: data?.reference }),
   },
 
   edithistory: {
@@ -1450,7 +1450,7 @@ export const WIDGET_TYPES = {
     // family, and the merge is what made it one emitter instead of five.
     // ISSUE-96: the value is about the cim-category it ranked (`subject`); the lines are that category's top items.
     outputs: { kind: 'lines', subject: 'cim-category', denotes: 'list' },
-    emit: (data, config) => cimRankingLines(cimFacet(config), data.rows) || undefined,
+    emit: (data, config) => cimRankingLines(cimFacet(config), data?.rows) || undefined,
   },
 
   boardControls: {
@@ -1727,8 +1727,8 @@ export const WIDGET_TYPES = {
     outputs: { kind: 'value', translation: 'value', speech: 'speech' },
     primary: 'translation',
     emit: (data) => ({
-      translation: data.translation,
-      speech: speechPayload(data.translation, data.to),
+      translation: data?.translation,
+      speech: speechPayload(data?.translation, data?.to),
     }),
   },
 
@@ -2221,7 +2221,7 @@ export const WIDGET_TYPES = {
     // Emits the item's canonical URL — unambiguous, and the same link the card
     // title opens, so the emitted value is visibly labelled (Emitter Contract).
     outputs: { kind: 'value' },
-    emit: (data) => data.detailsUrl,
+    emit: (data) => data?.detailsUrl,
   },
 
   iaBook: {
@@ -2254,7 +2254,7 @@ export const WIDGET_TYPES = {
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto', textPanel: (config && config.textPanel) || 'on' }),
     // Emits the item URL, the same link the card title opens (Emitter Contract).
     outputs: { kind: 'value' },
-    emit: (data) => data.detailsUrl,
+    emit: (data) => data?.detailsUrl,
   },
 
   documentReader: {
@@ -2297,7 +2297,7 @@ export const WIDGET_TYPES = {
     // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
     // ISSUE-96: the value is about a commons-file (config.file carries kind 'commons-file').
     outputs: { kind: 'value', subject: 'commons-file', denotes: 'name' },
-    emit: (data) => data.pageUrl,
+    emit: (data) => data?.pageUrl,
   },
 
   listSource: {
@@ -2334,7 +2334,7 @@ export const WIDGET_TYPES = {
     },
     // Emitted value: the plain list (interpolation joins it with newlines).
     outputs: { kind: 'lines' }, // emitted: the pasted list, one line per element
-    emit: (data) => data.lines,
+    emit: (data) => data?.lines,
   },
 
   filterLines: {
@@ -2391,7 +2391,7 @@ export const WIDGET_TYPES = {
     },
     // Emits the FILTERED list — downstream count/echo widgets chain off this.
     outputs: { kind: 'lines' }, // emitted: the filtered list
-    emit: (data) => data.lines,
+    emit: (data) => data?.lines,
   },
 
   lineCount: {
@@ -2425,7 +2425,7 @@ export const WIDGET_TYPES = {
     },
     // Emits the numeric count — e.g. a downstream echo displays it.
     outputs: { kind: 'count' }, // emitted: the count (number)
-    emit: (data) => data.count,
+    emit: (data) => data?.count,
   },
 
   echo: {
@@ -2460,7 +2460,7 @@ export const WIDGET_TYPES = {
     },
     // Pass-through — you can pipe an output through Echo into another widget.
     outputs: { kind: 'value' }, // emitted: whatever the source widget emitted
-    emit: (data) => (data.value === undefined ? undefined : data.value),
+    emit: (data) => data?.value,
   },
 };
 

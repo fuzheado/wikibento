@@ -32,7 +32,7 @@
  */
 import { validateDashboard } from './dashboardConfig';
 import { outputChannels } from './dataflow';
-import { WIDGET_TYPES, widgetDef } from '../widgets';
+import { widgetDef } from '../widgets';
 import { findUnresolvedRefs } from './params';
 
 const ART = 'public/board-guide.md';   // where a reader looks it up (served at /board-guide.md)
@@ -114,7 +114,10 @@ export function diagnoseBoard(input, { allowList = null, source = 'board' } = {}
   const idList = [...ids];
 
   for (const w of widgets) {
-    const def = widgetDef(w.widgetType) || WIDGET_TYPES[w.widgetType];
+    // `widgetDef` already resolves every retired id and returns the registry entry for a current one, so the
+    // `|| WIDGET_TYPES[…]` fallback this used to carry was dead code — and reading the raw table is the habit
+    // that broke retired ids in the renderer (ISSUE-142).
+    const def = widgetDef(w.widgetType);
     const config = w.config || {};
     const where = `"${w.id}" (${w.widgetType})`;
 
@@ -148,7 +151,7 @@ export function diagnoseBoard(input, { allowList = null, source = 'board' } = {}
         return;
       }
       const producerWidget = widgets.find((x) => x.id === refId);
-      const producer = widgetDef(producerWidget.widgetType) || WIDGET_TYPES[producerWidget.widgetType];
+      const producer = widgetDef(producerWidget.widgetType);
       const chans = channelsOf(producer);
       if (channel) {
         const known = chans && chans.some((c) => c.name === channel);

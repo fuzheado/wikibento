@@ -45,7 +45,7 @@ const STORAGE_KEY = 'wikibento-layout';
  * to read rather than buried in the add path.
  */
 function adjacentSlot(layout, parentId, def) {
-  const dl = WIDGET_TYPES[def?.id]?.defaultLayout || { w: 3, h: 3 };
+  const dl = def?.defaultLayout || { w: 3, h: 3 };
   const parent = (layout || []).find((l) => l.i === parentId);
   if (!parent) return { x: 0, y: Infinity };
   return (parent.x + parent.w + dl.w <= 12)
@@ -497,7 +497,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     // ── 3. Build fragment configs: defaults underlay, refs remapped,
     // model-provided display title → config._title. ──
     const fragWidgets = frag.map((w) => {
-      const def = WIDGET_TYPES[w.widgetType];
+      const def = widgetDef(w.widgetType);
       const config = { ...(def?.defaults || {}) };
       const incoming = JSON.parse(JSON.stringify(w.config || {}));
       const str = JSON.stringify(incoming)
@@ -520,7 +520,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
     const baseY = layout.reduce((m, l) => Math.max(m, (l.y || 0) + (l.h || 0)), 0);
     const fragLayout = fragWidgets.map((w, idx) => {
       const src = frag.find((f) => remapId(f.id) === w.id);
-      const dl = WIDGET_TYPES[w.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
+      const dl = widgetDef(w.widgetType)?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
       return {
         i: w.id,
         x: 0,
@@ -569,7 +569,7 @@ const [showAskPanel, setShowAskPanel] = useState(false);
   const handleAddWidget = useCallback((widget, opts = {}) => {
     // Per-widget layout constraints from the registry (react-grid-layout
     // minW/minH/maxW/maxH) — e.g. the 360° viewer needs a minimum size.
-    const dl = WIDGET_TYPES[widget.widgetType]?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
+    const dl = widgetDef(widget.widgetType)?.defaultLayout || { w: 3, h: 3, minW: 2, minH: 2 };
     const item = {
       i: widget.id, x: 0, y: Infinity,
       w: dl.w, h: dl.h, minW: dl.minW, minH: dl.minH,
@@ -706,7 +706,7 @@ const handleAutoHeight = useCallback((id, px) => {
   const item = layout.find((l) => l.i === id);
   if (!item) return;
   const wt = widgets.find((w) => w.id === id)?.widgetType;
-  const defaultH = WIDGET_TYPES[wt]?.defaultLayout?.h ?? 3;
+  const defaultH = widgetDef(wt)?.defaultLayout?.h ?? 3;
   const last = lastAutoH.current[id];
   if (item.h !== defaultH && item.h !== last) return; // user-managed size
   const m = kiosk || lean ? 4 : 12;
@@ -842,9 +842,9 @@ const handleAutoHeight = useCallback((id, px) => {
   // renames stay distinguishable (ISSUE-53 — every widget is referrable by name).
   const sourceOptions = useMemo(
     () => widgets
-      .filter((w) => WIDGET_TYPES[w.widgetType]?.emit)
+      .filter((w) => widgetDef(w.widgetType)?.emit)
             .flatMap((w) => {
-        const def = WIDGET_TYPES[w.widgetType];
+        const def = widgetDef(w.widgetType);
         const label = def.labelFromConfig?.(w.config) || def.name || w.widgetType;
         // Each option carries the KIND it publishes, so a consumer can ask for what it understands: a geometry field
         // should not offer a text emitter, and a text field should not offer a shape (docs/MEDIA-DATAFLOW.md).
@@ -962,7 +962,7 @@ const handleAutoHeight = useCallback((id, px) => {
    * become drawn edges) live in `lib/jsonCanvas.js` beside their reasons; this handler only names the file.
    */
   const handleExportCanvas = useCallback(() => {
-    const first = (widgets || []).find((w) => WIDGET_TYPES[w?.widgetType]);
+    const first = (widgets || []).find((w) => widgetDef(w?.widgetType));
     const doc = boardToCanvas({
       widgets,
       layout,
@@ -973,7 +973,7 @@ const handleAutoHeight = useCallback((id, px) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = canvasFilename({ label: first ? WIDGET_TYPES[first.widgetType].name : '' });
+    a.download = canvasFilename({ label: first ? widgetDef(first.widgetType).name : '' });
     a.click();
     URL.revokeObjectURL(url);
   }, [widgets, layout]);
@@ -1003,7 +1003,7 @@ const handleAutoHeight = useCallback((id, px) => {
     >
       <ErrorBoundary
         resetKey={w.config}
-        label={WIDGET_TYPES[w.widgetType]?.name || w.widgetType}
+        label={widgetDef(w.widgetType)?.name || w.widgetType}
       >
         <WidgetFrame
   widget={w}
