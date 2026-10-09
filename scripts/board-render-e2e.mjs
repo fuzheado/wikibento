@@ -22,6 +22,8 @@
  * `smoke-built.mjs`).
  *
  * Usage: npm run build && npm run smoke:boards        (needs a built dist/, and refuses a stale one)
+ *        npm run smoke:boards -- --base https://wikibento.toolforge.org   (verify a DEPLOYMENT: no local dist to
+ *        compare, so the stale-build guard is skipped and the boards are the check)
  */
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -58,19 +60,34 @@ function assertFreshBuild() {
     process.exit(2);
   }
 }
-assertFreshBuild();
+// The stale-build guard runs in the local branch below: a --base sweep measures a deployment, which has no local
+// dist to compare against.
 
-const port = await new Promise((res, rej) => {
-  const s = net.createServer();
-  s.on('error', rej);
-  s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
-});
-const base = `http://127.0.0.1:${port}`;
-const server = spawn('python3', ['-m', 'http.server', String(port), '--directory', path.join(root, 'dist')], { stdio: 'ignore' });
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-for (let i = 0; i < 40; i++) {
-  try { if ((await fetch(`${base}/index.html`)).ok) break; } catch { /* not up yet */ }
-  await wait(250);
+// `--base` points the sweep at a DEPLOYMENT (the deploy check): there is no local dist to be stale, so that guard is
+// skipped and the boards themselves are the verification. Without it the sweep builds its own server from dist/.
+const baseArg = (() => {
+  const i = process.argv.indexOf('--base');
+  return i > -1 ? String(process.argv[i + 1] || '').trim() : '';
+})();
+let base;
+let server = null;
+if (baseArg) {
+  base = baseArg.replace(/\/$/, '');
+  console.log(`  checking ${base} (a deployment — the local dist/ is not what is being measured)\n`);
+} else {
+  assertFreshBuild();
+  const port = await new Promise((res, rej) => {
+    const s = net.createServer();
+    s.on('error', rej);
+    s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); });
+  });
+  base = `http://127.0.0.1:${port}`;
+  server = spawn('python3', ['-m', 'http.server', String(port), '--directory', path.join(root, 'dist')], { stdio: 'ignore' });
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  for (let i = 0; i < 40; i++) {
+    try { if ((await fetch(`${base}/index.html`)).ok) break; } catch { /* not up yet */ }
+    await wait(250);
+  }
 }
 
 // ── the boards ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -295,7 +312,7 @@ try {
   }
 } finally {
   await browser.close();
-  server.kill();
+  server?.kill();
 }
 
 console.log(results.join('\n'));

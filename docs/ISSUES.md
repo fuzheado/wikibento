@@ -6423,7 +6423,7 @@ a **propose-never-bind** confirmation UI with descriptions, wikis and a first-cl
 client the app already has (`src/lib/paramSources.js`: `prefixsearch`, `list=search`, `wbsearchentities`). Design and
 the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/zone-suggest.png`.
 
-**Slice A built (branch `feat/zones-mvp`, 2026-10-08).** The MVP Andrew asked for — a clickable image emitting a
+**Slice A built and shipped (PR #116, merged 2026-10-09).** The MVP Andrew asked for — a clickable image emitting a
 (language, title) pair that a second card consumes as an article extract — is implemented and checked end to end:
 
 - **the `zones` field**, text, on the 🖼️ Gallery, gated to `displayMode: single` — the design's own decision (structured
@@ -6625,7 +6625,7 @@ its own cost analysis (`src/App.css` is 3,357 lines, 54 distinct hard-coded colo
 substitute for this.
 
 
-## ISSUE-142 · A card carrying a retired widget id renders nothing — the static/fetch decision ignores the id's resolution (found 2026-10-08, from a board that would not draw)
+## ISSUE-142 · A card carrying a retired widget id renders nothing — the static/fetch decision ignores the id's resolution — **fixed (PR #115, merged 2026-10-09)** (found 2026-10-08, from a board that would not draw)
 
 **Symptom (Andrew's board).** A `cimSnapshot` card showed its chrome and nothing else — no data, no error, no spinner —
 with `fetchedAt: null, error: null` in the exported widget, and the console carrying
