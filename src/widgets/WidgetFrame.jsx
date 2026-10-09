@@ -35,6 +35,8 @@ import { thumbSrcsetFor, slotWidthPx, GALLERY_MIN_COLUMN, allowHiDpi } from '../
 import { legalThumbWidth } from '../lib/thumbWidths';
 import '../vendor/pannellum.css';
 import { projectFromUrl, pickFromUrl } from '../lib/pickMode.js';
+import { bodyPlateClass } from '../lib/mediaPlate';
+import { PlateImage } from './PlateImage';
 
 /**
  * Frame around every widget — handles loading, error, title bar, refresh.
@@ -261,6 +263,10 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
       // only component that knows what chrome a card carries. A real boolean: the render path normalises the config
       // through the registry's field types, so a `'true'` from a hand-written board is already a boolean here.
       const edgeToEdge = resolvedConfig.edgeToEdge === true;
+
+      // Issue #111 — the plate behind this card's media. `auto` (the registry default) is decided per IMAGE
+      // inside the renderers, so the frame only carries an explicit choice; see src/lib/mediaPlate.js.
+      const plateClass = bodyPlateClass(resolvedConfig.mediaBackground);
 
     /** ISSUE-91 — the reader clicked something inside a widget that offers a selection channel (today: a link
      *  in a rendered Wikipedia box). The value travels the same path as a data emit, on its own channel, so a
@@ -595,7 +601,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 
   return (
       <div
-        className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}`}
+        className={`widget-frame${edgeToEdge ? ' edge-to-edge' : ''}${plateClass}`}
         ref={cardRef}
         onContextMenu={handleSpawnContextMenu}
         onPointerDown={startTouchHold}
@@ -1013,7 +1019,7 @@ function RankingCard({ data, picking, onPickItem }) {
           rel="noopener noreferrer"
           title="Open on Commons"
         >
-          <img src={data.image.url} alt={data.title} loading="lazy" />
+          <PlateImage choice={data.mediaPlate} src={data.image.url} alt={data.title} loading="lazy" />
         </a>
       )}
       {data.caption && <div className="card-caption">{data.caption}</div>}
@@ -1869,7 +1875,7 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
         target="_blank" rel="noopener noreferrer" onClick={onClick} title={img.caption || img.title}>
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         {sizes ? (
-          <img className="gallery-single-img" draggable={false} src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
+          <PlateImage choice={data.mediaPlate} className="gallery-single-img" draggable={false} src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes={sizes} alt={img.caption || img.title} decoding="async" style={{ objectFit: fit }} />
         ) : (
           <div className="gallery-single-img" aria-hidden="true" />
@@ -1935,7 +1941,7 @@ function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
         onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)} title={img.caption || img.title}>
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
         {sizes ? (
-  <img className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
+  <PlateImage choice={data.mediaPlate} className="gallery-thumb" src={img.thumbUrl} srcSet={sizes ? (thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined) : undefined}
               sizes={sizes} alt={img.caption || img.title} loading="lazy" decoding="async" style={{ objectFit: fit }} />
         ) : (
           // One frame of empty tile while the grid is measured — `ResizeObserver` runs before paint, so it is not
@@ -2033,7 +2039,8 @@ function StoryCard({ data, picking, onPickItem }) {
       ? pickClick({ kind: 'commons-file', value: `File:${p.title}`, label: caption, project: 'commons.wikimedia' }, onPickItem)
       : () => window.open(p.fileUrl, '_blank', 'noopener,noreferrer');
     const img = (
-      <img
+      <PlateImage
+        choice={data.mediaPlate}
         className="story-img"
         src={p.thumbUrl}
         srcSet={srcSetFor(p)}
@@ -2113,7 +2120,7 @@ function ArticleListCard({ data, picking, onPickItem }) {
         {rows.map((r) => (
           <a key={r.title} className="article-list-row" href={r.pageUrl} target="_blank" rel="noopener noreferrer" title={r.title}
             onClick={picking ? pickClick({ kind: 'article', value: r.title, label: r.title, project: projectFromUrl(r.pageUrl) }, onPickItem) : undefined}>
-            {r.thumbUrl && <img className="article-list-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
+            {r.thumbUrl && <PlateImage choice={data.mediaPlate} className="article-list-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
             <span className="article-list-body">
               <span className="article-list-title">{r.title}</span>
               {r.extract && <span className="article-list-extract">{r.extract}</span>}
@@ -2196,7 +2203,7 @@ function GalleryListCard({ data, onSelect, picking, onPickItem }) {
       <a key={img.title || `img-${i}`} className={`gallery-list-item${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl} target="_blank" rel="noopener noreferrer"
         onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${img.title}`, label: img.title, project: projectFromUrl(img.fileUrl) }, onPickItem) : galleryTileClick(data, img, onSelect)}>
         {img.mediaType === 'video' ? <span className="gallery-play" aria-hidden="true">▶</span> : null}
-        <img className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
+        <PlateImage choice={data.mediaPlate} className="gallery-list-thumb" src={img.thumbUrl} srcSet={thumbSrcsetFor(img.thumbUrl, img.responsive, { hiDpi }) || undefined}
             sizes="90px" alt={img.caption || img.title} loading="lazy" decoding="async" />
         {data.showCaptions !== false && (
           <div className="gallery-list-body">
@@ -3093,7 +3100,7 @@ function CimSnapshotCard({ data }) {
           rel="noopener noreferrer"
           title="Open on Commons"
         >
-          <img src={data.image.url} alt={data.title} loading="lazy" />
+          <PlateImage choice={data.mediaPlate} src={data.image.url} alt={data.title} loading="lazy" />
         </a>
       )}
       <div className="glam-stats">
@@ -3149,7 +3156,7 @@ function CimTopFilesCard({ data, picking, onPickItem }) {
           <div key={r.title} className="ranking-row cim-top-file" onClick={picking ? pickClick({ kind: 'commons-file', value: `File:${r.title}`, label: r.title, project: 'commons.wikimedia' }, onPickItem) : undefined}>
             <span className="rank-num">{i + 1}.</span>
             <a className="cim-top-file-main" href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(r.title.replace(/ /g, '_'))}`} target="_blank" rel="noopener noreferrer" title={r.title}>
-              {r.thumbUrl && <img className="cim-top-file-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
+              {r.thumbUrl && <PlateImage choice={data.mediaPlate} className="cim-top-file-thumb" src={r.thumbUrl} alt="" loading="lazy" />}
               <span className="cim-top-file-name">{r.title}</span>
             </a>
             <span className="ranking-col cim-top-file-views">{r.views.toLocaleString()}</span>
