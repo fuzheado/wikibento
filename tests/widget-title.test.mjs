@@ -73,3 +73,19 @@ test('the frame actually asks widgetTitle (the wire, not just the function)', ()
   assert.match(frame, /import \{ widgetTitle \} from '\.\.\/lib\/widgetTitle';/);
   assert.match(frame, /const headerTitle = widgetTitle\(\{/);
 });
+
+test('a title that is still a reference token falls through to the widget\'s name (ISSUE-138)', () => {
+  // A consumer card wired to a producer names itself from the value it is given — and until that value arrives the
+  // config holds the *token*, which is a promise of a name rather than one. Printing it at the reader was the state
+  // the zones demo shipped with: the Article Excerpt beside a clickable picture was titled
+  // `{{widget:zones-image#selection}}` while it waited.
+  const def = WIDGET_TYPES.excerpt;
+  assert.equal(widgetTitle({ def, config: { article: 'en:Marie Curie' }, data: null }), 'en:Marie Curie');
+  assert.equal(widgetTitle({ def, config: { article: '{{widget:zones-image#selection}}' }, data: null }),
+    def.name, 'the token is not a name — the widget\'s own name is');
+  // …and once the producer emits, the value is the title again, which is the whole point of the fallback.
+  assert.equal(widgetTitle({ def, config: { article: '{{widget:x#selection}}' }, data: { title: 'Piz Nuna' } }),
+    def.name, 'a fetched article still titles itself from its own data first');
+  // An explicit rename still wins over everything, token or not.
+  assert.equal(widgetTitle({ def, config: { _title: 'The peak you clicked', article: '{{widget:x}}' } }), 'The peak you clicked');
+});

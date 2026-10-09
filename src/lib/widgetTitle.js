@@ -19,5 +19,13 @@
 export function widgetTitle({ def, config, data, fallback } = {}) {
   const custom = config?._title;
   if (custom && custom !== def?.name) return custom;
-  return def?.labelFromData?.(data) || def?.labelFromConfig?.(config) || def?.name || fallback || 'widget';
+  // A label is not a label while it is still a reference. `{{widget:zones-image#selection}}` in a title bar is the
+  // *promise* of a name — the consumer card is waiting for its producer to emit — so it falls through to the widget's
+  // own name until the value arrives, instead of printing the token at the reader.
+  const unresolved = (label) => typeof label === 'string' && label.includes('{{');
+  const fromData = def?.labelFromData?.(data);
+  if (fromData && !unresolved(fromData)) return fromData;
+  const fromConfig = def?.labelFromConfig?.(config);
+  if (fromConfig && !unresolved(fromConfig)) return fromConfig;
+  return def?.name || fallback || 'widget';
 }

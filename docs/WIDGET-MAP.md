@@ -1,6 +1,6 @@
 # The widget map — 42 types, grouped by what you must supply
 
-*One page, generated from `public/manifest.json` by `scripts/widget-map.mjs` (2026-10-07). The picture is
+*One page, generated from `public/manifest.json` by `scripts/widget-map.mjs` (2026-10-09). The picture is
 [widget-map.pdf](widget-map.pdf) (A4 landscape) · [widget-map.png](widget-map.png) · [widget-map.svg](widget-map.svg).*
 
 **Why this exists.** Forty-two widget types is more than a person can hold in mind, and the Add-widget panel orders

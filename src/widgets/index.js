@@ -6,6 +6,7 @@
 import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
+import { parseZones } from '../lib/zones';   // ISSUE-138: clickable zones are text, parsed once, in the transform
 import { MEDIA_PLATE_DEFAULT, MEDIA_PLATE_OPTIONS, plateChoice } from '../lib/mediaPlate';
 import { cimSubject, cimFacet, cimSubjectRef, cimRankingLines, LEGACY_CIM_IDS } from '../lib/cimFamily';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
@@ -998,6 +999,9 @@ export const WIDGET_TYPES = {
         { value: 'contain', label: 'Letterbox (always show whole image)' },
         { value: 'cover', label: 'Fill crop' },
       ], hint: 'Applies to grid tiles and to Single image: letterbox shows the whole file, fill crop covers the box.' },
+      { key: 'zones', label: 'Clickable zones', type: 'textarea', rows: 4, showIf: { displayMode: 'single' },
+        placeholder: '18.1,14.4,5.7,6.7 | Piz Nuna | article | de:Piz Nuna | send',
+        hint: 'One zone per line: x,y,w,h | label | kind | value | action — percentages of the picture. A click publishes the value on this card\'s selection channel, so another card can consume it ({{widget:id#selection}}). A line that cannot be read is reported on the card, and a box is never clamped.' },
       { key: 'showCaptions', label: 'Show captions', type: 'boolean', hint: 'Off leaves the image alone — the caption under a tile goes, and in Single image the overlay goes.' },
       EDGE_TO_EDGE_FIELD,
       MEDIA_BACKGROUND_FIELD,
@@ -1060,6 +1064,9 @@ export const WIDGET_TYPES = {
     transform: (data, config) => {
       const source = inferGallerySource(config);
       const rows = (data && data.rows) || [];
+      // ISSUE-138: a zone click publishes a value, so the zones ride on the data the renderer already has. The
+      // problems travel with them: a line that cannot be read is reported on the card, never dropped in silence.
+      const { zones, problems: zoneProblems } = parseZones(config.zones);
       const common = {
         size: config.iconSize || 'medium',
         fit: config.imageFit || 'contain',
@@ -1067,6 +1074,8 @@ export const WIDGET_TYPES = {
         selectable: (config.linkAction || 'new tab') !== 'new tab',
         linkAction: config.linkAction || 'new tab',
         mediaPlate: plateChoice(config.mediaBackground),
+        zones,
+        zoneProblems,
       };
 
       if (source === 'article') {
