@@ -626,6 +626,50 @@ try {
   }
 
   /**
+   * A chart where the BARS are the doors — the case where the zones were found by measuring the picture rather than by
+   * reading it. Six blue rectangles came out of a pixel scan (their lengths 391 → 667px, shortest to longest), OCR tied
+   * each to its aircraft, and each bar publishes a bare article title so an Excerpt and a Pageviews card both follow.
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    const readCards = () => page.evaluate(() => ({
+      article: (document.querySelector('[data-widget-id="aircraft-article"]')?.innerText || '').replace(/\s+/g, ' '),
+      traffic: (document.querySelector('[data-widget-id="aircraft-traffic"]')?.innerText || '').replace(/\s+/g, ' '),
+    }));
+    const clickBar = async (label) => {
+      await page.click(`[data-widget-id="aircraft-chart"] .zone[aria-label="${label}"]`);
+      await page.waitForTimeout(3000);
+      return readCards();
+    };
+    try {
+      await page.goto(`${base}/?config=/aircraft-lifecycle-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="aircraft-chart"] .zone', { timeout: 60000 });
+      await page.waitForTimeout(600);
+      const boxes = await page.evaluate(() => {
+        const el = document.querySelector('[data-widget-id="aircraft-chart"] .zone-item');
+        const r = document.querySelector('[data-widget-id="aircraft-chart"] [data-photo-click]').getBoundingClientRect();
+        const b = el.getBoundingClientRect();
+        return { zones: [...document.querySelectorAll('[data-widget-id="aircraft-chart"] .zone')].length,
+                 barHeightPct: +((b.height / r.height) * 100).toFixed(1) };
+      });
+      const tomcat = await clickBar('F-14 Tomcat');
+      const buff = await clickBar('B-52 Stratofortress');
+      if (boxes.zones !== 8) bad('aircraft: a bar opens the aircraft and its traffic', `${boxes.zones} zones on the chart — six aircraft bars and two legend lines expected`);
+      else if (boxes.barHeightPct < 3) bad('aircraft: a bar opens the aircraft and its traffic', `a bar zone is ${boxes.barHeightPct}% of the picture tall — the pixel scan did not find the rectangles`);
+      else if (!/F-14|Tomcat/.test(tomcat.article) || !/Tomcat/.test(tomcat.traffic)) bad('aircraft: a bar opens the aircraft and its traffic', `"F-14 Tomcat" gave ${JSON.stringify(tomcat.article.slice(0, 50))} / ${JSON.stringify(tomcat.traffic.slice(0, 40))}`);
+      else if (/⚠/.test(tomcat.traffic)) bad('aircraft: a bar opens the aircraft and its traffic', `the traffic card is in its error state — a value it cannot read as a title is the usual cause`);
+      else if (!/B-52|Stratofortress/.test(buff.article)) bad('aircraft: a bar opens the aircraft and its traffic', `"B-52 Stratofortress" gave ${JSON.stringify(buff.article.slice(0, 50))}`);
+      else if (errors.length) bad('aircraft: a bar opens the aircraft and its traffic', errors[0]);
+      else ok('aircraft: a bar opens the aircraft and its traffic', `8 measured zones → "F-14 Tomcat" and "B-52 Stratofortress" each load the article and its traffic`);
+    } catch (e) {
+      bad('aircraft: a bar opens the aircraft and its traffic', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
+
+  /**
    * The reader's place survives a reload — the mobile jump (ISSUE-144, reported from an iPhone).
    *
    * The cause was measured, not guessed: when the consumer card replaced its article it emptied itself first, and a

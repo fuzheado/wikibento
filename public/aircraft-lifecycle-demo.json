@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "params": {},
+  "widgets": [
+    {
+      "id": "aircraft-note",
+      "widgetType": "markdown",
+      "name": "How to read it",
+      "config": {
+        "_title": "How to read it",
+        "text": "## Six aircraft, and how long they are meant to serve\n\nEvery **bar is a door**: a click publishes the aircraft's article on the chart's `zones` channel, and both cards to the\nright follow — the **article** and its **traffic**.\n\n- The bars were **measured, not eyeballed**: a pixel scan of the drawing found the six blue rectangles (their lengths run\n  391 → 447 → 542 → 577 → 624 → 667px, shortest to longest — the chart's own story), and OCR read the labels to match\n  each bar to its aircraft.\n- The two legend lines are doors too: *Projected Lifetime* opens **Service life**, and *Extended Life* opens **Aircraft\n  maintenance** — the work that actually buys the extra decades. (The US military's acronym for that work, SLEP, has no\n  article of its own on English Wikipedia.)\n- Each bar holds two shades: the darker part is the *notional* projected life, the lighter the extension. Clicking\n  anywhere on the bar means the aircraft.\n- Where this figure comes from: the [List of active United States military aircraft](https://en.wikipedia.org/wiki/List_of_active_United_States_military_aircraft),\n  whose subject the chart illustrates.\n\n*Image: MIT OpenCourseWare — 16.885J / ESD.35J Aircraft Systems Engineering (Fall 2004). [Weapon System Lifecycles](https://commons.wikimedia.org/wiki/File:MIT_16.885J_-_ESD.35J_Aircraft_Systems_Engineering,_Fall_2004_-_Weapon_System_Lifecycles.jpg) · CC BY-SA 4.0.*"
+      }
+    },
+    {
+      "id": "aircraft-chart",
+      "widgetType": "gallery",
+      "name": "Weapon system lifecycles",
+      "config": {
+        "_title": "Click any bar",
+        "from": "list",
+        "files": "File:MIT 16.885J - ESD.35J Aircraft Systems Engineering, Fall 2004 - Weapon System Lifecycles.jpg",
+        "displayMode": "single",
+        "imageFit": "contain",
+        "linkAction": "nothing",
+        "showCaptions": false,
+        "zones": "7.67,14.20,46.86,4.99 | F-14 Tomcat | article | Grumman F-14 Tomcat | send\n7.67,25.14,54.67,4.99 | F-15 Eagle | article | McDonnell Douglas F-15 Eagle | send\n7.67,36.47,67.92,4.99 | CH-47 Chinook | article | Boeing CH-47 Chinook | send\n7.67,47.60,72.80,4.99 | C-130 Hercules | article | Lockheed C-130 Hercules | send\n7.67,58.73,79.36,4.99 | KC-135 Stratotanker | article | Boeing KC-135 Stratotanker | send\n7.67,70.06,85.36,4.99 | B-52 Stratofortress | article | Boeing B-52 Stratofortress | send\n8.37,87.72,20.08,7.29 | Projected Lifetime | article | Service life | send\n47.70,87.33,16.18,3.45 | Extended Life | article | Aircraft maintenance | send"
+      }
+    },
+    {
+      "id": "aircraft-article",
+      "widgetType": "excerpt",
+      "name": "The aircraft",
+      "config": {
+        "_title": "The aircraft behind the bar",
+        "project": "en.wikipedia",
+        "article": "{{widget:aircraft-chart#zones}}"
+      }
+    },
+    {
+      "id": "aircraft-traffic",
+      "widgetType": "pageviews",
+      "name": "Its traffic",
+      "config": {
+        "_title": "How many people read it",
+        "project": "en.wikipedia",
+        "article": "{{widget:aircraft-chart#zones}}"
+      }
+    }
+  ],
+  "layout": [
+    {
+      "i": "aircraft-chart",
+      "x": 0,
+      "y": 0,
+      "w": 7,
+      "h": 8
+    },
+    {
+      "i": "aircraft-article",
+      "x": 7,
+      "y": 0,
+      "w": 5,
+      "h": 5
+    },
+    {
+      "i": "aircraft-traffic",
+      "x": 7,
+      "y": 5,
+      "w": 5,
+      "h": 3
+    },
+    {
+      "i": "aircraft-note",
+      "x": 0,
+      "y": 8,
+      "w": 12,
+      "h": 4
+    }
+  ]
+}
