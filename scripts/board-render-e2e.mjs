@@ -144,7 +144,7 @@ try {
    * changed nothing and the check passed. Coverage, not intent, is what makes a check bite: the boards we host are
    * pasted too (below), and one of them is a params switcher.
    */
-  const pasteAndCheck = async (board, name) => {
+  const pasteAndCheck = async (board, name, extra) => {
     const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
@@ -170,11 +170,13 @@ try {
       }));
       const expect = board.widgets.map((w) => w.id);
       const missing = expect.filter((id) => !state.cards.includes(id));
+      const extraProblem = extra ? await extra(page) : null;
       if (state.importErrors.length) bad(name, `Import refused it: ${state.importErrors[0].slice(0, 90)}`);
       else if (state.cards.length !== expect.length) bad(name, `${state.cards.length} cards, expected ${expect.length}`);
       else if (missing.length) bad(name, `missing cards: ${missing.join(', ')}`);
       else if (stuck || state.waiting) bad(name, stuck || 'a card is stuck at "Waiting for a reference"');
       else if (errors.length) bad(name, errors[0]);
+      else if (extraProblem) bad(name, extraProblem);
       else ok(name, `${state.cards.length} cards pasted through Import, no errors`);
     } catch (e) {
       bad(name, String(e).slice(0, 110));
@@ -199,6 +201,54 @@ try {
   for (const reply of usable.slice(0, 6)) {
     await pasteAndCheck(asBoard(reply.board), `model: ${reply.id.slice(0, 22)}`);
   }
+
+  /**
+   * The RETIRED ids — the boards in the wild that carry one (ISSUE-142).
+   *
+   * Every demo board was migrated when the CIM family and the galleries merged, so no check rendered a retired id at
+   * all — and the frame decided static-vs-fetch from the *raw* registry table, where a retired id is simply an absent
+   * key. The card therefore looked static: it never fetched, its `emit` was handed `null`, and the shaper that reads
+   * `data.category` threw before anything drew. One id from each retired family, with the assertion that each card
+   * actually DREW something — a card that silently fetches nothing passes "no errors" and fails this.
+   */
+  const RETIRED_BOARD = {
+    version: 1,
+    params: {},
+    widgets: [
+      // cimSnapshot → cimStats { subject: 'category' }; the category is the family's own default, so it is a tracked one.
+      { id: 'legacy-cim', widgetType: 'cimSnapshot',
+        config: { subject: 'category', category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0 } },
+      // cimTopPages → cimRanking { facet: 'pages' } — no facet in the config, so the id's meaning has to supply it.
+      { id: 'legacy-rank', widgetType: 'cimTopPages',
+        config: { category: 'Files from the Biodiversity Heritage Library', scope: 'deep', month: 0 } },
+      // commonsGallery → gallery { from: 'page' } — the page the gallery demo proves has a <gallery> tag, so the arm
+        // really fetches; the id only supplies the source, the way the merge promised.
+      { id: 'legacy-gallery', widgetType: 'commonsGallery',
+        config: { page: 'The Venetian Macao', displayMode: 'grid', maxItems: 12 } },
+    ],
+  };
+  await pasteAndCheck(asBoard(RETIRED_BOARD), 'retired ids (cim + gallery)', async (page) => {
+    // Wait for DATA from both arms, not merely for cards: the whole failure mode was a card that stayed empty, and a
+    // fixed sleep here is the flake this script's own `waitUntilWired` comment warns about (the gallery's Commons
+    // parse and the CIM query settle at different times).
+    const settled = await page.waitForFunction(() => {
+      const cim = document.querySelector('[data-widget-id="legacy-cim"]')?.innerText || '';
+      const images = document.querySelectorAll('[data-widget-id="legacy-gallery"] img').length;
+      return /\d/.test(cim) && images > 0;
+    }, null, { timeout: 45000, polling: 400 }).then(() => true).catch(() => false);
+    const drawn = await page.evaluate(() => ({
+      cim: document.querySelector('[data-widget-id="legacy-cim"]')?.innerText || '',
+      rank: document.querySelector('[data-widget-id="legacy-rank"]')?.innerText || '',
+      galleryImgs: document.querySelectorAll('[data-widget-id="legacy-gallery"] img').length,
+    }));
+    if (!settled) {
+      if (!/\d/.test(drawn.cim)) return 'the retired cimSnapshot card never fetched — no value in 45s (ISSUE-142)';
+      return 'the retired commonsGallery card never fetched — no images in 45s (ISSUE-142)';
+    }
+    if (!/Biodiversity/.test(drawn.cim)) return 'the retired cimSnapshot card drew a value but not its subject';
+    if (drawn.rank.trim().length < 20) return 'the retired cimTopPages card drew nothing';
+    return null;
+  });
 } finally {
   await browser.close();
   server.kill();
