@@ -6595,3 +6595,50 @@ rejected routes (relay-side flattening, per-image canvas re-encode, a checkerboa
 per-board default) are in **GitHub issue #111**; the light-theme question it raised is filed separately as **#112**, with
 its own cost analysis (`src/App.css` is 3,357 lines, 54 distinct hard-coded colours) and the note that it is not a
 substitute for this.
+
+
+## ISSUE-142 · A card carrying a retired widget id renders nothing — the static/fetch decision ignores the id's resolution (found 2026-10-08, from a board that would not draw)
+
+**Symptom (Andrew's board).** A `cimSnapshot` card showed its chrome and nothing else — no data, no error, no spinner —
+with `fetchedAt: null, error: null` in the exported widget, and the console carrying
+`TypeError: Cannot read properties of null (reading 'category')`.
+
+**Root cause, one line.** `src/widgets/WidgetFrame.jsx:470` decides whether a widget fetches or renders from config by
+looking up the **raw stored id**:
+
+```js
+if (!WIDGET_TYPES[widget.widgetType]?.fetch) {   // static path
+```
+
+`WIDGET_TYPES['cimSnapshot']` is `undefined` — it is a *retired* id — so `undefined?.fetch` is falsy and a
+fetch-backed card takes the **static** path: `transform(null, config)` runs, the state is set to `data: null` with
+neither `fetchedAt` nor an error, and `publishOutput(...)` then calls the **resolved** definition's `emit` (the
+current `cimStats` emit, because `def = widgetDef(...)` at line 210 *did* resolve the id) with a null value. That emit
+is `cimSubjectRef(config, data)`, whose `data = {}` default only catches `undefined` — `data.category` on a null throws.
+The throw aborts the load before any request, which is why no CIM call is made at all.
+
+**Blast radius: every board that still carries one of the eight retired CIM ids** — `cimSnapshot`, `cimFileSpotlight`,
+`cimFileTraffic`, `cimTopFiles`, `cimTopWikis`, `cimTopPages`, `cimTopEditors`, `cimLeaderboard` — which is precisely the
+case `AGENTS.md` protects: *"A retired widget type id must keep resolving (`widgetDef`), and its config must keep
+meaning what it meant."* It resolves; the runtime then ignores the resolution. The same raw lookups sit at lines 484–485
+and 547 (transform/fetch) and 247, 258 (project fields, `verticalAlign` defaults), so a retired id also loses its
+source-field machinery.
+
+**The config is legal, and the workaround is one word.** Replacing `"widgetType": "cimSnapshot"` with `"cimStats"` makes
+the identical config render (`2026-09 · precomputed (CIM) · deep · direct: 389,046 files`; 389,164 Files) because the
+retired id's meaning *is* `{ subject: 'category' }`, which the config already states. Two hygiene notes on that board
+either way: `filename`, `wiki` and `showImage` are file-subject fields (`showIf: { subject: 'file' }`) and are inert
+under `subject: 'category'`; and `filename` holds the field's **placeholder text** verbatim ("Dogs, jackals, wolves, and
+foxes (Plate XI).jpg"), so if `subject` were ever dropped, `cimSubject` would read that stray value first and silently
+flip the card to the file branch.
+
+**Why no gate caught it.** The fixtures that mention retired ids are unit and doctor tests (`tests/cim-family.test.mjs`,
+`tests/cim-gap.test.mjs`, `tests/board-doctor.test.mjs`) — nothing *renders* a board carrying one, and every demo board
+was migrated to current ids, so the browser sweeps stayed green over a card that cannot draw.
+
+**Fix, three parts.** (1) Use the already-resolved `def` for all five lookups — one-word changes, the neighbouring code
+already reads `def?.renderer` that way. (2) Make the static pass's contract explicit: the loader calls `emit` in *both*
+paths, so emitters must tolerate `null` (harden `cimSubjectRef` and `cimRankingLine`, which already guards `rows` but not
+an explicit `null`), with a unit test per exported shaper. (3) Close the gate gap: a browser check that pastes a
+retired-id board through the app's own ⬆ Import panel (the pattern `scripts/pick-mode-e2e.mjs` uses) and asserts the card
+renders data with no page errors.
