@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-09T09:29:10.199Z",
+ "generatedAt": "2026-10-09T10:26:04.239Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -833,6 +833,16 @@
       "contain",
       "cover"
      ]
+    },
+    {
+     "key": "zones",
+     "type": "textarea",
+     "label": "Clickable zones",
+     "hint": "One zone per line: x,y,w,h | label | kind | value | action — percentages of the picture. A click publishes the value on this card's selection channel, so another card can consume it ({{widget:id#selection}}). A line that cannot be read is reported on the card, and a box is never clamped.",
+     "placeholder": "18.1,14.4,5.7,6.7 | Piz Nuna | article | de:Piz Nuna | send",
+     "showIf": {
+      "displayMode": "single"
+     }
     },
     {
      "key": "showCaptions",

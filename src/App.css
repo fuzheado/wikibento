@@ -1639,6 +1639,43 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
 }
 
 
+/* ── Clickable zones on a single image (ISSUE-138, slice A) ────────────────────────────────────────────────────
+   A zone is a button placed in percentages of the *picture*, not of the card: `.zone-frame` is sized to the image's
+   own rect (the renderer measures the card and the file's dimensions), so a box lands on the same pixels whether the
+   card is 300px or 900px wide, and the overlay survives a resize without recomputation. The layer itself ignores the
+   pointer, so a click between zones still opens the picture the way it always did; the buttons take it back.
+   Hover reveals a zone on a deskbound pointer. Print hides them: an outline on paper is noise, not a control. */
+.zone-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.zone-frame { position: relative; }
+.zone {
+  position: absolute; padding: 0; pointer-events: auto; cursor: default;
+  border: 1.5px dashed rgb(74 158 255 / 0.55); border-radius: 3px; background: rgb(74 158 255 / 0.06);
+  transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.zone.is-live { cursor: pointer; }
+/* A zone may be a few pixels wide — a photograph's own notes are often just a label's box — so the *hit* area is
+   padded while the visible outline stays exactly on the data: a finger gets 24px more to aim at, and nobody is told a
+   box is somewhere it is not. (docs/ZONES.md's minimum-touch-size rule.) */
+.zone::after { content: ''; position: absolute; inset: -12px; }
+.zone:hover, .zone:focus-visible {
+  border: 2px solid var(--accent, #4a9eff); background: rgb(74 158 255 / 0.22);
+  box-shadow: 0 0 0 3px rgb(74 158 255 / 0.14);
+}
+.zone-label {
+  position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
+  padding: 3px 7px; border-radius: var(--radius-sm, 4px); white-space: nowrap;
+  background: rgb(11 18 32 / 0.92); border: 1px solid var(--accent, #4a9eff); color: var(--text, #e1e4ed);
+  font-size: 11px; font-weight: 600; opacity: 0; transition: opacity 120ms ease; pointer-events: none;
+}
+.zone:hover .zone-label, .zone:focus-visible .zone-label { opacity: 1; }
+.zone-problems {
+  position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px); padding: 3px 7px;
+  border-radius: var(--radius-sm, 4px); background: rgb(11 18 32 / 0.9); border: 1px solid var(--danger, #e0556a);
+  color: #f0c2c9; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media print { .zone-layer { display: none; } }
+
+
 /* ── 360° Panorama Viewer ───────────────────────────────── */
 .panorama-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
 .panorama-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; min-height: 16px; }

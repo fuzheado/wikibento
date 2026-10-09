@@ -6,6 +6,7 @@ import {
   readDefaultProject, toFieldValue, LANGUAGE_EN,
 } from '../lib/projects';
 import { resolveParams, findUnresolvedRefs, describeUnresolvedRefs, selectParamNames } from '../lib/params';
+import { zoneUrl } from '../lib/zones';   // ISSUE-138: an `open` zone's value, as a URL
 import {
   getParamSource, suggestForSource, validateLookupValue, normalizeLookupValue,
   sourceUsesProject, formatLookupValue, splitLookupValue, parseProjectPrefix, DEFAULT_LOOKUP_PROJECT,
@@ -1853,6 +1854,7 @@ function pickLinkClick(url, onPickItem) {
 function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
   const wrapRef = useRef(null);
   const measured = useContentWidth(wrapRef);
+  const box = useBoxSize(wrapRef);          // both dimensions: the zone overlay is placed on the picture, not the card
   const hiDpi = allowHiDpi();
   const fit = data.fit || 'contain';
   const img = (data.rows || [])[0];
@@ -1863,6 +1865,38 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
   // srcset and `sizes` arrive together and only once the box has been measured — the grid's lesson (ISSUE-109):
   // with width descriptors and no `sizes`, a browser assumes 100vw and fetches a rendition it then replaces.
   const sizes = measured ? `${measured}px` : undefined;
+  // The overlay maps percentages onto the PICTURE, not onto the card (docs/ZONES.md: "the overlay lives in a box whose
+  // aspect ratio IS the file's"). The picture is letterboxed inside the card by `object-fit: contain`, so the image's
+  // own rect is computed from the measured box and the file's dimensions — a percentage then lands on the same pixels
+  // whatever the card's size. With `cover` the picture is cropped instead, so zones cannot line up: that is reported
+  // rather than drawn wrong.
+  const zones = (data.zones || []).filter((z) => z.geometry === 'box');
+  const ratio = img.width && img.height ? img.width / img.height : null;
+  const frame = (() => {
+    if (!zones.length || !ratio || !box.w || !box.h) return undefined;
+    const scale = fit === 'cover' ? Math.max(box.w / img.width, box.h / img.height)
+      : Math.min(box.w / img.width, box.h / img.height);
+    return { width: `${Math.round(img.width * scale)}px`, height: `${Math.round(img.height * scale)}px` };
+  })();
+  const zoneProblems = [
+    ...(data.zoneProblems || []),
+    ...(zones.length && fit === 'cover'
+      ? ['Image fit is Fill crop, so the picture is cropped — zones line up in Letterbox only'] : []),
+  ];
+  const zoneAt = (z, i) => ({
+    key: `${z.line}-${i}`,
+    style: { left: `${z.x}%`, top: `${z.y}%`, width: `${z.w}%`, height: `${z.h}%` },
+    name: z.label || z.value || `Zone ${i + 1}`,
+    onClick: (event) => {
+      if (z.action === 'open') {
+        const href = zoneUrl(z.value);
+        if (href) { event.preventDefault(); window.open(href, '_blank', 'noopener,noreferrer'); return; }
+      }
+      // `send` (and any `open` whose value is not a reference): publish the value on this card's selection channel,
+      // which is the same event a tile click raises — a consumer cannot tell the two apart, which is the point.
+      if (z.value) onSelect?.(z.value);
+    },
+  });
   return (
     <div className="gallery-single" ref={wrapRef}>
       <a className={`gallery-single-link${img.mediaType === 'video' ? ' is-video' : ''}`} href={img.fileUrl}
@@ -1884,6 +1918,26 @@ function GallerySingleCard({ data, onSelect, picking, onPickItem }) {
           ? <span className="gallery-single-caption">{img.caption || img.title}</span>
           : null}
       </a>
+      {!picking && zones.length ? (
+        <div className="zone-layer" role="group" aria-label="Clickable zones">
+          <div className="zone-frame" style={frame}>
+            {zones.map((z, i) => {
+              const { key, style, name, onClick } = zoneAt(z, i);
+              return (
+                <button key={key} type="button" className={`zone${z.value ? ' is-live' : ''}`} style={style}
+                  title={name} aria-label={name} onClick={onClick}>
+                  {z.label ? <span className="zone-label">{z.label}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+          {zoneProblems.length ? (
+            <div className="zone-problems" title={zoneProblems.join('\n')}>
+              {zoneProblems.length} zone {zoneProblems.length === 1 ? 'line' : 'lines'} ignored — {zoneProblems[0]}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1968,6 +2022,21 @@ function GalleryGridCard({ data, onSelect, picking, onPickItem }) {
 /** Measure an element's CONTENT width (padding excluded) and keep it current.
  *  `sizes` has to be the width a tile really occupies: the auto-fill column maths runs on the content box, and
  *  `.gallery-grid` carries 2px of padding — on a real card that decides whether the slot is 193px or 194px. */
+function useBoxSize(ref) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const measure = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
+}
+
 function useContentWidth(ref) {
   const [width, setWidth] = useState(0);
   useEffect(() => {

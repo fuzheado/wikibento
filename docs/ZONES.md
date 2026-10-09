@@ -1,6 +1,9 @@
 # Clickable zones on an image — the HyperCard button layer
 
-> **Status: design study, with the first decisions recorded** (Andrew, 2026-10-05). Filed as **ISSUE-138**.
+> **Status: slice A is built** (branch `feat/zones-mvp`, 2026-10-08) — the text field, the overlay, the click →
+> `selection` emit, and a shipped demo (`?config=/zone-demo.json`) whose zones are a file's own Commons notes. The rest
+> (the editor, the import ladder, the 360° half, tours) is still a design, in the order §Can this be a clean feature
+> branch? sets out. Filed as **ISSUE-138**.
 > Wireframes, all rendered from real data rather than drawn by hand:
 > `docs/zone-card.png` (the reader's view) · `docs/zone-editor.png` (the editor) ·
 > `docs/zone-sphere.png` (the 360° case — **this one is a live Pannellum render**, see §Photospheres) ·
@@ -444,7 +447,7 @@ so a slice that changes a decision edits this file in the same PR.
 
 | slice | what | the gate it adds | estimate |
 |---|---|---|---|
-| **A · zones as text, drawn, emitting** | the `zones` text field; the render layer (percentages inside a box whose aspect ratio *is* the file's); hover-reveal and tap-reveal-then-act; click → the existing `selection` emit; the validator rules; regenerated guide, schema and manifest | geometry + parser unit tests, and a browser check that a click on a zone changes a neighbouring card | 1–1.5 days |
+| ~~**A · zones as text, drawn, emitting**~~ **built** (branch `feat/zones-mvp`) | the `zones` text field (gated to `displayMode: single`); the overlay in a box whose aspect ratio *is* the file's, measured rather than assumed; hover-reveal; click → the existing `selection` emit; `open` zones resolved to wiki URLs; unreadable lines reported on the card; regenerated guide, schema, manifest and widget map | parser/round-trip/URL unit tests, a registry-and-demo test, and a browser check that **clicks a zone and waits for the consumer to load it** | **done** |
 | **B · the editor** | the full-screen overlay: draw, move, resize, list, delete, undo, Apply/Cancel; the three-fit crop rule with its preview; the print decision | an editor e2e — draw a zone, apply, reload, click it, watch the consumer move | 1.5–2 days |
 | **C · Commons notes and their targets** | the `{{ImageNote}}` import; the four-rung ladder of §Where the zones come from; the propose-never-bind list | unit tests for the note parser and the label cleaner, on a fixture of a real file's notes | ≈1 day |
 | **D · the 360° half** | zones on the panorama in the same model — `hotSpots` + `clickHandlerFunc`, pin placement via `mouseEventToCoords`, a `cssClass` per action | an e2e against a real Commons panorama | 0.5 day |

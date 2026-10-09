@@ -199,6 +199,50 @@ try {
   for (const reply of usable.slice(0, 6)) {
     await pasteAndCheck(asBoard(reply.board), `model: ${reply.id.slice(0, 22)}`);
   }
+
+  /**
+   * The clickable zones demo — the MVP's own check (ISSUE-138, slice A).
+   *
+   * A picture that emits is only worth anything if the value actually travels, so this clicks a zone and waits for the
+   * consumer card to become the article that zone named. "Waiting for a reference" is the CORRECT state until then —
+   * the app's own contract for a consumer whose producer has not emitted — which is why this board is not in HOSTED,
+   * whose check requires every card to settle wired before anything is touched.
+   */
+  {
+    const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message.slice(0, 120)));
+    page.on('console', (m) => {
+      if (m.type() !== 'error') return;
+      const text = String(m.text());
+      if (/Content Security Policy|Failed to load resource|violates the following/.test(text)) return;
+      errors.push(`console: ${text.slice(0, 110)}`);
+    });
+    try {
+      await page.goto(`${base}/?config=/zone-demo.json`, { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-widget-id="zones-image"] .zone', { timeout: 30000 });
+      const drawn = await page.evaluate(() => ({
+        zones: document.querySelectorAll('[data-widget-id="zones-image"] .zone').length,
+        labels: [...document.querySelectorAll('[data-widget-id="zones-image"] .zone')].map((z) => z.getAttribute('aria-label')),
+      }));
+      // By name, not by index: the demo's order is the file's own note order, and a reordered board must not quietly
+      // point this check at a different mountain.
+      await page.click('[data-widget-id="zones-image"] .zone[aria-label="Piz Nuna"]');
+      await page.waitForFunction(() => {
+        const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
+        return /Piz Nuna/i.test(text) && !/Waiting for a reference/i.test(text);
+      }, null, { timeout: 30000, polling: 250 });
+      const after = await page.evaluate(() =>
+        (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
+      if (drawn.zones < 5) bad('zones: click → excerpt', `only ${drawn.zones} zone buttons drawn`);
+      else if (!drawn.labels.includes('Piz Nuna')) bad('zones: click → excerpt', `no zone labelled Piz Nuna (${drawn.labels.join(', ')})`);
+      else if (errors.length) bad('zones: click → excerpt', errors[0]);
+      else ok('zones: click → excerpt', `${drawn.zones} zones · clicked "Piz Nuna" → the excerpt reads ${JSON.stringify(after)}`);
+    } catch (e) {
+      bad('zones: click → excerpt', String(e).slice(0, 130));
+    }
+    await page.close();
+  }
 } finally {
   await browser.close();
   server.kill();

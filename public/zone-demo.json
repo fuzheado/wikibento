@@ -1,0 +1,67 @@
+{
+ "version": 1,
+ "params": {},
+ "widgets": [
+  {
+   "id": "zones-note",
+   "widgetType": "markdown",
+   "name": "How this demo works",
+   "config": {
+    "text": "# \ud83d\udc46 Click a mountain\n\nThis board is **one photograph with clickable zones on it** \u2014 and the zones are not ours: they are the *file's own*\n[Commons image notes](https://commons.wikimedia.org/wiki/File:Scuol-Motta_Naluns,_11-10-2024._(actm.)_21.jpg), written\nby the photographer, read out of the file's wikitext and converted to percentages of the picture. Six peaks, exactly\nwhere that file says they are.\n\nHover a box (a tap reveals it on a phone) and its name appears. A click **publishes the name** on the picture card's\n`selection` channel, which is the same event a gallery tile raises \u2014 so the \ud83d\udcc4 Article Excerpt beside it, listening to\nthat channel, loads the mountain you clicked. No page reload; the URL never changes.\n\n- `Piz Mezdi` is the odd one out: its line ends `open`, so it opens the article in a new tab instead of feeding the card.\n- Zones live in the card's \u2699 panel as **text**, one per line \u2014 `x,y,w,h | label | kind | value | action`, with the box in\n  percentages of the picture. Fix one by hand, or write a board that has them from the start.\n\nThe extract card starts at \"waiting for a reference\": that is the app's own state for a consumer whose producer has not\nemitted yet, and the first click fills it.\n"
+   }
+  },
+  {
+   "id": "zones-image",
+   "widgetType": "gallery",
+   "name": "Motta Naluns \u2014 click a peak",
+   "config": {
+    "from": "list",
+    "files": "File:Scuol-Motta Naluns, 11-10-2024. (actm.) 21.jpg",
+    "displayMode": "single",
+    "imageFit": "contain",
+    "showCaptions": true,
+    "linkAction": "send to the board",
+    "zones": "26.5,23.8,0.8,1.3 | Piz Sursass | article | de:Piz Sursass | send\n21.0,27.0,0.8,1.3 | Piz Nuna | article | de:Piz Nuna | send\n17.3,29.7,0.7,1.4 | Piz Macun | article | de:Piz Macun | send\n22.9,31.7,0.8,1.6 | Piz d'Arpiglias | article | de:Piz d'Arpiglias | send\n4.7,32.4,0.8,1.8 | Chast\u00e8 Steinsberg, Ardez | article | de:Chast\u00e8 Steinsberg, Ardez | send\n15.2,14.3,0.6,1.4 | Piz Mezdi | article | de:Piz Mezdi | open"
+   }
+  },
+  {
+   "id": "zones-excerpt",
+   "widgetType": "excerpt",
+   "name": "The peak you clicked",
+   "config": {
+    "article": "{{widget:zones-image#selection}}",
+    "project": "de.wikipedia",
+    "refreshSeconds": 3600
+   }
+  }
+ ],
+ "layout": [
+  {
+   "i": "zones-note",
+   "x": 0,
+   "y": 0,
+   "w": 6,
+   "h": 6,
+   "minW": 3,
+   "minH": 2
+  },
+  {
+   "i": "zones-image",
+   "x": 6,
+   "y": 0,
+   "w": 6,
+   "h": 6,
+   "minW": 3,
+   "minH": 2
+  },
+  {
+   "i": "zones-excerpt",
+   "x": 0,
+   "y": 6,
+   "w": 6,
+   "h": 4,
+   "minW": 3,
+   "minH": 2
+  }
+ ]
+}

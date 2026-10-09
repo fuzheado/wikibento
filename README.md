@@ -41,6 +41,7 @@ inventory is [docs/PROXIES.md](docs/PROXIES.md). No accounts, no login, nothing 
 | demo | what it shows |
 |---|---|
 | 👋 [Article switcher](https://wikibento.toolforge.org/?config=/article-switcher-demo.json) | the simplest board: one param, two cards |
+| 👆 [Clickable zones](https://wikibento.toolforge.org/?config=/zone-demo.json) | a photograph with **six clickable zones** — its own Commons notes, read from the file's wikitext — where a click publishes the peak's name and the 📄 Article Excerpt beside it loads that mountain |
 | 🎞️ [Commons gallery](https://wikibento.toolforge.org/?config=/gallery-demo.json) | Commons' **curated** layer as data — a gallery page's own captions and order, and a click on a tile drives the reader beside it |
 | 🗂️ [Category gallery](https://wikibento.toolforge.org/?config=/category-images-demo.json) | Images from a **Commons category** — alphabetical, newest, random or largest — with the category's total in the subtitle when a card shows only part of it |
 | 🔎 [Page picker](https://wikibento.toolforge.org/?config=/page-picker-demo.json) | one validated page-name box with a wiki beside it — three cards follow, and none of them names a project |

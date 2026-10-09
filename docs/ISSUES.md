@@ -6423,6 +6423,34 @@ a **propose-never-bind** confirmation UI with descriptions, wikis and a first-cl
 client the app already has (`src/lib/paramSources.js`: `prefixsearch`, `list=search`, `wbsearchentities`). Design and
 the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/zone-suggest.png`.
 
+**Slice A built (branch `feat/zones-mvp`, 2026-10-08).** The MVP Andrew asked for — a clickable image emitting a
+(language, title) pair that a second card consumes as an article extract — is implemented and checked end to end:
+
+- **the `zones` field**, text, on the 🖼️ Gallery, gated to `displayMode: single` — the design's own decision (structured
+  text, the map's `points`/`geojson` precedent), so there is no new field type and `boardDoctor` needs no nested paths;
+- **the grammar and parser** (`src/lib/zones.js`): `x,y,w,h | label | kind | value | action`, `-` for anything absent,
+  and `at pitch,yaw` accepted for the 360° host to come. A malformed line is **reported with its line number** and shown
+  on the card; a box is **never clamped**, because a zone moved silently lands on the wrong part of a picture;
+- **the overlay**: every zone is a `<button>` whose accessible name is its label, positioned in percentages of the
+  picture by *measuring* the card and the file's dimensions — so `contain` letterboxing cannot shift it, and the same
+  box lands on the same pixels at any card size. The layer ignores the pointer (a click between zones still opens the
+  picture) and `::after` pads the *hit* area without moving the visible box, because a file's own notes can be 5px wide;
+- **the emit**: a click publishes the value on the card's existing `selection` channel — the very event a tile click
+  raises — so the consumer is the shipped 📄 Article Excerpt with `{{widget:zones-image#selection}}` and **no new
+  plumbing at all**. An `open` zone resolves its reference to a wiki URL instead (`Category:Birds` → Commons; a prefix
+  that is neither a known wiki nor language-shaped is refused rather than guessed at);
+- **the demo**: `public/zone-demo.json` — a Commons picture-of-the-day whose zones are the file's **own six image
+  notes**, wired to the excerpt beside it, linked from the README's demo table and the hub (both gates);
+- **the gates**: `tests/zones.test.mjs` (parser, round trip, the URL rule, the registry field, the demo board) and a
+  browser check that **clicks the zone labelled "Piz Nuna" and waits for the excerpt to become it** — a card that emits
+  nothing passes "no errors" and fails that. One title-bar fix came out of the demo: a card waiting for a producer is no
+  longer *titled* by the unresolved token (`{{widget:…}}` is a promise of a name, not a name).
+
+Deliberately **not** in this slice, and still designed: the editor (zones are written by hand today), the Commons-notes
+import and its target suggestions, the 360° host, tours with arrival views, the decided
+**tap-reveals-then-acts touch rule** (the MVP's click acts at once), the numbered print legend (the layer hides in
+print), and binding the parser's problems into the doctor rather than only onto the card.
+
 ## ISSUE-139 · The action bar is 1028 px wide, so a phone pans 811 px sideways and 13 of 15 toolbar buttons are off-screen — **open** (asked by Lodewijk 2026-10-07)
 
 Lodewijk, having opened the 2026 Nobel board on a phone: *"Mobile version didn't work great. Is that design or tool?"*
