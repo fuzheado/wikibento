@@ -245,7 +245,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
      *  something to load for a QR code. The list caches itself (mirror + memo), so the second card is free. */
     /* …and a Board Controls card needs it when the board declares a page box: the wiki picker beside a lookup
        input is the same 364-project control (ISSUE-99), so the list it needs is the same list. */
-    const needsProjects = (WIDGET_TYPES[widget.widgetType]?.configFields || []).some((f) => f.type === 'project')
+    const needsProjects = (def?.configFields || []).some((f) => f.type === 'project')
       || Object.values(paramSpecs || {}).some((p) => p && p.type === 'lookup' && sourceUsesProject(p.source));
     const [projectList, setProjectList] = useState(FALLBACK_PROJECTS);
     useEffect(() => {
@@ -256,7 +256,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
     }, [needsProjects]);
 
     const vAlign = resolvedConfig.verticalAlign
-      || WIDGET_TYPES[widget.widgetType]?.defaults?.verticalAlign
+      || def?.defaults?.verticalAlign
       || null;
 
       // "Edge to edge" (2026-09-29): the card's own chrome steps aside so its content fills the box. Same shape as
@@ -468,7 +468,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         onOutput(widget.id, emitted);
       }
     };
-    if (!WIDGET_TYPES[widget.widgetType]?.fetch) {
+    if (!def?.fetch) {
       // Static widget (no fetch): render straight from config — the
       // transform also sees its `source` output (dataflow, ISSUE-51).
       //
@@ -482,11 +482,14 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
         setState({ loading: false, error: null, data: null, waiting: unresolvedStatic });
         return;
       }
-      const transformed = WIDGET_TYPES[widget.widgetType]?.transform
-        ? WIDGET_TYPES[widget.widgetType].transform(null, resolvedConfig, { sourceOutput: sourceOutputValue })
+      const transformed = def?.transform
+        ? def.transform(null, resolvedConfig, { sourceOutput: sourceOutputValue })
         : null;
       setState({ loading: false, error: null, data: transformed, waiting: null });
-      publishOutput(transformed);
+      // A static pass can legitimately have nothing to publish (`transformed` is null for a type with no transform),
+      // and an emit is never handed null: that hand-off is what threw on a retired id in ISSUE-142. Every static
+      // publisher in the registry has a transform, so nothing real is skipped here.
+      if (transformed !== null && transformed !== undefined) publishOutput(transformed);
       return;
     }
     // ISSUE-58: NEVER send an unresolved `{{…}}` placeholder to an API as if it
@@ -545,7 +548,7 @@ export default function WidgetFrame({ widget, onRemove, onUpdateConfig, onRename
 
   // Auto-refresh (static widgets have nothing to refresh)
   useEffect(() => {
-    if (!WIDGET_TYPES[widget.widgetType]?.fetch) return;
+    if (!def?.fetch) return;
     const secs = (resolvedConfig.refreshSeconds || 3600) * 1000;
     intervalRef.current = setInterval(load, secs);
     return () => clearInterval(intervalRef.current);

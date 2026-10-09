@@ -6670,3 +6670,39 @@ paths, so emitters must tolerate `null` (harden `cimSubjectRef` and `cimRankingL
 an explicit `null`), with a unit test per exported shaper. (3) Close the gate gap: a browser check that pastes a
 retired-id board through the app's own ⬆ Import panel (the pattern `scripts/pick-mode-e2e.mjs` uses) and asserts the card
 renders data with no page errors.
+
+**Outcome (branch `fix/issue-142-retired-ids`).** The audit that came with the fix found the class was wider than the
+one card:
+
+- **10 retired ids, two families** — 8 CIM (`cimSnapshot`, `cimFileSpotlight`, `cimFileTraffic`, `cimTopFiles`,
+  `cimTopWikis`, `cimTopPages`, `cimTopEditors`, `cimLeaderboard`) and 2 gallery (`commonsGallery`, `fileGallery`).
+  All 10 resolved correctly through `widgetDef()`; all 10 were misclassified as static by the frame.
+- **18 raw-table lookups**, not the five I first found: 5 in `WidgetFrame.jsx` (fetch/transform, project fields,
+  `verticalAlign`), **10 in `App.jsx`** — including `defaultLayout` (a retired id got a 3×3 fallback), the *emitters*
+  list (a retired-id card was not even offered as a source to another card) and the export/JPEG label (the raw id
+  showed instead of the name) — 2 in `boardDoctor.js` (a `|| WIDGET_TYPES[…]` fallback that was dead code, since
+  `widgetDef` already returns the registry entry), and 1 inside the registry's own resolver.
+- **15 emits read a property straight off `data`**, so *any* null handed to them took a board down; `cimSubjectRef`
+  and `cimRankingLine` were the two that threw first (and the two whose `data = {}` / `row = {}` defaults only catch
+  `undefined`, not `null`).
+
+**What changed.** Every lookup now uses the resolved definition (`widgetDef(...)`, or the `def` the frame already
+computed); the static pass no longer hands an emit `null`; all 15 emits and both shapers tolerate a missing value
+(so the *next* caller cannot repeat this); the doctor's dead fallback is gone, and the raw table is no longer imported
+there.
+
+**Gates, and proof they bite.** A new `tests/legacy-ids.test.mjs` holds five checks — every retired id resolves to a
+renderer the frame handles; a retired id takes exactly its target's path (`fetch`/`transform`/`renderer`); the target's
+defaults plus the id's implied config; **no module may look a widget up by its stored id** (a text gate, so the habit
+cannot come back); and **no emit throws when handed nothing**. The browser sweep gained a board carrying one id from
+each retired family, pasted through ⬆ Import, asserting each card *drew data* — a card that silently fetches nothing
+passes "no errors" and fails this. With the raw-table lookup restored, that board fails by name
+(`Cannot read properties of null (reading 'resolvedMonth')`); with the fix it passes, twice in a row, and it is now one
+of 13 boards in `npm run smoke:boards` — which is where the earlier "an old board still renders" check lived, testing
+the *resolution* but never the *render*.
+
+**Andrew's board needs no change.** The config was legal throughout: the category is served, the three file-subject
+fields are simply inert under `subject: 'category'`, and once the app resolves the id the card draws
+(`2026-09 · precomputed (CIM) · deep · direct: 389,046 files`). The `cimSnapshot` → `cimStats` rename is optional —
+worth doing for tidiness, not for correctness — and the placeholder in `filename` is worth clearing, because it would
+flip the branch if `subject` were ever dropped.
