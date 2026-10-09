@@ -270,7 +270,7 @@ const EDGE_TO_EDGE_FIELD = {
  */
 const MEDIA_BACKGROUND_FIELD = {
   key: 'mediaBackground', label: 'Media background', type: 'select', options: MEDIA_PLATE_OPTIONS,
-  hint: 'Behind the picture. Light forces a white plate; the detection is in lib/mediaPlate.js.',
+  hint: 'Behind the picture. Light forces a white plate; the detection — and its direction — is in lib/mediaPlate.js.',
 };
 
 export const WIDGET_TYPES = {
