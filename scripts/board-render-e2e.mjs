@@ -117,6 +117,25 @@ async function waitUntilWired(page, ms = 25000) {
   }
 }
 
+/**
+ * Click a zone BY ITS CENTRE COORDINATES, the way a reader does.
+ *
+ * Not `page.click(selector)`: two of this photograph's notes sit ~28px apart, so their 30px markers overlap and
+ * Playwright (rightly) refuses to click a point another element covers. The app resolves a click by geometry — inside a
+ * box wins, else the nearest centre — so clicking the coordinate is both the honest test and the thing that must work.
+ */
+const clickZone = async (page, label) => {
+  const point = await page.evaluate((wanted) => {
+    const frame = document.querySelector('[data-widget-id="zones-image"] .zone-frame');
+    const button = document.querySelector(`[data-widget-id="zones-image"] .zone[aria-label="${wanted}"]`);
+    const item = button.parentElement;                                  // the data box the marker is centred on
+    const f = frame.getBoundingClientRect();
+    const b = item.getBoundingClientRect();
+    return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2), frame: { w: Math.round(f.width) } };
+  }, label);
+  await page.mouse.click(point.x, point.y);
+};
+
 const problems = [];
 const results = [];
 const ok = (name, detail) => results.push(`  ✅ ${name.padEnd(34)} ${detail}`);
@@ -288,10 +307,19 @@ try {
     try {
       await page.goto(`${base}/?config=/zone-demo.json`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('[data-widget-id="zones-image"] .zone', { timeout: 30000 });
-      const drawn = await page.evaluate(() => ({
-        zones: document.querySelectorAll('[data-widget-id="zones-image"] .zone').length,
-        labels: [...document.querySelectorAll('[data-widget-id="zones-image"] .zone')].map((z) => z.getAttribute('aria-label')),
-      }));
+      const drawn = await page.evaluate(() => {
+        const buttons = [...document.querySelectorAll('[data-widget-id="zones-image"] .zone')];
+        return {
+          zones: buttons.length,
+          labels: buttons.map((z) => z.getAttribute('aria-label')),
+          // The marker is at least 30px whatever the note's own box measures: the file's notes on this photograph are
+          // ~5px wide, and Andrew's first test found them impossible to aim at. Sizes are asserted, not assumed.
+          smallest: Math.min(...buttons.map((z) => {
+            const r = z.getBoundingClientRect();
+            return Math.min(r.width, r.height);
+          })),
+        };
+      });
       // FIRST, the collision Andrew's test found: a click on the picture itself publishes the FILE it shows on the
       // card's `selection` channel, and that must NOT reach an article consumer wired to `zones`. Click the middle of
       // the photograph (away from every zone) and assert the excerpt has not moved.
@@ -313,17 +341,37 @@ try {
       }
       // THEN, by name, not by index: the demo's order is the file's own note order, and a reordered board must not
       // quietly point this check at a different mountain.
-      await page.click('[data-widget-id="zones-image"] .zone[aria-label="Piz Nuna"]');
+      await clickZone(page, 'Piz Nuna');
       await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
         return /Piz Nuna/i.test(text) && !/Waiting for a reference/i.test(text);
       }, null, { timeout: 30000, polling: 250 });
       const after = await page.evaluate(() =>
         (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').split('\n')[0].slice(0, 60));
+      // Hover must agree with the click: move the pointer to a crowded zone's centre and assert the RESOLVED highlight
+      // is that zone — not the neighbour whose marker happens to overlap it.
+      const agree = await page.evaluate(() => {
+        const item = document.querySelector('[data-widget-id="zones-image"] .zone[aria-label="Piz Nuna"]').parentElement;
+        const b = item.getBoundingClientRect();
+        return { x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) };
+      });
+      await page.mouse.move(agree.x, agree.y);
+      await page.waitForTimeout(250);
+      const highlighted = await page.evaluate(() => {
+        const on = document.querySelector('[data-widget-id="zones-image"] .zone-item.is-hovered .zone');
+        const chip = document.querySelector('[data-widget-id="zones-image"] .zone-item.is-hovered .zone-label');
+        return { label: on?.getAttribute('aria-label') || null, chip: chip?.textContent || null };
+      });
+      if (highlighted.label !== 'Piz Nuna') {
+        bad('zones: hover agrees with the click', `pointing at Piz Nuna highlighted ${JSON.stringify(highlighted.label)}`);
+      } else {
+        ok('zones: hover agrees with the click', `pointing at Piz Nuna highlights it and shows ${JSON.stringify(highlighted.chip)}, though a neighbour's marker overlaps`);
+      }
+
       // A SECOND zone, and deliberately one whose target used to 404: Andrew's report named "Piz Macun" and
       // "Piz d'Arpiglias", whose articles did not exist on de.wikipedia, so the demo's targets are now found by search
       // — and this is the guard that keeps them found. A click must never leave the consumer on "Article not found".
-      await page.click('[data-widget-id="zones-image"] .zone[aria-label="Piz Macun"]');
+      await clickZone(page, 'Piz Macun');
       const second = await page.waitForFunction(() => {
         const text = document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '';
         return /Macun/i.test(text) && !/not found/i.test(text) && !/Waiting for a reference/i.test(text);
@@ -332,7 +380,8 @@ try {
           (await page.evaluate(() => (document.querySelector('[data-widget-id="zones-excerpt"]')?.innerText || '').slice(0, 70))))}`);
       if (second) bad('zones: a second target', second);
       else ok('zones: a second target', 'clicked "Piz Macun" (its article did not exist before) → the excerpt followed');
-      if (drawn.zones < 5) bad('zones: click → excerpt', `only ${drawn.zones} zone buttons drawn`);
+      if (drawn.smallest < 30) bad('zones: click → excerpt', `the smallest zone target is ${Math.round(drawn.smallest)}px — a note's own box is tiny and must be padded to at least 30`);
+      else if (drawn.zones < 5) bad('zones: click → excerpt', `only ${drawn.zones} zone buttons drawn`);
       else if (!drawn.labels.includes('Piz Nuna')) bad('zones: click → excerpt', `no zone labelled Piz Nuna (${drawn.labels.join(', ')})`);
       else if (errors.length) bad('zones: click → excerpt', errors[0]);
       else ok('zones: click → excerpt', `${drawn.zones} zones · clicked "Piz Nuna" → the excerpt reads ${JSON.stringify(after)}`);

@@ -1647,27 +1647,39 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
    Hover reveals a zone on a deskbound pointer. Print hides them: an outline on paper is noise, not a control. */
 .zone-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .zone-frame { position: relative; }
+
+/* `zone-item` is the DATA — the box the file's own note drew — and it stays exactly where that note put it. */
+.zone-item { position: absolute; pointer-events: none; }
+.zone-box { position: absolute; inset: 0; border: 1.5px dashed rgb(74 158 255 / 0.8); background: rgb(74 158 255 / 0.12); border-radius: 3px; }
+
+/* The TARGET is at least 30px square and centred on the box: a file's own notes are often five pixels wide, so a marker
+   painted at the data's size would be honest and unusable, and growing the box would be usable and a lie about the
+   picture. Both exist instead — the true outline, and a target that reaches out of it. `::after` adds the fat-finger
+   margin on top, so the smallest zone answers to about 46px on a touch screen. */
 .zone {
-  position: absolute; padding: 0; pointer-events: auto; cursor: default;
-  border: 1.5px dashed rgb(74 158 255 / 0.55); border-radius: 3px; background: rgb(74 158 255 / 0.06);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: max(30px, 100%); height: max(30px, 100%); min-width: 30px; min-height: 30px;
+  padding: 0; pointer-events: auto; cursor: pointer;
+  border: 2px solid rgb(74 158 255 / 0.9); border-radius: min(50%, 15px);
+  background: rgb(74 158 255 / 0.24); box-shadow: 0 0 0 2px rgb(11 18 32 / 0.4);
   transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
 }
-.zone.is-live { cursor: pointer; }
-/* A zone may be a few pixels wide — a photograph's own notes are often just a label's box — so the *hit* area is
-   padded while the visible outline stays exactly on the data: a finger gets 24px more to aim at, and nobody is told a
-   box is somewhere it is not. (docs/ZONES.md's minimum-touch-size rule.) */
-.zone::after { content: ''; position: absolute; inset: -12px; }
-.zone:hover, .zone:focus-visible {
-  border: 2px solid var(--accent, #4a9eff); background: rgb(74 158 255 / 0.22);
-  box-shadow: 0 0 0 3px rgb(74 158 255 / 0.14);
+.zone::after { content: ''; position: absolute; inset: -8px; }
+/* The highlight follows the RESOLVED zone (set in JS by the same rule the click uses), not the DOM's `:hover` — with
+   overlapping markers, `:hover` can be a neighbour of the zone a click would act on, and a highlight that lies about
+   what will happen is worse than none. */
+.zone-item.is-hovered .zone-box { border-color: var(--accent, #4a9eff); background: rgb(74 158 255 / 0.3); box-shadow: 0 0 0 3px rgb(74 158 255 / 0.2); }
+.zone-item.is-hovered .zone, .zone:focus-visible {
+  background: rgb(74 158 255 / 0.42); border-color: #fff;
+  box-shadow: 0 0 0 3px rgb(74 158 255 / 0.35);
 }
 .zone-label {
-  position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%);
-  padding: 3px 7px; border-radius: var(--radius-sm, 4px); white-space: nowrap;
-  background: rgb(11 18 32 / 0.92); border: 1px solid var(--accent, #4a9eff); color: var(--text, #e1e4ed);
-  font-size: 11px; font-weight: 600; opacity: 0; transition: opacity 120ms ease; pointer-events: none;
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  padding: 4px 8px; border-radius: var(--radius-sm, 4px); white-space: nowrap;
+  background: rgb(11 18 32 / 0.94); border: 1px solid var(--accent, #4a9eff); color: var(--text, #e1e4ed);
+  font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 120ms ease; pointer-events: none;
 }
-.zone:hover .zone-label, .zone:focus-visible .zone-label { opacity: 1; }
+.zone-item.is-hovered .zone-label, .zone:focus-visible .zone-label { opacity: 1; }
 .zone-problems {
   position: absolute; left: 6px; bottom: 6px; max-width: calc(100% - 12px); padding: 3px 7px;
   border-radius: var(--radius-sm, 4px); background: rgb(11 18 32 / 0.9); border: 1px solid var(--danger, #e0556a);

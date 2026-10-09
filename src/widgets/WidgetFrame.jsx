@@ -1883,6 +1883,10 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
   // rather than drawn wrong.
   const zones = (data.zones || []).filter((z) => z.geometry === 'box');
   const ratio = img.width && img.height ? img.width / img.height : null;
+  const frameRef = useRef(null);
+  // Which zone the pointer is really nearest — the same rule the click uses, so a highlight never promises one zone and
+  // a click delivers its neighbour (the markers of two close peaks overlap).
+  const [hoveredZone, setHoveredZone] = useState(null);
   const frame = (() => {
     if (!zones.length || !ratio || !box.w || !box.h) return undefined;
     const scale = fit === 'cover' ? Math.max(box.w / img.width, box.h / img.height)
@@ -1894,18 +1898,58 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
     ...(zones.length && fit === 'cover'
       ? ['Image fit is Fill crop, so the picture is cropped — zones line up in Letterbox only'] : []),
   ];
+  // A zone is TWO things, and they are different sizes on purpose. The `.zone-item` is the data — the box the file's
+  // own note drew, in percentages of the picture — and it does not move. The button inside it is the TARGET: at least
+  // 30px square, centred on the box, so a note whose box is five pixels wide is still something a finger can hit and an
+  // eye can find. Painting the marker at the box's size would be honest and unusable; growing the box would be usable
+  // and a lie about the picture. So both exist: the true outline, and a target that reaches out of it.
+  /**
+   * Which zone a click means — by geometry, not by which marker happens to be on top.
+   *
+   * Two of these peaks sit ~28px apart on a 650px-wide card, so 30px targets overlap: the button that receives the
+   * click can be the neighbour of the one a reader is aiming at. So the click is resolved in the picture's own
+   * percentages — a click INSIDE a box means that box, and otherwise the nearest centre wins. A keyboard activation
+   * (no coordinates) acts on the focused zone, which is what Enter on a button should do.
+   */
+  const resolveZone = (event, own) => {
+    const frame = frameRef.current;
+    if (!frame || !event.clientX || !event.clientY) return own;
+    const rect = frame.getBoundingClientRect();
+    const px = ((event.clientX - rect.left) / rect.width) * 100;
+    const py = ((event.clientY - rect.top) / rect.height) * 100;
+    let inside = null;
+    let nearest = own;
+    let best = Infinity;
+    for (const z of zones) {
+      if (px >= z.x && px <= z.x + z.w && py >= z.y && py <= z.y + z.h) inside = z;
+      const dx = z.x + z.w / 2 - px;
+      const dy = z.y + z.h / 2 - py;
+      const d = Math.hypot(dx, dy);
+      if (d < best) { best = d; nearest = z; }
+    }
+    return inside || nearest;
+  };
+
+  /** The same resolution as `resolveZone`, but answering with the zone's render key (what the class needs). */
+  const resolveKey = (event, fallbackKey) => {
+    const own = zones.find((z, i) => `${z.line}-${i}` === fallbackKey) || zones[0];
+    const z = resolveZone(event, own);
+    return `${z.line}-${zones.indexOf(z)}`;
+  };
+
   const zoneAt = (z, i) => ({
     key: `${z.line}-${i}`,
     style: { left: `${z.x}%`, top: `${z.y}%`, width: `${z.w}%`, height: `${z.h}%` },
     name: z.label || z.value || `Zone ${i + 1}`,
     onClick: (event) => {
-      if (z.action === 'open') {
-        const href = zoneUrl(z.value);
+      const target = resolveZone(event, z);
+      if (target.action === 'open') {
+        const href = zoneUrl(target.value);
         if (href) { event.preventDefault(); window.open(href, '_blank', 'noopener,noreferrer'); return; }
       }
       // `send` (and any `open` whose value is not a reference) publishes on the card's own `zones` channel: the
       // picture's click publishes the FILE it shows on `selection`, and a zone publishes the thing it NAMES here.
-      if (z.value) onZone?.(z.value);
+      if (target.value) onZone?.(target.value);
     },
   });
   return (
@@ -1931,14 +1975,21 @@ function GallerySingleCard({ data, onSelect, onZone, picking, onPickItem }) {
       </a>
       {!picking && zones.length ? (
         <div className="zone-layer" role="group" aria-label="Clickable zones">
-          <div className="zone-frame" style={frame}>
+          <div className="zone-frame" style={frame} ref={frameRef}>
             {zones.map((z, i) => {
               const { key, style, name, onClick } = zoneAt(z, i);
               return (
-                <button key={key} type="button" className={`zone${z.value ? ' is-live' : ''}`} style={style}
-                  title={name} aria-label={name} onClick={onClick}>
-                  {z.label ? <span className="zone-label">{z.label}</span> : null}
-                </button>
+                <div key={key} className={`zone-item${hoveredZone === key ? ' is-hovered' : ''}`} style={style}>
+                  {/* the file's own box, exactly as it was drawn on Commons — information, not a target */}
+                  <div className="zone-box" aria-hidden="true" />
+                  <button type="button" className={`zone${z.value ? ' is-live' : ''}`}
+                    title={name} aria-label={name} onClick={onClick}
+                    onPointerEnter={(event) => setHoveredZone(resolveKey(event, key))}
+                    onPointerMove={(event) => setHoveredZone(resolveKey(event, key))}
+                    onPointerLeave={() => setHoveredZone(null)}>
+                    {z.label ? <span className="zone-label">{z.label}</span> : null}
+                  </button>
+                </div>
               );
             })}
           </div>
