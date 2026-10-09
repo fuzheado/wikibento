@@ -166,6 +166,29 @@ for, not a claim about behaviour today.
 
 ## Repository housekeeping
 
+### Stale remote branches deleted (2026-10-08)
+
+Fifty-seven remote branches had accumulated — one per feature or doc session — and fifty-three of them were provably
+finished. The test each one had to pass before deletion was the strict one: **every commit on the branch is an ancestor
+of `main`** (`git rev-list --count origin/main..origin/<branch>` = 0), so removing the ref orphans nothing and needs no
+backup. Branches that only *looked* merged because the files arrived another way — the 2026-09-11 audit's problem — do
+not pass this test, and none were deleted on that basis.
+
+| kept | tip | why it stays |
+|---|---|---|
+| `media-plate-ink` | one commit ahead, 2026-10-09 | **an open PR (#114)** — never delete under a live review |
+| `media-plate` | one commit ahead, 2026-10-09 | merged as PR #113, but a commit landed *after* the merge: unmerged work in progress, not history |
+| `spawn-menu` | five commits ahead, 2026-10-07 | not an ancestor of `main` — the spawn work landed through `spawn-panel-and-axis` (PR #109), so these commits are either superseded or still owed. Not my call to guess |
+| `spawn-menu-ui` | four commits ahead, 2026-10-07 | same |
+
+The fifty-three deleted spanned 2026-09-05 to 2026-10-07 — `docs-*` sessions (research series, roadmap, timing policy,
+why-wikibento, plugin trust, tutorial pipeline, issue-66/68 notes), `issue-*` and `issues-*` work (speaker, panel
+reachability, excerpt emitter, param scoping, user guide, rate-limit guards, embed URL, demo suite, quiz mode,
+linkcount decisions, project picker, drag autoscroll, wikidata graph, wikisource/wikivoyage), `feature-*` (QR, share
+lean mode, IA item, wayback tiles), and the fix branches that had already shipped (`fix-panorama-phone-stack`,
+`preset-and-mobile-record`, `spawn-panel-and-axis`, `fix-manifest-idempotent`, `supersede-guard`, `translate-mint` …).
+Deleted with a single `git push origin --delete`; `origin` now carries `main` and the four rows above.
+
 ### Stale remote branches deleted (2026-09-11)
 
 Four remote branches sat on GitHub long after their content had landed on `main`
