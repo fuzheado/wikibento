@@ -157,6 +157,15 @@ existing client, not a new client.
   and an accidental tap should cost nothing.
 - **Keyboard:** Tab reaches each zone (they are real focusable elements whose accessible name is the label), the
   focus ring is the reveal, Enter acts. That is the touch rule with the keyboard's own hover.
+- **Target size and overlap — settled by the first live test (2026-10-09).** Andrew: *"the click zone sizes are tiny"* —
+  and they were: a file's own notes on the demo photograph are about **five pixels** wide. So the two things a zone is
+  were split, because they want different sizes: the **data** (the box, in percentages) stays exactly where the note drew
+  it, while the **target** is a marker of at least **30px** centred on it, with a fat-finger margin beyond (about 46px
+  for the smallest). Growing it exposed the next problem — two of that picture's peaks sit ~28px apart, so 30px targets
+  **overlap** and the marker receiving a click can be a neighbour of the one aimed at — which is why clicks *and* the
+  hover highlight are resolved **by geometry**: a click inside a box means that box, otherwise the nearest centre wins,
+  and the highlight follows the same rule rather than the DOM's `:hover`. A highlight that promises one zone while a
+  click delivers its neighbour is worse than no highlight.
 - **A `showZones` chrome toggle** (`subtle | always`) for kiosk and exhibition use, where nobody will guess.
 
 ## Cropping — decided: three fits, the third one keeps the zones

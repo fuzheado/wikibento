@@ -6431,7 +6431,11 @@ the eleven-box wireframe: §Where the zones come from of `docs/ZONES.md`, `docs/
 - **the grammar and parser** (`src/lib/zones.js`): `x,y,w,h | label | kind | value | action`, `-` for anything absent,
   and `at pitch,yaw` accepted for the 360° host to come. A malformed line is **reported with its line number** and shown
   on the card; a box is **never clamped**, because a zone moved silently lands on the wrong part of a picture;
-- **the overlay**: every zone is a `<button>` whose accessible name is its label, positioned in percentages of the
+- **the overlay**: every zone is a `<button>` whose accessible name is its label, at least **30px** whatever the file's
+  own box measures (five pixels, on the demo photograph) with a fat-finger margin beyond it, and the file's box is drawn
+  inside it exactly as that file drew it — the target is generous, the data stays truthful. Clicks and the hover
+  highlight resolve **by geometry** (inside a box, else the nearest centre) because 30px targets for peaks 28px apart
+  overlap; a second live-test fix, recorded in `docs/ZONES.md`. Positioned in percentages of the
   picture by *measuring* the card and the file's dimensions — so `contain` letterboxing cannot shift it, and the same
   box lands on the same pixels at any card size. The layer ignores the pointer (a click between zones still opens the
   picture) and `::after` pads the *hit* area without moving the visible box, because a file's own notes can be 5px wide;
