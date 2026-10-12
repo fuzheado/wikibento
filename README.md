@@ -152,6 +152,18 @@ All 27 data-driven widget types render live data in the browser; the 9 static on
   says what it is showing. Then **pick from it**: arm a brush and click the blue links *inside* the card, and each click
   places a card for what you clicked instead of following the link. That loop is the reason the mode exists; open
   [`?config=/wiki-page-demo.json`](https://wikibento.toolforge.org/?config=/wiki-page-demo.json) to watch it.
+- **👆 Clickable zones on a picture** — a single image can carry **zones**: boxes in percentages of the picture, written
+  one per line in the gallery's *Clickable zones* field (`x,y,w,h | label | kind | value | action`), each with a label, a
+  kind and a value. A click publishes the value on that card's own `zones` channel, so another card loads the article, the
+  file or the category it names — and because the boxes are percentages of the **file**, they hold at any card size. The
+  picture's own background is *not* a link, so a click that misses every zone does nothing. Five boards show what that is
+  for: a photograph whose zones are the file's [own Commons notes](https://wikibento.toolforge.org/?config=/zone-demo.json),
+  a [biology diagram read word by word by OCR](https://wikibento.toolforge.org/?config=/biosphere-demo.json), a
+  [power-plant diagram](https://wikibento.toolforge.org/?config=/turbine-demo.json) and a
+  [lifecycle chart whose bars are the doors](https://wikibento.toolforge.org/?config=/aircraft-lifecycle-demo.json) — each
+  feeding an article *and* its traffic — and an
+  [image-to-image tour](https://wikibento.toolforge.org/?config=/image-tour-demo.json) where a click loads the next view
+  with its own zones. [docs/ZONES.md](docs/ZONES.md) has the design notes and what is still to come.
 - **Pick mode** — 🖌 **Pick ▾** arms a brush: choose a widget type, then click items inside the cards you are
   already reading and each click places a card for that item. One click, one card, named in the toast; the same
   item twice refuses rather than making a twin; **Undo** takes it back off. It is a second, power-user verb
@@ -428,12 +440,12 @@ front door.
   intake rules, and why none of it is a dialect) · [MODULARITY-AND-DATAFLOW](docs/MODULARITY-AND-DATAFLOW.md) ·
   [MEDIA-DATAFLOW](docs/MEDIA-DATAFLOW.md) · [SCALABILITY](docs/SCALABILITY.md) ·
   [ASK-ARCHITECTURE](docs/ASK-ARCHITECTURE.md) · [INTENT-BENCHMARK](docs/INTENT-BENCHMARK.md) ·
-  [ZONES](docs/ZONES.md) (proposed, not built: clickable **zones** on an image or a 360° panorama — the
+  [ZONES](docs/ZONES.md) (**shipped for flat images**, 2026-10-09; the editor, the import and the 360° half remain — the
   HyperCard button layer, the Commons and Wikidata formats that already carry the areas, the crop rule that never
   hides a zone, how a file's own Commons notes become zones (and how their labels become targets, measured), tours
   that move the card and choose where a jump **lands**, the editor, and the honest cost; the
   sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry; the build is
-  sequenced in five slices, each with its own gate)
+  sequenced in five slices: **A has shipped**, B–E remain, each with its own gate)
   · [RECONCILIATION](docs/RECONCILIATION.md) (scoped, not built: turning a label into a target — OCR on a
   CPU-only server (measured), the import-and-review UI, and the one resolver the page box, params and the Ask
   door would share)
