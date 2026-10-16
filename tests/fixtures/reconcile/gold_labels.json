@@ -1,0 +1,802 @@
+[
+ {
+  "file": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+  "note_id": "1",
+  "gold": "Q4020174",
+  "kind": "OK",
+  "text": "William Twisse",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+  "note_id": "14",
+  "gold": "Q5482342",
+  "kind": "OK",
+  "text": "Francis Rous",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+  "note_id": "25",
+  "gold": "Q1293322",
+  "kind": "OK",
+  "text": "Edward Reynolds",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+  "note_id": "40",
+  "gold": "Q130059",
+  "kind": "OK",
+  "text": "Matthew Hale",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+  "note_id": "54",
+  "gold": "Q15990197",
+  "kind": "OK",
+  "text": "Matthew Newcomen",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Allied Invasion Force.jpg",
+  "note_id": "1",
+  "gold": "Q158277",
+  "kind": "OK",
+  "text": "12th SS Panzer Division Hitlerjugend",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Allied Invasion Force.jpg",
+  "note_id": "10",
+  "gold": "Q2631179",
+  "kind": "OK",
+  "text": "711th Infantry Division",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Allied Invasion Force.jpg",
+  "note_id": "20",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "91st Infantry Division",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Allied Invasion Force.jpg",
+  "note_id": "30",
+  "gold": "Q163646",
+  "kind": "OK",
+  "text": "First United States Army",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Allied Invasion Force.jpg",
+  "note_id": "40",
+  "gold": "Q2715566",
+  "kind": "OK",
+  "text": "9th Infantry Division",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+  "note_id": "1",
+  "gold": "Q330564",
+  "kind": "MISS",
+  "text": "Église de la Madeleine",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+  "note_id": "6",
+  "gold": "Q1854102",
+  "kind": "MISS",
+  "text": "Palais Brongniart",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+  "note_id": "12",
+  "gold": "Q936633",
+  "kind": "OK_TOP3",
+  "text": "Palais Bourbon",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+  "note_id": "19",
+  "gold": "Q2981",
+  "kind": "OK",
+  "text": "Cathédrale Notre-Dame de Paris",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+  "note_id": "1",
+  "gold": "Q959179",
+  "kind": "MISS",
+  "text": "Traves",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+  "note_id": "16",
+  "gold": "Q903939",
+  "kind": "OK_TOP3",
+  "text": "Grattery",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+  "note_id": "32",
+  "gold": "Q901542",
+  "kind": "OK_TOP3",
+  "text": "Noroy-le-Bourg",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+  "note_id": "47",
+  "gold": "Q600920",
+  "kind": "OK",
+  "text": "Noidans-lès-Vesoul",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Declaration of Independence (1819), by John Trumbull.jpg",
+  "note_id": "48",
+  "gold": "Q387664",
+  "kind": "OK",
+  "text": "Benjamin Harrison V",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Declaration of Independence (1819), by John Trumbull.jpg",
+  "note_id": "72",
+  "gold": "Q1666382",
+  "kind": "OK",
+  "text": "Joseph Hewes",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Declaration of Independence (1819), by John Trumbull (cropped).jpg",
+  "note_id": "48",
+  "gold": "Q387664",
+  "kind": "OK",
+  "text": "Benjamin Harrison V",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Declaration of Independence (1819), by John Trumbull (cropped).jpg",
+  "note_id": "72",
+  "gold": "Q1666382",
+  "kind": "OK",
+  "text": "Joseph Hewes",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Eröffnung der Auguste-Rodin-Ausstellung im Oberlichtsaal des Museums für Kunst und Kunstgewerbe 1904.jpg",
+  "note_id": "1",
+  "gold": "Q25929865",
+  "kind": "OK",
+  "text": "Maria van de Velde",
+  "evidence": "qid"
+ },
+ {
+  "file": "File:Eröffnung der Auguste-Rodin-Ausstellung im Oberlichtsaal des Museums für Kunst und Kunstgewerbe 1904 (Max von Münchausen).jpg",
+  "note_id": "1",
+  "gold": "Q25929865",
+  "kind": "OK",
+  "text": "Maria van de Velde",
+  "evidence": "qid"
+ },
+ {
+  "file": "File:Eidsvoll riksraad 1814.jpeg",
+  "note_id": "1",
+  "gold": "Q4589301",
+  "kind": "OK",
+  "text": "John Hansen Sørbrøden",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Eidsvoll riksraad 1814.jpeg",
+  "note_id": "13",
+  "gold": "Q4560198",
+  "kind": "OK",
+  "text": "Jens Schou Fabricius",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Eidsvoll riksraad 1814.jpeg",
+  "note_id": "25",
+  "gold": "Q3376071",
+  "kind": "OK",
+  "text": "Talleiv Huvestad",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Eidsvoll riksraad 1814.jpeg",
+  "note_id": "37",
+  "gold": "Q3373115",
+  "kind": "OK",
+  "text": "Just Henrik Ely",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Eidsvoll riksraad 1814.jpeg",
+  "note_id": "49",
+  "gold": "Q3374099",
+  "kind": "OK",
+  "text": "Hans Hein Nysom",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Foreign factories, 1840.jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "FOREIGN FACTORIES",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Foreign factories, 1840.jpg",
+  "note_id": "30",
+  "gold": "Q201463",
+  "kind": "OK_TOP3",
+  "text": "[PEARL] RIVER",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+  "note_id": "5",
+  "gold": "Q5484",
+  "kind": "OK",
+  "text": "Mare Caspium, Caspian Sea",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+  "note_id": "44",
+  "gold": "Q103251",
+  "kind": "OK",
+  "text": "Macedonia",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+  "note_id": "85",
+  "gold": "Q2121613",
+  "kind": "OK",
+  "text": "Dan, Tribe of Dan",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+  "note_id": "122",
+  "gold": "Q823244",
+  "kind": "OK",
+  "text": "Decapolis regio, Decapolis",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+  "note_id": "178",
+  "gold": "Q41962",
+  "kind": "OK",
+  "text": "Fl. Auxona, L'Aisne",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Jugement dernier (André Gill, 1877).jpg",
+  "note_id": "1",
+  "gold": "Q286644",
+  "kind": "MISS",
+  "text": "Girardin",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Jugement dernier (André Gill, 1877).jpg",
+  "note_id": "12",
+  "gold": "Q365735",
+  "kind": "OK",
+  "text": "Cassagnac",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+  "note_id": "1",
+  "gold": "Q687",
+  "kind": "OK",
+  "text": "Molière",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+  "note_id": "14",
+  "gold": "Q747",
+  "kind": "OK",
+  "text": "Pierre Corneille",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+  "note_id": "28",
+  "gold": "Q590",
+  "kind": "OK",
+  "text": "Luís de Camões",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+  "note_id": "47",
+  "gold": "Q40939",
+  "kind": "OK",
+  "text": "Eschyle",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+  "note_id": "60",
+  "gold": "Q6691",
+  "kind": "OK",
+  "text": "Homère",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "1",
+  "gold": "Q4222497",
+  "kind": "MISS",
+  "text": "A British Monument call'd Kitts Coty House near Maid : stone",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "16",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "1. Royal Palace",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "32",
+  "gold": "Q880861",
+  "kind": "MISS",
+  "text": "A. Black Heath",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "48",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "M. Hoo",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "64",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "6. Wye",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+  "note_id": "80",
+  "gold": "Q2632094",
+  "kind": "MISS",
+  "text": "24. Wingham",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kloster Wald Konventstafel 1738.jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "Falkenstein",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Kloster Wald Konventstafel 1738.jpg",
+  "note_id": "15",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "Mohr",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "1",
+  "gold": "Q23090",
+  "kind": "MISS",
+  "text": "LINCOLN SHIRE. By H. Moll Geographer",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "14",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "E. Ludbrough Wapontack",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "28",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "S. Boothby Wapontack",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "42",
+  "gold": "Q134981947",
+  "kind": "OK_TOP3",
+  "text": "East Fen",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "56",
+  "gold": "Q5472965",
+  "kind": "OK_TOP3",
+  "text": "40 Foot Drain",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+  "note_id": "71",
+  "gold": "Q2199017",
+  "kind": "MISS",
+  "text": "Fossdike",
+  "evidence": "none"
+ },
+ {
+  "file": "File:MACCOUN(1899) p171 NAZARETH.jpg",
+  "note_id": "2",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "Spring",
+  "evidence": "none"
+ },
+ {
+  "file": "File:MACCOUN(1899) p171 NAZARETH.jpg",
+  "note_id": "16",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "Jebel Kafsy 1286 [feet]",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "1",
+  "gold": "Q140712",
+  "kind": "MISS",
+  "text": "Tae L (太湖, Lake Tai)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "16",
+  "gold": "Q58210",
+  "kind": "MISS",
+  "text": "Kinhoa (金华, Jinhua)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "31",
+  "gold": "Q42664",
+  "kind": "MISS",
+  "text": "Hucheu (湖州府, Huzhou)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "46",
+  "gold": "Q57947",
+  "kind": "MISS",
+  "text": "Tung (通州, Tongzhou) [i.e. Nantong, 南通], later upgraded to an autonomous county",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "61",
+  "gold": "Q44212",
+  "kind": "MISS",
+  "text": "Fungyang (鳳陽府, Fengyang)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+  "note_id": "76",
+  "gold": "Q1028116",
+  "kind": "MISS",
+  "text": "Hinghoa (興化縣, Xīnghuà)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|To even be able to tie the devil to a pillow — Obstinacy overcomes everyth",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "22",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|To always gnaw on a single bone — To continually talk about the same subje",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "43",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|To shave the fool without lather — To trick somebody",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "64",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|Anybody can see through an oak plank if there is a hole in it — There is n",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "85",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|The pitcher goes to the water until it finally breaks — 1: Everything has ",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+  "note_id": "106",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "thumb|To cast roses before swine — To waste effort on the unworthy",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Panoramic view of Seattle from near 2nd Ave. and Cherry St., ca. 1905 - DPLA - 5ed43c6ece72830b670b16b7df791b0c (page 1).jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "Central School",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Panoramic view of Seattle from near 2nd Ave. and Cherry St., ca. 1905 - DPLA - 5ed43c6ece72830b670b16b7df791b0c (page 1).jpg",
+  "note_id": "31",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "Lincoln Hotel (built 1900, burned 1920)",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Susan and Chris in New York (1549925).jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "47-49 West Street, also known as Crystal Building (1913-2007)",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Susan and Chris in New York (1549925).jpg",
+  "note_id": "9",
+  "gold": "Q1143904",
+  "kind": "MISS",
+  "text": "Cunard Building, 25 Broadway",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Susan and Chris in New York (1549925).jpg",
+  "note_id": "17",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "50 Broadway",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Susan and Chris in New York (1549925).jpg",
+  "note_id": "26",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "3 New York Plaza, formerly known as Army Building, also known as 39 Whitehall St",
+  "evidence": "cat"
+ },
+ {
+  "file": "File:Salon de Madame Geoffrin.jpg",
+  "note_id": "1",
+  "gold": "Q9068",
+  "kind": "OK",
+  "text": "Buste de Voltaire",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Salon de Madame Geoffrin.jpg",
+  "note_id": "11",
+  "gold": "Q315819",
+  "kind": "OK",
+  "text": "Claude Joseph Vernet",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Salon de Madame Geoffrin.jpg",
+  "note_id": "21",
+  "gold": "Q448",
+  "kind": "OK",
+  "text": "Denis Diderot",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Salon de Madame Geoffrin.jpg",
+  "note_id": "32",
+  "gold": "Q379923",
+  "kind": "OK_TOP3",
+  "text": "Jean-François Marmontel",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Salon de Madame Geoffrin.jpg",
+  "note_id": "42",
+  "gold": "Q272119",
+  "kind": "OK",
+  "text": "Etienne Bonnot de Condillac",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Scene at the Signing of the Constitution of the United States.jpg",
+  "note_id": "11",
+  "gold": "Q878563",
+  "kind": "OK_TOP3",
+  "text": "Richard Dobbs Spaight",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Scene at the Signing of the Constitution of the United States.jpg",
+  "note_id": "16",
+  "gold": "Q878687",
+  "kind": "MISS",
+  "text": "John Dickinson",
+  "evidence": "none"
+ },
+ {
+  "file": "File:The Garden of Earthly Delights by Bosch High Resolution 2.jpg",
+  "note_id": "1",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "299px",
+  "evidence": "article"
+ },
+ {
+  "file": "File:The Garden of Earthly Delights by Bosch High Resolution 2.jpg",
+  "note_id": "42",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "299px",
+  "evidence": "article"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "1",
+  "gold": "Q98",
+  "kind": "MISS",
+  "text": "Great South Sea",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "16",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "Roca",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "30",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "1. Terra Firma to the Spaniards divided into the Governements of Panama, or Terr",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "44",
+  "gold": "Q733005",
+  "kind": "MISS",
+  "text": "Guanare where grows the best Tobacco",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "58",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "The Amazon below River Negro is called Solimaen or the River of Poison, by the P",
+  "evidence": "none"
+ },
+ {
+  "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+  "note_id": "72",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "Thick Bushy Ground",
+  "evidence": "none"
+ },
+ {
+  "file": "File:UNOVIS group photo 1920.jpg",
+  "note_id": "2",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "\"suprema\", probably designed by Ilya Chasnik or El Lissitzky",
+  "evidence": "none"
+ },
+ {
+  "file": "File:UNOVIS group photo 1920.jpg",
+  "note_id": "14",
+  "gold": null,
+  "kind": "NOITEM",
+  "text": "Yakov Abarbanel",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "1",
+  "gold": "Q98",
+  "kind": "MISS",
+  "text": "Great South Sea",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "16",
+  "gold": null,
+  "kind": "AMBIG",
+  "text": "Roca",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "30",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "1. Terra Firma to the Spaniards divided into the Governements of Panama, or Terr",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "44",
+  "gold": "Q733005",
+  "kind": "MISS",
+  "text": "Guanare where grows the best Tobacco",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "58",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "The Amazon below River Negro is called Solimaen or the River of Poison, by the P",
+  "evidence": "none"
+ },
+ {
+  "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+  "note_id": "72",
+  "gold": null,
+  "kind": "NOTENTITY",
+  "text": "Thick Bushy Ground",
+  "evidence": "none"
+ }
+]

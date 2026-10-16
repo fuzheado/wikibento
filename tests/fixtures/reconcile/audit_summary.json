@@ -1,0 +1,214 @@
+{
+ "audited": {
+  "files": 9643,
+  "unparsable_lines": 0,
+  "notes": 30032,
+  "notes_per_file": {
+   "mean": 3.11,
+   "median": 1,
+   "max": 225,
+   "distribution": {
+    "1": 5951,
+    "2-4": 2271,
+    "5-9": 828,
+    "10-19": 385,
+    "20+": 208
+   }
+  }
+ },
+ "geometry": {
+  "match": 8526,
+  "stale": 1117,
+  "unknown": 0
+ },
+ "sdc": {
+  "any_statement": 8917,
+  "has_depicts": 4817,
+  "has_caption": 1125,
+  "depicts_with_position": 13
+ },
+ "sdc_property_frequency": {
+  "P1163": 8585,
+  "P6216": 6694,
+  "P2048": 6145,
+  "P2049": 6145,
+  "P3575": 6145,
+  "P4092": 6145,
+  "P180": 4817,
+  "P921": 4019,
+  "P6243": 3617,
+  "P275": 1600,
+  "P7482": 1376,
+  "P6757": 1095,
+  "P6789": 1070,
+  "P2151": 1063,
+  "P6790": 1060,
+  "P571": 960,
+  "P195": 911,
+  "P31": 895,
+  "P4082": 857,
+  "P170": 722,
+  "P1476": 559,
+  "P760": 558,
+  "P9126": 558,
+  "P6426": 552,
+  "P10358": 496
+ },
+ "depicts_per_file": {
+  "zero": 4826,
+  "one": 4044,
+  "two_plus": 773,
+  "total_depicts": 6531
+ },
+ "notes": {
+  "notes_with_link": 8145,
+  "notes_without_link": 21887,
+  "links_total": 9339,
+  "link_kinds": {
+   "interwiki_article": 2881,
+   "bare_title": 2413,
+   "file(other image)": 2855,
+   "category": 1184,
+   "user": 3,
+   "wikidata_qid": 3,
+   "qid_not_in_file_depicts": 3
+  }
+ },
+ "context_seeds": {
+  "files_with_artwork_item": 4459,
+  "items_with_depicts": 2525,
+  "artwork_wikidata_param": 5098,
+  "seed_depicts_total": 18318
+ },
+ "mime": {
+  "image/jpeg": 9343,
+  "image/png": 202,
+  "image/tiff": 87,
+  "image/gif": 6,
+  "image/webp": 4,
+  "image/svg+xml": 1
+ },
+ "most_annotated_files": [
+  {
+   "title": "File:Imago Mundi de Honorius of Autum (editado por Henry of Mainz) 1190.PNG",
+   "notes": 225,
+   "depicts": 1
+  },
+  {
+   "title": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "notes": 127,
+   "depicts": 2
+  },
+  {
+   "title": "File:Declaration of Independence (1819), by John Trumbull.jpg",
+   "notes": 95,
+   "depicts": 1
+  },
+  {
+   "title": "File:Declaration of Independence (1819), by John Trumbull (cropped).jpg",
+   "notes": 95,
+   "depicts": 1
+  },
+  {
+   "title": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "notes": 95,
+   "depicts": 0
+  },
+  {
+   "title": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "notes": 89,
+   "depicts": 0
+  },
+  {
+   "title": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+   "notes": 85,
+   "depicts": 0
+  },
+  {
+   "title": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+   "notes": 85,
+   "depicts": 0
+  },
+  {
+   "title": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+   "notes": 83,
+   "depicts": 0
+  },
+  {
+   "title": "File:The Garden of Earthly Delights by Bosch High Resolution 2.jpg",
+   "notes": 79,
+   "depicts": 1
+  },
+  {
+   "title": "File:Jean Auguste Dominique Ingres, Apotheosis of Homer, 1827.jpg",
+   "notes": 67,
+   "depicts": 1
+  },
+  {
+   "title": "File:Assertion of Liberty of Conscience by the Independents of the Westminster Assembly of Divines, 1644.jpg",
+   "notes": 65,
+   "depicts": 1
+  },
+  {
+   "title": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+   "notes": 61,
+   "depicts": 0
+  },
+  {
+   "title": "File:Eidsvoll riksraad 1814.jpeg",
+   "notes": 61,
+   "depicts": 6
+  },
+  {
+   "title": "File:Panoramic view of Seattle from near 2nd Ave. and Cherry St., ca. 1905 - DPLA - 5ed43c6ece72830b670b16b7df791b0c (page 1).jpg",
+   "notes": 61,
+   "depicts": 0
+  }
+ ],
+ "most_depicts_files": [
+  {
+   "title": "File:The Feast in the House of Levi by Paolo Veronese (edited 2).jpg",
+   "depicts": 36
+  },
+  {
+   "title": "File:The Feast in the House of Levi (edited).jpg",
+   "depicts": 34
+  },
+  {
+   "title": "File:Atlas Van der Hagen-KW1049B12 068-Stadsprofiel van- VENETIA.jpeg",
+   "depicts": 31
+  },
+  {
+   "title": "File:Atlas de Wit 1698-pl017-Leiden-KB PPN 145205088.jpg",
+   "depicts": 24
+  },
+  {
+   "title": "File:Banknote (AM 1927.233.4).jpg",
+   "depicts": 21
+  },
+  {
+   "title": "File:Couder Stati generali.jpg",
+   "depicts": 21
+  },
+  {
+   "title": "File:Cuadro realizado por Francisco Sancha en 1925. Lleva por título \"Supuesto homenaje al escultor Sebastián Miranda\". Colección Iñigo Pérez de Rada Cavanilles, Madrid.jpg",
+   "depicts": 18
+  },
+  {
+   "title": "File:Constantin Hansen, Et selskab af danske kunstnere i Rom, 1837, KMS3236, SMK.jpg",
+   "depicts": 16
+  },
+  {
+   "title": "File:Frith A Private View.jpg",
+   "depicts": 16
+  },
+  {
+   "title": "File:Girolamo Dai Libri - Madonna della quercia - 1533 after - Museo Castelvecchio, Verona (ITALY), dettail.jpg",
+   "depicts": 16
+  }
+ ],
+ "import_volume_estimate": {
+  "candidate_claims": 30032,
+  "writes_if_qualifier_and_reference_added": 90096
+ }
+}

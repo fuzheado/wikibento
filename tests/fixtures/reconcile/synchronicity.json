@@ -1,0 +1,412 @@
+{
+ "files": 9643,
+ "notes": 30032,
+ "files_without_depicts": 4826,
+ "notes_on_files_without_depicts": 12895,
+ "explicit_link_present": 134,
+ "explicit_link_absent": 2298,
+ "text_overlap_present": 610,
+ "absent": 14095,
+ "notes_with_links": 5911,
+ "links_resolved": 2990,
+ "links_unresolved": 1577,
+ "note_examples": {
+  "present": [
+   {
+    "file": "File:A package for Hitler 196462 edit.jpg",
+    "note": "A [[w:M1 Helmet|M1 Helmet]].",
+    "how": "explicit",
+    "qid": "Q1764456"
+   },
+   {
+    "file": "File:Angling in Troubled Waters A Serio-Comic Map of Europe.jpg",
+    "note": "[[w:Nicholas II|Nicholas II]]",
+    "how": "explicit",
+    "qid": "Q40787"
+   },
+   {
+    "file": "File:Angling in Troubled Waters A Serio-Comic Map of Europe.jpg",
+    "note": "[[w:Wilhelm II|Wilhelm II]]",
+    "how": "explicit",
+    "qid": "Q2677"
+   },
+   {
+    "file": "File:Adoration of the Magi (detail) 1475.JPG",
+    "note": "Theodorus Gaza",
+    "how": "text",
+    "qid": "Q287485"
+   },
+   {
+    "file": "File:Albert Bouts Schmerzensmann.jpg",
+    "note": "Im Unterschied zum Bild im MOMA, N.Y. wird hier der dornengekrönte Christus ohne Hände dargestellt.",
+    "how": "text",
+    "qid": "Q642420"
+   },
+   {
+    "file": "File:Album of Paris Crime Scenes - Attributed to Alphonse Bertillon. DP263694.jpg",
+    "note": "Rue de l'Hôtel-de-Ville (Paris)",
+    "how": "text",
+    "qid": "Q3451266"
+   },
+   {
+    "file": "File:Album-2-071.jpg",
+    "note": "Rocca di Cento 1900",
+    "how": "text",
+    "qid": "Q35989675"
+   },
+   {
+    "file": "File:Atlas de Wit 1698-pl017-Leiden-KB PPN 145205088.jpg",
+    "note": "Pieterskerk",
+    "how": "text",
+    "qid": "Q1537972"
+   },
+   {
+    "file": "File:Atlas de Wit 1698-pl017-Leiden-KB PPN 145205088.jpg",
+    "note": "Hooglandsekerk",
+    "how": "text",
+    "qid": "Q1537970"
+   },
+   {
+    "file": "File:Assignment- 48-DPA-7-25-06 K NPS Adv Main) National Park System Advisory Board meeting ((\"Charting a Future for National Heritage Areas\"),) with National Park Service Director Fran - DPLA - 94e93681058164c8a3b8792f69827ff8.JPG",
+    "note": "Fran P. Mainella",
+    "how": "text",
+    "qid": "Q3080450"
+   },
+   {
+    "file": "File:Albrecht V Bayern Jugendbild.jpg",
+    "note": "Dies ist vermutlich das Verlobungsbild, das der 17-jährige Herzog in Auftrag gegeben hatte. Denn auf der obere",
+    "how": "text",
+    "qid": "Q60907"
+   },
+   {
+    "file": "File:Affaire Stavisky (de g. à d.) Me Guy Cupfer, Mme Rosange, Me Thévenot, Zweifel - btv1b53297685s.jpg",
+    "note": "Guy Cupfer",
+    "how": "text",
+    "qid": "Q16798449"
+   },
+   {
+    "file": "File:Adrian Zingg, Dresden from the Banks of the Elbe River, 1782, NGA 139277.jpg",
+    "note": "Brühlscher Gartenpavillon",
+    "how": "text",
+    "qid": "Q62081461"
+   },
+   {
+    "file": "File:Adrian Zingg, Dresden from the Banks of the Elbe River, 1782, NGA 139277.jpg",
+    "note": "Brühlsche Galerie",
+    "how": "text",
+    "qid": "Q996952"
+   },
+   {
+    "file": "File:Albrecht Dürer - Melencolia I - Google Art Project ( AGDdr3EHmNGyA).jpg",
+    "note": "magic square—the 4x4 square was associated with Jupiter, and here wards off Saturn's melancholy",
+    "how": "text",
+    "qid": "Q1362177"
+   },
+   {
+    "file": "File:Albrecht Dürer - Melencolia I - Google Art Project ( AGDdr3EHmNGyA).jpg",
+    "note": "head resting on hand, a common depiction of melancholy; wears wreath of \"wet\" plants",
+    "how": "text",
+    "qid": "Q1362177"
+   },
+   {
+    "file": "File:Armorial de Gilles Le Bouvier - BNF Fr.4985 f13v - Frontispice (cropped).jpg",
+    "note": "King Charles VII of France",
+    "how": "text",
+    "qid": "Q133372"
+   },
+   {
+    "file": "File:Armorial de Gilles Le Bouvier - BNF Fr.4985 f13v - Frontispice (cropped).jpg",
+    "note": "Gilles Le Bouvier",
+    "how": "text",
+    "qid": "Q4085162"
+   },
+   {
+    "file": "File:Armorial de Gilles Le Bouvier - BNF Fr.4985 f13v - Frontispice (cropped).jpg",
+    "note": "Armorial of Gilles Le Bouvier, héraut Berry",
+    "how": "text",
+    "qid": "Q4085162"
+   },
+   {
+    "file": "File:Aerial view of Washington, D.C.14549a.tif",
+    "note": "Thomas Jefferson Building / Library of Congress",
+    "how": "text",
+    "qid": "Q2615945"
+   },
+   {
+    "file": "File:Aerial view of Washington, D.C.14549a.tif",
+    "note": "Robert F. Kennedy Memorial Stadium",
+    "how": "text",
+    "qid": "Q153312"
+   },
+   {
+    "file": "File:Aerial view of Washington, D.C.14549a.tif",
+    "note": "D.C. Armory",
+    "how": "text",
+    "qid": "Q5203364"
+   },
+   {
+    "file": "File:Aerial view of Washington, D.C.14549a.tif",
+    "note": "United States Botanic Garden",
+    "how": "text",
+    "qid": "Q1848855"
+   },
+   {
+    "file": "File:Angelico, madonna dell'umiltà washington.jpg",
+    "note": "The Madonna of Humility  ***  Fra Angelico",
+    "how": "text",
+    "qid": "Q20173476"
+   },
+   {
+    "file": "File:Artists at Mount Kisco 1912-restored.jpg",
+    "note": "Paul Haviland",
+    "how": "text",
+    "qid": "Q2580510"
+   },
+   {
+    "file": "File:Altes Museum - Grabrelief einer Frau.jpg",
+    "note": "[[:en:cornucopia|cornucopia]]",
+    "how": "explicit",
+    "qid": "Q332682"
+   },
+   {
+    "file": "File:Amadeo I frente al féretro del general Prim de Antonio Gisbert 1870.jpg",
+    "note": "[https://es.wikipedia.org/wiki/Juan_Prim Juan Prim]",
+    "how": "text",
+    "qid": "Q379787"
+   },
+   {
+    "file": "File:Amadeo I frente al féretro del general Prim de Antonio Gisbert 1870.jpg",
+    "note": "[https://es.wikipedia.org/wiki/Amadeo_I_de_Espa%C3%B1a Amadeo I de España]",
+    "how": "text",
+    "qid": "Q32432"
+   },
+   {
+    "file": "File:Amadeo I frente al féretro del general Prim de Antonio Gisbert 1870.jpg",
+    "note": "[https://es.wikipedia.org/wiki/Francisco_Serrano_y_Dom%C3%ADnguez Francisco Serrano]",
+    "how": "text",
+    "qid": "Q515741"
+   },
+   {
+    "file": "File:AI-3 fl.05.jpg",
+    "note": "[[:w:pt:Zilmar Campos de Araripe Macedo|Zilmar Campos de Araripe Macedo]]",
+    "how": "text",
+    "qid": "Q10395136"
+   }
+  ],
+  "absent": [
+   {
+    "file": "File:Anton Raphael Mengs, The Triumph of History over Time (Allegory of the Museum Clementinum), ceiling fresco in the Camera dei Papiri, Vatican Library, 1772 - M0tty.jpg",
+    "note": "{{en|1=Time}}\n{{fr|1=Le Temps}}\n{{mk|Времето}}",
+    "depicts": [
+     "Q127425938"
+    ]
+   },
+   {
+    "file": "File:Anton Raphael Mengs, The Triumph of History over Time (Allegory of the Museum Clementinum), ceiling fresco in the Camera dei Papiri, Vatican Library, 1772 - M0tty.jpg",
+    "note": "{{en|1=History}}\n{{fr|1=L'Histoire}}\n{{mk|Историјата}}",
+    "depicts": [
+     "Q127425938"
+    ]
+   },
+   {
+    "file": "File:Anton Raphael Mengs, The Triumph of History over Time (Allegory of the Museum Clementinum), ceiling fresco in the Camera dei Papiri, Vatican Library, 1772 - M0tty.jpg",
+    "note": "{{en|1=Fame}}\n{{fr|1=La Gloire}}\n{{mk|Славата}}",
+    "depicts": [
+     "Q127425938"
+    ]
+   },
+   {
+    "file": "File:Anton Raphael Mengs, The Triumph of History over Time (Allegory of the Museum Clementinum), ceiling fresco in the Camera dei Papiri, Vatican Library, 1772 - M0tty.jpg",
+    "note": "MVSEUM CLEMENTINUM",
+    "depicts": [
+     "Q127425938"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part1).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part2).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part3).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part4).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part5).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:A Hundred Steeds.jpg",
+    "note": "[[File:One Hundred Horses (part4) (cropped).jpg|300px]]",
+    "depicts": [
+     "Q28092353"
+    ]
+   },
+   {
+    "file": "File:Adolf Mosengel Dorf in den Berner Alpen.jpg",
+    "note": "Strange washing marks?",
+    "depicts": [
+     "Q8074",
+     "Q8502",
+     "Q12280",
+     "Q41176"
+    ]
+   },
+   {
+    "file": "File:Adolph Menzel - Flötenkonzert Friedrichs des Großen in Sanssouci - Google Art Project.jpg",
+    "note": "[[:Category:Gustav Adolf von Gotter|Gustav Adolf von Gotter]]",
+    "depicts": [
+     "Q944909"
+    ]
+   },
+   {
+    "file": "File:Adolph Menzel - Flötenkonzert Friedrichs des Großen in Sanssouci - Google Art Project.jpg",
+    "note": "[[Pierre Louis Moreau de Maupertuis]]",
+    "depicts": [
+     "Q944909"
+    ]
+   },
+   {
+    "file": "File:Adolph Menzel - Flötenkonzert Friedrichs des Großen in Sanssouci - Google Art Project.jpg",
+    "note": "[[:Category:Egmont von Chasôt|Egmont von Chasôt]]",
+    "depicts": [
+     "Q944909"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "{{w|Afonso Sardinha|Afonso Sardinha|pt}}",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "[[:Category:Brás Cubas|Brás Cubas]]",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "[[:Category:Domingos Jorge Velho|Domingos Jorge Velho]]",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "[[:Category:Raposo Tavares|Raposo Tavares]]",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "{{w|Carlos Pedroso da Silveira|Carlos Pedroso da Silveira|pt}}",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "{{w|Pascoal Moreira Cabral Leme|Pascoal Moreira Cabral Leme|pt}}",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "[[:Category:Fernão Dias|Fernão Dias]]",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "{{w|Bartolomeu Bueno da Silva|Bartolomeu Bueno da Silva|pt}}",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:A Epopeia dos Bandeirantes por Benedito Calixto.jpg",
+    "note": "A visão do Anhangüera",
+    "depicts": [
+     "Q55318289"
+    ]
+   },
+   {
+    "file": "File:La bataille d'Austerlitz. 2 decembre 1805 (François Gérard).jpg",
+    "note": "[[w:fr:Jean Rapp]]",
+    "depicts": [
+     "Q2887909"
+    ]
+   },
+   {
+    "file": "File:La bataille d'Austerlitz. 2 decembre 1805 (François Gérard).jpg",
+    "note": "[[w:fr:Louis-Alexandre Berthier]]",
+    "depicts": [
+     "Q2887909"
+    ]
+   },
+   {
+    "file": "File:La bataille d'Austerlitz. 2 decembre 1805 (François Gérard).jpg",
+    "note": "[[w:fr:Napoléon Ier]]",
+    "depicts": [
+     "Q2887909"
+    ]
+   },
+   {
+    "file": "File:La bataille d'Austerlitz. 2 decembre 1805 (François Gérard).jpg",
+    "note": "Nikolaï Grigorievitch Repnine-Volkonski",
+    "depicts": [
+     "Q2887909"
+    ]
+   },
+   {
+    "file": "File:Hendrik Merkus Baron de Kock by Cornelis Kruseman.jpg",
+    "note": "Star of the Military Order of William",
+    "depicts": [
+     "Q17334896"
+    ]
+   },
+   {
+    "file": "File:Hendrik Merkus Baron de Kock by Cornelis Kruseman.jpg",
+    "note": "Sash of the Military Order of William",
+    "depicts": [
+     "Q17334896"
+    ]
+   },
+   {
+    "file": "File:Hendrik Merkus Baron de Kock by Cornelis Kruseman.jpg",
+    "note": "Java War Medal (1825-1830)",
+    "depicts": [
+     "Q17334896"
+    ]
+   }
+  ]
+ }
+}

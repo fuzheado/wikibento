@@ -245,3 +245,28 @@ number in the audit.
   2 writes/s — while the review UI is 5–8 of the 21–34 person-days the full tool is estimated at, and the community
   process behind it is 4–8 weeks of calendar. Ask about the upstream gadget fix
   ([Wishlist W36](https://meta.wikimedia.org/wiki/Community_Wishlist/W36), 2 supporters, unassigned) before assuming it.
+
+### How to re-measure
+
+The audit's own working set is in this repo now, so the numbers above are re-derivable rather than quoted:
+
+| what | where |
+|---|---|
+| the scripts | `scripts/audit/` — collector · corpus metrics · synchronicity · gold selection · **the matcher** · evaluation. Standard library only, no `pip install` |
+| the corpus | **outside git on purpose** (16 MB of JSONL plus two API caches; this repo has no big-data convention). Default `~/Documents/ai/wikibento-audit-data/`, override with `WIKIBENTO_AUDIT_DIR` |
+| the fixtures | `tests/fixtures/reconcile/` — the 100-note gold set, the 36-note micro-gold, the matcher's candidates, the evaluation, the corpus summary |
+| re-run it | `npm run audit:verify` — five steps, **offline** (the shipped API caches make it so), ~45 s, and it diffs the result against `results-shipped/` |
+| the guard | `tests/reconcile-gold.test.mjs` — fails if a fixture stops supporting the number the report quotes; it re-derives the gold distribution and the gate's property rather than trusting a stated total |
+
+**Three things the re-run produced, and they are corrections rather than footnotes:**
+
+- **`synchronicity.json` predates its own script by five minutes** (the package says so itself): re-running gives
+  `text_overlap_present` **610** and `absent` **14,095** where the shipped file — and therefore the report's §3.2 table —
+  says **592 / 14,113**. In-sync total **744 (4.3 %)**, not 726 (4.2 %). Small, and in the conservative direction;
+  everything else reproduces byte-for-byte.
+- **The scripts hard-code `OUTDIR = "/opt/data/audit"`, and the package's `set_outdir.sh` rewrote it with GNU
+  `sed -i` — which fails on macOS/BSD** (`sed -i` requires an extension argument there; the trap this repo's own
+  AGENTS.md records). Our copy takes `OUTDIR` from `$WIKIBENTO_AUDIT_DIR` and does the rewrite in Python.
+- **Nothing writes anywhere**: the scripts are read-only against Commons and Wikidata — no `edit`, `upload`,
+  `wbeditentity` or CSRF token anywhere, and the single POST body is a batched `action=query` of 50 titles. Verified by
+  grep here, not taken on trust.

@@ -1,0 +1,522 @@
+{
+ "gold_notes": 100,
+ "notes_matched_to_candidates": 100,
+ "gold_bindable": 66,
+ "gold_should_abstain": 34,
+ "overall": {
+  "top1_correct": 37,
+  "top3_contains_gold": 45,
+  "missed": 21
+ },
+ "by_evidence": {
+  "article": {
+   "n": 30,
+   "gold_bindable": 29,
+   "top1_ok": 28,
+   "should_abstain": 1,
+   "proposed_anyway": 1,
+   "top3_only": 1
+  },
+  "cat": {
+   "n": 12,
+   "gold_bindable": 9,
+   "missed": 4,
+   "top3_only": 3,
+   "top1_ok": 2,
+   "should_abstain": 3,
+   "proposed_anyway": 3
+  },
+  "none": {
+   "n": 56,
+   "gold_bindable": 26,
+   "top1_ok": 5,
+   "should_abstain": 30,
+   "proposed_anyway": 20,
+   "top3_only": 4,
+   "missed": 17
+  },
+  "qid": {
+   "n": 2,
+   "gold_bindable": 2,
+   "top1_ok": 2
+  }
+ },
+ "threshold_sweep": [
+  {
+   "threshold": 0.5,
+   "proposals": 58,
+   "precision": 0.638,
+   "coverage_of_bindable": 0.879
+  },
+  {
+   "threshold": 0.6,
+   "proposals": 47,
+   "precision": 0.723,
+   "coverage_of_bindable": 0.712
+  },
+  {
+   "threshold": 0.7,
+   "proposals": 36,
+   "precision": 0.917,
+   "coverage_of_bindable": 0.545
+  },
+  {
+   "threshold": 0.8,
+   "proposals": 24,
+   "precision": 0.958,
+   "coverage_of_bindable": 0.364
+  },
+  {
+   "threshold": 0.85,
+   "proposals": 14,
+   "precision": 0.929,
+   "coverage_of_bindable": 0.212
+  },
+  {
+   "threshold": 0.9,
+   "proposals": 14,
+   "precision": 0.929,
+   "coverage_of_bindable": 0.212
+  },
+  {
+   "threshold": 0.95,
+   "proposals": 8,
+   "precision": 0.875,
+   "coverage_of_bindable": 0.121
+  }
+ ],
+ "errors": [
+  {
+   "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+   "note_id": "1",
+   "gold": "Q330564",
+   "top1": "Q463905",
+   "score": 0.68,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+   "note_id": "6",
+   "gold": "Q1854102",
+   "top1": "Q1342645",
+   "score": 0.68,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Charles Fichot, Vue générale de Paris prise du rond-point.jpg",
+   "note_id": "12",
+   "gold": "Q936633",
+   "top1": "Q240261",
+   "score": 0.62,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+   "note_id": "1",
+   "gold": "Q959179",
+   "top1": "Q107182802",
+   "score": 0.68,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+   "note_id": "16",
+   "gold": "Q903939",
+   "top1": "Q10366317",
+   "score": 0.68,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Carte schématique des bourgs et villages voisins de Vesoul.jpg",
+   "note_id": "32",
+   "gold": "Q901542",
+   "top1": "Q7299253",
+   "score": 0.62,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Foreign factories, 1840.jpg",
+   "note_id": "30",
+   "gold": "Q201463",
+   "top1": "Q142701",
+   "score": 0.53,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Jugement dernier (André Gill, 1877).jpg",
+   "note_id": "1",
+   "gold": "Q286644",
+   "top1": "Q311145",
+   "score": 0.74,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "1",
+   "gold": "Q4222497",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "32",
+   "gold": "Q880861",
+   "top1": "Q500395",
+   "score": 0.53,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "80",
+   "gold": "Q2632094",
+   "top1": "Q16970262",
+   "score": 0.62,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+   "note_id": "1",
+   "gold": "Q23090",
+   "top1": "Q55058218",
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+   "note_id": "42",
+   "gold": "Q134981947",
+   "top1": "Q514050",
+   "score": 0.62,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+   "note_id": "56",
+   "gold": "Q5472965",
+   "top1": "Q1033",
+   "score": 0.53,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Lincoln Shire - By H. Moll Geographer - btv1b530562943.jpg",
+   "note_id": "71",
+   "gold": "Q2199017",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "1",
+   "gold": "Q140712",
+   "top1": "Q36389",
+   "score": 0.53,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "16",
+   "gold": "Q58210",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "31",
+   "gold": "Q42664",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "46",
+   "gold": "Q57947",
+   "top1": "Q134227481",
+   "score": 0.47,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "61",
+   "gold": "Q44212",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Nanking sive Kiangnan imperii sinarum provincia nona - (tiré du P. Martini) ; J. Blaeu excud. - btv1b59630645.jpg",
+   "note_id": "76",
+   "gold": "Q1028116",
+   "top1": null,
+   "score": 0.0,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Susan and Chris in New York (1549925).jpg",
+   "note_id": "9",
+   "gold": "Q1143904",
+   "top1": "Q5880816",
+   "score": 0.53,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "cat"
+  },
+  {
+   "file": "File:Salon de Madame Geoffrin.jpg",
+   "note_id": "32",
+   "gold": "Q379923",
+   "top1": "Q153232",
+   "score": 0.99,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "article"
+  },
+  {
+   "file": "File:Scene at the Signing of the Constitution of the United States.jpg",
+   "note_id": "11",
+   "gold": "Q878563",
+   "top1": "Q186539",
+   "score": 0.53,
+   "kind": "OK_TOP3",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Scene at the Signing of the Constitution of the United States.jpg",
+   "note_id": "16",
+   "gold": "Q878687",
+   "top1": "Q4441",
+   "score": 0.74,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+   "note_id": "1",
+   "gold": "Q98",
+   "top1": "Q129026",
+   "score": 0.53,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+   "note_id": "44",
+   "gold": "Q733005",
+   "top1": "Q11256",
+   "score": 0.62,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+   "note_id": "1",
+   "gold": "Q98",
+   "top1": "Q129026",
+   "score": 0.53,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  },
+  {
+   "file": "File:1795 D'Anville Wall Map of South America - Geographicus - SouthAmerica-laruiewhittle-1794.jpg",
+   "note_id": "44",
+   "gold": "Q733005",
+   "top1": "Q11256",
+   "score": 0.62,
+   "kind": "MISS",
+   "text": "",
+   "evidence": "none"
+  }
+ ],
+ "false_positive_risks": [
+  {
+   "file": "File:Allied Invasion Force.jpg",
+   "note_id": "20",
+   "top1": "Q276377",
+   "score": 0.7,
+   "text": ""
+  },
+  {
+   "file": "File:Foreign factories, 1840.jpg",
+   "note_id": "1",
+   "top1": "Q1393765",
+   "score": 0.62,
+   "text": ""
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "16",
+   "top1": "Q207385",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "48",
+   "top1": "Q896108",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:Kent - By Herman Moll Geographer - btv1b53056577r.jpg",
+   "note_id": "64",
+   "top1": "Q141453819",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:Kloster Wald Konventstafel 1738.jpg",
+   "note_id": "1",
+   "top1": "Q573732",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Kloster Wald Konventstafel 1738.jpg",
+   "note_id": "15",
+   "top1": "Q651442",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:MACCOUN(1899) p171 NAZARETH.jpg",
+   "note_id": "2",
+   "top1": "Q7392646",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "note_id": "1",
+   "top1": "Q200562",
+   "score": 0.47,
+   "text": ""
+  },
+  {
+   "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "note_id": "43",
+   "top1": "Q7196432",
+   "score": 0.47,
+   "text": ""
+  },
+  {
+   "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "note_id": "64",
+   "top1": "Q31029",
+   "score": 0.62,
+   "text": ""
+  },
+  {
+   "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "note_id": "85",
+   "top1": "Q7516523",
+   "score": 0.62,
+   "text": ""
+  },
+  {
+   "file": "File:Pieter Brueghel the Elder - The Dutch Proverbs - Google Art Project.jpg",
+   "note_id": "106",
+   "top1": "Q38",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Panoramic view of Seattle from near 2nd Ave. and Cherry St., ca. 1905 - DPLA - 5ed43c6ece72830b670b16b7df791b0c (page 1).jpg",
+   "note_id": "1",
+   "top1": "Q981195",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Panoramic view of Seattle from near 2nd Ave. and Cherry St., ca. 1905 - DPLA - 5ed43c6ece72830b670b16b7df791b0c (page 1).jpg",
+   "note_id": "31",
+   "top1": "Q1025404",
+   "score": 0.53,
+   "text": ""
+  },
+  {
+   "file": "File:Susan and Chris in New York (1549925).jpg",
+   "note_id": "1",
+   "top1": "Q367032",
+   "score": 0.74,
+   "text": ""
+  },
+  {
+   "file": "File:Susan and Chris in New York (1549925).jpg",
+   "note_id": "17",
+   "top1": "Q24742729",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:Susan and Chris in New York (1549925).jpg",
+   "note_id": "26",
+   "top1": "Q60",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+   "note_id": "16",
+   "top1": "Q9070962",
+   "score": 0.68,
+   "text": ""
+  },
+  {
+   "file": "File:Trinidad como parte de Venezuela en 1795 D'Anville (cropped).jpg",
+   "note_id": "72",
+   "top1": "Q181561",
+   "score": 0.47,
+   "text": ""
+  }
+ ]
+}
