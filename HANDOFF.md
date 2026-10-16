@@ -732,6 +732,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      gate comes from; and `<imagemap>` is the one on-wiki source carrying a box *and* a target. For the world half of the
      authoring loop there is now `npm run render:board -- board.json`, which pastes any board through ⬆ Import and reports
      per card whether it drew, waited, came up **empty** or errored, with a screenshot.
+     **The audit's own working set is in the repo** (ISSUE-143/151): `scripts/audit/` holds the collector, the corpus
+     metrics, the synchronicity cross-check, the gold selection, **the matcher** and the evaluation; the gold sets are
+     fixtures under `tests/fixtures/reconcile/`; `npm run audit:verify` re-derives every number offline in ~45 s; and
+     `tests/reconcile-gold.test.mjs` fails if a fixture stops supporting a figure the reports quote. The 49 MB corpus
+     stays outside git on purpose (`~/Documents/ai/wikibento-audit-data/`, override with `WIKIBENTO_AUDIT_DIR`).
+     **The next step is the module** — the same four stages in `src/lib/reconcile.js`, graded by the gold set.
      **What remains, in the order designed:** **B** the editor — a draggable overlay plus three crop fits (letterbox · fill
      crop · **`smart`**, which keeps every zone visible and falls back to letterbox rather than hide one) · **C** the
      Commons-notes import **and its target suggestions**: one API call brings a file's boxes in with their labels, and the
@@ -867,6 +873,12 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
   and paths/polygons/areas already flow: the points list, pasted geometry, and another widget's shape over a kind-filtered
   `source` field. The next map work is icons+labels (collision), the itinerary stepper, and a time filter — each already
   possible without changing the format.
+- **The ImageNote audit pipeline is here, and it re-runs.** `scripts/audit/` (Python, standard library only, no
+  `pip install`) turns a corpus of Commons annotations into scored Wikidata candidates; `npm run audit:verify` re-runs
+  the five stages offline from the shipped API caches and diffs the result against `results-shipped/` (~45 s); the gold
+  sets, the matcher's candidates and the evaluation are fixtures in `tests/fixtures/reconcile/`, guarded by
+  `tests/reconcile-gold.test.mjs`. The 16 MB corpus and the caches live outside git (`WIKIBENTO_AUDIT_DIR`); the two
+  reports, the design and the calibration are in `docs/research/IMAGENOTE-*.md` and `docs/RECONCILIATION.md`.
 - **Docs have a constitution now.** `scripts/docs-facts.mjs` derives the truth
   (registry counts, catalog coverage, the panel-measurement count, build-size
   magnitude) and fails the build when prose contradicts it. Volatile facts are

@@ -226,6 +226,16 @@ remote browser can reach the dev server.
 
 `scripts/browser-matrix.mjs` carries the same recipes in its header, next to the code that implements them.
 
+### Rendering a board you are still writing: `npm run render:board`
+
+`scripts/render-board.mjs` takes any board file, pastes it through the app's own ⬆ Import panel and reports per card
+whether it **drew**, is **waiting**, is **loading**, came up **empty** or **errored** — with a screenshot and a non-zero
+exit when the shape is clean but the world is not. It is the authoring half of the same discipline `smoke:boards`
+enforces for shipped demos: a board that imports with zero warnings can still be nine empty cards, because a category, a
+file or an article title does not exist. `--base <url>` measures a deployment, `--strict` fails on a waiting card too
+(by default waiting is not a failure — on a tour or a pick-a-subject board it is the designed state), and without
+`--base` it serves the local `dist/` and refuses a stale build, like every other check here.
+
 ### A `fullPage` screenshot re-mounts every lazy card
 
 Measured 2026-10-09: `page.screenshot({ fullPage: true })` resizes and re-scrolls the viewport, which **re-mounts

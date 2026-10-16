@@ -298,7 +298,9 @@ projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smo
 `guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
 `render:board -- board.json` (render any board in a browser and report what each card actually shows),
 `check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
-`--check` fails on a stale one), and `update:cim-allow-list`.
+`--check` fails on a stale one), and `update:cim-allow-list`, and
+`audit:verify` (re-derive the ImageNote audit's numbers offline — the matcher, the gold set and the calibration behind
+[RECONCILIATION](docs/RECONCILIATION.md)).
 
 For the mobile reflow — what actually moves when a card above the reader changes size, and the options for it:
 `node scripts/mobile-reflow-probe.mjs` (the measured numbers are in
@@ -447,9 +449,10 @@ front door.
   that move the card and choose where a jump **lands**, the editor, and the honest cost; the
   sphere wireframe is a live Pannellum render and the arrival one is real equirectangular geometry; the build is
   sequenced in five slices: **A has shipped**, B–E remain, each with its own gate)
-  · [RECONCILIATION](docs/RECONCILIATION.md) (scoped, not built: turning a label into a target — OCR on a
-  CPU-only server (measured), the import-and-review UI, and the one resolver the page box, params and the Ask
-  door would share)
+  · [RECONCILIATION](docs/RECONCILIATION.md) (turning a label into a target — and **no longer only a plan**: the corpus
+  measurements, a working four-stage **matcher**, a 100-note **gold set** and the calibrated publish gate are in the
+  repo, and `npm run audit:verify` re-derives every number from cached API responses, offline, in ~45 s. What is still
+  to build is the review UI and the one resolver the page box, params and the Ask door would share)
 - **Vocabulary** — [GLOSSARY](docs/GLOSSARY.md) (the words this project uses, and the ones it avoids — what
     *edge to edge* means, why *full bleed* is only a synonym, and the retired spellings that still resolve)
   - **Why & research** — [WHY-WIKIBENTO](docs/WHY-WIKIBENTO.md) (the case, and the measured ledger) ·

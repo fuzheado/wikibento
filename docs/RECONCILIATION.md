@@ -1,5 +1,12 @@
 # Reconciliation — turning labels into targets, and where the labels come from
 
+> **Status, 2026-10-09.** This began as a scoping memo and is still dated where it was written, but the project has moved:
+> the corpus is measured (see *What the corpora actually contain*), a working four-stage **matcher** exists
+> (`scripts/audit/matcher.py`), the human-adjudicated **gold set** and the **calibrated publish gate** are in the repo
+> with a test to hold them, and `npm run audit:verify` re-derives every number offline in ~45 s. **Still unbuilt:** the
+> review UI, the app-side resolver (`src/lib/reconcile.js`), and any write to Commons — which the reports put last, behind
+> a community discussion.
+
 > **Status: scoping memo** (asked by Andrew, 2026-10-09). Nothing here is built. Filed as **ISSUE-143**.
 > It answers three questions: can the server do OCR with CPU only; what should the *import labels from this image*
 > feature look like; and what would a **general reconciliation service** — used by more than one widget — have to be.
@@ -117,7 +124,7 @@ search.
 | **board params** (`paramLookup.js` already validates free text against live data) | a category/template/file | the same calls, one implementation |
 | **the Ask door** | a model's suggested targets, trusted as typed | source 1 as a **validator** (the skill's LLM-QID guardrail) |
 | **the board doctor** | references are checked offline only | a *network* mode that verifies targets exist (opt-in) |
-| **`depicts`/SDC import** | not built | source 5, to go from a note's label to a QID |
+| **`depicts`/SDC import** | not built — the *matcher* exists (`scripts/audit/matcher.py`, measured against the gold set); the card that would use it does not | source 5, to go from a note's label to a QID |
 
 ## 4. Phasing, and what each phase costs
 
