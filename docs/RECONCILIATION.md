@@ -193,3 +193,55 @@ The review gate follows from those numbers and is calibrated, not asserted: **�
 needs review · <0.50 discard**. A label containing a link is nearly always right; a bare prose label is a coin toss —
 which is why the ladder's last resort proposes a candidate *with its description* and lets a person decide, and why
 nothing is ever bound silently.
+
+### The matcher, as designed and measured
+
+The two reports this section summarises are archived verbatim:
+[IMAGENOTE-FEASIBILITY-2026-10-07.md](research/IMAGENOTE-FEASIBILITY-2026-10-07.md) (the design and the estimate) and
+[IMAGENOTE-AUDIT-2026-10-08.md](research/IMAGENOTE-AUDIT-2026-10-08.md) (the corpus audit and the gold-set evaluation).
+Their scripts and raw data live on the host that produced them (`/opt/data/audit/` — not this machine), so the numbers
+here are the record, and the queries in this document are how to re-derive them. The four stages, with the yields those
+reports measured — **this is the design to follow, not a plan to re-derive**:
+
+| stage | what it does | measured |
+|---|---|---|
+| 1 · explicit links | parse the note's wikilinks — `:wikidata:Q…` verbatim, `:xx:Title` → that wiki's `pageprops.wikibase_item`, a bare title → Commons gallery / `P373` | only **9 % of notes** carry any link, but **93 % of those resolve**, and 21 % of the resolved ones were already mirrored in SDC |
+| 2 · name → article → item | strip honorifics and descriptor clauses (`Dom`, `Dona`, text after the first comma), then search **that wiki** — not Wikidata labels — and take the page's item; validate `P31 = human`, dates in a plausible window, role consistent with the clause | this is what rescues the cases label search fails: `Dona Francisca` → a *given name*, `Januária` → a *municipality* |
+| 3 · context constraints | the file's own metadata as a **closed candidate set**: the linked artwork item's `depicts`/main subject, `P6243`, the file's categories, and **sibling files in the same category that already have `depicts`** — then rank by that evidence and **abstain** below the gate | only ≈4–6 % of annotated files carry a Wikidata seed, so text plus sibling evidence carries ~94 % of the work |
+| 4 · human review | note text, the image crop, 2–4 ranked candidates, and actions *accept · alternative · create item · not an entity · skip* | **the critical path.** The audit's own revision of the estimate: the matcher is not the risk, the review queue is |
+
+**Naive resolution, measured so it is not attempted twice:** `wbsearchentities` on the verbatim note text produced a usable
+answer for **1 of 11** notes — and that one was wrong (a different painting of the same emperor). Cleaning the text and
+taking the first hit of a wiki search raised *coverage* to 11/11 while mis-resolving roughly **40 %**.
+
+### The threshold, calibrated
+
+| threshold | would publish | precision | coverage of bindable notes |
+|---|---|---|---|
+| 0.50 | 58 | 63.8 % | 87.9 % |
+| 0.70 | 36 | 91.7 % | 54.5 % |
+| **0.80** | **24** | **95.8 %** | 36.4 % |
+| 0.85 | 14 | 92.9 % | 21.2 % |
+
+→ **publish ≥0.80 · review 0.50–0.80 · discard <0.50** — on this population roughly a third auto-publishable, a third
+reviewable, a third not worth binding. The gold set was 27 files / **100 notes**, stratified by evidence type (48 with no
+link, 38 with an article link, 12 category links, 2 `:wikidata:` links) and adjudicated by hand: **66 bindable, 34 that
+should not be bound at all** (9 genuinely ambiguous, 9 with no Wikidata item, 16 not entities — inscriptions, "zoom here",
+scene prose). A separate link-rich micro-gold set scored **83 % top-1**: that is the ceiling a demo would show, not the
+average. Per-stratum figures carry roughly ±10 points at n≈30, and the link-free stratum (n=56) is the best-supported
+number in the audit.
+
+### What that means for the phases
+
+- **Stage the work by evidence type.** Link-bearing notes across the corpus are an easy, high-precision first tranche
+  (~8,000+ in the `{{Artwork}}` stratum alone at ~97 % top-1), before any human-review capacity is committed.
+- **Plain `depicts` first, positions second.** Position-qualified depicts exists on **7,926** Commons files; plain
+  `depicts` is a 29.4-million-file norm. Importing regions before the pattern is broadly adopted is a step change in a
+  lightly-used model — and 11.6 % of the annotated files have stale geometry to re-verify first.
+- **Provenance is part of the data.** Each derived statement pins the source revision (`baserevid`) and carries a
+  reference (permalink with `oldid=`, plus a retrieved date), and updates key on *(file, value, position)* — **never on the
+  note `id`**, which is not stable (a real file's notes run 1–8 and 10–12; `id=9` is a deletion gap).
+- **The write is the small half.** ~0.9 M notes × (claim + qualifier + reference) ≈ 2.7 M write calls, ≈370 hours at
+  2 writes/s — while the review UI is 5–8 of the 21–34 person-days the full tool is estimated at, and the community
+  process behind it is 4–8 weeks of calendar. Ask about the upstream gadget fix
+  ([Wishlist W36](https://meta.wikimedia.org/wiki/Community_Wishlist/W36), 2 supporters, unassigned) before assuming it.

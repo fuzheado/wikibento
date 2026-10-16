@@ -457,7 +457,9 @@ front door.
   · [PLUGIN-TRUST](docs/research/PLUGIN-TRUST.md) · [TOOL-LANDSCAPE](docs/research/TOOL-LANDSCAPE.md) and its
   [synthesis](docs/research/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/research/TOOLFLOW-ANALYSIS.md) ·
   [TAPESTRY-EVALUATION](docs/research/TAPESTRY-EVALUATION.md) ·
-  [MOBILE-RESIZE-STABILITY](docs/research/MOBILE-RESIZE-STABILITY.md) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
+  [MOBILE-RESIZE-STABILITY](docs/research/MOBILE-RESIZE-STABILITY.md) ·
+  [IMAGENOTE-FEASIBILITY](docs/research/IMAGENOTE-FEASIBILITY-2026-10-07.md) (the matcher design, measured) ·
+  [IMAGENOTE-AUDIT](docs/research/IMAGENOTE-AUDIT-2026-10-08.md) (9,643 files / 30,032 notes, and a 100-note gold set) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·
   [INTERNET-ARCHIVE](docs/INTERNET-ARCHIVE.md) (the IA widget family: verified API surface, per-media
   file conventions, quotas, ranked proposal) ·

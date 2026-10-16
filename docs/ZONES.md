@@ -601,3 +601,11 @@ Slice C reads a file's own annotations. What those corpora contain, and how much
 6. **Say where the zones came from, and when a source yielded nothing** — `6 zones · the file's own notes` vs `3 zones ·
    hand-set` vs `no zones on this file`. The reader cannot see which source they got, and the sources differ in trust by
    two orders of magnitude.
+7. **Key on (box + text), never on the note `id`.** The ids are not stable identifiers: the reports' test file carries
+   notes 1–8 and 10–12, because `id=9` is a deletion gap, and the gadget renumbers freely. Derived data keys on
+   *(file, value, position)*.
+8. **The notes are display-only, and the two corpora are disjoint.** The gadget
+   (`MediaWiki:Gadget-ImageAnnotator.js`, v2.3.2) contains **no SDC code at all** — no `P180`, no `P2677`, not even the
+   string `depicts` — and of 100 sampled files that *do* carry position-qualified depicts, **1** transcludes
+   `{{ImageNote}}`. So importing notes into `P2677` is *new* data rather than a sync, in a pattern only 7,926 files use:
+   stage it as **plain `depicts` first, positions second**, and say so on any card that shows the result.

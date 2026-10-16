@@ -6765,6 +6765,26 @@ per zone, and Apply/Cancel on a copy. Phases and costs are in the memo — phase
 the server at all.
 
 
+
+**Addendum 2026-10-09 — the design and its measurements exist, and they are archived here.** Two reports prepared for this
+project (2026-10-07 and 2026-10-08; their scripts and raw data live on the host that produced them, `/opt/data/audit/`, not
+on this machine) are now in the repo verbatim:
+[IMAGENOTE-FEASIBILITY-2026-10-07.md](research/IMAGENOTE-FEASIBILITY-2026-10-07.md) and
+[IMAGENOTE-AUDIT-2026-10-08.md](research/IMAGENOTE-AUDIT-2026-10-08.md). They answer most of what this issue was scoping:
+
+- **The matcher design is settled** — four stages (explicit links · name→article→item · context constraints with
+  abstention · human review), with measured yields per stage and a **calibrated gate**: publish ≥0.80 (95.8 % precision),
+  review 0.50–0.80, discard <0.50, from a 100-note stratified gold set. The tables are summarised in
+  [docs/RECONCILIATION.md](RECONCILIATION.md).
+- **The review queue is the critical path**, not the extraction or the matching: link-bearing notes are ~97 % precise and
+  can go first (~8,000+ in the `Artwork` stratum), while the 73 % with no link need human decisions (naive resolution
+  mis-resolves ~40 % — measured on a worked file where it gave 1 usable answer in 11, and that one wrong).
+- **Rules the review UI must carry**: pin the file's `sha1` (11.6 % of annotated files have stale boxes), key on
+  *(file, value, position)* and never on the note `id`, ship plain `depicts` ahead of `pct:` regions, and record provenance
+  (source revision + permalink + retrieved date) per statement — note text is CC BY-SA on the file page while SDC is CC0,
+  so prose is never copied into captions.
+- **Costs**: read-only auditor 2–4 days · proposal generator + human publishing 6–10 · full tool 21–34 plus 4–8 weeks of
+  community process · upstream gadget fix 3–6 days of code with no owner (Wishlist W36, 2 supporters, unassigned).
 ## ISSUE-144 · A reload emptied the card, and the reader was thrown to the top of the page (reported from an iPhone, 2026-10-09)
 
 Andrew, on a phone in lean mode: clicking a zone in the stacked board filled the consumer card, "but it makes kind of a
