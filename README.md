@@ -296,6 +296,7 @@ Also available: `npm run docs-facts` (the consistency gates alone; `:live` also 
 projection checked against real rendered maps), `smoke:panels`, `smoke:qr`, `smoke:share`, `smoke:wayback`, `smoke:canvas` and `smoke:canvas-import`
 (board ⇄ JSON Canvas, both directions), `smoke:spawn` (the two-sided wiring panel),
 `guide:board` and `map:widgets` (regenerate the served contract and the one-page widget map),
+`render:board -- board.json` (render any board in a browser and report what each card actually shows),
 `check:layouts` (no demo board overlaps itself), `build:validator` (bundle the validator `/api/validate` runs;
 `--check` fails on a stale one), and `update:cim-allow-list`.
 

@@ -73,3 +73,24 @@ is not enough (93% right widgets, 0% usable envelopes), and what the app's valid
   against a deployment.
 - `scripts/relay-guard-e2e.mjs` covers `/api/validate`, which `validate_board` calls into the same code as.
 - `docs/PROXIES.md` places this route: it is **not** a relay — nothing upstream, no key, no model.
+
+## Staying honest as a downstream consumer: the drift guard
+
+Everything this endpoint serves is generated from the app's own registry and specs, and each artefact is versioned:
+`manifest.json` carries `version` and `generatedAt`, and the schema, the guide and the CIM allow list change on their own
+schedule. **A copy taken from this endpoint therefore has an expiry date, and nothing inside the copy knows it.**
+
+The failure mode is real and has happened: an agent-side copy of the authoring rules was found carrying "42 types" long
+after the registry held 36, and another file in the same copy referenced a widget that had never existed. Both were
+written carefully. Both drifted because nothing re-checked them — and a stale catalog writes boards the app refuses,
+which is the most expensive failure available: it looks like the app is broken.
+
+The pattern that fixes it, for a skill, a doc, a cached template or an agent's standing context:
+
+1. **Snapshot the artefacts you depend on** (`manifest.json`, `dashboard.schema.json`, `board-guide.md`,
+   `cim-allow-list.json`) with, for each: the URL, the `sha256`, the `generatedAt` the artefact reports for itself, and
+   the time it was fetched.
+2. **Re-check before writing anything**: re-fetch, compare the hashes, and **fail loudly**, naming the artefact that moved
+   and when. Refusing to write on a stale catalog is cheap; discovering it after the board is handed over is not.
+3. **Never restate a count in prose.** State it by reference ("every type in the manifest") or print it from the artefact
+   at run time. A number living in two places drifts — this repo's own `docs-facts` gate exists for exactly that reason.

@@ -189,6 +189,19 @@ export function stringifyOutput(v) {
 
 /** Collect the distinct `{{widget:id}}` references in a config (deep) — used
  *  by WidgetFrame to re-run a consumer when a producer's output changes. */
+/**
+ * Split a widget reference into its id and its channel: `xlate#speech` → `{ id: 'xlate', channel: 'speech' }` (ISSUE-91).
+ *
+ * Lives here because this module already owns the `{{widget:id#channel}}` form, and because two verdicts need it: the
+ * board doctor and `validateDashboard`. They had grown separate (and unequal) copies — the doctor split the channel, the
+ * validator did not, so a correctly wired `xlate#speech` earned "no widget with that id is on the board" from one and
+ * silence from the other. One board, two answers; this is the one implementation.
+ */
+export function splitWidgetRef(ref) {
+  const [id, channel] = String(ref ?? '').split('#');
+  return { id: id.trim(), channel: channel ? channel.trim() : null };
+}
+
 export function extractWidgetRefs(config) {
   const refs = new Set();
   const walk = (v) => {

@@ -2309,7 +2309,6 @@ Verified live end-to-end: Harvard presidents 1 → 30 images (+2 decorative
 hidden), Einstein all-images → 36 rows under 27 real "Section: …" headings,
 National Gallery London → Gallery 1/2/3 groups. Not yet merged (patch
 delivered; no write access to GitHub).
-
 ## ISSUE-52 · Widget-to-widget dataflow: `source` picker + `{{widget:id}}` interpolation + the four-Dataflow-widget chain — **done + DEPLOYED 2026-09-08 (bundle index-OJOY0xwd.js)**
 
 **What:** beyond board params (ISSUE-50) — where a Board Controls card drives
@@ -6980,3 +6979,70 @@ Both fields are declared the same way (`key: 'article', kind: 'article'`), so th
 the contract. Either every `kind: 'article'` field should resolve a reference the same way, or the difference should be
 documented where an author will look. Until then the rule that works is in `docs/ZONES.md`: **a zone that feeds a
 non-reference consumer publishes a bare title, and the board pins `project` on that consumer.**
+
+## ISSUE-151 · A parallel board-authoring side test: what it had that we did not (2026-10-16, **ported**)
+
+**What it is.** A standalone repo next door (`../wikibento-boardmaker`, no remote, 5,642 lines): a **skill** for authoring
+WikiBento boards (`SKILL.md` + `GOTCHAS.md`, `BOARD-PATTERNS.md`, `IMAGE-ZONES.md`), six scripts (a catalog drift guard,
+an offline lint, a render check, a share-link builder, a parity check), six board fixtures, two example boards, and a
+corpus study of Commons annotation sources with ~30 raw API/SPARQL responses. First commit 2026-10-02; the zones spec and
+the corpora were added **2026-10-09 18:52–18:54**, in parallel with this repo's own zones work.
+
+**Verdict: high overlap in prose, low overlap in measurement — and the measurements were the value.** The channel rules,
+the `open`-not-`send` tour rule, "propose never bind", the envelope rules, the CIM gates and `mul` were already ours,
+and two of its "new" gotchas (PagePile as a free emitter carrying the wiki; Massviews having no public JSON API) were
+already documented here **in more depth** (`docs/WIDGET-IDEAS.md`, the 2026-10-02 note).
+
+**Ported (each number re-measured here rather than copied):**
+
+- **Corpora + calibration → `docs/RECONCILIATION.md`.** Live counts re-run: `{ImageNote}` **361,163** files
+  (their 363,459/360,552 — the query moves), the `{Artwork}` stratum **11,620**, `<imagemap>` **1,043** files /
+  **2,138** pages (both exact), any `depicts` **29,494,043**, and position-qualified depicts **7,939 files / 23,593
+  regions** via SPARQL on QLever (their 7,926/23,561 — reproducible). The `haswbstatement:P2677` trap reproduces
+  **exactly**: search says **1**, SPARQL says thousands.
+- **The calibration is the real find, and it is not ours**: an external corpus audit (2026-10-08, *prepared for this
+  project*; the side test carries its summary) measured **4.2 %** label/structured-data agreement, **11.6 %** of annotated
+  files carrying boxes anchored to a superseded revision, precision by evidence type (**link 97–100 % · category 22 % ·
+  no link 19 %**), and a publish gate (**≥0.80 auto · 0.50–0.80 review · <0.50 discard**). Two of those the side test's
+  spec states and this repo independently verified (the fixture's `9346×2309`/`sha1 8774e67c…` matches exactly).
+- **Import requirements → `docs/ZONES.md`**: pin the revision (`sha1`) because stale boxes are normal; a stale box is a
+  blocker that is hidden and counted; `<imagemap>` is the one on-wiki source carrying a box **and** a target; parse a note
+  as a pair by `id` and resolve `{LangSwitch}`-style inner templates (measured: dropping them empties individual notes
+  while barely moving the aggregate).
+- **The drift guard → `docs/MCP.md`**: snapshot the served artefacts with `generatedAt` + `sha256` and re-check at the
+  start of a session, because a copy of this repo's contract has an expiry date and nothing inside the copy knows it.
+- **Three small rules → `docs/BROWSER-TESTING.md`** (a `fullPage` screenshot re-mounts lazy cards),
+  **`docs/JSON-FORMAT.md`** (`"params": null` is valid — do not "repair" it) and **`docs/WIRING-BOARDS.md`** (the
+  per-card-type "verify the world" table).
+- **A tool we lacked → `npm run render:board -- board.json`** (`scripts/render-board.mjs`): paste any board through the
+  app's own ⬆ Import panel, load it in a browser, and report per card whether it drew, is waiting, is loading, is
+  **empty** or errored — with a screenshot, and a non-zero exit when the shape is clean but the world is not. Its own
+  first version taught the lesson twice: the `empty` test counted the freshness footer as content, and a missing Commons
+  file reads "No image found" (14 characters) rather than nothing.
+
+**Its drift, recorded rather than repeated**: the skill advertised "42 types" while the served manifest held 36 (its own
+drift guard warns about exactly that failure mode) and an earlier commit in it is titled *"…not an invented widget"*. The
+count is now stated by reference. Nothing here depends on that directory; it stays as the agent-side companion, where the
+*gold-set report* of 2026-10-08 would also belong.
+
+## ISSUE-152 · A channel reference earned a false "no widget with that id" — and the two verdicts disagree three ways (2026-10-16, **fixed**)
+
+**Found by an outside complaint**, then reproduced here: the board doctor's own copy of the source check splits a
+channel off (`xlate#speech` → `xlate`), while `validateDashboard`'s compared the **whole string** against the board's ids.
+So a correctly wired channel reference produced *"Widget "spk" feeds from "xlate#speech" — no widget with that id is on
+the board"* from the validator, and `verdict: clean` from the doctor, for the same board. (The code comment blamed
+ISSUE-51, which is the Article Gallery's grouping work — a mis-citation that sent this note to the wrong entry first.)
+
+**Fix:** the split lives once, in `splitWidgetRef` (`src/lib/params.js`), and both callers use it. The test was written
+first, watched fail on the old code and pass on the new (`tests/config-ranges.test.mjs`, both directions: a real channel
+resolves; a missing id is still reported by both).
+
+**Three differences the exercise surfaced**, each worth a decision rather than a silent fix:
+
+1. **Severity**: the validator calls a dangling `source` a *warning* ("it will show its empty state"); the doctor calls it
+   an *error* ("the card that consumes it is dropped"), which is what the served guide's §5 says. Two severities for one
+   board — the wording should be reconciled with the severity.
+2. **Shape**: the validator's lists are **strings**; the doctor's are `{ code, message }` **objects**. A caller that
+   treats them alike prints `[object Object]` (the first version of the new test's assertion did exactly that).
+3. **Who is authoritative**: `/api/validate` serves the doctor, ⬆ Import runs the validator, and the suite runs both — so
+   this class of divergence can only be found by running both on one board, which is what the test now does.

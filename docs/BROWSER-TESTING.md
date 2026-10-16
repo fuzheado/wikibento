@@ -225,3 +225,13 @@ daemon's `9322`. `PW_WS_HOST` is what the test box rewrites `localhost` to insid
 remote browser can reach the dev server.
 
 `scripts/browser-matrix.mjs` carries the same recipes in its header, next to the code that implements them.
+
+### A `fullPage` screenshot re-mounts every lazy card
+
+Measured 2026-10-09: `page.screenshot({ fullPage: true })` resizes and re-scrolls the viewport, which **re-mounts
+lazy-loaded cards** — they unmount, refetch and return with fresh loading states. A screenshot taken that way can show (or
+hide) a state no reader will ever see, and any assertion made against the DOM *after* a `fullPage` shot is testing a page
+that has been rebuilt underneath it.
+
+Take a **viewport-clipped shot per card** instead (`element.screenshot()`, or an explicit `clip` rect), which is what the
+board sweeps do. A full-page image is fine as documentation, never as evidence about card state.

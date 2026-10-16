@@ -149,3 +149,47 @@ also the two phases whose value does not depend on which OCR engine wins.
 
 It does not choose an OCR engine for you, does not design the writing-back-to-Commons flow, and does not touch the
 persistence story for a *reconciled* target (a QID beside a title — designed in `docs/ZONES.md` as provenance, not built).
+
+## What the corpora actually contain — and the calibration the ladder needs (measured 2026-10-09)
+
+The ladder above says *where* to look. This says *how much is there*, because that decides which rung does the work. Every
+number below was measured here, live, on 2026-10-09, and each row names its own query so it can be re-run. **Counts of this
+size move between runs** — `{{ImageNote}}` transclusions differed by ~2,900 between two runs on the same day, and a
+position-qualified `depicts` count by 13 files in a few hours — which is why they are stated as measured on a date and
+never as constants.
+
+| source | how to count it | measured 2026-10-09 |
+|---|---|---|
+| files transcluding `{{ImageNote}}` | `list=search&srnamespace=6&srsearch=hastemplate:"ImageNote"` → `searchinfo.totalhits` | **361,163** files |
+| …the `{{Artwork}}` stratum | the same, plus `hastemplate:"Artwork"` | **11,620** files |
+| files with an `<imagemap>` | `insource:"<imagemap>"` — ns 6 / all namespaces | **1,043** files / **2,138** pages |
+| files with any `depicts` (P180) | `haswbstatement:P180`, ns 6 | **29,494,043** files |
+| files with a **position-qualified** depicts (P2677) | SPARQL on QLever's Commons graph: `?f p:P180 ?st . ?st pq:P2677 ?pos` | **7,939** files / **23,593** regions |
+| …the same question asked of search | `haswbstatement:P2677`, ns 6 | **1** file — and it carries no P2677 when read back |
+
+Three conclusions that shape the design:
+
+1. **The structured layer is three orders of magnitude thinner than the annotation layer.** 361,163 files carry a note;
+   7,939 carry a machine-readable region. The *import* rung is a small door and the **suggestion** rung is the main path,
+   so "no target" is the normal outcome of an import rather than a failure.
+2. **Never ask search whether a qualifier exists.** `haswbstatement:P2677` reports **1** where SPARQL finds **7,939**.
+   Qualified claims come from SPARQL (`wikimedia-commons-sparql`), never from CirrusSearch.
+3. **`<imagemap>` is the one on-wiki source carrying a box *and* a real click target** (`rect 0 0 1267 1250 [[:Image:…]]`)
+   — only 1,043 files, and worth its own rung for exactly that reason.
+
+### The calibration (an external gold-set audit)
+
+Snapping a label to a target was audited against a **100-note gold set over a 9,643-file corpus** (an external corpus audit
+prepared for this project, 2026-10-08). Its headline figures are re-stated here with provenance, and the two this repo
+could check independently — the corpora above, and a fixture's dimensions and `sha1` — were verified rather than copied:
+
+| measure | value |
+|---|---|
+| notes whose label agrees with the file's own structured data | **4.2 %** |
+| annotated files whose boxes are anchored to a superseded revision | **11.6 %** (1,117 of 9,643) |
+| precision by evidence type | a **link** in the label **97–100 %** · a **category** **22 %** · **no link at all** **19 %** |
+
+The review gate follows from those numbers and is calibrated, not asserted: **≥0.80 confidence auto-accept · 0.50–0.80
+needs review · <0.50 discard**. A label containing a link is nearly always right; a bare prose label is a coin toss —
+which is why the ladder's last resort proposes a candidate *with its description* and lets a person decide, and why
+nothing is ever bound silently.

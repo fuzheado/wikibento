@@ -182,3 +182,23 @@ left to right.
   rules a new emitter must follow, including channels and references.
 - **If you want the design reasoning** — [MODULARITY-AND-DATAFLOW.md](MODULARITY-AND-DATAFLOW.md) (why the wire is
   text-shaped) and [WIDGET-MESSAGING.md](research/WIDGET-MESSAGING.md) (how other tools solved the same problem).
+
+### Verify the world, not just the shape
+
+A board that imports with zero warnings can still be nine empty cards, because a category name, a file name or an article
+title may not exist. The doctor checks the **shape**; this table is the **world** half, and it is the difference between a
+board and a skeleton. One batched call per row — not one per card:
+
+| the card takes | verify with |
+|---|---|
+| an article | the Action API (`titles=`, `redirects=1`) — a redirect is not a missing page |
+| a Commons category | `prop=categoryinfo` (does it exist? how many files? is it a container?) |
+| a Commons file | `prop=imageinfo` — **every** file in a `gallery` list, not the first |
+| a CIM category | the served `cim-allow-list.json` |
+| a Wikidata item | `wbsearchentities`, then `wbgetentities` with `languages=<lang>|en|mul` |
+| an Internet Archive identifier | `archive.org/metadata/<id>` |
+| a Wikisource document | `prop=imageinfo` for `pagecount` |
+
+Then **render it**: `npm run smoke:boards -- --base <url>` for the shipped boards, or
+`npm run render:board -- board.json` for any board in hand. Shape is proven by the import; the world only by a card that
+actually drew its data.

@@ -17,6 +17,7 @@ import { validateDashboard } from '../src/lib/dashboardConfig.js';
 import { MIN_REFRESH_SECONDS } from '../src/lib/configNormalize.js';
 import { coerceFieldValue, normalizeConfigForDef } from '../src/lib/configNormalize.js';
 import { WIDGET_TYPES } from '../src/widgets/index.js';
+import { diagnoseBoard } from '../src/lib/boardDoctor.js';
 
 const glam = (config) => ({
   widgets: [{ id: 'g1', widgetType: 'glamorgan', config }],
@@ -83,4 +84,37 @@ test('missing config falls back to defaults, and says so as a repair', () => {
   const r = validateDashboard({ widgets: [{ id: 'g1', widgetType: 'glamorgan' }], layout: [] });
   assert.equal(r.valid, true);
   assert.ok(r.repairs.find((x) => x.includes('missing "config"')), r.repairs.join(' | '));
+});
+
+test('a channel-qualified source resolves to its card — and both verdicts agree (ISSUE-51 parity)', () => {
+  // The defect this pins: `validateDashboard` compared the whole `id#channel` string against the board's ids, so a
+  // perfectly wired channel reference earned "no widget with that id is on the board" — while the doctor, which splits
+  // the channel off, said nothing at all. Two verdicts on one board must not disagree, so this asserts both directions
+  // on the SAME board: a real channel resolves, and a missing id is still reported by both.
+  const wired = {
+    widgets: [
+      { id: 'xlate', widgetType: 'translate', config: { text: 'Mercury' } },
+      { id: 'spk', widgetType: 'speaker', config: { source: 'xlate#speech' } },
+    ],
+    layout: [{ i: 'xlate', x: 0, y: 0, w: 6, h: 4 }, { i: 'spk', x: 6, y: 0, w: 6, h: 4 }],
+  };
+  const v = validateDashboard(wired);
+  assert.equal(v.warnings.filter((w) => /no widget with that id/.test(w)).length, 0,
+    `a channel reference names a card that is on the board: ${v.warnings.join(' | ')}`);
+  // Structural, not prose: the doctor legitimately *echoes* the reference it read, so scanning its whole output for the
+  // string is the wrong test (the first version of this assertion failed for exactly that reason). What matters is its
+  // verdict on the board.
+  const dWired = diagnoseBoard(wired);
+  assert.notEqual(dWired.verdict, 'unusable',
+    `the doctor must not call a channel-qualified reference unusable: ${(dWired.errors || []).join(' | ')}`);
+
+  const broken = { ...wired, widgets: [wired.widgets[0], { id: 'spk', widgetType: 'speaker', config: { source: 'nope#speech' } }] };
+  assert.ok(validateDashboard(broken).warnings.some((w) => /no widget with that id/.test(w)),
+    'a source naming a card that is not on the board is still reported');
+  const dBroken = diagnoseBoard(broken);
+  // The doctor's lists hold `{ code, message }` objects and the validator's hold strings — a small shape difference
+  // between two verdicts about one board, which is itself worth knowing (the first version of this line joined objects
+  // and tested `[object Object]`).
+  const says = [...(dBroken.errors || []), ...(dBroken.warnings || [])].map((x) => x?.message || String(x)).join(' | ');
+  assert.ok(/nope/.test(says), `and the doctor names the missing card too — the two verdicts agree in both directions: ${says.slice(0, 140)}`);
 });

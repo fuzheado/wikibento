@@ -33,15 +33,9 @@
 import { validateDashboard } from './dashboardConfig';
 import { outputChannels } from './dataflow';
 import { widgetDef } from '../widgets';
-import { findUnresolvedRefs } from './params';
+import { findUnresolvedRefs, splitWidgetRef } from './params';
 
 const ART = 'public/board-guide.md';   // where a reader looks it up (served at /board-guide.md)
-
-/** A reference may name a channel: `id#selection` (ISSUE-91). */
-const splitRef = (ref) => {
-  const [id, channel] = String(ref).split('#');
-  return { id, channel: channel || null };
-};
 
 /**
  * What a widget publishes, as data — `{ name, kind, primary }[]`, or null when it publishes nothing. The first version
@@ -138,7 +132,7 @@ export function diagnoseBoard(input, { allowList = null, source = 'board' } = {}
       if (f.type !== 'source') continue;
       const value = config[f.key];
       if (typeof value !== 'string' || !value.trim() || value.includes('{{')) continue;
-      const { id, channel } = splitRef(value.trim());
+      const { id, channel } = splitWidgetRef(value.trim());
       checkRef(id, channel, `${where} field \`${f.key}\``, def);
     }
 

@@ -7,6 +7,7 @@
 
 import { WIDGET_TYPES } from '../widgets';
 import { widgetDef } from '../widgets';
+import { splitWidgetRef } from './params';
 
 export const CONFIG_VERSION = 1;
 
@@ -346,7 +347,10 @@ export function validateDashboard(input) {
     const def = widgetDef(w.widgetType);
     const field = (def?.configFields || []).find((f) => f.type === 'source');
     const src = field && w.config && typeof w.config[field.key] === 'string' ? w.config[field.key] : '';
-    if (src && !ids.has(src)) {
+    // ISSUE-152: `source` may name a channel (`id#channel`, ISSUE-91) — compare the ID, not the whole string, or a
+    // correctly wired channel reference is reported as a missing card. Found by the board doctor disagreeing with this
+    // function about the same board; `tests/config-ranges.test.mjs` now pins both directions.
+    if (src && !ids.has(splitWidgetRef(src).id)) {
       warnings.push(`Widget "${w.id}" feeds from "${src}" (${field.label}) — no widget with that id is on the board; it will show its empty state until connected`);
     }
   });

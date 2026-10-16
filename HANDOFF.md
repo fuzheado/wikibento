@@ -33,8 +33,8 @@ Feature-complete for v1 and deployed.
 | | |
 |---|---|
 | Live | <https://wikibento.toolforge.org/> |
-| production bundle | `index-YcF0cYWn.js`, `server.js` and `validator-bundle.mjs` (the relay, `/api/validate`, and the `/mcp` tool surface) |
-| deployed | 2026-10-09 (latest) — **eleven deploys that day**; the row-by-row record is `docs/DEPLOYMENTS.md`: the zones MVP and its two follow-ups (bigger targets, a channel of its own), the caching policy that made a working deploy look broken, the OCR'd diagram demo, the mobile jump (ISSUE-144), the empty-card copy (ISSUE-145), a click that misses a zone now doing nothing (ISSUE-146) and **an image-to-image tour that needed no new code** (`?config=/image-tour-demo.json`), a **power-plant diagram whose every label is a door** (`?config=/turbine-demo.json`) and **a lifecycle chart whose bars are the doors** (`?config=/aircraft-lifecycle-demo.json`) — and, on 2026-10-02, the whole Ask door: the served guide, `/api/validate` and the `/mcp` tool surface. **The deploy shape to remember:** a `src/` change ships `dist/` **+** `validator-bundle.mjs` (the bundle, not the server, absorbs app code); `server.js` only when a route changes. |
+| production bundle | `index-CYPZNcSs.js`, `server.js` and `validator-bundle.mjs` (the relay, `/api/validate`, and the `/mcp` tool surface) |
+| deployed | 2026-10-09 (latest) — **twelve deploys that day**; the row-by-row record is `docs/DEPLOYMENTS.md`: the zones MVP and its two follow-ups (bigger targets, a channel of its own), the caching policy that made a working deploy look broken, the OCR'd diagram demo, the mobile jump (ISSUE-144), the empty-card copy (ISSUE-145), a click that misses a zone now doing nothing (ISSUE-146) and **an image-to-image tour that needed no new code** (`?config=/image-tour-demo.json`), a **power-plant diagram whose every label is a door** (`?config=/turbine-demo.json`) a **lifecycle chart whose bars are the doors** (`?config=/aircraft-lifecycle-demo.json`), and a parity fix found from outside — the validator called a correctly wired channel reference a missing card, while the doctor called the same board clean (ISSUE-152) — and, on 2026-10-02, the whole Ask door: the served guide, `/api/validate` and the `/mcp` tool surface. **The deploy shape to remember:** a `src/` change ships `dist/` **+** `validator-bundle.mjs` (the bundle, not the server, absorbs app code); `server.js` only when a route changes. |
 | registry | 36 widget types — 27 data-driven, 9 static |
 | showcase catalog | `?config=/dashboard.json` — 37 widgets covering all 36 types |
 | front door for demos | `?config=/demos.json` (the hub) |
@@ -726,6 +726,12 @@ Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
      went to the Pageviews card's error state); and the multi-image tour's quirks are filed as **ISSUE-149** at Andrew's
      request — one card per view, no pre-seeding, no loop, one channel for all of a card's zones, hand-written Back
      titles, no preloading, and text-only authoring.
+     **The import's rules are measured and calibrated now** (ISSUE-151): 11.6 % of annotated files carry boxes anchored
+     to a superseded revision, so a zone set pins the file's `sha1` and hides-and-counts a stale box; a label containing a
+     link is 97–100 % precise against 19 % for bare prose, which is where the ≥0.80 auto / 0.50 review / <0.50 discard
+     gate comes from; and `<imagemap>` is the one on-wiki source carrying a box *and* a target. For the world half of the
+     authoring loop there is now `npm run render:board -- board.json`, which pastes any board through ⬆ Import and reports
+     per card whether it drew, waited, came up **empty** or errored, with a screenshot.
      **What remains, in the order designed:** **B** the editor — a draggable overlay plus three crop fits (letterbox · fill
      crop · **`smart`**, which keeps every zone visible and falls back to letterbox rather than hide one) · **C** the
      Commons-notes import **and its target suggestions**: one API call brings a file's boxes in with their labels, and the

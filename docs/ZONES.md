@@ -576,3 +576,28 @@ fits both this app and the standards is an **image-keyed map**:
   (+216px in a single frame). A tour is the feature that pays for reserving the picture's box.
 - **Preloading the neighbours is the obvious comfort and it is cheap** — the gallery knows its next file's name before
   the reader clicks.
+
+## Importing zones: the rules the corpora impose (measured 2026-10-09)
+
+Slice C reads a file's own annotations. What those corpora contain, and how much, is measured in
+[RECONCILIATION.md](RECONCILIATION.md); these are the rules that follow from it — requirements, not preferences:
+
+1. **Pin the revision.** Keep the file's `sha1` (or `baserevid`) beside the zone set and re-check it
+   (`prop=imageinfo&iiprop=size|sha1`) when the card loads. A re-crop silently moves every box, and a title is not an
+   identity: **11.6 % of annotated files (1,117 of 9,643 measured) carry boxes anchored to a superseded revision**, so a
+   stale set is a normal condition rather than an accident.
+2. **A stale box is a blocker, not a warning.** Hide it and say so — *"2 zones hidden: this file has changed since they
+   were drawn"* — never draw a rectangle on the wrong pixels.
+3. **`<imagemap>` is a source, and the best one for a *target***: 1,043 files, and the only on-wiki annotation carrying a
+   box **and** a click target in one line (`rect 0 0 1267 1250 [[:Image:Mother and daughter edit.jpg|1: Yellow Chamomile]]`,
+   in the file's original pixel space).
+4. **Parse a note as a pair, and resolve what is *inside* the label.** The label is the wikitext between
+   `{{ImageNote|id=N|…}}` and `{{ImageNoteEnd|id=N}}`, paired by `id`; matching only the opening template yields boxes with
+   no labels. Labels are often templated (`{{LangSwitch|en=Main building|fr=Immeuble principal}}`), so an inner-template
+   pass is required — "drop everything inside `{{…}}`" blanks the caption, and on a 30,032-note corpus that barely moved
+   the aggregate while silently emptying individual notes (the kind of defect only a per-item check finds).
+5. **A label is not a target, and a box is not a promise.** Boxes outside 0–100 %, zero-area boxes, unparseable values,
+   and a `dimx`/`dimy` that disagrees with the live file are rejections, never repairs.
+6. **Say where the zones came from, and when a source yielded nothing** — `6 zones · the file's own notes` vs `3 zones ·
+   hand-set` vs `no zones on this file`. The reader cannot see which source they got, and the sources differ in trust by
+   two orders of magnitude.

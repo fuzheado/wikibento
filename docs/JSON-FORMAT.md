@@ -411,3 +411,10 @@ producer does not publish, a field the current source mode ignores, a CIM catego
 an outside model is pointed at before it hands a board over. One disagreement between this table and the code is filed
 as **ISSUE-134** (a mistyped config value is documented as *Repairable* and is currently refused — the doctor reports
 what the app will do, which is refuse).
+
+### `"params": null` is valid — do not "repair" it
+
+An envelope may carry `"params": null` (and a widget may carry `"config": null`). It means "no board parameters", which is
+identical in meaning to an empty object; the app's validator accepts both, and the app's own Export writes whichever it was
+given. A tool that "fixes" null to `{}` is editing a board rather than reading it — treat the two as the same value
+everywhere, in code and in review.

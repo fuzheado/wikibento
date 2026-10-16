@@ -41,6 +41,7 @@
     "check:layouts": "node scripts/repack-layout.mjs --check",
     "check:board": "node scripts/check-board.mjs",
     "smoke:boards": "node scripts/board-render-e2e.mjs",
+    "render:board": "node scripts/render-board.mjs",
     "build:validator": "node scripts/build-validator.mjs",
     "smoke:mcp": "node scripts/mcp-e2e.mjs",
     "smoke:plate": "node scripts/media-plate-e2e.mjs",
