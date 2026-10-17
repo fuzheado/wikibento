@@ -181,7 +181,12 @@ const TITLE_SCENE = cfg.titleCardScene || '00-title';
 const TITLE_VOICE = join(OUT, 'narration', `${TITLE_SCENE}.ogg`);
 const BADGE_SECONDS = 5.5;   // how long the step label stays on screen
 const TITLE_DUR = existsSync(TITLE_VOICE) ? Math.max(2.5, probe(TITLE_VOICE) + 0.8) : 2.5;
-const END_DUR = 3.0;
+const END_SCENE = cfg.endCardScene || '99-end';
+const END_VOICE = join(OUT, 'narration', `${END_SCENE}.ogg`);
+const END_LINE = (beatsDoc.scenes.find((sc) => sc.id === END_SCENE) || {}).narration || '';
+// Sized to its own narration, like the title card. It used to be a literal 3.0s with `null` as the voice, so a
+// closing line longer than 3s was cut off and never spoken at all (found 2026-10-16: a 3.9s line in a 3.0s card).
+const END_DUR = existsSync(END_VOICE) ? Math.max(3.0, probe(END_VOICE) + 0.8) : 3.0;
 // Always re-render the cards. They are cheap and static, and a stale one is invisible until somebody
 // notices the wrong words on screen — the same reason overlays.mjs caches by content hash.
 execFileSync('node', [join(import.meta.dirname, 'cards.mjs'), '--config', cfg.__path, '--out', OUT], { stdio: ['ignore', 'inherit', 'inherit'] });
@@ -214,7 +219,8 @@ else console.error('✘ missing cards/title.png');
 // the end card is appended AFTER the scenes — it used to be pushed here alongside the title, which
 // put a closing card immediately after the opening one; the drawtext end card that followed it has
 // been dropped in favour of this single browser-rendered one.
-const endCard = existsSync(join(OUT, 'cards', END_CARD)) ? cardPartCached(END_CARD, END_DUR, null)
+const endCard = existsSync(join(OUT, 'cards', END_CARD))
+  ? cardPartCached(END_CARD, END_DUR, existsSync(END_VOICE) ? END_VOICE : null)
   : (console.error('✘ missing the closing card'), null);
 
 /** takes that assembled, but look wrong — reported at the end so a broken clip cannot ship unnoticed */
@@ -339,8 +345,9 @@ for (const scene of scenes) {
   if (reusable(scene.id, partKeyValue)) {
     reusedCount += 1;
     console.log(`  ${scene.id}: reused (unchanged since ${built[scene.id].at.slice(11, 16)})`);
-    parts.push(join(BUILD, `${scene.id}.mp4`));
-    srtTime += target;
+    const reusedPart = join(BUILD, `${scene.id}.mp4`);
+    parts.push(reusedPart);
+    srtTime += probe(reusedPart);   // the ENCODED length, not the intended one
     continue;
   }
 
@@ -364,9 +371,15 @@ for (const scene of scenes) {
     console.warn(`  ⚠ ${scene.id}: narration runs ${pad.toFixed(1)}s longer than the usable footage — the last frame freezes for that long.`);
   }
   parts.push(out);
-  srtTime += target;
+  // Advance by the encoded length: each chapter runs a few tenths past its narration (the tail), and
+  // accumulating `target` put the .srt ~2s behind the picture by the third scene (measured 2026-10-16).
+  srtTime += probe(out);
 }
-if (endCard) parts.push(endCard);
+if (endCard) {
+  parts.push(endCard);
+  if (END_LINE) srt.push({ start: srtTime + 0.3, end: srtTime + END_DUR - 0.2, text: END_LINE });
+  srtTime += END_DUR;
+}
 
 // ── concatenate ──────────────────────────────────────────────────────────────
 const listFile = join(BUILD, 'concat.txt');

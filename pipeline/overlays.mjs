@@ -68,7 +68,11 @@ const MONO = `font-family:ui-monospace,Menlo,Consolas,monospace`;
 const page_ = (inner) =>
   `<html><body style="margin:0;width:${W}px;height:${H}px;background:transparent;overflow:hidden;${FONT}">${inner}</body></html>`;
 
-// positions mirror the drawtext coordinates they replace (badge x=36/y=30, note y=H-208, caption y=H-104)
+// positions mirror the drawtext coordinates they replace (badge x=36/y=30, note y=H-224, caption y=H-122),
+// and are computed from H rather than written as 1080-specific literals. The literals 856/958 put the caption
+// BELOW the canvas of any video shorter than 1080, so every caption overlay rendered as an empty PNG — no
+// error, no warning, and the take shipped with silent captions (found 2026-10-16 on a 1600x900 video: 0
+// opaque pixels in every cap*.png; after this change 20.7-100% ink in the caption band, 15/15 cues).
 /**
  * The step badge: a compact box in the UPPER RIGHT, below the app's own toolbar.
  *
@@ -86,9 +90,9 @@ const badgeHtml = (s) => {
       <div style="display:inline-block;background:rgba(0,0,0,.66);padding:14px 20px;border-radius:10px;text-align:right">${inner}</div>
     </div></body></html>`;
 };
-const noteHtml = (s) => page_(at(`left:36px;top:856px;font-size:27px;color:#8fc0ff;${MONO}`, s.note));
+const noteHtml = (s) => page_(at(`left:36px;top:${H - 224}px;font-size:27px;color:#8fc0ff;${MONO}`, s.note));
 const capHtml = (t) =>
-  page_(`<div style="position:absolute;left:0;right:0;top:958px;display:flex;justify-content:center">
+  page_(`<div style="position:absolute;left:0;right:0;top:${H - 122}px;display:flex;justify-content:center">
            ${plate(`background:rgba(0,0,0,.68);font-size:33px;font-weight:700;color:#fff;padding:14px 22px`, t)}</div>`);
 
 // ── plan every overlay before launching a browser ────────────────────────────
