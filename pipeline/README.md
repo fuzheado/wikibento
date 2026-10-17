@@ -49,6 +49,7 @@ export default {
   actions: app,                     // must export { startState, steps }, optionally configure(ctx)
   cards: [ { id: 'title', file: 'title.png', html: `…` }, { id: 'end', file: 'end.png', html: `…` } ],
   titleCardScene: '00-title',       // the script scene whose line is spoken over the title card
+  endCardScene: '99-end',           // optional; the closing card, sized to its own line like the title
 };
 ```
 
