@@ -660,6 +660,12 @@ re-research; the built endpoint is `docs/MCP.md`): a server is a **JSON-RPC endp
 
 ## Next steps
 
+- **Document Reader can read a PDF that is not on a wiki** (ISSUE-153, in `main`, **not deployed**): ⚙ Source → *A PDF
+  link*, plus the URL — the browser's own viewer draws it (zoom, search, its own page strip). Two measured traps, both in
+  `docs/DATA-SOURCES.md` §16: the embed **must not be sandboxed** (Chrome's viewer is an extension frame, so any sandbox
+  leaves a broken-document icon — three settings were tried), and headless browsers cannot paint a PDF, so a screenshot
+  needs `npm run render:board -- board.json --headed` (which also reports an `embed` state instead of `empty`).
+
 Roadmap detail in `docs/ROADMAP.md`; the design ideas below are specced there.
 
 1. **The Ask door is finished** — the plan section above records all six rows, done and deployed on 2026-10-02 (the

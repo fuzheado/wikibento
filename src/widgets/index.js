@@ -7,6 +7,7 @@ import { speechPayload, readSpeechPayload, clampRate } from '../lib/speech';
 import { stringifyOutput, paramSpecToText } from '../lib/params';
 import { inferGallerySource, galleryProject } from '../lib/gallerySource';
 import { parseZones } from '../lib/zones';   // ISSUE-138: clickable zones are text, parsed once, in the transform
+import { externalPdfEmbedUrl, externalPdfLabel } from '../lib/documentSource';   // ISSUE-153: a PDF that is not on a wiki
 import { MEDIA_PLATE_DEFAULT, MEDIA_PLATE_OPTIONS, plateChoice } from '../lib/mediaPlate';
 import { cimSubject, cimFacet, cimSubjectRef, cimRankingLines, LEGACY_CIM_IDS } from '../lib/cimFamily';
 import { GALLERY_BASE_WIDTH } from '../lib/imageSrcset';
@@ -2286,12 +2287,16 @@ export const WIDGET_TYPES = {
     timeScope: 'point',
     name: 'Document Reader',
     icon: '📄',
-    description: 'Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page\'s text and says how proofread it is',
+    description: 'Read a PDF or DjVu page by page from its wiki — page turns, facing pages, Wikisource text',
     defaultLayout: { w: 6, h: 8, minW: 4, minH: 5 },
-    labelFromConfig: (c) => (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null,
+    labelFromConfig: (c) => (c.source === 'url'
+      ? (c.url ? externalPdfLabel(c.url) : null)
+      : (c.file || '').replace(/^File:\s*/i, '').replace(/^https?:\/\/.*\/wiki\//, '') || null),
     defaults: {
       edgeToEdge: false,    // the card keeps its frame; see EDGE_TO_EDGE_FIELD
       mediaBackground: MEDIA_PLATE_DEFAULT,   // issue #111 — the plate behind the media; see lib/mediaPlate.js
+      source: 'commons',      // 'commons' (a wiki file, page by page) | 'url' (any PDF link, the browser's viewer)
+      url: '',
       file: 'File:The Three Hostages (1924).pdf',
       project: 'commons.wikimedia',
       spread: 'auto',        // 'auto' (by card width) | 'on' (facing pages) | 'off'
@@ -2301,26 +2306,46 @@ export const WIDGET_TYPES = {
     renderer: 'DocumentReaderCard',
     dataSource: 'Commons API imageinfo — pagecount + a page-N thumbnail template (one call)',
     configFields: [
-      { key: 'file', label: 'File', kind: 'commons-file', type: 'text', placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.' },
-      { key: 'project', label: 'Wiki', type: 'project', placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.' },
-      { key: 'spread', label: 'Reading mode', type: 'select', options: [
+      { key: 'source', label: 'Source', type: 'select', options: [
+        { value: 'commons', label: 'A wiki file (Commons or Wikisource)' },
+        { value: 'url', label: 'A PDF link (browser\'s own viewer)' },
+      ] },
+      { key: 'url', label: 'PDF link', type: 'text', showIf: { source: 'url' }, placeholder: 'https://example.org/x.pdf', hint: 'http(s); #page=/#zoom= win, else fit width.' },
+      { key: 'file', label: 'File', kind: 'commons-file', type: 'text', showIf: { source: 'commons' }, placeholder: 'File:The Three Hostages (1924).pdf', hint: 'A PDF or DjVu on any wiki — name or URL.' },
+      { key: 'project', label: 'Wiki', type: 'project', showIf: { source: 'commons' }, placeholder: 'commons.wikimedia', hint: 'Which wiki hosts it — commons.wikimedia by default.' },
+      { key: 'spread', label: 'Reading mode', type: 'select', showIf: { source: 'commons' }, options: [
         { value: 'auto', label: 'Auto — facing pages when the card is wide enough' },
         { value: 'on', label: 'Two facing pages' },
         { value: 'off', label: 'One page at a time' },
-      ], hint: 'A board can open a document in spread mode; the ▭ button on the card still overrides it for the reader.' },
-      { key: 'textPanel', label: 'Transcription', type: 'select', options: [
+      ], hint: 'A board can set it; the ▭ button still overrides.' },
+      { key: 'textPanel', label: 'Transcription', type: 'select', showIf: { source: 'commons' }, options: [
         { value: 'on', label: 'Show it from the start (and keep it open as you turn pages)' },
         { value: 'off', label: 'Hidden until I press ¶' },
-      ], hint: 'Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.' },
+      ], hint: 'Only where Wikisource transcribed it — a file without one never shows the panel.' },
       EDGE_TO_EDGE_FIELD,
       MEDIA_BACKGROUND_FIELD,
     ],
-    fetch: (config) => { const p = pageRef(config, 'file'); return fetchDocumentPages(p.title, p.projectConfig); },
+    fetch: (config) => {
+      // A PDF that is NOT on a wiki (ISSUE-153): there is no API to ask — the browser's viewer embeds the link,
+      // so the "data" is the URL itself. Everything else stays a wiki document, asked for exactly as before.
+      if (config && config.source === 'url') {
+        const url = String(config.url || '').trim();
+        return Promise.resolve({
+          external: true,
+          url,
+          embedUrl: externalPdfEmbedUrl(url),
+          pageUrl: url,
+          title: url ? externalPdfLabel(url) : '',
+        });
+      }
+      const p = pageRef(config, 'file');
+      return fetchDocumentPages(p.title, p.projectConfig);
+    },
     transform: (data, config) => ({ ...data, spread: (config && config.spread) || 'auto' }),
     // Emits the file's own page (e.g. commons.wikimedia.org/wiki/File:…), the link the title opens.
     // ISSUE-96: the value is about a commons-file (config.file carries kind 'commons-file').
     outputs: { kind: 'value', subject: 'commons-file', denotes: 'name' },
-    emit: (data) => data?.pageUrl,
+    emit: (data) => (data && data.external ? undefined : data?.pageUrl),   // an external PDF is not a commons-file (ISSUE-153)
   },
 
   listSource: {

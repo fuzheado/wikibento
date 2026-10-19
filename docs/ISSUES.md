@@ -7066,3 +7066,50 @@ resolves; a missing id is still reported by both).
    treats them alike prints `[object Object]` (the first version of the new test's assertion did exactly that).
 3. **Who is authoritative**: `/api/validate` serves the doctor, ⬆ Import runs the validator, and the suite runs both — so
    this class of divergence can only be found by running both on one board, which is what the test now does.
+
+## ISSUE-153 · A PDF that is not on a wiki: a link, the browser's viewer, and a sandbox that must not be there (2026-10-09, **done**)
+
+**The ask.** Show a PDF that isn't on Commons or Wikisource — e.g. an MIT OCW lecture deck — in a card. `documentReader`
+could only take a wiki file (`file` is `kind: 'commons-file'`), so the whole page-thumbnail machinery was unavailable.
+
+**The measurement that decided the design** (`curl -sI`, 2026-10-09, the 16.885J intro slides, 204,675 bytes):
+
+```
+content-type: application/pdf · accept-ranges: bytes · access-control-allow-origin: *
+(no X-Frame-Options, no CSP frame-ancestors)
+```
+
+So an iframe is permitted, and PDF.js would be too. An iframe costs nothing and brings the browser's full viewer (zoom,
+search, text selection, a 25-page thumbnail strip, download, print), so the card takes it: `source: 'url'` plus `url` on
+`documentReader`, and `<iframe src="…#view=FitH">`.
+
+**The trap, and the reason this entry exists.** Sandboxing that iframe the way `WikiPageCard` sandboxes untrusted custom
+URLs (ISSUE-62) **breaks it**. Measured headed in Chromium, three variants:
+
+| sandbox | result |
+|---|---|
+| `allow-scripts allow-same-origin allow-forms allow-presentation` | broken-document icon, `chrome-error://chromewebdata` |
+| `allow-scripts allow-same-origin` (the minimum) | the same |
+| **none** | the real viewer — 1/25, thumbnails, zoom, print |
+
+Chrome's PDF viewer is a **component-extension frame** (`chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai`), and a
+sandboxed iframe will not load it. So the embed ships unsandboxed **by design**, with the exposure named where the code
+lives: a hostile PDF host could try to navigate the top window — the same exposure Wikimedia's own unsandboxed wiki
+iframe already carries. **Do not "fix" this back.**
+
+**Second trap: headless browsers cannot paint a PDF.** The first screenshot of the board was a blank white frame that
+looked exactly like a broken feature; it was the harness. `npm run render:board` gained `--headed` for embeds, and its
+`empty` heuristic gained an `embed` state — an iframe has no readable text, so it had been reporting a working embed as
+empty (true for the wiki-page card too, which is the same bug seen earlier and not recognised).
+
+**What the card gives up, deliberately:** no pagecount, no per-page config, no thumbnails of our own, no `pageN-`
+ladder, no Wikisource text — the viewer is opaque to us. `#page=` / `#zoom=` in the author's own link is respected;
+otherwise `#view=FitH` (fit to width).
+
+**Not built — route 2, for when the opacity hurts:** PDF.js into a canvas, which would make a PDF behave like our image
+cards (per-page config, our print layout, our thumbnails). It is possible from here
+(`access-control-allow-origin: *`), and it also survives a CDN adding `X-Frame-Options` later.
+
+**Licensing, and a demo-board rule.** MIT OCW's default licence is **CC BY-NC-SA 4.0**, and NC is not accepted on
+Commons — so such a deck can be linked and framed, never mirrored. A shipped demo should use a Commons PDF or an
+Internet Archive item; the URL mode is for "this document lives at that URL", with attribution in the board's own note.

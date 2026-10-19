@@ -286,3 +286,29 @@ Three ideas from Andrew, recorded with their trade-offs in [ISSUES.md](ISSUES.md
 **Not doing:** an in-card framed PDF as the primary reading experience. If we add it, it is behind an
 allow-list, after a real-browser check of the sandbox question, and documented as fragile — a bonus for
 Chrome users, never the way a document is read.
+
+## A PDF that is not on a wiki — the URL source (2026-10-09, ISSUE-153)
+
+`documentReader` gained `source: 'commons' | 'url'`. The wiki path is unchanged (pagecount, the page-N thumbnail
+ladder, the spread control, the Wikisource text layer). The URL path adds one thing and gives up all of them:
+
+- **adds** — any PDF the browser can load, drawn by the browser's own viewer: zoom, search, text selection, its page
+  strip, download and print, for free;
+- **gives up** — pagecount, per-page config, our thumbnails, the spread control, the Wikisource panel, and any ability
+  to style the content;
+- **requires** — the host sends no `X-Frame-Options` and no CSP `frame-ancestors` (measure with `curl -sI`;
+  `docs/DATA-SOURCES.md` §16).
+
+**The sandbox rule, measured** (headed Chromium, 2026-10-09): sandboxing the iframe — even `allow-scripts
+allow-same-origin`, the minimum — leaves a broken-document icon, because Chrome's PDF viewer is a component-extension
+frame (`chrome-extension://mhjfb…`) that a sandboxed iframe will not load. The embed therefore ships **unsandboxed by
+design**, accepting the exposure Wikimedia's own unsandboxed wiki iframe already carries (a hostile host could try to
+navigate the top window). **Do not re-add the sandbox.**
+
+**Headless browsers cannot paint a PDF** — the first screenshot of such a card was a blank white frame that looked
+exactly like a broken feature. For screenshots use `npm run render:board -- board.json --headed`; the tool also reports
+an `embed` state rather than calling an iframe `empty`.
+
+**Route 2, if the opacity ever hurts:** PDF.js into a canvas, which would make a PDF behave like an image card
+(per-page config, our print layout, our own thumbnails). It is possible here because the host sends
+`access-control-allow-origin: *`, and it survives a CDN adding anti-framing headers later.

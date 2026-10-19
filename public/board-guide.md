@@ -368,12 +368,12 @@ A scanned Internet Archive book, page by page — turn, zoom to read, jump to a 
 - defaults: may be omitted: `edgeToEdge`, `identifier`, `spread`, `refreshSeconds`
 
 ### `documentReader` — Document Reader
-Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page's text and says how proofread it is
+Read a PDF or DjVu page by page from its wiki — page turns, facing pages, Wikisource text
 
 - role: `source` · publishes `value` (the bare id) · about a commons-file
 - reads: Commons API imageinfo — pagecount + a page-N thumbnail template (one call)
-- fields: `file`:text · `project`:project · `spread`:select [auto | on | off] · `textPanel`:select [on | off] · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none]
-- defaults: may be omitted: `edgeToEdge`, `mediaBackground`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
+- fields: `source`:select [commons | url] · `url`:text only when `source` is `url` · `file`:text only when `source` is `commons` · `project`:project only when `source` is `commons` · `spread`:select [auto | on | off] only when `source` is `commons` · `textPanel`:select [on | off] only when `source` is `commons` · `edgeToEdge`:boolean · `mediaBackground`:select [auto | light | dark | none]
+- defaults: may be omitted: `edgeToEdge`, `mediaBackground`, `source`, `url`, `file`, `project`, `spread`, `textPanel`, `refreshSeconds`
 
 ### `listSource` — Text List
 A pasted list of lines (articles, files, anything) published for other widgets — connect via a `source` picker or {{widget:id}}

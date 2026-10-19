@@ -15,6 +15,7 @@ import assert from 'node:assert/strict';
 import {
   DOCUMENT_MAX_WIDTH, DOCUMENT_WIDTHS, DOCUMENT_STRIP_WIDTH,
   normalizeCommonsFile, isDocument, isDocumentType, derivePageTemplate, documentPageSource,
+  externalPdfEmbedUrl, externalPdfLabel,
 } from '../src/lib/documentSource.js';
 import { zoomLadder, clampPage, PV_LADDER, sourceWidths, stripThumbWidth } from '../src/lib/pagedViewer.js';
 
@@ -204,4 +205,28 @@ test('clampPage: a typed page number becomes a valid index, out-of-range input c
   assert.equal(clampPage('', 16), 0);
   assert.equal(clampPage(5, 0), 0, 'no pages at all');
   assert.equal(clampPage(2.4, 16), 1, 'a fractional entry rounds');
+});
+
+// ── An external PDF (ISSUE-153): a link, not a wiki file ────────────────────────────────────────────────────────
+// Measured 2026-10-09: MIT OCW's lecture slides send no X-Frame-Options and no CSP frame-ancestors, and do send
+// `access-control-allow-origin: *` — so both a plain iframe and PDF.js are possible. The card takes the iframe.
+
+const MIT_PDF = 'https://ocw.mit.edu/courses/16-885j-aircraft-systems-engineering-fall-2004/588bcd11ad720539c9c0147d9dc5b101_intro_murman.pdf';
+
+test('an external PDF URL is fitted to the card width, and an author fragment wins', () => {
+  assert.equal(externalPdfEmbedUrl(MIT_PDF), `${MIT_PDF}#view=FitH`);
+  assert.equal(externalPdfEmbedUrl(`  ${MIT_PDF}  `), `${MIT_PDF}#view=FitH`);
+  assert.equal(externalPdfEmbedUrl(`${MIT_PDF}#page=12`), `${MIT_PDF}#page=12`, 'a page an author chose is intent');
+  assert.equal(externalPdfEmbedUrl(`${MIT_PDF}#zoom=150`), `${MIT_PDF}#zoom=150`);
+  assert.equal(externalPdfEmbedUrl('https://example.org/a.pdf?dl=1'), 'https://example.org/a.pdf?dl=1#view=FitH', 'the query survives');
+  // Not an embeddable link: an iframe would show a broken document, so offer none rather than a wrong one.
+  assert.equal(externalPdfEmbedUrl('File:Some.pdf'), '');
+  assert.equal(externalPdfEmbedUrl(''), '');
+  assert.equal(externalPdfEmbedUrl(null), '');
+});
+
+test('an external PDF is labelled by the name it was published under', () => {
+  assert.equal(externalPdfLabel(MIT_PDF), '588bcd11ad720539c9c0147d9dc5b101_intro_murman');
+  assert.equal(externalPdfLabel('https://example.org/reports/annual%20report.pdf?dl=1#page=2'), 'annual report');
+  assert.equal(externalPdfLabel('https://example.org/'), 'PDF', 'nothing to name it by');
 });

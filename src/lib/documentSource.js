@@ -210,3 +210,39 @@ export function documentPageSource(imageinfo, title, project = 'commons.wikimedi
     notice: '',
   };
 }
+
+/**
+ * An EXTERNAL PDF — one that is not on a wiki — embedded by URL (ISSUE-153).
+ *
+ * A wiki document needs no peer: `imageinfo` gives a pagecount and a page-N template, and every page is ours to
+ * draw. A PDF anywhere else has neither, so the card hands the URL to the browser's own PDF viewer in an iframe.
+ * That is a deliberate trade, measured 2026-10-09: the viewer gives zoom, search, text selection and paging for
+ * free, but it is opaque to us — no pagecount, no thumbnails, no styling — and it renders only where the host
+ * sends no `X-Frame-Options` and no CSP `frame-ancestors`. MIT OCW's slides send neither (and
+ * `access-control-allow-origin: *`), which is why this path exists at all rather than a PDF.js canvas.
+ *
+ * `#view=FitH` is the useful default in a card: a page fitted to the width reads without scrolling sideways. An
+ * author's own fragment wins, because `#page=12` or `#zoom=150` is intent, not noise.
+ */
+export function externalPdfEmbedUrl(url) {
+  const u = String(url || '').trim();
+  if (!/^https?:\/\//i.test(u)) return '';
+  const hash = u.indexOf('#');
+  const frag = hash === -1 ? '' : u.slice(hash + 1);
+  const base = hash === -1 ? u : u.slice(0, hash);
+  return /(^|&)(page|zoom|nameddest|search)=/i.test(frag) ? u : `${base}#view=FitH`;
+}
+
+/** The label for an external PDF: the name it was published under, minus the extension. */
+export function externalPdfLabel(url) {
+  const u = String(url || '').trim().split('#')[0].split('?')[0];
+  // The last PATH segment — `https://example.org/` must yield nothing, not "example.org", so the origin is dropped
+  // first and a string that is not a URL at all falls back to being read as one.
+  let pathname = u;
+  try { pathname = new URL(u).pathname; } catch { /* not a URL: read it as a path */ }
+  const last = pathname.split('/').filter(Boolean).pop() || '';
+  let name = last;
+  try { name = decodeURIComponent(last); } catch { /* a malformed escape is not worth a crash */ }
+  name = name.replace(/\.pdf$/i, '').trim();
+  return name || 'PDF';
+}

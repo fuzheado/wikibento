@@ -596,7 +596,7 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
    dark stage background stays — it is what a letterboxed page sits on, not a margin. What edge to edge does NOT
    remove here is `.pv-head` and `.pv-toolbar`: the head carries the link to the source and the toolbar is how you
    turn pages, and the rule for this mode is that chrome goes while controls and warnings stay. */
-.widget-frame.edge-to-edge .wikipage-iframe { border: none; border-radius: 0; }
+.widget-frame.edge-to-edge .wikipage-iframe, .widget-frame.edge-to-edge .pdf-embed-frame { border: none; border-radius: 0; }
 .widget-frame.edge-to-edge .pv-stage { border: none; border-radius: 0; }
 /* The card's own title goes as well — with the frame bare, the picture is the title. The subtitle goes with it
    EXCEPT when it is carrying a warning: the media player says "N not found" there, and hiding that would be the
@@ -1773,6 +1773,10 @@ img.plate-alpha-dark { --media-plate: var(--bg); }
 /* ── Wiki Page embed ──────────────────────────────────────── */
 .wikipage-card { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
 .wikipage-iframe { flex: 1; min-height: 0; width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
+/* An external PDF (ISSUE-153) fills the card; the browser's viewer draws inside it, so there is nothing to style but
+   the frame itself. */
+.pdf-embed { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; padding: 8px 10px; }
+.pdf-embed-frame { flex: 1; min-height: 0; width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 /* ── CIM Top Files ────────────────────────────────────────── */
 .cim-top-file { align-items: center !important; }
 .cim-top-file-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; text-decoration: none; color: var(--text); }

@@ -1,6 +1,6 @@
 {
  "version": 4,
- "generatedAt": "2026-10-09T15:08:59.367Z",
+ "generatedAt": "2026-10-19T15:02:22.128Z",
  "widgetCount": 36,
  "widgets": [
   {
@@ -2191,7 +2191,7 @@
    "id": "documentReader",
    "name": "Document Reader",
    "icon": "📄",
-   "description": "Read a PDF or DjVu, page by page, straight from the wiki that hosts it — turn, zoom, jump to a page, facing pages, and a link to the original. Where Wikisource has transcribed the file, a ¶ button shows each page's text and says how proofread it is",
+   "description": "Read a PDF or DjVu page by page from its wiki — page turns, facing pages, Wikisource text",
    "dataSource": "Commons API imageinfo — pagecount + a page-N thumbnail template (one call)",
    "category": "Files & Media",
    "type": "stat",
@@ -2203,24 +2203,52 @@
    "consumesSource": false,
    "configFields": [
     {
+     "key": "source",
+     "type": "select",
+     "label": "Source",
+     "options": [
+      "commons",
+      "url"
+     ]
+    },
+    {
+     "key": "url",
+     "type": "text",
+     "label": "PDF link",
+     "hint": "http(s); #page=/#zoom= win, else fit width.",
+     "placeholder": "https://example.org/x.pdf",
+     "showIf": {
+      "source": "url"
+     }
+    },
+    {
      "key": "file",
      "type": "text",
      "label": "File",
-     "hint": "A PDF or DjVu on any wiki — the file name, or paste the file URL from your browser.",
-     "placeholder": "File:The Three Hostages (1924).pdf"
+     "hint": "A PDF or DjVu on any wiki — name or URL.",
+     "placeholder": "File:The Three Hostages (1924).pdf",
+     "showIf": {
+      "source": "commons"
+     }
     },
     {
      "key": "project",
      "type": "project",
      "label": "Wiki",
-     "hint": "Which wiki hosts it: commons.wikimedia by default, en.wikisource for a proofread book, or any other project.",
-     "placeholder": "commons.wikimedia"
+     "hint": "Which wiki hosts it — commons.wikimedia by default.",
+     "placeholder": "commons.wikimedia",
+     "showIf": {
+      "source": "commons"
+     }
     },
     {
      "key": "spread",
      "type": "select",
      "label": "Reading mode",
-     "hint": "A board can open a document in spread mode; the ▭ button on the card still overrides it for the reader.",
+     "hint": "A board can set it; the ▭ button still overrides.",
+     "showIf": {
+      "source": "commons"
+     },
      "options": [
       "auto",
       "on",
@@ -2231,7 +2259,10 @@
      "key": "textPanel",
      "type": "select",
      "label": "Transcription",
-     "hint": "Applies where Wikisource has transcribed the file — the card detects that, and a file with no transcription never shows the panel.",
+     "hint": "Only where Wikisource transcribed it — a file without one never shows the panel.",
+     "showIf": {
+      "source": "commons"
+     },
      "options": [
       "on",
       "off"
@@ -2259,6 +2290,8 @@
    "defaults": [
     "edgeToEdge",
     "mediaBackground",
+    "source",
+    "url",
     "file",
     "project",
     "spread",

@@ -3148,6 +3148,30 @@ function IaBookCard({ data }) {
  *  viewer hides what a source cannot do rather than offering a broken control.
  */
 function DocumentReaderCard({ data }) {
+  // A PDF that is not on a wiki (ISSUE-153): hand the URL to the browser's own viewer. It is opaque to us — no
+  // page list, no thumbnails, no styling of its interior — but it zooms, searches and selects text for free, and it
+  // renders only because the host sends no X-Frame-Options / frame-ancestors (measured; docs/DATA-SOURCES.md).
+  //
+  // Deliberately NOT sandboxed, and that is measured rather than overlooked: WikiPageCard's ISSUE-62 sandbox — even the
+  // minimum `allow-scripts allow-same-origin` — leaves Chrome's PDF viewer showing a broken-document icon, because the
+  // viewer is an extension frame (`chrome-extension://mhjfb…`) and a sandboxed iframe will not load it. The cost is the
+  // exposure Wikimedia's own (unsandboxed) wiki iframe already carries: a hostile host could try to navigate the top
+  // window. Checked headed in Chromium, 2026-10-09, both sandbox variants against none.
+  if (data && data.external) {
+    if (!data.embedUrl) return <div className="widget-empty">Paste a PDF link in ⚙</div>;
+    return (
+      <div className="pdf-embed">
+        <iframe
+          className="pdf-embed-frame"
+          src={data.embedUrl}
+          title={data.title || 'PDF'}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          allow="fullscreen"
+        />
+      </div>
+    );
+  }
   const transcript = data && data.transcription;
   return (
     <PagedViewer

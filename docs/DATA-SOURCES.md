@@ -827,3 +827,24 @@ The card's footer shows the fetch time like every other widget, and each card li
 - **Print and export work** because it is one image: ⛶ Export → PNG and 🖨️ Print rasterise properly, where a tiled map
   would not. This is the reason the static card came before any interactive one.
 
+
+## 16. Document Reader — a PDF link from anywhere (2026-10-09, ISSUE-153)
+
+**Widget:** Document Reader, `source: 'url'` · **Fetcher:** none — an `<iframe>` to the PDF · **Cost:** one document load by the browser
+
+Not an API: the card hands the URL to the browser's own PDF viewer, so there is nothing to fetch, parse or cache. What
+matters is whether the host **allows framing**, and that has to be measured per host rather than assumed:
+
+```bash
+curl -sI "$PDF_URL" | grep -iE "x-frame-options|content-security-policy|access-control-allow-origin"
+```
+
+- **`X-Frame-Options` or CSP `frame-ancestors` ⇒ no iframe.** Only a proxy or PDF.js remains.
+- **No anti-framing header ⇒ the iframe renders** — measured on MIT OCW, 2026-10-09: no XFO, no CSP, `ACAO: *`,
+  `accept-ranges: bytes`, `application/pdf`.
+- **`access-control-allow-origin: *` ⇒ PDF.js is also possible** later (`docs/DOCUMENT-VIEWER.md`, route 2).
+
+Traps, both measured: the iframe **must not be sandboxed** (Chrome's viewer is an extension frame, so any sandbox leaves
+a broken-document icon — ISSUE-153), and **headless browsers cannot paint a PDF**, so a screenshot needs
+`npm run render:board -- board.json --headed`. NC-licensed decks (MIT OCW's default) cannot be mirrored to Commons:
+link and attribute, or use a Commons file for a permanent demo.

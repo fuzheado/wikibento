@@ -16,6 +16,7 @@
  *   npm run render:board -- boards/my.json                                  # serves dist/ itself (refuses a stale build)
  *   npm run render:board -- boards/my.json --base https://wikibento.toolforge.org
  *   npm run render:board -- boards/my.json --out cache/render --strict       # a waiting card fails too
+ *   npm run render:board -- boards/my.json --headed                          # embeds: headless cannot paint a PDF
  *
  * Exit code: 1 when a card is in its **error** state (or, with `--strict`, waiting/loading). A card that is simply
  * waiting is not a failure by default — on a tour or a pick-a-subject board that is the designed state, and ISSUE-145
@@ -33,10 +34,13 @@ const take = (name) => { const i = argv.indexOf(name); return i === -1 ? undefin
 const baseArg = take('--base');
 const outDir = take('--out') || 'cache/render';
 const strict = argv.includes('--strict');
+// Headed is for EMBEDS: headless Chromium has no PDF viewer, so a PDF card screenshots as a blank frame there and looks
+// broken when it is not (measured while building ISSUE-153). Everything else is cheaper headless.
+const headed = argv.includes('--headed');
 const file = argv.find((a) => !a.startsWith('--'));
 
 if (!file) {
-  console.error('usage: npm run render:board -- board.json [--base URL] [--out DIR] [--strict]');
+  console.error('usage: npm run render:board -- board.json [--base URL] [--out DIR] [--strict] [--headed]');
   process.exit(2);
 }
 let board;
@@ -96,7 +100,7 @@ try {
 const widgets = board.widgets?.length ?? 0;
 console.log(`\n  rendering ${path.basename(file)} — ${widgets} widget(s) — against ${base}${baseArg ? ' (a deployment)' : ' (the local build)'}\n`);
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: !headed });
 const page = await browser.newPage({ viewport: { width: 1500, height: 1000 }, deviceScaleFactor: 1 });
 const problems = [];
 page.on('pageerror', (e) => problems.push(e.message.slice(0, 120)));
@@ -132,13 +136,19 @@ try {
     // Heuristic, and said so: a card that drew but holds nothing. The app's own empty-state phrases are recognised
     // because "No image found" is 14 characters and would otherwise pass as content.
     const EMPTY = /^(no image found|no images?|no data|no results?|no files?|nothing( to show)?|none|not found|—+)$/i;
-    const empty = !error && !waiting && !loading && (text.length < 12 || EMPTY.test(text));
+    // An embed (an iframe — a PDF, a wiki page) has no text of its own, so the `empty` heuristic reads it as blank. It is
+    // neither a failure nor proof: the frame's content is a separate document, cross-origin, and its text is not ours to
+    // read. Report it as its own state, with the screenshot as the evidence — that is how the PDF card's sandbox
+    // question was settled (ISSUE-153: sandboxed = broken icon, unsandboxed = the real viewer).
+    const embed = !error && !waiting && !loading && text.length < 12 && !!el.querySelector('iframe');
+    const empty = !error && !waiting && !loading && !embed && (text.length < 12 || EMPTY.test(text));
     return {
       id,
-      state: error ? 'error' : waiting ? 'waiting' : loading ? 'loading' : empty ? 'empty' : 'drawn',
+      state: error ? 'error' : waiting ? 'waiting' : loading ? 'loading' : embed ? 'embed' : empty ? 'empty' : 'drawn',
       detail: error ? inside('.widget-error').slice(0, 90)
         : waiting ? inside('.widget-waiting').slice(0, 90)
-          : text.slice(0, 70) || '(no text — check the screenshot)',
+          : embed ? 'an iframe — the screenshot is the evidence'
+            : text.slice(0, 70) || '(no text — check the screenshot)',
     };
   }));
   fs.mkdirSync(outDir, { recursive: true });
@@ -153,10 +163,10 @@ try {
 }
 
 const count = (s) => cards.filter((c) => c.state === s).length;
-const icon = { drawn: '✅', waiting: '⏳', loading: '…', empty: '␀', error: '❌' };
+const icon = { drawn: '✅', waiting: '⏳', loading: '…', empty: '␀', embed: '▭', error: '❌' };
 for (const c of cards) console.log(`  ${icon[c.state]} ${c.id.padEnd(20)} ${c.state.padEnd(7)} ${c.detail}`);
 if (cards.length < widgets) console.log(`  ⚠ ${widgets - cards.length} widget(s) never appeared as a card at all`);
-console.log(`\n  ${cards.length}/${widgets} card(s) — ${count('drawn')} drawn · ${count('empty')} empty · ${count('waiting')} waiting · ${count('loading')} loading · ${count('error')} errored`);
+console.log(`\n  ${cards.length}/${widgets} card(s) — ${count('drawn')} drawn · ${count('embed')} embed · ${count('empty')} empty · ${count('waiting')} waiting · ${count('loading')} loading · ${count('error')} errored`);
 for (const p of problems.slice(0, 5)) console.log(`  ! ${p}`);
 
 const failed = count('error') > 0 || cards.length < widgets || problems.length > 0 || (strict && (count('waiting') || count('loading')));
