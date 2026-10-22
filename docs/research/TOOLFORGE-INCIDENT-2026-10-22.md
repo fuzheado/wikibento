@@ -229,8 +229,13 @@ window, and is it configured fail-open (`failurePolicy: Ignore`)?**
 
 A fail-open mutator is the only way a pod can be created with a *required* variable missing and **no error anywhere** — no
 event (the namespace's events had expired by the time we looked), no complaint from `webservice status`, nothing in the
-logs but the symptom. If it is fail-open, the two cheapest permanent fixes are (i) stop depending on `$HOME` in the runner
-(`${TOOL_DATA_DIR:-$HOME}`, or `$PWD`), and (ii) have the runner assert its own contract and die saying *why*.
+logs but the symptom. If it is fail-open, the two cheapest permanent fixes are (i) stop depending on `$HOME` in the runner,
+and (ii) have the runner assert its own contract and die saying *why*.
+
+For (i), **`$PWD`, not `${TOOL_DATA_DIR:-$HOME}`**: `TOOL_DATA_DIR` is supplied by the same mutation that supplies `HOME`,
+so a fallback to it would fail in exactly the scenario this memo is about. `$PWD` comes from the pod template's
+`workingDir: /data/project/<tool>/`, which is in **both** revisions and therefore survives the mutator being absent —
+`cd "${PWD}/www/js"` (or the absolute path) cannot fail this way.
 
 Evidence: two pods from **identical** ReplicaSet templates; the one created mid-incident ran with `HOME=/`, the one created
 that evening got the full environment. A tool account cannot read the webhook configuration
