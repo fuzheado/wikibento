@@ -7128,10 +7128,16 @@ the Deployment existed, and every pod was `0/1 CrashLoopBackOff` — **77 restar
 /usr/bin/webservice-runner: line 8: cd: //www/js: No such file or directory
 ```
 
-Line 8 of the runner is `cd $HOME/www/js` under `set -u`; the doubled slash means `HOME` was **set and empty**. The
-Deployment's pod template carried **no `env` block**, and today's CLI template sets `HOME`, `TOOL_DATA_DIR` and the
-tool's `TOOL_*` variables — so pods recreated during the incident lost their home, and the `:latest` node20 image had
-moved under a template 71 days old.
+Line 8 of the runner is `cd $HOME/www/js` under `set -u`, so the message is a measurement of `HOME`: `//www/js` means
+**`HOME=/`** (an *empty* home would print `/www/js`; an *unset* one would abort with `HOME: unbound variable`).
+
+**Why it broke** — corrected the same day, after reading the ReplicaSets instead of guessing: the tool environment
+(`HOME`, `TOOL_DATA_DIR`, `TOOL_*`) is **injected into the pod at creation** and is in **neither** pod template. ReplicaSet
+**rev 187** (2026-10-16, the crashlooping pod's) and **rev 188** (2026-10-22, the working one) are byte-identical — same
+image, same command, same `workingDir: /data/project/wikibento/`, no `env` block — so the CLI did not change and the image
+did not move under a stale template. What changed is the *pod*: the one recreated mid-incident did not receive the
+injection, started with `HOME=/`, and every in-pod container restart reused that frozen environment. `restart` helped
+because it creates a **new pod** that receives the injection — not because the template was re-rendered.
 
 **What it was NOT** — all checked, in this order, because each would have implied a different fix:
 
@@ -7147,6 +7153,11 @@ moved under a template 71 days old.
 **Verified.** `/`, `/dashboard.json` and `/assets/index-CYPZNcSs.js` → 200; `relay-guard-e2e --base` green;
 `docs-facts --live` 18/18; and the browser sweep **24/24 against production**. No bundle changed: this was infrastructure,
 so the external-PDF feature (ISSUE-153) remains undeployed.
+
+**Three earlier claims, now corrected:** `HOME` was `/`, not empty; the CLI does not write `HOME` (the templates are
+identical); and the old ReplicaSet is **not** gone — it survives as rev 187, which is how the comparison was possible.
+The full account, including what is measured vs inferred and the open question for WMCS, is
+`docs/research/TOOLFORGE-INCIDENT-2026-10-22.md`.
 
 **The lesson, and where it is written down.** `status` describes an object, not a service; a `:latest` image can move
 under a stale pod template, so restart before anything more drastic, and never `stop` to "reset" it. The recipe lives in

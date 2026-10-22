@@ -461,8 +461,10 @@ front door.
   [synthesis](docs/research/TOOL-LANDSCAPE-SYNTHESIS.md) · [TOOLFLOW-ANALYSIS](docs/research/TOOLFLOW-ANALYSIS.md) ·
   [TAPESTRY-EVALUATION](docs/research/TAPESTRY-EVALUATION.md) ·
   [MOBILE-RESIZE-STABILITY](docs/research/MOBILE-RESIZE-STABILITY.md) ·
-  [TOOLFORGE-PHP-IMAGE-BLOCK-MEMO](docs/research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md) (the 2026-10-21/22 Toolforge
-  incident, archived from a sibling project — the memo this repo's 503 fix came from) ·
+  [TOOLFORGE-INCIDENT-2026-10-22](docs/research/TOOLFORGE-INCIDENT-2026-10-22.md) (the combined write-up: the PHP-image
+  block **and** the `cd //www/js` crashloop, how to tell them apart, and what is measured vs inferred) ·
+  [TOOLFORGE-PHP-IMAGE-BLOCK-MEMO](docs/research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md) (the PHP half, archived verbatim
+  from a sibling project) ·
   [IMAGENOTE-FEASIBILITY](docs/research/IMAGENOTE-FEASIBILITY-2026-10-07.md) (the matcher design, measured) ·
   [IMAGENOTE-AUDIT](docs/research/IMAGENOTE-AUDIT-2026-10-08.md) (9,643 files / 30,032 notes, and a 100-note gold set) · [GLAMORGAN-WIDGET](docs/GLAMORGAN-WIDGET.md) ·
   [WAYBACK-REPLAY-LATENCY](docs/WAYBACK-REPLAY-LATENCY.md) ·

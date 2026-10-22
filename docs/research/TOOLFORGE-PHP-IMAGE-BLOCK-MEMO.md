@@ -1,8 +1,9 @@
 <!-- Archived verbatim from commons-vibe on 2026-10-22, with permission of its author (the same maintainer).
      It is ANOTHER PROJECT'S memo about the 2026-10-21/22 Toolforge PHP incident, kept here because it is the best written
      record of that incident's failure modes. It is a HISTORICAL RECORD: do not edit it to match this project. What this
-     project actually hit, and the one-command fix, are in docs/DEPLOYMENT.md ("When the site answers 503") and
-     docs/ISSUES.md ISSUE-154. -->
+     project actually hit — the OTHER failure mode of the same incident, a pod created with HOME=/ and crashlooping on
+     `cd //www/js` — is written up with its measurements in docs/research/TOOLFORGE-INCIDENT-2026-10-22.md, and the
+     operational recipe is in docs/DEPLOYMENT.md ("When the site answers 503"). -->
 
 # MEMO — Toolforge's PHP images are blocked; static tools should move to `node20`
 

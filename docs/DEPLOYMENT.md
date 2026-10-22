@@ -137,13 +137,25 @@ sudo -niu tools.wikibento kubectl logs <pod> --tail=40    # and --previous for t
 
 **Restored 2026-10-22** after exactly that: 77 restarts in 8 h, every one dying on
 `/usr/bin/webservice-runner: line 8: cd: //www/js: No such file or directory`. Line 8 is `cd $HOME/www/js` under
-`set -u`, so the doubled slash means `HOME` was **set but empty** — the Deployment's pod template was old enough to carry
-**no `env` block at all**, and pods recreated during the 2026-10-21/22 Toolforge security incident therefore started
-without `HOME`. Today's CLI template sets `HOME`, `TOOL_DATA_DIR` and the tool's `TOOL_*` variables. Nothing on NFS was
-wrong: `www/js/{package.json,server.js,dist}` were intact, and a probe pod from the same image resolved the tool account
-(`HOME=/data/project/wikibento`, uid 57971) and the NFS mount correctly.
+`set -u`, so the doubled slash is a measurement: **`HOME=/`** (an empty home prints `/www/js`; an unset one aborts with
+`HOME: unbound variable`). The tool environment — `HOME`, `TOOL_DATA_DIR`, `TOOL_*` — is **injected into the pod at
+creation** and appears in **neither** pod template: ReplicaSet rev 187 (2026-10-16, the crashlooping pod's) and rev 188
+(2026-10-22, the working one) are byte-identical. So the pod recreated mid-incident did not receive the injection, and a
+`CrashLoopBackOff` container restarts *inside its pod* — admission never runs again — which is why 77 restarts and eight
+hours changed nothing. Nothing on NFS was wrong: `www/js/{package.json,server.js,dist}` were intact, and a probe pod from
+the same image resolved the tool account (`HOME=/data/project/wikibento`, uid 57971, `whoami`, the NFS path) with no help
+from us, which ruled out the image, NSS and storage.
 
-The fix is one command, and it is non-destructive because the files live on NFS rather than in the pod:
+**Capture the failing state before you fix it** — it is the only copy you get:
+
+```bash
+sudo -niu tools.wikibento kubectl get deploy wikibento -o yaml > /tmp/deploy-before.yaml
+sudo -niu tools.wikibento kubectl get rs -o wide              > /tmp/rs-before.txt
+sudo -niu tools.wikibento kubectl logs <pod> --previous --tail=40 > /tmp/crash-before.txt
+```
+
+The fix is one command — it creates a **new pod**, which is what actually matters — and it is non-destructive because the
+files live on NFS rather than in the pod:
 
 ```bash
 sudo -niu tools.wikibento toolforge webservice node20 restart    # rewrites the Deployment from the current CLI template
@@ -155,6 +167,8 @@ What this leaves as rules:
 - **`status` is not health; pods are.** The CLI's "running" and its opaque 400s both describe the Deployment object.
 - **The image is `:latest`.** It can move under a stale pod template (as it did here), so after a cluster-wide incident a
   **restart is the first thing to try** — and `stop` is not, because it deletes the Deployment outright.
+- **A crashloop never re-admits.** Environment is fixed when a pod is created; a restarting container re-uses it. If the
+  environment is wrong, only a new pod helps — which is why "wait and see" never works.
 - **Do not migrate a language to dodge a block you are not subject to.** This tool is `web: node20` on
   `toolforge-node20-sssd-web`; the PHP-image block ([archived memo](research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md)) applies
   to PHP tools. What transferred from that memo was its diagnostic method and three traps: the 503, `status` lying, and
