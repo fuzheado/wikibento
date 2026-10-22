@@ -111,9 +111,21 @@ Measured, in the order that ruled things out:
   | `securityContext` | `runAsUser/Group 57971`, `runAsNonRoot` | same |
   | **`env`** | **none** | **none** |
 
-  ⇒ **The CLI does not write `HOME`.** The tool environment (`HOME`, `TOOL_DATA_DIR`, `TOOL_*`) is **injected into the pod
-  at creation**, by something outside the pod spec — visible only in the running pod's environment, which is exactly what
-  the probe pod showed.
+  ⇒ **The CLI does not write `HOME`**, and neither template contains it. **The pod does.** Measured on the running pod:
+
+  ```
+  kubectl get pods -o jsonpath='{.items[0].spec.containers[0].env}'
+  → TOOL_REPLICA_PASSWORD (secretKeyRef) … TOOL_OPENSEARCH_URL (value)
+    HOME = /data/project/wikibento,  TOOL_DATA_DIR = /data/project/wikibento
+  ```
+
+  and the same pod carries Toolforge's own annotations `toolforge.org/started-at` and `toolforge.org/mount-storage: all`,
+  which neither template has. **So a Toolforge-side step mutates pods as they are created** — admission-time, adding the
+  tool's environment, the storage marker and the start stamp. That step is the layer that did not take effect for the pod
+  born around 13:15.
+
+  **Why the value was `/`:** a tool-specific value cannot live in a shared image, so with the mutation absent the process
+  saw whatever the image itself defaults to — `/`. (Inferred from the only readable half: the absent variable's fallback.)
 
 **INFERRED:** the injection did not happen for the pod created earlier that day. That pod was recreated around 13:15 on
 2026-10-22 — most plausibly when the incident evicted it from a node — and every container restart afterwards re-ran the
@@ -211,8 +223,14 @@ sweep does. Ours: 24 checks, including "no page errors", against production, imm
 
 ## 6. Open question for WMCS (please answer if you know)
 
-**Was per-pod tool-environment injection (`HOME`, `TOOL_DATA_DIR`, `TOOL_*`) failing for pods created during the
-2026-10-21/22 window?**
+**Was the pod mutator — the admission-time step that stamps `toolforge.org/started-at`, `toolforge.org/mount-storage`
+and the `HOME` / `TOOL_DATA_DIR` / `TOOL_*` environment onto each pod — failing for pods created during the 2026-10-21/22
+window, and is it configured fail-open (`failurePolicy: Ignore`)?**
+
+A fail-open mutator is the only way a pod can be created with a *required* variable missing and **no error anywhere** — no
+event (the namespace's events had expired by the time we looked), no complaint from `webservice status`, nothing in the
+logs but the symptom. If it is fail-open, the two cheapest permanent fixes are (i) stop depending on `$HOME` in the runner
+(`${TOOL_DATA_DIR:-$HOME}`, or `$PWD`), and (ii) have the runner assert its own contract and die saying *why*.
 
 Evidence: two pods from **identical** ReplicaSet templates; the one created mid-incident ran with `HOME=/`, the one created
 that evening got the full environment. A tool account cannot read the webhook configuration
@@ -235,7 +253,9 @@ decisive check for whoever can see more than one namespace — and a bug report 
 | tool files and NFS intact | `ls -la` on the tool account, over NFS | measured |
 | image, NSS and storage healthy | probe pod: `HOME`, `uid`, `whoami`, `ls -ld`, k8s service vars | measured |
 | rev 187 and rev 188 templates identical, both with **no** `env` | `kubectl get rs … -o jsonpath='{.spec.template.spec}'` | measured |
-| the tool env appears in runtime pods with no `env` in the template ⇒ injected at pod creation | probe pod's `env` vs both templates | measured |
+| the tool env appears in runtime pods with **no** `env` in either template, alongside `toolforge.org/started-at` / `toolforge.org/mount-storage` annotations the templates also lack | `kubectl get pods -o jsonpath=…` vs `kubectl get rs -o jsonpath=…` | measured |
+| the mutator is admission-time and per-pod (not the CLI, not the template) | the two measurements above | measured |
+| the fallback when the mutation is absent is `HOME=/` | the `//www/js` arithmetic; a shared image cannot carry a tool-specific value | **INFERRED** |
 | `restart` → 1/1 Ready in ~6 s | `kubectl get pods` after the restart | measured |
 | deployed site healthy afterwards | `/`, an asset, the app's own sweep, `docs-facts --live` | measured |
 | **the injection failed for pods created in the incident window** | the two pods above; nothing else differed | **INFERRED** |

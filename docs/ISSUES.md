@@ -7131,13 +7131,16 @@ the Deployment existed, and every pod was `0/1 CrashLoopBackOff` — **77 restar
 Line 8 of the runner is `cd $HOME/www/js` under `set -u`, so the message is a measurement of `HOME`: `//www/js` means
 **`HOME=/`** (an *empty* home would print `/www/js`; an *unset* one would abort with `HOME: unbound variable`).
 
-**Why it broke** — corrected the same day, after reading the ReplicaSets instead of guessing: the tool environment
+**Why it broke** — corrected twice the same day, by reading the ReplicaSets and then the pod itself: the tool environment
 (`HOME`, `TOOL_DATA_DIR`, `TOOL_*`) is **injected into the pod at creation** and is in **neither** pod template. ReplicaSet
 **rev 187** (2026-10-16, the crashlooping pod's) and **rev 188** (2026-10-22, the working one) are byte-identical — same
 image, same command, same `workingDir: /data/project/wikibento/`, no `env` block — so the CLI did not change and the image
 did not move under a stale template. What changed is the *pod*: the one recreated mid-incident did not receive the
 injection, started with `HOME=/`, and every in-pod container restart reused that frozen environment. `restart` helped
-because it creates a **new pod** that receives the injection — not because the template was re-rendered.
+because it creates a **new pod** that receives the mutation — not because the template was re-rendered. The mutator is
+visible in the running pod: its spec holds `HOME`, `TOOL_DATA_DIR` and the `TOOL_*` entries plus
+`toolforge.org/started-at` / `toolforge.org/mount-storage` annotations, **none** of which appear in the ReplicaSet
+template.
 
 **What it was NOT** — all checked, in this order, because each would have implied a different fix:
 
