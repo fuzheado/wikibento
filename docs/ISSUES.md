@@ -7113,3 +7113,43 @@ cards (per-page config, our print layout, our thumbnails). It is possible from h
 **Licensing, and a demo-board rule.** MIT OCW's default licence is **CC BY-NC-SA 4.0**, and NC is not accepted on
 Commons — so such a deck can be linked and framed, never mirrored. A shipped demo should use a Commons PDF or an
 Internet Archive item; the URL mode is for "this document lives at that URL", with attribution in the board's own note.
+
+## ISSUE-154 · The site answered 503 for eight hours while the CLI said it was running (found and fixed 2026-10-22)
+
+**Symptom.** `https://wikibento.toolforge.org/` → **`503 no healthy upstream`**; every path, including `/`. Reported to me
+as "probably down" after the 2026-10-21/22 Toolforge security incident.
+
+**What the tool said.** `toolforge webservice node20 status` → *"Your webservice of type node20 is running"*. It was not:
+the Deployment existed, and every pod was `0/1 CrashLoopBackOff` — **77 restarts in 8 h**.
+
+**What the container said**, once asked:
+
+```
+/usr/bin/webservice-runner: line 8: cd: //www/js: No such file or directory
+```
+
+Line 8 of the runner is `cd $HOME/www/js` under `set -u`; the doubled slash means `HOME` was **set and empty**. The
+Deployment's pod template carried **no `env` block**, and today's CLI template sets `HOME`, `TOOL_DATA_DIR` and the
+tool's `TOOL_*` variables — so pods recreated during the incident lost their home, and the `:latest` node20 image had
+moved under a template 71 days old.
+
+**What it was NOT** — all checked, in this order, because each would have implied a different fix:
+
+- not the PHP-image block (this tool is `web: node20`, image `toolforge-node20-sssd-web`; a `--dry-run=server` deployment
+  with that image is admitted);
+- not missing files (`www/js/{package.json,server.js,dist,validator-bundle.mjs}` all intact on NFS);
+- not NSS or storage (a probe pod from the same image reported `HOME=/data/project/wikibento`, uid 57971,
+  `whoami` = tools.wikibento, and `/data/project/wikibento` visible).
+
+**Fix.** `toolforge webservice node20 restart` — rewrites the Deployment from the current CLI template. → **1/1 Ready,
+0 restarts, 6 seconds.**
+
+**Verified.** `/`, `/dashboard.json` and `/assets/index-CYPZNcSs.js` → 200; `relay-guard-e2e --base` green;
+`docs-facts --live` 18/18; and the browser sweep **24/24 against production**. No bundle changed: this was infrastructure,
+so the external-PDF feature (ISSUE-153) remains undeployed.
+
+**The lesson, and where it is written down.** `status` describes an object, not a service; a `:latest` image can move
+under a stale pod template, so restart before anything more drastic, and never `stop` to "reset" it. The recipe lives in
+`docs/DEPLOYMENT.md` ("When the site answers 503: check the container, not `webservice status`"), the general incident
+memo is archived in `docs/research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md`, and HANDOFF's agent notes carry the one-line
+version.

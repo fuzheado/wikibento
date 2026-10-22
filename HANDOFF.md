@@ -885,6 +885,11 @@ process. `docs/ISSUES.md` is the canonical internal tracker.
   sets, the matcher's candidates and the evaluation are fixtures in `tests/fixtures/reconcile/`, guarded by
   `tests/reconcile-gold.test.mjs`. The 16 MB corpus and the caches live outside git (`WIKIBENTO_AUDIT_DIR`); the two
   reports, the design and the calibration are in `docs/research/IMAGENOTE-*.md` and `docs/RECONCILIATION.md`.
+- **`webservice status` lies; pods don't.** On 2026-10-22 the site answered 503 with every pod crashlooping while the CLI
+  said "running" (ISSUE-154). `kubectl get pods` + `kubectl logs --previous`, then
+  `toolforge webservice node20 restart` — one command, non-destructive (the files are on NFS). Why, and the trap list:
+  `docs/DEPLOYMENT.md` ("When the site answers 503"); the sibling project's memo, archived:
+  `docs/research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md`.
 - **Docs have a constitution now.** `scripts/docs-facts.mjs` derives the truth
   (registry counts, catalog coverage, the panel-measurement count, build-size
   magnitude) and fails the build when prose contradicts it. Volatile facts are

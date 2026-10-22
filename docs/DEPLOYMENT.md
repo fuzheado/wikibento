@@ -124,6 +124,44 @@ fallback noise. If a deploy "looks missing" after refresh, hard-refresh
 (⌘⇧R) — index.html is served `no-cache`, assets are immutable (HANDOFF
 gotcha #11).
 
+### When the site answers 503: check the container, not `webservice status`
+
+`503 no healthy upstream` from `https://wikibento.toolforge.org/` means the **ingress has no Ready endpoint** — a pod
+problem, not a code problem, and not necessarily a deploy problem. `toolforge webservice node20 status` will still say
+*running*: that describes the Deployment object, which exists happily while every pod crashloops.
+
+```bash
+sudo -niu tools.wikibento kubectl get pods                # 0/1 CrashLoopBackOff is the truth
+sudo -niu tools.wikibento kubectl logs <pod> --tail=40    # and --previous for the crash that just happened
+```
+
+**Restored 2026-10-22** after exactly that: 77 restarts in 8 h, every one dying on
+`/usr/bin/webservice-runner: line 8: cd: //www/js: No such file or directory`. Line 8 is `cd $HOME/www/js` under
+`set -u`, so the doubled slash means `HOME` was **set but empty** — the Deployment's pod template was old enough to carry
+**no `env` block at all**, and pods recreated during the 2026-10-21/22 Toolforge security incident therefore started
+without `HOME`. Today's CLI template sets `HOME`, `TOOL_DATA_DIR` and the tool's `TOOL_*` variables. Nothing on NFS was
+wrong: `www/js/{package.json,server.js,dist}` were intact, and a probe pod from the same image resolved the tool account
+(`HOME=/data/project/wikibento`, uid 57971) and the NFS mount correctly.
+
+The fix is one command, and it is non-destructive because the files live on NFS rather than in the pod:
+
+```bash
+sudo -niu tools.wikibento toolforge webservice node20 restart    # rewrites the Deployment from the current CLI template
+sudo -niu tools.wikibento kubectl get pods                       # expect 1/1 Running within seconds
+```
+
+What this leaves as rules:
+
+- **`status` is not health; pods are.** The CLI's "running" and its opaque 400s both describe the Deployment object.
+- **The image is `:latest`.** It can move under a stale pod template (as it did here), so after a cluster-wide incident a
+  **restart is the first thing to try** — and `stop` is not, because it deletes the Deployment outright.
+- **Do not migrate a language to dodge a block you are not subject to.** This tool is `web: node20` on
+  `toolforge-node20-sssd-web`; the PHP-image block ([archived memo](research/TOOLFORGE-PHP-IMAGE-BLOCK-MEMO.md)) applies
+  to PHP tools. What transferred from that memo was its diagnostic method and three traps: the 503, `status` lying, and
+  "don't stop it to reset it".
+- **Verify with the sweep, not the status code**:
+  `node scripts/board-render-e2e.mjs --base https://wikibento.toolforge.org` — 24 checks against the deployed build.
+
 ## Pull-from-GitHub alternatives: the Build Service and Components
 
 The rsync flow above pushes files **to** the tool. Toolforge also has two mechanisms that build **from a Git
