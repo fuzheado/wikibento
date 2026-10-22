@@ -100,7 +100,7 @@ Measured, in the order that ruled things out:
   `whoami` → `tools.wikibento`, and `/data/project/wikibento` visible. (It also showed Kubernetes service variables like
   `WIKIBENTO_PORT=tcp://10.107.208.5:8000`, which only exist inside a pod — proof the output came from the container and
   not from an over-eager shell.) So image, NSS and storage were all fine.
-- **The pod templates are byte-identical**, which is the decisive one:
+- **The pod templates are identical in `spec.template.spec`**, which is the decisive one:
 
   | | rev 187 (the failing pod's) | rev 188 (the working one) |
   |---|---|---|

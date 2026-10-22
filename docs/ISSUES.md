@@ -2920,7 +2920,7 @@ not the limit — module density in a small card is.
 **Proposed fix:** registry entry `qrCode` (`nodeKind: 'display'`,
 `timeScope: 'point'`, `intensity: 'low'`, zero network calls) + a `QrCard`
 renderer; extend `qrSvg(text, { ecLevel, margin })` keeping SharePanel's
-defaults byte-identical. The `text` field takes the standard interpolation
+defaults identical in `spec.template.spec`. The `text` field takes the standard interpolation
 (`{{param}}`, `{{widget:<id>}}`), so a QR can encode a *derived* value — the
 article a pageviews card is currently showing, or the live board permalink.
 Optional emitter (`outputs: { kind: 'value' }`, `echo`-shaped) to decide in
@@ -2947,7 +2947,7 @@ commercial shorteners or tracked redirect links.
 **Implemented 2026-09-10 (`feature-qr-widget`):** `qrCode` registry entry
 (`nodeKind: display`, static, emits its encoded text) + `QrCard` renderer in
 `WidgetFrame.jsx` + `.qr-*` styles; `src/lib/qr.js` extended with
-`ecLevel`/`margin`/`label` options (defaults byte-identical to the SharePanel
+`ecLevel`/`margin`/`label` options (defaults identical in `spec.template.spec` to the SharePanel
 output — hash-guarded) plus `qrModuleCount`/`qrFits`/`fitEcLevel` and the
 measured capacity table; offline-matcher intent + a derived Ask-manual line;
 and the widget added to README, DATA-SOURCES §26, BOARD-COMPOSITION §1.5
@@ -2964,7 +2964,7 @@ console errors; **both codes decoded from rendered pixels by an independent
 decoder** (OpenCV `QRCodeDetector`) — fixed link → `https://w.wiki/QRtest`,
 param card → the interpolated Commons category URL; a ~1% white smear still
 decoded at EC H; the over-cap card shows the refusal message; **Save SVG**
-downloaded a byte-identical standalone file (5,975 B, quiet zone included).
+downloaded a identical in `spec.template.spec` standalone file (5,975 B, quiet zone included).
 Live Ask (`llm-qwen36-27b`): QR intents return `qrCode` with the named URL,
 and "follow whichever article my pageviews card shows" uses
 `{{widget:…}}` interpolation per the new guidance.
@@ -3081,7 +3081,7 @@ It found **three** bugs, none of which the old check could see:
    forbidden header for `fetch`. So the client cannot fix it — but the deployment's **`/api/proxy` relay** can,
    because it sends the tool's own UA: the same URL through it returns the full box. The widget now detects the
    exact signature (`navbox-styles` present, no `navbox` element — only the navbox family is affected; POTD, In the
-   news, the selected anniversaries and infoboxes came back byte-identical), retries through the relay, and going
+   news, the selected anniversaries and infoboxes came back identical in `spec.template.spec`), retries through the relay, and going
    forward asks the relay first on a phone. Where there is no relay it says so instead of showing an empty box.
 
 3. **A static widget was making a request with an unresolved reference.** ISSUE-58's guard — never send a `{{…}}`
@@ -6611,7 +6611,7 @@ makes the plate visible as the letterbox around the picture.
 | `…/500px-Grignard_reaction_scheme.svg.png` | `200 image/png`, RGBA, corner `(0,0,0,0)`, 1595/1600 corner pixels fully transparent — black strokes, no background |
 | `…/Grignard_reaction_scheme.svg.jpg` | `200 image/jpeg`, **RGB, corner `(0,0,0,255)`** — Commons flattens vector → JPEG onto **BLACK**, so the obvious "ask for a JPEG" trick makes it worse: recorded as a *do not use* |
 | `File:Cscr-featured.png` (transparent PNG) | RGBA, corners `(0,0,0,0)`; its forced `.jpg` variant → **`404`**, i.e. no server-side white flatten for PNGs either |
-| `…500px-….svg.png?bgcolor=white` | `200`, **byte-identical** to the plain request — the parameter is ignored |
+| `…500px-….svg.png?bgcolor=white` | `200`, **identical in `spec.template.spec`** to the plain request — the parameter is ignored |
 | a `200` thumbnail's headers | `access-control-allow-origin: *` — a client-side readback is possible, which is what a future `auto` for transparent *rasters* would need |
 
 **Fix:** a `mediaBackground` field — `auto | light | dark | none`, default `auto` — on the picture-bearing types
@@ -7133,7 +7133,7 @@ Line 8 of the runner is `cd $HOME/www/js` under `set -u`, so the message is a me
 
 **Why it broke** — corrected twice the same day, by reading the ReplicaSets and then the pod itself: the tool environment
 (`HOME`, `TOOL_DATA_DIR`, `TOOL_*`) is **injected into the pod at creation** and is in **neither** pod template. ReplicaSet
-**rev 187** (2026-10-16, the crashlooping pod's) and **rev 188** (2026-10-22, the working one) are byte-identical — same
+**rev 187** (2026-10-16, the crashlooping pod's) and **rev 188** (2026-10-22, the working one) are identical in `spec.template.spec` — same
 image, same command, same `workingDir: /data/project/wikibento/`, no `env` block — so the CLI did not change and the image
 did not move under a stale template. What changed is the *pod*: the one recreated mid-incident did not receive the
 injection, started with `HOME=/`, and every in-pod container restart reused that frozen environment. `restart` helped
